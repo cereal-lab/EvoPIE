@@ -7,14 +7,15 @@ from sqlalchemy import Table, Column, Integer, String, MetaData, ForeignKey
 SQLITE                  = 'sqlite'
 
 # Table Names
-USERS           = 'users'
-ADDRESSES       = 'addresses'
+QUIZZES           = 'quizzes'
+DISTRACTORS       = 'distractors'
 
-class MyDatabase:
+class QuizLibDB:
     # http://docs.sqlalchemy.org/en/latest/core/engines.html
     DB_ENGINE = {
         SQLITE: 'sqlite:///{DB}'
     }
+
 
     # Main DB Connection Ref Obj
     db_engine = None
@@ -26,20 +27,20 @@ class MyDatabase:
             print(self.db_engine)
         else:
             print("DBType is not found in DB_ENGINE")
-            print("DBType is not found in DB_ENGINE")
+
 
     def create_db_tables(self):
         metadata = MetaData()
-        users = Table(USERS, metadata,
+        users = Table(QUIZZES, metadata,
                       Column('id', Integer, primary_key=True),
-                      Column('first_name', String),
-                      Column('last_name', String)
+                      Column('title', String, nullable=False),
+                      Column('question', String, nullable=False),
+                      Column('answer',String, nullable=False)
                       )
-        address = Table(ADDRESSES, metadata,
+        address = Table(DISTRACTORS, metadata,
                         Column('id', Integer, primary_key=True),
-                        Column('user_id', None, ForeignKey('users.id')),
-                        Column('email', String, nullable=False),
-                        Column('address', String)
+                        Column('quiz_id', None, ForeignKey('quizzes.id')),
+                        Column('answer', String, nullable=False)
                         )
         try:
             metadata.create_all(self.db_engine)
@@ -72,12 +73,19 @@ class MyDatabase:
                 result.close()
         print("\n")
 
+    def insert_quiz(self, title, question, answer):
+        query = "INSERT INTO {TABLE}(id, title, question, answer)"\
+                "VALUES (3, {T}, {Q}, {A});".format(TABLE=QUIZZES, T=title, Q=question, A=answer)
+        self.execute_query(query)
+        self.print_all_data(QUIZZES)
+    
 
     # Examples
+    '''
     def sample_query(self):
         # Sample Query
         query = "SELECT first_name, last_name FROM {TBL_USR} WHERE " \
-                "last_name LIKE 'M%';".format(TBL_USR=USERS)
+                "last_name LIKE 'M%';".format(TBL_Q=QUIZZES)
         self.print_all_data(query=query)
         # Sample Query Joining
         query = "SELECT u.last_name as last_name, " \
@@ -87,26 +95,40 @@ class MyDatabase:
                 "WHERE u.id=a.user_id AND u.last_name LIKE 'M%';" \
             .format(TBL_USR=USERS, TBL_ADDR=ADDRESSES)
         self.print_all_data(query=query)
+    '''
+
+    '''
     def sample_delete(self):
-        # Delete Data by Id
         query = "DELETE FROM {} WHERE id=3".format(USERS)
         self.execute_query(query)
         self.print_all_data(USERS)
-        # Delete All Data
-        '''
-        query = "DELETE FROM {}".format(USERS)
-        self.execute_query(query)
-        self.print_all_data(USERS)
-        '''
-    def sample_insert(self):
-        # Insert Data
-        query = "INSERT INTO {}(id, first_name, last_name) " \
-                "VALUES (3, 'Terrence','Jordan');".format(USERS)
-        self.execute_query(query)
-        self.print_all_data(USERS)
+        #query = "DELETE FROM {}".format(USERS)
+        #self.execute_query(query)
+        #self.print_all_data(USERS)
+    '''    
+
+    '''
     def sample_update(self):
-        # Update Data
         query = "UPDATE {} set first_name='XXXX' WHERE id={id}"\
             .format(USERS, id=3)
         self.execute_query(query)
         self.print_all_data(USERS)
+    '''
+
+def main():
+    db = QuizLibDB(SQLITE, dbname='quizlib.sqlite')
+    # Create Tables
+    db.create_db_tables()
+
+    # dbms.insert_single_data()
+    # dbms.print_all_data(mydatabase.USERS)
+    # dbms.print_all_data(mydatabase.ADDRESSES)
+    # dbms.sample_query() # simple query
+    # dbms.sample_delete() # delete data
+    # dbms.sample_insert() # insert data
+    # dbms.sample_update() # update data
+
+
+
+if __name__ == '__main__':
+    main()
