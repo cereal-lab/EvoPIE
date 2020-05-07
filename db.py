@@ -31,7 +31,7 @@ class QuizLibDB:
 
     def create_db_tables(self):
         metadata = MetaData()
-        users = Table(QUIZZES, metadata,
+        sqliteusers = Table(QUIZZES, metadata,
                       Column('id', Integer, primary_key=True),
                       Column('title', String, nullable=False),
                       Column('question', String, nullable=False),
@@ -75,7 +75,7 @@ class QuizLibDB:
 
     def insert_quiz(self, title, question, answer):
         query = "INSERT INTO {TABLE}(id, title, question, answer)"\
-                "VALUES (3, {T}, {Q}, {A});".format(TABLE=QUIZZES, T=title, Q=question, A=answer)
+                "VALUES (NULL, '{T}', '{Q}', '{A}');".format(TABLE=QUIZZES, T=title, Q=question, A=answer)
         self.execute_query(query)
         self.print_all_data(QUIZZES)
     
@@ -119,16 +119,20 @@ def main():
     db = QuizLibDB(SQLITE, dbname='quizlib.sqlite')
     # Create Tables
     db.create_db_tables()
-
-    # dbms.insert_single_data()
-    # dbms.print_all_data(mydatabase.USERS)
-    # dbms.print_all_data(mydatabase.ADDRESSES)
-    # dbms.sample_query() # simple query
-    # dbms.sample_delete() # delete data
-    # dbms.sample_insert() # insert data
-    # dbms.sample_update() # update data
-
-
+    db.insert_quiz(
+        title=u'Sir Lancelot and the bridge keeper, part 1',
+        question=u'What... is your name?',
+        answer=u'Sir Lancelot of Camelot')
+    db.insert_quiz(
+        title=u'Sir Lancelot and the bridge keeper, part 2',
+        question=u'What... is your quest?', 
+        answer=u'To seek the holy grail'
+    )
+    db.insert_quiz(
+        title=u'Sir Lancelot and the bridge keeper, part 3',
+        question=u'What... is your favorite colour?', 
+        answer=u'Blue'
+    )
 
 if __name__ == '__main__':
     main()
