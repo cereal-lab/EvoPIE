@@ -52,7 +52,7 @@ class QuizLibDB:
     # Insert, Update, Delete
     def execute_query(self, query=''):
         if query == '' : return
-        print (query)
+        #print (query)
         with self.db_engine.connect() as connection:
             try:
                 connection.execute(query)
@@ -77,8 +77,13 @@ class QuizLibDB:
         query = "INSERT INTO {TABLE}(id, title, question, answer)"\
                 "VALUES (NULL, '{T}', '{Q}', '{A}');".format(TABLE=QUIZZES, T=title, Q=question, A=answer)
         self.execute_query(query)
-        self.print_all_data(QUIZZES)
+        #self.print_all_data(QUIZZES)
     
+    def insert_distractor(self, quiz_id, answer):
+        query = "INSERT INTO {TABLE}(id, quiz_id, answer)"\
+                "VALUES (NULL, '{Q}', '{A}');".format(TABLE=DISTRACTORS, Q=quiz_id, A=answer)
+        self.execute_query(query)
+        
 
     # Examples
     '''
@@ -133,6 +138,28 @@ def main():
         question=u'What... is your favorite colour?', 
         answer=u'Blue'
     )
+
+    db.print_all_data('quizzes')
+
+    dists = {
+    1: [ u'Sir Galahad of Camelot',
+         u'Sir Arthur of Camelot',
+         u'Sir Bevedere of Camelot',
+         u'Sir Robin of Camelot'
+        ],
+    2: [ u'To bravely run away',
+         u'To spank Zoot',
+         u'To find a shrubbery'
+        ],
+    3: [ u'Green', u'Red', u'Yellow'
+        ]
+    }
+
+    db.insert_distractor(
+        quiz_id=1,
+        answer=u''
+    )
+    
 
 if __name__ == '__main__':
     main()
