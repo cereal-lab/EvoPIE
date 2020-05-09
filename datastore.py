@@ -21,6 +21,7 @@ class DataStore:
 
     # Main DB Connection Ref Obj
     db_engine = None
+
     def __init__(self, dbtype, username='', password='', dbname=''):
         dbtype = dbtype.lower()
         if dbtype in self.DB_ENGINE.keys():
@@ -36,9 +37,10 @@ class DataStore:
         #print (query)
         with self.db_engine.connect() as connection:
             try:
-                connection.execute(query)
+                result = connection.execute(query)
             except Exception as e:
                 print(e)
+        return result
 
     def print_all_data(self, table='', query=''):
         query = query if query != '' else "SELECT * FROM '{}';".format(table)
@@ -91,6 +93,52 @@ class DataStore:
         self.execute_query(query)
 
 
+    def get_all_quizzes(self):
+        '''
+        Returns a list of dictionaries, each representing a quiz from the data base
+        '''
+        '''
+        return [
+            {
+                'id': 1,
+                'title': u'Sir Lancelot and the bridge keeper, part 1',
+                'question': u'What... is your name?', 
+                'answer': u'Sir Lancelot of Camelot'
+            },
+            {
+                'id': 2,
+                'title': u'Sir Lancelot and the bridge keeper, part 2',
+                'question': u'What... is your quest?', 
+                'answer': u'To seek the holy grail'
+            },
+            {
+                'id': 3,
+                'title': u'Sir Lancelot and the bridge keeper, part 3',
+                'question': u'What... is your favorite colour?', 
+                'answer': u'Blue'
+            }
+        ]
+        '''
+
+        
+    def get_all_distractors(self):
+        '''
+        Returns a dictionary of lists containing the distractor strings found 
+        in the data base. Each list has the corresponding quiz_id as key
+        '''
+        return {
+            1: [ u'Sir Galahad of Camelot',
+                u'Sir Arthur of Camelot',
+                u'Sir Bevedere of Camelot',
+                u'Sir Robin of Camelot'],
+            2: [ u'To bravely run away',
+                u'To spank Zoot',
+                u'To find a shrubbery'],
+            3: [ u'Green', u'Red', u'Yellow']
+        }
+    
+    
+    
     def populate(self):
         '''Just populating the DB with some mock quizzes'''
         self.add_quiz(
@@ -108,7 +156,7 @@ class DataStore:
             answer=u'Blue'
         )
 
-        self.print_all_data('quizzes')
+        #self.print_all_data('quizzes')
 
         dists = {
         1: [ u'Sir Galahad of Camelot',
@@ -129,7 +177,7 @@ class DataStore:
                 self.add_distractor(quiz_id=k, answer=s)
         
 
-        self.print_all_data('distractors')
+        #self.print_all_data('distractors')
 
 
 

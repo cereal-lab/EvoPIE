@@ -4,45 +4,9 @@
 from flask import Flask, jsonify, abort
 
 import random # for shuffle(list)
+from datastore import DataStore
 
-#list of quizzes, each represented as a dictionary
-quizzes = [
-    {
-        'id': 1,
-        'title': u'Sir Lancelot and the bridge keeper, part 1',
-        'question': u'What... is your name?', 
-        'answer': u'Sir Lancelot of Camelot'
-    },
-    {
-        'id': 2,
-        'title': u'Sir Lancelot and the bridge keeper, part 2',
-        'question': u'What... is your quest?', 
-        'answer': u'To seek the holy grail'
-    },
-    {
-        'id': 3,
-        'title': u'Sir Lancelot and the bridge keeper, part 3',
-        'question': u'What... is your favorite colour?', 
-        'answer': u'Blue'
-    }
-]
-
-# distractors are keyed by the ID of the quiz for which they
-# are meant
-# each value is a list of all distractors for that quiz_id
-distractors = {
-    1: [ u'Sir Galahad of Camelot',
-         u'Sir Arthur of Camelot',
-         u'Sir Bevedere of Camelot',
-         u'Sir Robin of Camelot'
-        ],
-    2: [ u'To bravely run away',
-         u'To spank Zoot',
-         u'To find a shrubbery'
-        ],
-    3: [ u'Green', u'Red', u'Yellow'
-        ]
-}
+DS = DataStore('sqlite', dbname='quizlib.sqlite')
 
 # http://montypython.50webs.com/scripts/Holy_Grail/Scene22.htm
 app = Flask(__name__)
@@ -50,6 +14,8 @@ app = Flask(__name__)
 @app.route('/')
 def index():
     output = ""
+    quizzes = DS.get_all_quizzes()
+    distractors = DS.get_all_distractors()
     for q in quizzes:
         output += u'<h1>' + q['title'] + u'</h1>'
         output += u'<p>' + q['question'] + u'</p>'
@@ -67,6 +33,8 @@ def index():
 @app.route('/q/<int:quiz_id>', methods=['GET'])
 def get_quiz(quiz_id):
     q = None
+    quizzes = DS.get_all_quizzes()
+    distractors = DS.get_all_distractors()
     for it in quizzes:
         if it['id'] == quiz_id:
             q = it.copy()
@@ -80,11 +48,14 @@ def get_quiz(quiz_id):
         n += 1
     return jsonify(q)
 
+
 @app.route('/q/<int:quiz_id>', methods=['POST'])
 def post_quiz_distractor(quiz_id):
-    # add a distractor to this quiz
+    '''add a distractor to the specified quiz'''
+    distractors = DS.get_all_distractors()
     new_distractor = u'Something, Something... Something'
     dists = distractors[quiz_id]
+    DS.add_distractor(quiz_id, new_distractor)
     dists.append(new_distractor)
 
 
