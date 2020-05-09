@@ -1,8 +1,33 @@
-# This is from https://medium.com/@mahmudahsan/how-to-use-python-sqlite3-using-sqlalchemy-158f9c54eb32
-# tinkering w/ it to learn sqlalchemy
-
 from sqlalchemy import create_engine
 from sqlalchemy import Table, Column, Integer, String, MetaData, ForeignKey
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+
+Base = declarative_base()
+
+
+class Quiz(Base):
+    __tablename__ = 'quizzes'
+    id = Column(Integer, primary_key=True)
+    title = Column(String, nullable=False)
+    question = Column(String, nullable=False)
+    answer = Column(String, nullable=False)
+    def __repr__(self):
+        return "Quiz:\n\tid='%d'\n\ttitle='%s'\n\tquestion='%s'\n\tsolution = '%s'" % (self.id, self.title, self.question, self.answer)
+
+
+
+class Distractor(Base):
+    __tablename__ = 'distractors'
+    id = Column(Integer, primary_key=True)
+    quiz_id = Column(None, ForeignKey('quizzes.id'))
+    answer = Column(String, nullable=False)
+    def __repr__(self):
+        return "Quiz:%d\tid='%d'\tanswer = '%s'" % (self.quiz_id, self.id, self.answer)
+
+
+
+
 # Global Variables
 SQLITE                  = 'sqlite'
 
@@ -189,10 +214,33 @@ def main():
     ds = DataStore(SQLITE, dbname='quizlib.sqlite')
     ds.initialize_new_datastore()
     ds.populate()
+
+def main_with_ORM():
+    engine = create_engine('sqlite:///quizlib.sqlite', echo=False)
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine)
+    s = Session()
+    s.add(Quiz(
+            title=u'Sir Lancelot and the bridge keeper, part 1',
+            question=u'What... is your name?',
+            answer=u'Sir Lancelot of Camelot'))
+    s.add(Quiz(
+            title=u'Sir Lancelot and the bridge keeper, part 2',
+            question=u'What... is your quest?', 
+            answer=u'To seek the holy grail'))
+    s.add(Quiz(
+            title=u'Sir Lancelot and the bridge keeper, part 3',
+            question=u'What... is your favorite colour?', 
+            answer=u'Blue'
+        ))
     
+    s.commit()
+
+
 
 if __name__ == '__main__':
-    main()
+    #main()
+    main_with_ORM()
 
 
     # Examples
