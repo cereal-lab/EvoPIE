@@ -4,6 +4,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 Base = declarative_base()
+        
 
 
 class Quiz(Base):
@@ -13,7 +14,7 @@ class Quiz(Base):
     question = Column(String, nullable=False)
     answer = Column(String, nullable=False)
     def __repr__(self):
-        return "Quiz:\n\tid='%d'\n\ttitle='%s'\n\tquestion='%s'\n\tsolution = '%s'" % (self.id, self.title, self.question, self.answer)
+        return "Quiz(id='%d',title='%s',question='%s',solution = '%s')" % (self.id, self.title, self.question, self.answer)
 
 
 
@@ -23,258 +24,69 @@ class Distractor(Base):
     quiz_id = Column(None, ForeignKey('quizzes.id'))
     answer = Column(String, nullable=False)
     def __repr__(self):
-        return "Quiz:%d\tid='%d'\tanswer = '%s'" % (self.quiz_id, self.id, self.answer)
-
-
-
-
-# Global Variables
-SQLITE                  = 'sqlite'
-
-# Table Names
-QUIZZES           = 'quizzes'
-DISTRACTORS       = 'distractors'
-
+        return "Quiz(quiz_id=%d,id='%d',answer='%s')" % (self.quiz_id, self.id, self.answer)
 
 
 
 class DataStore:
-    # http://docs.sqlalchemy.org/en/latest/core/engines.html
-    DB_ENGINE = {
-        SQLITE: 'sqlite:///{DB}'
-    }
-
-    # Main DB Connection Ref Obj
-    db_engine = None
-
-    def __init__(self, dbtype, username='', password='', dbname=''):
-        dbtype = dbtype.lower()
-        if dbtype in self.DB_ENGINE.keys():
-            engine_url = self.DB_ENGINE[dbtype].format(DB=dbname)
-            self.db_engine = create_engine(engine_url)
-            print(self.db_engine)
-        else:
-            print("DBType is not found in DB_ENGINE")
-
-    # Insert, Update, Delete
-    def execute_query(self, query=''):
-        if query == '' : return
-        #print (query)
-        with self.db_engine.connect() as connection:
-            try:
-                result = connection.execute(query)
-            except Exception as e:
-                print(e)
-        return result
-
-    def print_all_data(self, table='', query=''):
-        query = query if query != '' else "SELECT * FROM '{}';".format(table)
-        print(query)
-        with self.db_engine.connect() as connection:
-            try:
-                result = connection.execute(query)
-            except Exception as e:
-                print(e)
-            else:
-                for row in result:
-                    print(row) # print(row[0], row[1], row[2])
-                result.close()
-        print("\n")
-
-
-    def initialize_new_datastore(self):
-        metadata = MetaData()
-        Table(QUIZZES, metadata,
-                      Column('id', Integer, primary_key=True),
-                      Column('title', String, nullable=False),
-                      Column('question', String, nullable=False),
-                      Column('answer',String, nullable=False)
-                      )
-        Table(DISTRACTORS, metadata,
-                        Column('id', Integer, primary_key=True),
-                        Column('quiz_id', None, ForeignKey('quizzes.id')),
-                        Column('answer', String, nullable=False)
-                        )
-        try:
-            metadata.create_all(self.db_engine)
-            print("Tables created")
-        except Exception as e:
-            print("Error occurred during Table creation!")
-            print(e)
-
-
-    def add_quiz(self, title, question, answer):
-        '''Add a new quiz to the data store'''
-        query = "INSERT INTO {TABLE}(id, title, question, answer)"\
-                "VALUES (NULL, '{T}', '{Q}', '{A}');".format(TABLE=QUIZZES, T=title, Q=question, A=answer)
-        self.execute_query(query)
-        #self.print_all_data(QUIZZES)
-
     
-    def add_distractor(self, quiz_id, answer):
-        '''Add a new distractor to the data store'''
-        query = "INSERT INTO {TABLE}(id, quiz_id, answer)"\
-                "VALUES (NULL, '{Q}', '{A}');".format(TABLE=DISTRACTORS, Q=quiz_id, A=answer)
-        self.execute_query(query)
+    def __init__(self):
+        dbname='sqlite:///quizlib.sqlite'
+        self.__engine = create_engine(dbname, echo=False)
+        Base.metadata.create_all(self.__engine)
+        self.__Session = sessionmaker(bind=self.__engine)
 
 
     def get_all_quizzes(self):
-        '''
-        Returns a list of dictionaries, each representing a quiz from the data base
-        '''
-        '''
-        return [
-            {
-                'id': 1,
-                'title': u'Sir Lancelot and the bridge keeper, part 1',
-                'question': u'What... is your name?', 
-                'answer': u'Sir Lancelot of Camelot'
-            },
-            {
-                'id': 2,
-                'title': u'Sir Lancelot and the bridge keeper, part 2',
-                'question': u'What... is your quest?', 
-                'answer': u'To seek the holy grail'
-            },
-            {
-                'id': 3,
-                'title': u'Sir Lancelot and the bridge keeper, part 3',
-                'question': u'What... is your favorite colour?', 
-                'answer': u'Blue'
-            }
-        ]
-        '''
+        s = self.__Session()
+        return s.query(Quiz)
 
-        
+
     def get_all_distractors(self):
-        '''
-        Returns a dictionary of lists containing the distractor strings found 
-        in the data base. Each list has the corresponding quiz_id as key
-        '''
-        return {
-            1: [ u'Sir Galahad of Camelot',
-                u'Sir Arthur of Camelot',
-                u'Sir Bevedere of Camelot',
-                u'Sir Robin of Camelot'],
-            2: [ u'To bravely run away',
-                u'To spank Zoot',
-                u'To find a shrubbery'],
-            3: [ u'Green', u'Red', u'Yellow']
-        }
-    
-    
-    
+        s = self.__Session()
+        return s.query(Distractor)
+
+
     def populate(self):
         '''Just populating the DB with some mock quizzes'''
-        self.add_quiz(
-            title=u'Sir Lancelot and the bridge keeper, part 1',
-            question=u'What... is your name?',
-            answer=u'Sir Lancelot of Camelot')
-        self.add_quiz(
-            title=u'Sir Lancelot and the bridge keeper, part 2',
-            question=u'What... is your quest?', 
-            answer=u'To seek the holy grail'
-        )
-        self.add_quiz(
-            title=u'Sir Lancelot and the bridge keeper, part 3',
-            question=u'What... is your favorite colour?', 
-            answer=u'Blue'
-        )
-
-        #self.print_all_data('quizzes')
-
-        dists = {
-        1: [ u'Sir Galahad of Camelot',
-             u'Sir Arthur of Camelot',
-             u'Sir Bevedere of Camelot',
-             u'Sir Robin of Camelot'
-            ],
-        2: [ u'To bravely run away',
-             u'To spank Zoot',
-             u'To find a shrubbery'
-            ],
-        3: [ u'Green', u'Red', u'Yellow'
-            ]
-        }
-
-        for k,v in dists.items():
-            for s in v:
-                self.add_distractor(quiz_id=k, answer=s)
+        s = self.__Session()
+        s.add(Quiz(
+                title=u'Sir Lancelot and the bridge keeper, part 1',
+                question=u'What... is your name?',
+                answer=u'Sir Lancelot of Camelot'))
+        s.add(Quiz(
+                title=u'Sir Lancelot and the bridge keeper, part 2',
+                question=u'What... is your quest?', 
+                answer=u'To seek the holy grail'))
+        s.add(Quiz(
+                title=u'Sir Lancelot and the bridge keeper, part 3',
+                question=u'What... is your favorite colour?', 
+                answer=u'Blue'))
         
+        #TODO how to get the foreign keys
+        s.add(Distractor(quiz_id=1,answer=u'Sir Galahad of Camelot'))
+        s.add(Distractor(quiz_id=1,answer=u'Sir Arthur of Camelot'))
+        s.add(Distractor(quiz_id=1,answer=u'Sir Bevedere of Camelot'))
+        s.add(Distractor(quiz_id=1,answer=u'Sir Robin of Camelot'))
 
-        #self.print_all_data('distractors')
+        s.add(Distractor(quiz_id=2,answer=u'To bravely run away'))
+        s.add(Distractor(quiz_id=2,answer=u'To spank Zoot'))
+        s.add(Distractor(quiz_id=2,answer=u'To find a shrubbery'))
 
+        s.add(Distractor(quiz_id=3,answer=u'Green'))
+        s.add(Distractor(quiz_id=3,answer=u'Red'))
+        s.add(Distractor(quiz_id=3,answer=u'Yellow'))
 
-
-        
+        s.commit()
 
 
 
 def main():
-    ds = DataStore(SQLITE, dbname='quizlib.sqlite')
-    ds.initialize_new_datastore()
+    ds = DataStore()
     ds.populate()
-
-def main_with_ORM():
-    engine = create_engine('sqlite:///quizlib.sqlite', echo=False)
-    Base.metadata.create_all(engine)
-    Session = sessionmaker(bind=engine)
-    s = Session()
-    s.add(Quiz(
-            title=u'Sir Lancelot and the bridge keeper, part 1',
-            question=u'What... is your name?',
-            answer=u'Sir Lancelot of Camelot'))
-    s.add(Quiz(
-            title=u'Sir Lancelot and the bridge keeper, part 2',
-            question=u'What... is your quest?', 
-            answer=u'To seek the holy grail'))
-    s.add(Quiz(
-            title=u'Sir Lancelot and the bridge keeper, part 3',
-            question=u'What... is your favorite colour?', 
-            answer=u'Blue'
-        ))
-    
-    s.commit()
 
 
 
 if __name__ == '__main__':
-    #main()
-    main_with_ORM()
-
-
-    # Examples
-    '''
-    def sample_query(self):
-        # Sample Query
-        query = "SELECT first_name, last_name FROM {TBL_USR} WHERE " \
-                "last_name LIKE 'M%';".format(TBL_Q=QUIZZES)
-        self.print_all_data(query=query)
-        # Sample Query Joining
-        query = "SELECT u.last_name as last_name, " \
-                "a.email as email, a.address as address " \
-                "FROM {TBL_USR} AS u " \
-                "LEFT JOIN {TBL_ADDR} as a " \
-                "WHERE u.id=a.user_id AND u.last_name LIKE 'M%';" \
-            .format(TBL_USR=USERS, TBL_ADDR=ADDRESSES)
-        self.print_all_data(query=query)
-    '''
-
-    '''
-    def sample_delete(self):
-        query = "DELETE FROM {} WHERE id=3".format(USERS)
-        self.execute_query(query)
-        self.print_all_data(USERS)
-        #query = "DELETE FROM {}".format(USERS)
-        #self.execute_query(query)
-        #self.print_all_data(USERS)
-    '''    
-
-    '''
-    def sample_update(self):
-        query = "UPDATE {} set first_name='XXXX' WHERE id={id}"\
-            .format(USERS, id=3)
-        self.execute_query(query)
-        self.print_all_data(USERS)
-    '''
-
+    main()
+    
