@@ -32,23 +32,32 @@ class DataStore:
     
     def __init__(self):
         dbname='sqlite:///quizlib.sqlite'
-        self.__engine = create_engine(dbname, echo=False)
-        Base.metadata.create_all(self.__engine)
-        self.__Session = sessionmaker(bind=self.__engine)
-
+        __engine = create_engine(dbname, echo=False)
+        Base.metadata.create_all(__engine)
+        
 
     def get_all_quizzes(self):
-        s = self.__Session()
-        return s.query(Quiz)
+        __engine = create_engine(dbname, echo=False)
+        __Session = sessionmaker(bind=__engine)
+        s = __Session()
+        data = s.query(Quiz)
+        s.close()
+        return data
 
 
     def get_all_distractors(self):
-        s = self.__Session()
-        return s.query(Distractor)
+        __engine = create_engine(dbname, echo=False)
+        __Session = sessionmaker(bind=__engine)
+        s = __Session()
+        data = s.query(Distractor)
+        s.close()
+        return data
 
 
     def populate(self):
         '''Just populating the DB with some mock quizzes'''
+        self.__engine = create_engine(dbname, echo=False)
+        self.__Session = sessionmaker(bind=self.__engine)
         s = self.__Session()
         s.add(Quiz(
                 title=u'Sir Lancelot and the bridge keeper, part 1',
@@ -78,6 +87,7 @@ class DataStore:
         s.add(Distractor(quiz_id=3,answer=u'Yellow'))
 
         s.commit()
+        s.close()
 
 
 
