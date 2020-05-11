@@ -22,7 +22,7 @@ def index():
         options = []
         for d in distractors:
             if d.quiz_id == q.id:
-                options.append(d.answer)
+                options.append(d.answer)    
         options.append(q.answer)
         shuffle(options)
         output += u'<ul>' 
