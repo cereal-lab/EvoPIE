@@ -1,16 +1,11 @@
 #this is an inn, aka a rest server ;p
-
-#!flask/bin/python
-from flask import Flask, jsonify, abort
 from random import shuffle # to shuffle lists
-from datastore import DataStore, Quiz, Distractor
+from datastore import DataStore, APP
 
 DS = DataStore()
-app = Flask(__name__)
 
 
-
-@app.route('/')
+@APP.route('/')
 def index():
     output = ""
     quizzes = DS.get_all_quizzes()
@@ -34,7 +29,7 @@ def index():
 
 
 """
-@app.route('/q/<int:quiz_id>', methods=['GET'])
+@APP.route('/q/<int:quiz_id>', methods=['GET'])
 def get_quiz(quiz_id):
     q = None
     quizzes = DS.get_all_quizzes()
@@ -53,7 +48,7 @@ def get_quiz(quiz_id):
     return jsonify(q)
 
 
-@app.route('/q/<int:quiz_id>', methods=['POST'])
+@APP.route('/q/<int:quiz_id>', methods=['POST'])
 def post_quiz_distractor(quiz_id):
     '''add a distractor to the specified quiz'''
     distractors = DS.get_all_distractors()
@@ -65,4 +60,4 @@ def post_quiz_distractor(quiz_id):
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    APP.run(debug=True)

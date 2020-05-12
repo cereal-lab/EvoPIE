@@ -1,32 +1,38 @@
 from sqlalchemy import create_engine
 from sqlalchemy import Table, Column, Integer, String, MetaData, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, scoped_session
+#from sqlalchemy.ext.declarative import declarative_base
+
+from flask import Flask, jsonify, abort
+
+from flask_sqlalchemy import SQLAlchemy
+
 import threading
 
-Base = declarative_base()
-        
+APP = Flask(__name__)
+APP.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///quizlib.sqlite'
+DB = SQLAlchemy(APP)
+
+#TODO try to create the session only once & above
 
 
-class Quiz(Base):
+class Quiz(DB.Model):
     __tablename__ = 'quizzes'
-    id = Column(Integer, primary_key=True)
-    title = Column(String, nullable=False)
-    question = Column(String, nullable=False)
-    answer = Column(String, nullable=False)
+    id = DB.Column(DB.Integer, primary_key=True)
+    title = DB.Column(DB.String, nullable=False)
+    question = DB.Column(DB.String, nullable=False)
+    answer = DB.Column(DB.String, nullable=False)
     def __repr__(self):
         return "Quiz(id='%d',title='%s',question='%s',solution='%s')" % (self.id, self.title, self.question, self.answer)
 
 
-
-class Distractor(Base):
+class Distractor(DB.Model):
     __tablename__ = 'distractors'
-    id = Column(Integer, primary_key=True)
-    quiz_id = Column(None, ForeignKey('quizzes.id'))
-    answer = Column(String, nullable=False)
+    id = DB.Column(DB.Integer, primary_key=True)
+    quiz_id = DB.Column(None, DB.ForeignKey('quizzes.id'))
+    answer = DB.Column(DB.String, nullable=False)
     def __repr__(self):
         return "Quiz(quiz_id=%d,id='%d',answer='%s')" % (self.quiz_id, self.id, self.answer)
-
 
 
 class DataStore:
@@ -40,8 +46,9 @@ class DataStore:
     def get_session(self):
         print('*** creating new session' + str(threading.get_ident()))
         engine = create_engine(self.dbname, echo=False)
-        Session = sessionmaker(bind=engine)
-        return Session()
+        #Session = sessionmaker(bind=engine)
+        #return Session()
+        return scoped_session(sessionmaker(bind=engine))
 
     def get_all_quizzes(self):
         s = self.get_session()
