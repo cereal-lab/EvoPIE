@@ -11,6 +11,7 @@ import threading
 
 APP = Flask(__name__)
 APP.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///quizlib.sqlite'
+APP.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 DB = SQLAlchemy(APP)
 
 #TODO try to create the session only once & above
@@ -42,6 +43,21 @@ class DataStore:
         print('*** creating tables in SQLite3 DB')
         #__engine = create_engine(self.dbname, echo=False)
         #Base.metadata.create_all(__engine)
+    
+    
+    def get_full_quiz(self, qid):
+        q = self.get_quiz(qid)
+        d = self.get_distractors_for_quiz(qid)
+        quiz = {
+            "question" : q.question,
+            "answer" : q.answer,
+            "options" : []
+        }
+        quiz['options'].append(q.answer)
+        for zd in d:
+            quiz['options'].append(zd.answer)
+        return quiz
+
         
     def get_session(self):
         print('*** creating new session' + str(threading.get_ident()))
@@ -50,19 +66,24 @@ class DataStore:
         #return Session()
         return scoped_session(sessionmaker(bind=engine))
 
+
+    def get_quiz(self, qid):
+        data = Quiz.query.filter_by(id=qid).first()
+        return data
+
+
     def get_all_quizzes(self):
-        s = self.get_session()
-        data = s.query(Quiz)
-        s.close()
+        data = Quiz.query.all()
         return data
 
 
     def get_all_distractors(self):
-        s = self.get_session()
-        data = s.query(Distractor)
-        s.close()
+        data = Distractor.query.all()
         return data
-
+    
+    def get_distractors_for_quiz(self, qid):
+        data = Distractor.query.filter_by(quiz_id=qid).all()
+        return data
 
     def populate(self):
         '''Just populating the DB with some mock quizzes'''
