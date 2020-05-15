@@ -22,12 +22,15 @@ class DataStore:
     def __init__(self):
         self.dbname='sqlite:///quizlib.sqlite'
         print('*** creating tables in SQLite3 DB')
+        DB.create_all()
         #__engine = create_engine(self.dbname, echo=False)
         #Base.metadata.create_all(__engine)
     
     
     def get_full_quiz(self, qid):
         q = self.get_quiz(qid)
+        if q == None:
+            return None
         d = self.get_distractors_for_quiz(qid)
         quiz = {
             "question" : q.question,
@@ -62,9 +65,27 @@ class DataStore:
         data = Distractor.query.all()
         return data
     
+
     def get_distractors_for_quiz(self, qid):
         data = Distractor.query.filter_by(quiz_id=qid).all()
         return data
+
+
+    def add_distractor_for_quiz(self, qid, dist):
+        q = self.get_quiz(qid)
+        if q != None:
+            d = self.get_distractors_for_quiz(qid)
+            for each in d:
+                if dist == each.answer:
+                    return None
+            s = self.get_session()
+            s.add(Distractor(quiz_id=qid, answer=dist))
+            s.commit()
+            s.close()
+            return d
+        else:
+            return None
+
 
     def populate(self):
         '''Just populating the DB with some mock quizzes'''
@@ -113,6 +134,10 @@ class DataStore:
 
 
 
-if __name__ == '__main__':
-    ds = DataStore()
-    ds.populate()
+#TODO later 
+# this does not work due to the very same circular imports
+# i just fixed in the previous commit -.-
+# for now I'm moving the populate to the inn's main
+# if __name__ == '__main__':
+#    ds = DataStore()
+#    ds.populate()
