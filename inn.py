@@ -56,7 +56,14 @@ def post_quiz_distractor(quiz_id):
 
 
 if __name__ == '__main__':
-    #drop all tables the populate with testing data
-    #DS.drop_all()
+    # do not populate from here, instead rm the DB file, then do the following;
+    # pipenv run python
+    # import datastore
+    # ds = datastore.DataStore()
+    # ds.populate()
+    # trying to do the following right here results in Flask restarting the app
+    # and thus adding twice the data into it
     DS.populate()
+    #TODO might be able to fix this if we purge all table (not drop them) at the start of populate()
+    #done --> updated populate to delete all rows in our tables before to add data to them
     APP.run(debug=True)

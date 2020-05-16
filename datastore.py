@@ -14,8 +14,11 @@ APP.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///quizlib.sqlite'
 APP.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 DB = SQLAlchemy(APP)
 
-from models import Quiz, Distractor
+#from models import Quiz, Distractor
+import models
 # doing this after db is defined to avoid circular imports
+
+
 
 class DataStore:
     
@@ -23,6 +26,7 @@ class DataStore:
         self.dbname='sqlite:///quizlib.sqlite'
         print('*** creating tables in SQLite3 DB')
         DB.create_all()
+        
         #__engine = create_engine(self.dbname, echo=False)
         #Base.metadata.create_all(__engine)
     
@@ -52,22 +56,22 @@ class DataStore:
 
 
     def get_quiz(self, qid):
-        data = Quiz.query.filter_by(id=qid).first()
+        data = models.Quiz.query.filter_by(id=qid).first()
         return data
 
 
     def get_all_quizzes(self):
-        data = Quiz.query.all()
+        data = models.Quiz.query.all()
         return data
 
 
     def get_all_distractors(self):
-        data = Distractor.query.all()
+        data = models.Distractor.query.all()
         return data
     
 
     def get_distractors_for_quiz(self, qid):
-        data = Distractor.query.filter_by(quiz_id=qid).all()
+        data = models.Distractor.query.filter_by(quiz_id=qid).all()
         return data
 
 
@@ -79,7 +83,7 @@ class DataStore:
                 if dist == each.answer:
                     return None
             s = self.get_session()
-            s.add(Distractor(quiz_id=qid, answer=dist))
+            s.add(models.Distractor(quiz_id=qid, answer=dist))
             s.commit()
             s.close()
             return d
@@ -89,46 +93,62 @@ class DataStore:
 
     def populate(self):
         '''Just populating the DB with some mock quizzes'''
+
+        
+        # For some reason Flask restarts the app when we launch it with
+        # pipenv run python inn.py
+        # as a result, we populate twice and get too many quizzes / distractors
+        # let's fix this by deleting all data from the tables first
+        models.Quiz.query.delete()
+        models.Distractor.query.delete()
+        models.DB.session.commit() # don't forget to commit or the DB will be locked
+
         s = self.get_session()
+        
         all_quizzes = [
-                Quiz(   title=u'Sir Lancelot and the bridge keeper, part 1',
+                models.Quiz(   title=u'Sir Lancelot and the bridge keeper, part 1',
                         question=u'What... is your name?',
                         answer=u'Sir Lancelot of Camelot'),
-                Quiz(   title=u'Sir Lancelot and the bridge keeper, part 2',
+                models.Quiz(   title=u'Sir Lancelot and the bridge keeper, part 2',
                         question=u'What... is your quest?', 
                         answer=u'To seek the holy grail'),
-                Quiz(   title=u'Sir Lancelot and the bridge keeper, part 3',
+                models.Quiz(   title=u'Sir Lancelot and the bridge keeper, part 3',
                         question=u'What... is your favorite colour?', 
                         answer=u'Blue')
         ]
         
         s.add_all(all_quizzes)
+        s.commit()
+        #print("--> just added the 3 quizzes")
+        #s.close()
         
-        #TODO how to get the foreign keys
+        # need to commit right now
+        # If not, the qid below will not be added in the distractors table's rows
+
         qid=all_quizzes[0].id
         some_distractors = [
-            Distractor(quiz_id=qid,answer=u'Sir Galahad of Camelot'),
-            Distractor(quiz_id=qid,answer=u'Sir Arthur of Camelot'),
-            Distractor(quiz_id=qid,answer=u'Sir Bevedere of Camelot'),
-            Distractor(quiz_id=qid,answer=u'Sir Robin of Camelot'),
+            models.Distractor(quiz_id=qid,answer=u'Sir Galahad of Camelot'),
+            models.Distractor(quiz_id=qid,answer=u'Sir Arthur of Camelot'),
+            models.Distractor(quiz_id=qid,answer=u'Sir Bevedere of Camelot'),
+            models.Distractor(quiz_id=qid,answer=u'Sir Robin of Camelot'),
         ]
         
-        qid=all_quizzes[0].id
+        qid=all_quizzes[1].id
         more_distractors = [
-            Distractor(quiz_id=qid,answer=u'To bravely run away'),
-            Distractor(quiz_id=qid,answer=u'To spank Zoot'),
-            Distractor(quiz_id=qid,answer=u'To find a shrubbery')
+            models.Distractor(quiz_id=qid,answer=u'To bravely run away'),
+            models.Distractor(quiz_id=qid,answer=u'To spank Zoot'),
+            models.Distractor(quiz_id=qid,answer=u'To find a shrubbery')
         ]
 
-        qid=all_quizzes[0].id
+        qid=all_quizzes[2].id
         yet_more_distractors = [
-                Distractor(quiz_id=qid,answer=u'Green'),
-                Distractor(quiz_id=qid,answer=u'Red'),
-                Distractor(quiz_id=qid,answer=u'Yellow')
+            models.Distractor(quiz_id=qid,answer=u'Green'),
+            models.Distractor(quiz_id=qid,answer=u'Red'),
+            models.Distractor(quiz_id=qid,answer=u'Yellow')
         ]
 
+        #s = self.get_session()
         s.add_all(some_distractors + more_distractors + yet_more_distractors)
-                
         s.commit()
         s.close()
 
@@ -139,5 +159,5 @@ class DataStore:
 # i just fixed in the previous commit -.-
 # for now I'm moving the populate to the inn's main
 # if __name__ == '__main__':
-#    ds = DataStore()
-#    ds.populate()
+    #ds = DataStore()
+    #ds.populate()
