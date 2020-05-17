@@ -8,7 +8,8 @@ class Quiz(DB.Model):
     title = DB.Column(DB.String, nullable=False)
     question = DB.Column(DB.String, nullable=False)
     answer = DB.Column(DB.String, nullable=False)
-    #distractors = DB.relationship('Distractor', backref='quiz', lazy=True)
+    distractors = DB.relationship('Distractor', backref='quiz', lazy=True)
+    
     def __repr__(self):
         return "Quiz(id='%d',title='%s',question='%s',solution='%s')" % (self.id, self.title, self.question, self.answer)
 

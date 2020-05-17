@@ -10,15 +10,13 @@ DS = DataStore()
 def index():
     output = ""
     quizzes = DS.get_all_quizzes()
-    distractors = DS.get_all_distractors()
     
     for q in quizzes:
         output += u'<h1>' + q.title + u'</h1>'
         output += u'<p>' + q.question + u'</p>'
         options = []
-        for d in distractors:
-            if d.quiz_id == q.id:
-                options.append(d.answer)    
+        for d in q.distractors:
+            options.append(d.answer)    
         options.append(q.answer)
         shuffle(options)
         output += u'<ul>' 
@@ -56,14 +54,11 @@ def post_quiz_distractor(quiz_id):
 
 
 if __name__ == '__main__':
-    # do not populate from here, instead rm the DB file, then do the following;
+    # to recreate the DB;
+    # rm the DB file
     # pipenv run python
     # import datastore
     # ds = datastore.DataStore()
     # ds.populate()
-    # trying to do the following right here results in Flask restarting the app
-    # and thus adding twice the data into it
     DS.populate()
-    #TODO might be able to fix this if we purge all table (not drop them) at the start of populate()
-    #done --> updated populate to delete all rows in our tables before to add data to them
     APP.run(debug=True)
