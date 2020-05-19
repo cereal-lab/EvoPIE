@@ -11,14 +11,12 @@ def index():
     return render_template('index.html', quizzes=quizzes)
 
 
-
 @APP.route('/q/<int:quiz_id>', methods=['GET'])
 def get_quiz(quiz_id):
     q = DS.get_quiz_json(quiz_id)
     if q == None:
         abort(404)
     return jsonify(q)
-
 
 
 @APP.route('/q/<int:quiz_id>', methods=['POST'])
@@ -39,7 +37,6 @@ def post_quiz_distractor(quiz_id):
     DS.add_distractor_for_quiz(quiz_id, answer)
     
     return Response('{"status" : "Distractor answer added to quiz"}', status=201, mimetype='application/json')
-
 
 
 if __name__ == '__main__':
