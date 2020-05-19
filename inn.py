@@ -1,9 +1,8 @@
 #this is an inn, aka a rest server ;p
-from flask import jsonify, abort, request, Response, render_template
+from flask import jsonify, abort, request, Response, render_template, redirect, url_for
 from datastore import DataStore, APP
 
 DS = DataStore()
-
 
 @APP.route('/')
 def index():
@@ -36,7 +35,10 @@ def post_quiz_distractor(quiz_id):
 
     DS.add_distractor_for_quiz(quiz_id, answer)
     
-    return Response('{"status" : "Distractor answer added to quiz"}', status=201, mimetype='application/json')
+    if request.json:
+        return Response('{"status" : "Distractor answer added to quiz"}', status=201, mimetype='application/json')
+    else:
+        return redirect(url_for('index'))
 
 
 if __name__ == '__main__':
