@@ -10,6 +10,7 @@ flask-sqlalchemy = "*"
 
 [dev-packages]
 pylint = "*"
+rope = "*"
 
 [requires]
 python_version = "3.8"

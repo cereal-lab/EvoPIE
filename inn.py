@@ -7,14 +7,14 @@ DS = DataStore()
 
 @APP.route('/')
 def index():
-    quizzes = DS.get_all_full_quizzes()
+    quizzes = DS.get_all_quizzes_json()
     return render_template('index.html', quizzes=quizzes)
 
 
 
 @APP.route('/q/<int:quiz_id>', methods=['GET'])
 def get_quiz(quiz_id):
-    q = DS.get_full_quiz(quiz_id)
+    q = DS.get_quiz_json(quiz_id)
     if q == None:
         abort(404)
     return jsonify(q)
@@ -24,8 +24,6 @@ def get_quiz(quiz_id):
 @APP.route('/q/<int:quiz_id>', methods=['POST'])
 def post_quiz_distractor(quiz_id):
     '''add a distractor to the specified quiz'''
-    #if not request.json or not 'title' in request.json:
-    #    abort(400)
     if request.json:
         answer = request.json['answer']
     else:
@@ -37,7 +35,9 @@ def post_quiz_distractor(quiz_id):
     result = DS.get_quiz(quiz_id)
     if result == None: 
         abort(404) # not found
+
     DS.add_distractor_for_quiz(quiz_id, answer)
+    
     return Response('{"status" : "Distractor answer added to quiz"}', status=201, mimetype='application/json')
 
 

@@ -32,18 +32,18 @@ class DataStore:
         #Base.metadata.create_all(__engine)
     
     
-    def get_all_full_quizzes(self):
+    def get_all_quizzes_json(self):
         result=[]
         quizzes = models.Quiz.query.all()
         for q in quizzes:
-            result.append(self.get_full_quiz(q.id))
+            result.append(self.get_quiz_json(q.id))
         return result
 
 
 
 
 
-    def get_full_quiz(self, qid):
+    def get_quiz_json(self, qid):
         q = self.get_quiz(qid)
         if q == None:
             return None
