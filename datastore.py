@@ -7,6 +7,7 @@ from flask import Flask, jsonify, abort
 
 from flask_sqlalchemy import SQLAlchemy
 
+from random import shuffle # to shuffle lists
 import threading
 
 APP = Flask(__name__)
@@ -31,19 +32,31 @@ class DataStore:
         #Base.metadata.create_all(__engine)
     
     
+    def get_all_full_quizzes(self):
+        result=[]
+        quizzes = models.Quiz.query.all()
+        for q in quizzes:
+            result.append(self.get_full_quiz(q.id))
+        return result
+
+
+
+
+
     def get_full_quiz(self, qid):
         q = self.get_quiz(qid)
         if q == None:
             return None
-        d = self.get_distractors_for_quiz(qid)
         quiz = {
+            "title" : q.title,
             "question" : q.question,
             "answer" : q.answer,
             "options" : []
         }
         quiz['options'].append(q.answer)
-        for zd in d:
-            quiz['options'].append(zd.answer)
+        for d in q.distractors:
+            quiz['options'].append(d.answer)
+        shuffle(quiz['options'])
         return quiz
 
         
@@ -78,17 +91,8 @@ class DataStore:
     def add_distractor_for_quiz(self, qid, dist):
         q = self.get_quiz(qid)
         if q != None:
-            d = self.get_distractors_for_quiz(qid)
-            for each in d:
-                if dist == each.answer:
-                    return None
-            s = self.get_session()
-            s.add(models.Distractor(quiz_id=qid, answer=dist))
-            s.commit()
-            s.close()
-            return d
-        else:
-            return None
+            q.distractors.append(models.Distractor(answer=dist,quiz_id=qid))
+            models.DB.session.commit()    
 
 
     def populate(self):
