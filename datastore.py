@@ -31,7 +31,6 @@ class DataStore:
         return data
 
 
-
     def get_quiz_json(self, qid):
         q = self.get_quiz(qid)
         if q == None:
@@ -98,7 +97,7 @@ class DataStore:
         models.Distractor.query.delete()
         models.DB.session.commit() # don't forget to commit or the DB will be locked
 
-        s = self.get_session()
+        s = models.DB.session
         
         all_quizzes = [
                 models.Quiz(    title=u'Sir Lancelot and the bridge keeper, part 1',
@@ -141,4 +140,3 @@ class DataStore:
 
         s.add_all(some_distractors + more_distractors + yet_more_distractors)
         s.commit()
-        s.close()
