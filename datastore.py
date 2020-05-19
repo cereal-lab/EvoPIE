@@ -78,13 +78,6 @@ class DataStore:
             models.DB.session.commit()    
 
 
-    def get_session(self):
-        engine = create_engine(self.dbname, echo=False)
-        #Session = sessionmaker(bind=engine)
-        #return Session()
-        return scoped_session(sessionmaker(bind=engine))
-
-
     def populate(self):
         '''
             Just populating the DB with some mock quizzes
