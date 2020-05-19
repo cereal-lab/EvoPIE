@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block title %}EvoPIE{% endblock %}
+
+<nav>
+    <h1>Admin</h1>
+        <ul>
+            <li>View All Quizzes</li>
+        </ul>
+    <h1>Students</h1>
+    <ul>
+        <li>Take Quiz</li>
+    </ul>
+</nav>
+{% block content %}
+  <form method="post" action='http://localhost:5000/q/2'>
+    <label for="answer">Answer</label>
+    <input name="answer" id="answer" required>
+    <input type="submit" value="Submit">
+  </form>
+
+    {% for quiz in quizzes %}
+        <div>
+            <h1> {{ quiz['title'] }}       </h1>
+            <p>  {{ quiz['question'] }}    </p>
+            <ul>
+                {% for option in quiz['options'] %}
+                    <li> {{ option }} </li>
+                {% endfor %}    
+            </ul>
+        </div>
+    {% endfor %}
+{% endblock %}
