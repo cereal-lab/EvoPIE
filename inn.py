@@ -122,7 +122,7 @@ def get_distractors_for_question(question_id):
 
 
 @APP.route('/questions/<int:question_id>/distractors', methods=['POST'])
-def post_distractor_for_question(question_id):
+def post_new_distractor_for_question(question_id):
     '''
     Add a distractor to the specified question.
     '''
@@ -192,6 +192,51 @@ def delete_distractor_for_question(question_id, distractor_index):
     Delete given distractor.
     '''
     if DS.delete_distractor_for_question(question_id, distractor_index):
+        return Response('{"status" : "Distractor deleted from database"}', status=200, mimetype='application/json')
+    else:
+        abort(404)
+
+
+
+# In the following routes, we are accessing distractors by their unique IDs
+
+
+
+@APP.route('/distractors/<int:distractor_id>', methods=['GET'])
+def get_distractor(question_id, distractor_id):
+    d = DS.get_distractor_json(question_id, distractor_id)
+    if d == None:
+        abort(404)
+    else:
+        return jsonify(d)
+
+
+
+@APP.route('/distractors/<int:distractor_id>', methods=['PUT'])
+def put_distractor(distractor_id):
+    if not request.json:
+        abort(406) # not acceptable
+    else:
+        answer = request.json['answer']
+    
+    if answer == None:
+        abort(400) # bad request
+    
+    success = DS.update_distractor(distractor_id, answer)
+    
+    if success:
+        return Response('{"status" : "Distractor updated in database"}', status=200, mimetype='application/json')
+    else:
+        return Response('{"status" : "Distractor NOT updated in database"}', status=404, mimetype='application/json')
+
+
+
+@APP.route('/questions/<int:question_id>/distractors/<int:distractor_id>', methods=['DELETE'])
+def delete_distractor(question_id, distractor_id):
+    '''
+    Delete given distractor.
+    '''
+    if DS.delete_distractor(distractor_id):
         return Response('{"status" : "Distractor deleted from database"}', status=200, mimetype='application/json')
     else:
         abort(404)

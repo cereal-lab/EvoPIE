@@ -157,6 +157,9 @@ class DataStore:
 
 
     def get_distractor_for_question_json(self,qid, index):
+        '''
+        FIXME - see above
+        '''
         d = self.get_distractor_for_question(qid, index)
         if d == None:
             return None
@@ -166,6 +169,9 @@ class DataStore:
         
     
     def update_distractor_for_question(self, qid, index, answer):
+        '''
+        FIXME - see above
+        '''
         d = self.get_distractor_for_question(qid, index)
         if d == None:
             return False
@@ -177,7 +183,47 @@ class DataStore:
 
 
     def delete_distractor_for_question(self, qid, index):
+        '''
+        FIXME - see above
+        '''
         d = self.get_distractor_for_question(qid, index)
+        if d == None:
+            return False
+        else:
+            models.DB.session.delete(d)
+            models.DB.session.commit()
+            return True
+
+
+
+    def get_distractor(self, did):
+        d = models.Distractor.query.filter_by(id=did).first()
+        return d
+        
+
+
+    def get_distractor_json(self, qid, did):
+        d = self.get_distractor(did)
+        if d == None:
+            return None
+        else:
+            return { "answer": d.answer }
+            
+        
+    
+    def update_distractor(self, did, answer):
+        d = self.get_distractor(did)
+        if d == None:
+            return False
+        else:
+            d.answer = answer
+            models.DB.session.commit()
+            return True
+    
+
+
+    def delete_distractor(self, did):
+        d = self.get_distractor(did)
         if d == None:
             return False
         else:
@@ -187,8 +233,6 @@ class DataStore:
     
         
         
-        
-    
     def populate(self):
         '''
             Just populating the DB with some mock quizzes

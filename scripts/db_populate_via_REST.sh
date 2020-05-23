@@ -52,3 +52,8 @@ curl -X 'PUT' -d '{ "answer": "REDACTED ;p"}' -H 'Content-Type: application/json
 
 # deleting extraneous distractor
 curl -X 'DELETE' http://localhost:5000/questions/3/distractors/3 && echo
+
+
+# testing RESTful API on distractors directly
+curl -X 'PUT' -d '{ "answer": "HACKING THIS DISTRACTOR"}' -H 'Content-Type: application/json' http://localhost:5000/distractors/3 && echo
+#curl -X 'DELETE' http://localhost:5000/distractors/3 && echo
