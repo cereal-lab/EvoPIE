@@ -81,13 +81,12 @@ def delete_question(question_id):
     '''
     Delete given question.
     '''
-    q = DS.get_question_json(question_id)
-    if q == None:
+    if DS.delete_question(question_id):
+        response = jsonify(success=True)
+        response.status_code=200
+        return response
+    else:
         abort(404)
-    DS.delete_question(question_id)
-    response = jsonify(success=True)
-    response.status_code=200
-    return response
 
 
 @APP.route('/questions/<int:question_id>/distractors', methods=['POST'])

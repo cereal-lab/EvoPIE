@@ -95,6 +95,9 @@ class DataStore:
         if q != None:
             models.DB.session.delete(q)
             models.DB.session.commit()
+            return True
+        else:
+            return False
 
     
 
