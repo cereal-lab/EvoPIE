@@ -2,7 +2,11 @@
 from flask import jsonify, abort, request, Response, render_template, redirect, url_for
 from datastore import DataStore, APP
 
+
+
 DS = DataStore()
+
+
 
 @APP.route('/')
 def index():
@@ -51,7 +55,6 @@ def post_new_question():
 
     
 
-    
 @APP.route('/questions/<int:question_id>', methods=['GET'])
 def get_question(question_id):
     '''
@@ -70,6 +73,8 @@ def put_question(question_id):
     '''
     Update a given question.
     '''
+    #FIXME note that HTML5 will not allow a form to submit a PUT instead of a POST
+    # so we need to clean up the code in here accordingly...
     if request.json:
         title = request.json['title']
         question = request.json['question']
@@ -106,8 +111,18 @@ def delete_question(question_id):
 
 
 
+@APP.route('/questions/<int:question_id>/distractors', methods=['GET'])
+def get_distractors_for_question(question_id):
+    '''
+    Get all distractors for the specified question.
+    '''
+    q = DS.get_distractors_for_question_json(question_id)
+    return jsonify(q)
+    
+
+
 @APP.route('/questions/<int:question_id>/distractors', methods=['POST'])
-def post_question_distractor(question_id):
+def post_distractor_for_question(question_id):
     '''
     Add a distractor to the specified question.
     '''
@@ -132,23 +147,54 @@ def post_question_distractor(question_id):
 
 
 
-@APP.route('/questions/<int:question_id>/distractors/<int:distractor_id>', methods=['GET'])
-def get_question_distractor(question_id, distractor_id):
-    #TODO
-    return redirect(url_for('index'))
+#FIXME
+# Please note that, in the next 3 routes, the distractor is identified by its index
+# in the list of distractors for this question, instead of using its distractor ID.
+# Assuming here that the queries from the DB will be idempotent
+# with respect to the ordering of the distractors.
+# The caller must also display them to the user in the same order.
+# Probably something to keep an eye on and eventually fix...
 
 
 
-@APP.route('/questions/<int:question_id>/distractors/<int:distractor_id>', methods=['PUT'])
-def put_question_distractor(question_id, distractor_id):
-    #TODO
-    return redirect(url_for('index'))
+@APP.route('/questions/<int:question_id>/distractors/<int:distractor_index>', methods=['GET'])
+def get_distractor_for_question(question_id, distractor_index):
+    d = DS.get_distractor_for_question_json(question_id, distractor_index)
+    if d == None:
+        abort(404)
+    else:
+        return jsonify(d)
 
 
 
-@APP.route('/questions/<int:question_id>/distractors/<int:distractor_id>', methods=['DELETE'])
-def delete_question_distractor(question_id, distractor_id):
-    return redirect(url_for('index'))
+@APP.route('/questions/<int:question_id>/distractors/<int:distractor_index>', methods=['PUT'])
+def put_distractor_for_question(question_id, distractor_index):
+    if not request.json:
+        abort(406) # not acceptable
+    else:
+        answer = request.json['answer']
+    
+    if answer == None:
+        abort(400) # bad request
+    
+    success = DS.update_distractor_for_question(question_id, distractor_index, answer)
+    
+    if success:
+        return Response('{"status" : "Distractor updated in database"}', status=200, mimetype='application/json')
+    else:
+        return Response('{"status" : "Distractor NOT updated in database"}', status=404, mimetype='application/json')
+
+
+
+@APP.route('/questions/<int:question_id>/distractors/<int:distractor_index>', methods=['DELETE'])
+def delete_distractor_for_question(question_id, distractor_index):
+    '''
+    Delete given distractor.
+    '''
+    if DS.delete_distractor_for_question(question_id, distractor_index):
+        return Response('{"status" : "Distractor deleted from database"}', status=200, mimetype='application/json')
+    else:
+        abort(404)
 
 
 

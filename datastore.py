@@ -30,10 +30,12 @@ class DataStore:
         self.dbname='sqlite:///quizlib.sqlite'
         DB.create_all()
 
+
     
     def get_question(self, qid):
         data = models.Question.query.filter_by(id=qid).first()
         return data
+
 
 
     def get_question_json(self, qid):
@@ -58,11 +60,13 @@ class DataStore:
         return quiz
 
 
+
     def get_all_questions(self):
         data = models.Question.query.all()
         return data
     
     
+
     def get_all_questions_json(self):
         result=[]
         quizzes = models.Question.query.all()
@@ -71,9 +75,11 @@ class DataStore:
         return result
 
 
+
     def get_all_distractors(self):
         data = models.Distractor.query.all()
         return data
+
 
 
     def add_distractor_for_question(self, qid, dist):
@@ -81,6 +87,7 @@ class DataStore:
         if q != None:
             q.distractors.append(models.Distractor(answer=dist,question_id=qid))
             models.DB.session.commit()    
+
 
 
     def add_question(self, title, question, answer):
@@ -102,6 +109,7 @@ class DataStore:
             return False
         
         
+    
     def delete_question(self, question_id):
         q = self.get_question(question_id)
         if q != None:
@@ -119,6 +127,68 @@ class DataStore:
 
 
 
+    def get_distractors_for_question_json(self, qid):
+        data = self.get_distractors_for_question(qid)
+        result = []
+        for d in data:
+            result.append({ "answer": d.answer })
+        return result
+
+
+
+    def get_distractor_for_question(self, qid, index):
+        '''
+        FIXME
+        Please note that the distractor is identified by its index
+        in the list of distractors for this question, instead of using
+        its distractor ID.
+        Assuming here that the queries from the DB will be idempotent
+        with respect to the ordering of the distractors.
+        The caller must also display them to the user in the same order.
+        Probably something to keep an eye on and eventually fix...
+        '''
+        all = self.get_distractors_for_question(qid)
+        if len(all) > index:
+            return all[index]
+        else:
+            return None
+        
+
+
+
+    def get_distractor_for_question_json(self,qid, index):
+        d = self.get_distractor_for_question(qid, index)
+        if d == None:
+            return None
+        else:
+            return { "answer": d.answer }
+            
+        
+    
+    def update_distractor_for_question(self, qid, index, answer):
+        d = self.get_distractor_for_question(qid, index)
+        if d == None:
+            return False
+        else:
+            d.answer = answer
+            models.DB.session.commit()
+            return True
+    
+
+
+    def delete_distractor_for_question(self, qid, index):
+        d = self.get_distractor_for_question(qid, index)
+        if d == None:
+            return False
+        else:
+            models.DB.session.delete(d)
+            models.DB.session.commit()
+            return True
+    
+        
+        
+        
+    
     def populate(self):
         '''
             Just populating the DB with some mock quizzes
