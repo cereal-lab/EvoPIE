@@ -24,6 +24,12 @@ import models
 
 
 class DataStore:
+    '''
+    This class should encapsultate all the details of interacting with the database.
+    This version is using Flqsk-SQLAlchemy ORM.
+    If we revisit this decision, this should be the only part of the code to have
+    to undergo modifications, without breaking its API.
+    '''
 
 
     def __init__(self):
@@ -123,6 +129,7 @@ class DataStore:
 
     def get_distractors_for_question(self, qid):
         data = models.Distractor.query.filter_by(question_id=qid).all()
+        #FIXME we could also fetch the question and just return its distractors field
         return data
 
 
@@ -133,20 +140,24 @@ class DataStore:
         for d in data:
             result.append({ "answer": d.answer })
         return result
+    
+
+
+
+        # BEWARE
+        # In the following methods, the distractor is identified by its index 
+        # in the list of distractors for this question, instead of using its unique distractor ID.
+        # We are here assuming that the queries from the DB will be idempotent
+        # with respect to the ordering of the distractors.
+        # The caller must also display them to the user in the same order.
+        # It is not obvious this part of the API should be kept. In the long run, simply
+        # use the routes that specify distractors by their IDs and let the caller
+        # figure these out before to send us requests...
 
 
 
     def get_distractor_for_question(self, qid, index):
-        '''
-        FIXME
-        Please note that the distractor is identified by its index
-        in the list of distractors for this question, instead of using
-        its distractor ID.
-        Assuming here that the queries from the DB will be idempotent
-        with respect to the ordering of the distractors.
-        The caller must also display them to the user in the same order.
-        Probably something to keep an eye on and eventually fix...
-        '''
+        #FIXME - see above
         all = self.get_distractors_for_question(qid)
         if len(all) > index:
             return all[index]
@@ -157,9 +168,7 @@ class DataStore:
 
 
     def get_distractor_for_question_json(self,qid, index):
-        '''
-        FIXME - see above
-        '''
+        #FIXME - see above
         d = self.get_distractor_for_question(qid, index)
         if d == None:
             return None
@@ -169,9 +178,7 @@ class DataStore:
         
     
     def update_distractor_for_question(self, qid, index, answer):
-        '''
-        FIXME - see above
-        '''
+        #FIXME - see above
         d = self.get_distractor_for_question(qid, index)
         if d == None:
             return False
@@ -183,9 +190,7 @@ class DataStore:
 
 
     def delete_distractor_for_question(self, qid, index):
-        '''
-        FIXME - see above
-        '''
+        #FIXME - see above
         d = self.get_distractor_for_question(qid, index)
         if d == None:
             return False
@@ -193,6 +198,10 @@ class DataStore:
             models.DB.session.delete(d)
             models.DB.session.commit()
             return True
+    
+
+
+    # The following methods use a proper distractor_id
 
 
 
