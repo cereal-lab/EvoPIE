@@ -63,6 +63,33 @@ def get_question(question_id):
 
 
 
+@APP.route('/questions/<int:question_id>', methods=['PUT'])
+def put_question(question_id):
+    '''
+    Update a given question.
+    '''
+    #TODO
+    q = DS.get_question_json(question_id)
+    if q == None:
+        abort(404)
+    return jsonify(q)
+    
+    
+
+@APP.route('/questions/<int:question_id>', methods=['DELETE'])
+def delete_question(question_id):
+    '''
+    Delete given question.
+    '''
+    q = DS.get_question_json(question_id)
+    if q == None:
+        abort(404)
+    DS.delete_question(question_id)
+    response = jsonify(success=True)
+    response.status_code=200
+    return response
+
+
 @APP.route('/questions/<int:question_id>/distractors', methods=['POST'])
 def post_question_distractor(question_id):
     '''

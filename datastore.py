@@ -74,11 +74,6 @@ class DataStore:
     def get_all_distractors(self):
         data = models.Distractor.query.all()
         return data
-    
-
-    def get_distractors_for_question(self, qid):
-        data = models.Distractor.query.filter_by(question_id=qid).all()
-        return data
 
 
     def add_distractor_for_question(self, qid, dist):
@@ -91,7 +86,21 @@ class DataStore:
     def add_question(self, title, question, answer):
         q = models.Question(title=title, question=question, answer=answer)
         models.DB.session.add(q)
-        models.DB.session.commit()    
+        models.DB.session.commit()
+
+
+
+    def delete_question(self, question_id):
+        q = self.get_question(question_id)
+        if q != None:
+            models.DB.session.delete(q)
+            models.DB.session.commit()
+
+    
+
+    def get_distractors_for_question(self, qid):
+        data = models.Distractor.query.filter_by(question_id=qid).all()
+        return data
 
 
 

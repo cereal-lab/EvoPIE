@@ -26,3 +26,15 @@ curl -d '{ "title": "Sir Lancelot and the bridge keeper, part 3", "question": "W
 curl -d '{ "answer": "Green"}' -H 'Content-Type: application/json' http://localhost:5000/questions/3/distractors
 curl -d '{ "answer": "Red"}' -H 'Content-Type: application/json' http://localhost:5000/questions/3/distractors
 curl -d '{ "answer": "Yellow"}' -H 'Content-Type: application/json' http://localhost:5000/questions/3/distractors
+
+
+
+# question just to test delete
+curl -d '{ "title": "delete this question", "question": "What did it ever do to deserve deletion?", "answer": "nothing, really"}' -H 'Content-Type: application/json' http://localhost:5000/questions
+curl -d '{ "answer": "I do not know"}' -H 'Content-Type: application/json' http://localhost:5000/questions/4/distractors
+curl -d '{ "answer": "Maybe it knows?"}' -H 'Content-Type: application/json' http://localhost:5000/questions/4/distractors
+curl -d '{ "answer": "Who knows?"}' -H 'Content-Type: application/json' http://localhost:5000/questions/4/distractors
+
+
+#testing deleting question
+curl -X 'DELETE' http://localhost:5000/questions/4
