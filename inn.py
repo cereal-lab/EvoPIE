@@ -13,6 +13,7 @@ def index():
     return render_template('index.html', quizzes=quizzes)
 
 
+
 @APP.route('/questions', methods=['GET'])
 def get_all_questions():
     '''
@@ -21,6 +22,7 @@ def get_all_questions():
     '''
     q = DS.get_all_questions_json()
     return jsonify(q)
+
 
 
 @APP.route('/questions', methods=['POST'])
@@ -37,7 +39,7 @@ def post_new_question():
         question = request.form['question']
         answer = request.form['answer']
     
-    if answer == None or question == None:
+    if answer == None or question == None or title == None:
         abort(400) # bad request
     
     DS.add_question(title, question, answer)
@@ -68,12 +70,28 @@ def put_question(question_id):
     '''
     Update a given question.
     '''
-    #TODO
-    q = DS.get_question_json(question_id)
-    if q == None:
-        abort(404)
-    return jsonify(q)
+    if request.json:
+        title = request.json['title']
+        question = request.json['question']
+        answer = request.json['answer']
+    else:
+        title = request.form['title']
+        question = request.form['question']
+        answer = request.form['answer']
     
+    if answer == None or question == None or title == None:
+        abort(400) # bad request
+    
+    success = DS.update_question(question_id, title, question, answer)
+    
+    if request.json:
+        if success:
+            return Response('{"status" : "Question updated in database"}', status=200, mimetype='application/json')
+        else:
+            return Response('{"status" : "Question NOT updated in database"}', status=404, mimetype='application/json')
+    else:
+        return redirect(url_for('index'))
+
     
 
 @APP.route('/questions/<int:question_id>', methods=['DELETE'])
@@ -82,11 +100,10 @@ def delete_question(question_id):
     Delete given question.
     '''
     if DS.delete_question(question_id):
-        response = jsonify(success=True)
-        response.status_code=200
-        return response
+        return Response('{"status" : "Question deleted from database"}', status=200, mimetype='application/json')
     else:
         abort(404)
+
 
 
 @APP.route('/questions/<int:question_id>/distractors', methods=['POST'])

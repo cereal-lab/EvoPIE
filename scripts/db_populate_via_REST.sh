@@ -39,3 +39,7 @@ curl -d '{ "answer": "Who knows?"}' -H 'Content-Type: application/json' http://l
 #testing deleting question
 curl -X 'DELETE' http://localhost:5000/questions/4
 
+
+
+# updating questions
+curl -X 'PUT' -d '{ "title": "[modified] Sir Lancelot and the bridge keeper, part 3", "question": "[modified] What... is your favorite colour?", "answer": "[modified] Blue"}' -H 'Content-Type: application/json' http://localhost:5000/questions/3

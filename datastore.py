@@ -90,6 +90,18 @@ class DataStore:
 
 
 
+    def update_question(self, question_id, title, question, answer):
+        q = self.get_question(question_id)
+        if q != None:
+            q.title = title
+            q.question = question
+            q.answer = answer
+            models.DB.session.commit()
+            return True
+        else:
+            return False
+        
+        
     def delete_question(self, question_id):
         q = self.get_question(question_id)
         if q != None:
