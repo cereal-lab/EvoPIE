@@ -37,6 +37,11 @@ class DataStore:
 
 
     def get_question_json(self, qid):
+        '''
+        Returns a dictionary with the question + answer + distractors.
+        Answer and distractors are shuffled together as options from which
+        the student will have to pick.
+        '''
         q = self.get_question(qid)
         if q == None:
             return None
@@ -81,6 +86,13 @@ class DataStore:
         if q != None:
             q.distractors.append(models.Distractor(answer=dist,question_id=qid))
             models.DB.session.commit()    
+
+
+    def add_question(self, title, question, answer):
+        q = models.Question(title=title, question=question, answer=answer)
+        models.DB.session.add(q)
+        models.DB.session.commit()    
+
 
 
     def populate(self):

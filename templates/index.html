@@ -7,10 +7,10 @@
     function onSubmitForm(){
         var quiz = document.getElementById('qid');
         var action = document.getElementById('distractorForm');
-        action.action = action.action + quiz.value;
+        action.action = action.action + quiz.value + '/distractors';
     }
   </script>
-  <form id="distractorForm" method="post" onsubmit="return onSubmitForm();" action='http://localhost:5000/q/'>
+  <form id="distractorForm" method="post" onsubmit="return onSubmitForm();" action='http://localhost:5000/questions/'>
     <label for="qid">Quiz</label>
     <input name="qid" id="qid" value="2" required>
     <label for="answer">Answer</label>
