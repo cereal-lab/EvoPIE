@@ -167,7 +167,7 @@ class DataStore:
 
 
 
-    def get_distractor_for_question_json(self,qid, index):
+    def get_distractor_for_question_json(self, qid, index):
         #FIXME - see above
         d = self.get_distractor_for_question(qid, index)
         if d == None:
@@ -211,7 +211,7 @@ class DataStore:
         
 
 
-    def get_distractor_json(self, qid, did):
+    def get_distractor_json(self, did):
         d = self.get_distractor(did)
         if d == None:
             return None

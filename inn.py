@@ -203,8 +203,8 @@ def delete_distractor_for_question(question_id, distractor_index):
 
 
 @APP.route('/distractors/<int:distractor_id>', methods=['GET'])
-def get_distractor(question_id, distractor_id):
-    d = DS.get_distractor_json(question_id, distractor_id)
+def get_distractor(distractor_id):
+    d = DS.get_distractor_json(distractor_id)
     if d == None:
         abort(404)
     else:
@@ -231,8 +231,8 @@ def put_distractor(distractor_id):
 
 
 
-@APP.route('/questions/<int:question_id>/distractors/<int:distractor_id>', methods=['DELETE'])
-def delete_distractor(question_id, distractor_id):
+@APP.route('/distractors/<int:distractor_id>', methods=['DELETE'])
+def delete_distractor(distractor_id):
     '''
     Delete given distractor.
     '''
