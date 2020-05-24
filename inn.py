@@ -117,7 +117,10 @@ def get_distractors_for_question(question_id):
     Get all distractors for the specified question.
     '''
     q = DS.get_distractors_for_question_json(question_id)
-    return jsonify(q)
+    if q == None:
+        abort(404)
+    else:
+        return jsonify(q)
     
 
 
@@ -171,8 +174,8 @@ def get_distractor_for_question(question_id, distractor_index):
 def put_distractor_for_question(question_id, distractor_index):
     if not request.json:
         abort(406) # not acceptable
-    else:
-        answer = request.json['answer']
+    
+    answer = request.json['answer']
     
     if answer == None:
         abort(400) # bad request
