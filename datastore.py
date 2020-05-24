@@ -242,6 +242,67 @@ class DataStore:
     
         
         
+    def add_quiz_question(self, question_id, distractors_ids):
+        
+        q = self.get_question(question_id)
+        print('*** got question' + str(question_id))
+        if q == None: 
+            return False
+
+        distractors = []
+        for id in distractors_ids:
+            obj = self.get_distractor(id)
+            print('*** got distractor' + str(id))
+            if obj == None:
+                return False
+            else:
+                distractors.append(obj)
+
+        qq = models.QuizQuestion(question=q)
+        for d in distractors:
+            qq.distractors.append(d)
+        models.DB.session.add(qq)
+        models.DB.session.commit()
+        return True
+        
+        
+        
+    def get_all_quiz_questions(self):
+        return models.QuizQuestion.query.all()
+
+
+    def get_all_quiz_questions_json(self):
+        result=[]
+        qq = self.get_all_quiz_questions()
+        for q in qq:
+            result.append(self.get_quiz_question_json(q.id))
+        return result
+    
+    
+    
+    def get_quiz_question(self, qqid):
+        return models.QuizQuestion.query.filter_by(id=qqid).first()
+    
+    
+    
+    def get_quiz_question_json(self, qqid):
+        qq = self.get_quiz_question(qqid)
+        if qq == None:
+            return None
+        
+        result = {  "title": qq.question.title,
+                    "question": qq.question.question,
+                    "answer": qq.question.answer,
+                    "options": [] }
+        
+        result['options'].append(qq.question.answer)
+        for d in qq.distractors:
+            result['options'].append(d.answer)
+        #shuffle(result['options'])
+        return result
+
+    
+    
     def populate(self):
         '''
             Just populating the DB with some mock quizzes

@@ -31,8 +31,8 @@ class Question(DB.Model):
 
 # association table for many-to-many association between QuizQuestion and Distractor
 quiz_questions_hub = DB.Table('quiz_questions_hub',
-    DB.Column('quiz_question_id',         DB.Integer, DB.ForeignKey('quiz_question.id'),        primary_key=True),
-    DB.Column('distractor_id',  DB.Integer, DB.ForeignKey('distractor.id'), primary_key=True)  
+    DB.Column('quiz_question_id',   DB.Integer, DB.ForeignKey('quiz_question.id'),  primary_key=True),
+    DB.Column('distractor_id',      DB.Integer, DB.ForeignKey('distractor.id'),     primary_key=True)  
 )
 
 
@@ -69,7 +69,7 @@ class QuizQuestion(DB.Model):
     question_id = DB.Column(None, DB.ForeignKey('question.id'), nullable=False)
 
     
-    # 1-to-many with Distractor
+    # many-to-many with Distractor
     distractors = DB.relationship('Distractor', secondary=quiz_questions_hub, lazy='subquery',
         backref=DB.backref('quiz_questions', lazy=True))
     # these are the distractors that have been selected, among all available distractors
@@ -78,10 +78,9 @@ class QuizQuestion(DB.Model):
 
 
 #Table used to implement the many-to-many relationship between QuizQuestions and Quizzes
-quizzes_hub = DB.Table(
-   'quizze_shub',
-   DB.Column('quiz_id', DB.Integer, DB.ForeignKey('quiz.id'), primary_key=True),
-   DB.Column('quiz_question_id', DB.Integer, DB.ForeignKey('quiz_question.id'), primary_key=True)
+quizzes_hub = DB.Table('quizzes_hub',
+   DB.Column('quiz_id',             DB.Integer, DB.ForeignKey('quiz.id'),           primary_key=True),
+   DB.Column('quiz_question_id',    DB.Integer, DB.ForeignKey('quiz_question.id'),  primary_key=True)
 )
 
 

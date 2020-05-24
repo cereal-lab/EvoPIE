@@ -246,6 +246,39 @@ def delete_distractor(distractor_id):
 
 
 
+@APP.route('/quizquestions', methods=['GET'])
+def get_all_quiz_questions():
+    '''
+    Get, in JSON format, all the QuizQuestions from the database.
+    '''
+    q = DS.get_all_quiz_questions_json()
+    return jsonify(q)
+
+
+
+@APP.route('/quizquestions', methods=['POST'])
+def post_new_quiz_question():
+    '''
+    Add a QuizQuestion.
+    '''
+    distractors_ids = []
+    if request.json:
+        question_id = request.json['qid']
+        distractors_ids.append(request.json['d1'])
+        distractors_ids.append(request.json['d2'])
+        distractors_ids.append(request.json['d3'])
+    else:
+        abort(406) # not acceptable
+        #FIXME we have been redirecting for posts from forms, but this does not allow to handle errors statuses.
+        # so, instead, we restrict ourselves to only the JSON format, or now at least.
+
+    if DS.add_quiz_question(question_id, distractors_ids):
+        return Response('{"status" : "QuizQuestion added to data base"}', status=201, mimetype='application/json')
+    else:
+        abort(400) # bad request
+    
+
+
 if __name__ == '__main__':
     # to recreate the DB;
     # rm the DB file
