@@ -1,6 +1,7 @@
-#this is an inn, aka a rest server ;p
 from flask import jsonify, abort, request, Response, render_template, redirect, url_for
-from datastore import DataStore, APP
+
+from flaskcore import APP
+from datastore import DataStore
 
 
 

@@ -3,23 +3,16 @@
 # Dynamic classes like scoped_session are caught by pylint as not having any
 # of the members they end up featuring at runtime.
 # This is a way to tell pylint to let it be
-from sqlalchemy import create_engine
-from sqlalchemy import Table, Column, Integer, String, MetaData, ForeignKey
-from sqlalchemy.orm import sessionmaker, scoped_session
-
-from flask import Flask, jsonify, abort
-
-from flask_sqlalchemy import SQLAlchemy
-
+from sqlalchemy import Table, Column, Integer, String, ForeignKey
 from random import shuffle # to shuffle lists
 
-APP = Flask(__name__)
-APP.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///quizlib.sqlite'
-APP.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-DB = SQLAlchemy(APP)
+#TODO remove these imports used in previous versions before switch to flask-SQLAlchemy
+#from sqlalchemy import MetaData
+#from sqlalchemy import create_engine
+#from sqlalchemy.orm import sessionmaker, scoped_session
+#from flask import Flask, jsonify, abort
 
-import models
-# doing this after db is defined to avoid circular imports
+import models # get also DB from there
 
 
 
@@ -34,7 +27,7 @@ class DataStore:
 
     def __init__(self):
         self.dbname='sqlite:///quizlib.sqlite'
-        DB.create_all()
+        models.DB.create_all()
 
 
     
@@ -358,4 +351,5 @@ class DataStore:
 
         s.add_all(some_distractors + more_distractors + yet_more_distractors)
         s.commit()
+
 

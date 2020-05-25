@@ -1,7 +1,7 @@
 # pylint: disable=no-member
 # pylint: disable=E1101 
-from datastore import DB #NOTE watch out for circular imports
 
+from flaskcore import DB
 
 
 class Question(DB.Model):
