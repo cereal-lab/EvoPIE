@@ -1,16 +1,10 @@
 # pylint: disable=no-member
 # pylint: disable=E1101 
 # Dynamic classes like scoped_session are caught by pylint as not having any
-# of the members they end up featuring at runtime.
-# This is a way to tell pylint to let it be
+# of the members they end up featuring at runtime. This is a way to tell pylint to let it be
+
 from sqlalchemy import Table, Column, Integer, String, ForeignKey
 from random import shuffle # to shuffle lists
-
-#TODO remove these imports used in previous versions before switch to flask-SQLAlchemy
-#from sqlalchemy import MetaData
-#from sqlalchemy import create_engine
-#from sqlalchemy.orm import sessionmaker, scoped_session
-#from flask import Flask, jsonify, abort
 
 import models # get also DB from there
 
@@ -28,41 +22,45 @@ class DataStore:
     def __init__(self):
         self.dbname='sqlite:///quizlib.sqlite'
         models.DB.create_all()
+        #FIXME we should not recreate the DB at each run; use flask CLI commands
 
 
     
     def get_question(self, qid):
-        data = models.Question.query.filter_by(id=qid).first()
-        return data
+        return models.Question.query.filter_by(id=qid).first()
 
 
 
     def get_question_json(self, qid):
         '''
-        Returns a dictionary with the question + answer + distractors.
+        Returns a dictionary with the question + answer + ALL distractors.
+        The fact that all distractors are included is the main difference
+        between Question and QuizQuestion.
         Answer and distractors are shuffled together as options from which
         the student will have to pick.
         '''
         q = self.get_question(qid)
         if q == None:
             return None
+
         quiz = {
             "title" : q.title,
             "question" : q.question,
             "answer" : q.answer,
             "options" : []
         }
+
+        quiz['options'] = [d.answer for d in q.distractors]
         quiz['options'].append(q.answer)
-        for d in q.distractors:
-            quiz['options'].append(d.answer)
         shuffle(quiz['options'])
+
         return quiz
 
 
 
     def get_all_questions(self):
-        data = models.Question.query.all()
-        return data
+        return models.Question.query.all()
+
     
     
 
@@ -76,8 +74,7 @@ class DataStore:
 
 
     def get_all_distractors(self):
-        data = models.Distractor.query.all()
-        return data
+        return models.Distractor.query.all()
 
 
 
@@ -121,9 +118,8 @@ class DataStore:
     
 
     def get_distractors_for_question(self, qid):
-        data = models.Distractor.query.filter_by(question_id=qid).all()
-        #FIXME we could also fetch the question and just return its distractors field
-        return data
+        #NOTE we could also fetch the question and just return its distractors field
+        return models.Distractor.query.filter_by(question_id=qid).all()
 
 
 
@@ -137,7 +133,7 @@ class DataStore:
 
 
 
-        # BEWARE
+        #NOTE using index for distractors instead of IDs.
         # In the following methods, the distractor is identified by its index 
         # in the list of distractors for this question, instead of using its unique distractor ID.
         # We are here assuming that the queries from the DB will be idempotent
@@ -150,7 +146,7 @@ class DataStore:
 
 
     def get_distractor_for_question(self, qid, index):
-        #FIXME - see above
+        #NOTE - see above
         all = self.get_distractors_for_question(qid)
         if len(all) > index:
             return all[index]
@@ -161,7 +157,7 @@ class DataStore:
 
 
     def get_distractor_for_question_json(self, qid, index):
-        #FIXME - see above
+        #NOTE - see above
         d = self.get_distractor_for_question(qid, index)
         if d == None:
             return None
@@ -171,7 +167,7 @@ class DataStore:
         
     
     def update_distractor_for_question(self, qid, index, answer):
-        #FIXME - see above
+        #NOTE - see above
         d = self.get_distractor_for_question(qid, index)
         if d == None:
             return False
@@ -183,7 +179,7 @@ class DataStore:
 
 
     def delete_distractor_for_question(self, qid, index):
-        #FIXME - see above
+        #NOTE - see above
         d = self.get_distractor_for_question(qid, index)
         if d == None:
             return False
@@ -199,8 +195,7 @@ class DataStore:
 
 
     def get_distractor(self, did):
-        d = models.Distractor.query.filter_by(id=did).first()
-        return d
+        return models.Distractor.query.filter_by(id=did).first()
         
 
 
@@ -236,16 +231,13 @@ class DataStore:
         
         
     def add_quiz_question(self, question_id, distractors_ids):
-        
         q = self.get_question(question_id)
-        print('*** got question' + str(question_id))
         if q == None: 
             return False
 
         distractors = []
         for id in distractors_ids:
             obj = self.get_distractor(id)
-            print('*** got distractor' + str(id))
             if obj == None:
                 return False
             else:
@@ -291,7 +283,7 @@ class DataStore:
         result['options'].append(qq.question.answer)
         for d in qq.distractors:
             result['options'].append(d.answer)
-        #shuffle(result['options'])
+        shuffle(result['options'])
         return result
 
     
@@ -308,24 +300,21 @@ class DataStore:
         models.Distractor.query.delete()
         models.DB.session.commit() # don't forget to commit or the DB will be locked
 
-        s = models.DB.session
-        
         all_mcqs = [
-                models.Question(    title=u'Sir Lancelot and the bridge keeper, part 1',
+                models.Question(title=u'Sir Lancelot and the bridge keeper, part 1',
                                 question=u'What... is your name?',
                                 answer=u'Sir Lancelot of Camelot'),
-                models.Question(    title=u'Sir Lancelot and the bridge keeper, part 2',
+                models.Question(title=u'Sir Lancelot and the bridge keeper, part 2',
                                 question=u'What... is your quest?', 
                                 answer=u'To seek the holy grail'),
-                models.Question(    title=u'Sir Lancelot and the bridge keeper, part 3',
+                models.Question(title=u'Sir Lancelot and the bridge keeper, part 3',
                                 question=u'What... is your favorite colour?', 
                                 answer=u'Blue')
         ]
         
-        s.add_all(all_mcqs)
-        s.commit()        
-        # need to commit right now
-        # If not, the qid below will not be added in the distractors table's rows
+        models.DB.session.add_all(all_mcqs)
+        models.DB.session.commit()        
+        # need to commit right now; if not, the qid below will not be added in the distractors table's rows
 
         qid=all_mcqs[0].id
         some_distractors = [
@@ -349,7 +338,7 @@ class DataStore:
             models.Distractor(question_id=qid,answer=u'Yellow')
         ]
 
-        s.add_all(some_distractors + more_distractors + yet_more_distractors)
-        s.commit()
+        models.DB.session.add_all(some_distractors + more_distractors + yet_more_distractors)
+        models.DB.session.commit()
 
 

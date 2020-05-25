@@ -74,31 +74,26 @@ def put_question(question_id):
     '''
     Update a given question.
     '''
-    #FIXME note that HTML5 will not allow a form to submit a PUT instead of a POST
-    # so we need to clean up the code in here accordingly...
-    if request.json:
-        title = request.json['title']
-        question = request.json['question']
-        answer = request.json['answer']
-    else:
-        title = request.form['title']
-        question = request.form['question']
-        answer = request.form['answer']
+    #NOTE HTML5 forms can not submit a PUT (only POST), so we reject any non-json request
+    if not request.json:
+        abort(406) # not acceptable
+
+    title = request.json['title']
+    question = request.json['question']
+    answer = request.json['answer']
     
     if answer == None or question == None or title == None:
         abort(400) # bad request
     
     success = DS.update_question(question_id, title, question, answer)
     
-    if request.json:
-        if success:
-            return Response('{"status" : "Question updated in database"}', status=200, mimetype='application/json')
-        else:
-            return Response('{"status" : "Question NOT updated in database"}', status=404, mimetype='application/json')
+    if success:
+        return Response('{"status" : "Question updated in database"}', status=200, mimetype='application/json')
     else:
-        return redirect(url_for('index'))
+        return Response('{"status" : "Question NOT updated in database"}', status=404, mimetype='application/json')
 
-    
+
+
 
 @APP.route('/questions/<int:question_id>', methods=['DELETE'])
 def delete_question(question_id):
@@ -151,7 +146,7 @@ def post_new_distractor_for_question(question_id):
 
 
 
-#FIXME
+#NOTE Using index for distractors, relative to question, rather than their IDs.
 # Please note that, in the next 3 routes, the distractor is identified by its index
 # in the list of distractors for this question, instead of using its distractor ID.
 # Assuming here that the queries from the DB will be idempotent
@@ -252,8 +247,7 @@ def get_all_quiz_questions():
     '''
     Get, in JSON format, all the QuizQuestions from the database.
     '''
-    q = DS.get_all_quiz_questions_json()
-    return jsonify(q)
+    return jsonify(DS.get_all_quiz_questions_json())
 
 
 
@@ -271,7 +265,7 @@ def post_new_quiz_question():
     else:
         abort(406) # not acceptable
         #FIXME we have been redirecting for posts from forms, but this does not allow to handle errors statuses.
-        # so, instead, we restrict ourselves to only the JSON format, or now at least.
+        # so, instead, we restrict ourselves to only the JSON format, for now at least.
 
     if DS.add_quiz_question(question_id, distractors_ids):
         return Response('{"status" : "QuizQuestion added to data base"}', status=201, mimetype='application/json')
@@ -281,14 +275,8 @@ def post_new_quiz_question():
 
 
 if __name__ == '__main__':
-    # to recreate the DB;
-    # rm the DB file
-    # pipenv run python
-    # import datastore
-    # ds = datastore.DataStore()
-    # ds.populate()
     
-    #lets populate by using a script sending data with curl instead
-    # so we test out that our RESTful API is working
+    
+    # let's populate by using a script sending data with curl instead so we test out our RESTful API
     # DS.populate()
     APP.run(debug=True)
