@@ -1,7 +1,8 @@
 # pylint: disable=no-member
 # pylint: disable=E1101 
 
-from flaskcore import DB
+from evopie import DB
+
 
 
 class Question(DB.Model):

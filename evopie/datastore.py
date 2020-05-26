@@ -6,28 +6,28 @@
 from sqlalchemy import Table, Column, Integer, String, ForeignKey
 from random import shuffle # to shuffle lists
 
-import models # get also DB from there
+from evopie import models # get also DB from there
 
 
 
 class DataStore:
     '''
     This class should encapsultate all the details of interacting with the database.
-    This version is using Flqsk-SQLAlchemy ORM.
+    This version is using Flask-SQLAlchemy ORM.
     If we revisit this decision, this should be the only part of the code to have
     to undergo modifications, without breaking its API.
     '''
 
 
     def __init__(self):
-        self.dbname='sqlite:///quizlib.sqlite'
-        models.DB.create_all()
+        #models.DB.create_all()
         #FIXME we should not recreate the DB at each run; use flask CLI commands
+        pass
 
 
     
     def get_question(self, qid):
-        return models.Question.query.filter_by(id=qid).first()
+        return models.Question.query.get(qid)
 
 
 
@@ -118,8 +118,7 @@ class DataStore:
     
 
     def get_distractors_for_question(self, qid):
-        #NOTE we could also fetch the question and just return its distractors field
-        return models.Distractor.query.filter_by(question_id=qid).all()
+        return models.Question.query.get(qid).distractors
 
 
 
@@ -195,7 +194,7 @@ class DataStore:
 
 
     def get_distractor(self, did):
-        return models.Distractor.query.filter_by(id=did).first()
+        return models.Distractor.query.get(did)
         
 
 
