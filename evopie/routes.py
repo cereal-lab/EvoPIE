@@ -7,11 +7,8 @@ from flask import jsonify, abort, request, Response, render_template, redirect, 
 
 from random import shuffle # to shuffle lists
 
-from evopie.datastore import DataStore
 from evopie import APP
 import evopie.models as models
-
-DS = DataStore()
 
 
 
