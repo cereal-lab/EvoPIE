@@ -1,6 +1,12 @@
-from flask import jsonify, abort, request, Response, render_template, redirect, url_for
+# pylint: disable=no-member
+# pylint: disable=E1101 
+# Dynamic classes like scoped_session are caught by pylint as not having any
+# of the members they end up featuring at runtime. This is a way to tell pylint to let it be
+
+from flask import jsonify, abort, request, Response, render_template, redirect, url_for, make_response
 from evopie.datastore import DataStore
 from evopie import APP
+import evopie.models as models
 
 DS = DataStore()
 
@@ -270,3 +276,42 @@ def post_new_quiz_question():
         abort(400) # bad request
     
 
+
+@APP.route('/quizquestions/<int:qq_id>', methods=['GET', 'PUT', 'DELETE'])
+def quiz_questions(qq_id):
+    '''
+    Handles requests on a specific QuizQuestion
+    '''
+    
+    #making sure the QuizQuestion exists
+    qq = DS.get_quiz_question(qq_id)
+    if qq == None:
+        abort(404)
+    
+    if request.method == 'GET':
+        return jsonify(DS.get_quiz_question_json(qq_id))
+    elif request.method == 'PUT':
+        if not request.json:
+            abort(406) # not acceptable
+        else:
+            #TODO implement PUT on QuizQuestions; how do we handle the update of a variable number of distractors?
+            # Extracting data from request
+            # ... = request.json['...']
+            # Making sure all fields were there 
+            # Also make sure all distractors refer to actual distractors in the DB
+            # if ... == None:
+            abort(400) # bad request
+            #else:
+            # update the distractors on our object
+            # qq.distractors = ...
+            # commit changes to DB via ORM
+            #models.session.commit()
+    elif request.method == 'DELETE':
+        models.DB.session.delete(qq)
+        models.DB.session.commit()
+        response = ('Quiz Question Deleted from database', 200, {"Content-Type": "application/json"})
+        #NOTE the above is a bloody tuple, not 3 separate parameters to make_response
+        return make_response(response)
+    else:
+        abort(406) # not acceptable; should never trigger based on @APP.route
+    
