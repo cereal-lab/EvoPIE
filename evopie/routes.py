@@ -4,6 +4,9 @@
 # of the members they end up featuring at runtime. This is a way to tell pylint to let it be
 
 from flask import jsonify, abort, request, Response, render_template, redirect, url_for, make_response
+
+from random import shuffle # to shuffle lists
+
 from evopie.datastore import DataStore
 from evopie import APP
 import evopie.models as models
@@ -17,8 +20,11 @@ def index():
     '''
     index page for the whole thing; use to test out a rudimentary user interface
     '''
-    quizzes = DS.get_all_questions_json()
-    return render_template('index.html', quizzes=quizzes)
+    all = models.Question.query.all()
+    result =  []
+    for q in all:
+        result.append(q.dump_as_dict())
+    return render_template('index.html', quizzes=result)
 
 
 
@@ -28,8 +34,11 @@ def get_all_questions():
     Get, in JSON format, all the questions from the database,
     including all its distractors.
     '''
-    q = DS.get_all_questions_json()
-    return jsonify(q)
+    all = models.Question.query.all()
+    result = []
+    for q in all:
+        result.append(q.dump_as_dict())
+    return jsonify(result)
 
 
 
@@ -50,10 +59,13 @@ def post_new_question():
     if answer == None or question == None or title == None:
         abort(400) # bad request
     
-    DS.add_question(title, question, answer)
-    
+    q = models.Question(title=title, question=question, answer=answer)
+    models.DB.session.add(q)
+    models.DB.session.commit()
+
     if request.json:
-        return Response('{"status" : "Question and answer added to database"}', status=201, mimetype='application/json')
+        response = ('Question & answer added to database', 201, {"Content-Type": "application/json"})
+        return make_response(response)
     else:
         return redirect(url_for('index'))
 
@@ -64,11 +76,13 @@ def get_question(question_id):
     '''
     Get, in JSON format, a specified question from the database,
     including all its distractors.
+    The fact that all distractors are included is the main difference
+    between Question and QuizQuestion.
+    Answer and distractors are shuffled together as options from which
+    the student will have to pick.
     '''
-    q = DS.get_question_json(question_id)
-    if q == None:
-        abort(404)
-    return jsonify(q)
+    q = models.Question.query.get_or_404(question_id)
+    return jsonify(q.dump_as_dict())
 
 
 
@@ -88,13 +102,15 @@ def put_question(question_id):
     if answer == None or question == None or title == None:
         abort(400) # bad request
     
-    success = DS.update_question(question_id, title, question, answer)
-    
-    if success:
-        return Response('{"status" : "Question updated in database"}', status=200, mimetype='application/json')
-    else:
-        return Response('{"status" : "Question NOT updated in database"}', status=404, mimetype='application/json')
-
+    q = models.Question.query.get_or_404(question_id)
+    #TODO only assign the fields that were not None in the request
+    #NOTE are they even None at some point; e.g., instead of empty strings?
+    q.title = title
+    q.question = question
+    q.answer = answer
+    models.DB.session.commit()
+    response = ('Distractor updated in database', 204, {"Content-Type": "application/json"})
+    return make_response(response)
 
 
 
@@ -116,11 +132,11 @@ def get_distractors_for_question(question_id):
     '''
     Get all distractors for the specified question.
     '''
-    q = DS.get_distractors_for_question_json(question_id)
-    if q == None:
-        abort(404)
-    else:
-        return jsonify(q)
+    q = models.Question.query.get_or_404(question_id)
+    result = []
+    for d in q.distractors:
+        result.append(d.dump_as_dict())
+    return jsonify(result)
     
 
 
@@ -137,16 +153,15 @@ def post_new_distractor_for_question(question_id):
     if answer == None:
         abort(400) # bad request
     
-    result = DS.get_question(question_id)
-    if result == None: 
-        abort(404) # not found
-
-    DS.add_distractor_for_question(question_id, answer)
-    
+    q = models.Question.query.get_or_404(question_id)
+    q.distractors.append(models.Distractor(answer=answer,question_id=q.id))
+    models.DB.session.commit()
     if request.json:
-        return Response('{"status" : "Distractor answer added to question in data base"}', status=201, mimetype='application/json')
+        response = ('Distractor added to Question in database', 201, {"Content-Type": "application/json"})
+        return make_response(response)
     else:
         return redirect(url_for('index'))
+        #TODO how to handle error in a non-REST client?
 
 
 
@@ -162,12 +177,11 @@ def post_new_distractor_for_question(question_id):
 
 @APP.route('/questions/<int:question_id>/distractors/<int:distractor_index>', methods=['GET'])
 def get_distractor_for_question(question_id, distractor_index):
-    d = DS.get_distractor_for_question_json(question_id, distractor_index)
-    if d == None:
-        abort(404)
-    else:
-        return jsonify(d)
-
+    all = models.Question.query.get_or_404(question_id).distractors
+    if len(all) <= distractor_index or distractor_index < 0:
+        abort(406)
+    return jsonify(all[distractor_index].dump_as_dict())
+    
 
 
 @APP.route('/questions/<int:question_id>/distractors/<int:distractor_index>', methods=['PUT'])
@@ -176,16 +190,15 @@ def put_distractor_for_question(question_id, distractor_index):
         abort(406) # not acceptable
     
     answer = request.json['answer']
-    
     if answer == None:
         abort(400) # bad request
     
-    success = DS.update_distractor_for_question(question_id, distractor_index, answer)
-    
-    if success:
-        return Response('{"status" : "Distractor updated in database"}', status=200, mimetype='application/json')
-    else:
-        return Response('{"status" : "Distractor NOT updated in database"}', status=404, mimetype='application/json')
+    q = models.Question.query.get_or_404(question_id)
+    d = q.distractors[distractor_index]
+    d.answer = answer
+    models.DB.session.commit()
+    response = ('Distractor updated in database', 204, {"Content-Type": "application/json"})
+    return make_response(response)
 
 
 
@@ -194,10 +207,11 @@ def delete_distractor_for_question(question_id, distractor_index):
     '''
     Delete given distractor.
     '''
-    d = DS.get_distractor_for_question(question_id, distractor_index)
+    q = models.Question.query.get_or_404(question_id)
+    d = q.distractors[distractor_index]
     models.DB.session.delete(d)
     models.DB.session.commit()
-    response = ('Distractor Deleted from database', 200, {"Content-Type": "application/json"})
+    response = ('Distractor Deleted from database', 204, {"Content-Type": "application/json"})
     return make_response(response)
 
 
@@ -208,11 +222,8 @@ def delete_distractor_for_question(question_id, distractor_index):
 
 @APP.route('/distractors/<int:distractor_id>', methods=['GET'])
 def get_distractor(distractor_id):
-    d = DS.get_distractor_json(distractor_id)
-    if d == None:
-        abort(404)
-    else:
-        return jsonify(d)
+    d = models.Distractor.query.get_or_404(distractor_id)
+    return jsonify({ "answer": d.answer })
 
 
 
@@ -221,19 +232,17 @@ def put_distractor(distractor_id):
     if not request.json:
         abort(406) # not acceptable
     else:
-        answer = request.json['answer']
+        answer = request.json['answer']    
+        if answer == None:
+            abort(400) # bad request
     
-    if answer == None:
-        abort(400) # bad request
+    d = models.Distractor.query.get_or_404(distractor_id)
+    d.answer = answer
+    models.DB.session.commit()
+    response = ('Distractor updated in database', 204, {"Content-Type": "application/json"})
+    return make_response(response)
     
-    success = DS.update_distractor(distractor_id, answer)
     
-    if success:
-        return Response('{"status" : "Distractor updated in database"}', status=200, mimetype='application/json')
-    else:
-        return Response('{"status" : "Distractor NOT updated in database"}', status=404, mimetype='application/json')
-
-
 
 @APP.route('/distractors/<int:distractor_id>', methods=['DELETE'])
 def delete_distractor(distractor_id):
@@ -243,7 +252,7 @@ def delete_distractor(distractor_id):
     d = models.Distractor.query.get_or_404(distractor_id)
     models.DB.session.delete(d)
     models.DB.session.commit()
-    response = ('Distractor Deleted from database', 200, {"Content-Type": "application/json"})
+    response = ('Distractor Deleted from database', 204, {"Content-Type": "application/json"})
     return make_response(response)
 
 
@@ -253,7 +262,11 @@ def get_all_quiz_questions():
     '''
     Get, in JSON format, all the QuizQuestions from the database.
     '''
-    return jsonify(DS.get_all_quiz_questions_json())
+    all = models.QuizQuestion.query.all()
+    result = []
+    for q in all:
+        result.append(q.dump_as_dict())
+    return jsonify(result)
 
 
 
@@ -273,10 +286,20 @@ def post_new_quiz_question():
         #FIXME we have been redirecting for posts from forms, but this does not allow to handle errors statuses.
         # so, instead, we restrict ourselves to only the JSON format, for now at least.
 
-    if DS.add_quiz_question(question_id, distractors_ids):
-        return Response('{"status" : "QuizQuestion added to data base"}', status=201, mimetype='application/json')
-    else:
-        abort(400) # bad request
+    q = models.Question.query.get_or_404(question_id)
+    qq = models.QuizQuestion(question=q)
+    distractors = []
+    for id in distractors_ids:
+        obj = models.Distractor.query.get_or_404(id)
+        distractors.append(obj)
+    for d in distractors:
+        qq.distractors.append(d)
+    
+    models.DB.session.add(qq)
+    models.DB.session.commit()
+
+    response = ('Quiz Question added to database', 201, {"Content-Type": "application/json"})
+    return make_response(response)
     
 
 
@@ -287,12 +310,10 @@ def quiz_questions(qq_id):
     '''
     
     #making sure the QuizQuestion exists
-    qq = DS.get_quiz_question(qq_id)
-    if qq == None:
-        abort(404)
+    qq = models.QuizQuestion.query.get_or_404(qq_id)
     
     if request.method == 'GET':
-        return jsonify(DS.get_quiz_question_json(qq_id))
+        return jsonify(qq.dump_as_dict())
     elif request.method == 'PUT':
         if not request.json:
             abort(406) # not acceptable
@@ -312,7 +333,7 @@ def quiz_questions(qq_id):
     elif request.method == 'DELETE':
         models.DB.session.delete(qq)
         models.DB.session.commit()
-        response = ('Quiz Question Deleted from database', 200, {"Content-Type": "application/json"})
+        response = ('Quiz Question Deleted from database', 204, {"Content-Type": "application/json"})
         #NOTE the above is a bloody tuple, not 3 separate parameters to make_response
         return make_response(response)
     else:

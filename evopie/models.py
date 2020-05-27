@@ -1,6 +1,8 @@
 # pylint: disable=no-member
 # pylint: disable=E1101 
 
+from random import shuffle # to shuffle lists
+
 from evopie import DB
 
 
@@ -28,6 +30,18 @@ class Question(DB.Model):
     def __repr__(self):
         return "Question(id='%d',title='%s',question='%s',solution='%s')" % (self.id, self.title, self.question, self.answer)
 
+    def dump_as_dict(self):
+        q = {
+            "title" : self.title,
+            "question" : self.question,
+            "answer" : self.answer,
+            "options" : []
+        }
+        q['options'] = [d.answer for d in self.distractors]
+        q['options'].append(self.answer)
+        shuffle(q['options'])
+        return q
+
 
 
 # association table for many-to-many association between QuizQuestion and Distractor
@@ -53,6 +67,9 @@ class Distractor(DB.Model):
     def __repr__(self):
         return "Distractor(id='%d',question_id=%d,answer='%s')" % (self.question_id, self.id, self.answer)
 
+    def dump_as_dict(self):
+        return {"answer": self.answer}
+
 
 
 
@@ -75,6 +92,19 @@ class QuizQuestion(DB.Model):
         backref=DB.backref('quiz_questions', lazy=True))
     # these are the distractors that have been selected, among all available distractors
     # for a given question, to be features in this particular question to appear in a quiz
+
+    def dump_as_dict(self):
+        result = {  "title": self.question.title,
+                    "question": self.question.question,
+                    "answer": self.question.answer,
+                    "options": [] }
+        
+        result['options'].append(self.question.answer)
+        for d in self.distractors:
+            result['options'].append(d.answer)
+        shuffle(result['options'])
+        return result
+
 
 
 

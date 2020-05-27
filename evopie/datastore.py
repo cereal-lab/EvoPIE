@@ -4,6 +4,7 @@
 # of the members they end up featuring at runtime. This is a way to tell pylint to let it be
 
 from sqlalchemy import Table, Column, Integer, String, ForeignKey
+
 from random import shuffle # to shuffle lists
 
 from evopie import models # get also DB from there
@@ -26,98 +27,15 @@ class DataStore:
 
 
     
-    def get_question(self, qid):
-        return models.Question.query.get(qid)
-
-
-
-    def get_question_json(self, qid):
-        '''
-        Returns a dictionary with the question + answer + ALL distractors.
-        The fact that all distractors are included is the main difference
-        between Question and QuizQuestion.
-        Answer and distractors are shuffled together as options from which
-        the student will have to pick.
-        '''
-        q = self.get_question(qid)
-        if q == None:
-            return None
-
-        quiz = {
-            "title" : q.title,
-            "question" : q.question,
-            "answer" : q.answer,
-            "options" : []
-        }
-
-        quiz['options'] = [d.answer for d in q.distractors]
-        quiz['options'].append(q.answer)
-        shuffle(quiz['options'])
-
-        return quiz
-
-
-
-    def get_all_questions(self):
-        return models.Question.query.all()
-
-    
-    
-
-    def get_all_questions_json(self):
-        result=[]
-        quizzes = models.Question.query.all()
-        for q in quizzes:
-            result.append(self.get_question_json(q.id))
-        return result
-
-
-
     def get_all_distractors(self):
         return models.Distractor.query.all()
-
-
-
-    def add_distractor_for_question(self, qid, dist):
-        q = self.get_question(qid)
-        if q != None:
-            q.distractors.append(models.Distractor(answer=dist,question_id=qid))
-            models.DB.session.commit()    
-
+    
 
 
     def add_question(self, title, question, answer):
         q = models.Question(title=title, question=question, answer=answer)
         models.DB.session.add(q)
         models.DB.session.commit()
-
-
-
-    def update_question(self, question_id, title, question, answer):
-        q = self.get_question(question_id)
-        if q != None:
-            q.title = title
-            q.question = question
-            q.answer = answer
-            models.DB.session.commit()
-            return True
-        else:
-            return False
-        
-        
-    
-    def get_distractors_for_question(self, qid):
-        return models.Question.query.get(qid).distractors
-
-
-
-    def get_distractors_for_question_json(self, qid):
-        data = self.get_distractors_for_question(qid)
-        result = []
-        for d in data:
-            result.append({ "answer": d.answer })
-        return result
-    
 
 
 
@@ -133,17 +51,6 @@ class DataStore:
 
 
 
-    def get_distractor_for_question(self, qid, index):
-        #NOTE - see above
-        all = self.get_distractors_for_question(qid)
-        if len(all) > index:
-            return all[index]
-        else:
-            return None
-        
-
-
-
     def get_distractor_for_question_json(self, qid, index):
         #NOTE - see above
         d = self.get_distractor_for_question(qid, index)
@@ -154,105 +61,10 @@ class DataStore:
             
         
     
-    def update_distractor_for_question(self, qid, index, answer):
-        #NOTE - see above
-        d = self.get_distractor_for_question(qid, index)
-        if d == None:
-            return False
-        else:
-            d.answer = answer
-            models.DB.session.commit()
-            return True
-    
-
-
     # The following methods use a proper distractor_id
 
 
 
-    def get_distractor(self, did):
-        return models.Distractor.query.get(did)
-        
-
-
-    def get_distractor_json(self, did):
-        d = self.get_distractor(did)
-        if d == None:
-            return None
-        else:
-            return { "answer": d.answer }
-            
-        
-    
-    def update_distractor(self, did, answer):
-        d = self.get_distractor(did)
-        if d == None:
-            return False
-        else:
-            d.answer = answer
-            models.DB.session.commit()
-            return True
-    
-
-
-    def add_quiz_question(self, question_id, distractors_ids):
-        q = self.get_question(question_id)
-        if q == None: 
-            return False
-
-        distractors = []
-        for id in distractors_ids:
-            obj = self.get_distractor(id)
-            if obj == None:
-                return False
-            else:
-                distractors.append(obj)
-
-        qq = models.QuizQuestion(question=q)
-        for d in distractors:
-            qq.distractors.append(d)
-        models.DB.session.add(qq)
-        models.DB.session.commit()
-        return True
-        
-        
-        
-    def get_all_quiz_questions(self):
-        return models.QuizQuestion.query.all()
-
-
-    def get_all_quiz_questions_json(self):
-        result=[]
-        qq = self.get_all_quiz_questions()
-        for q in qq:
-            result.append(self.get_quiz_question_json(q.id))
-        return result
-    
-    
-    
-    def get_quiz_question(self, qqid):
-        return models.QuizQuestion.query.filter_by(id=qqid).first()
-    
-    
-    
-    def get_quiz_question_json(self, qqid):
-        qq = self.get_quiz_question(qqid)
-        if qq == None:
-            return None
-        
-        result = {  "title": qq.question.title,
-                    "question": qq.question.question,
-                    "answer": qq.question.answer,
-                    "options": [] }
-        
-        result['options'].append(qq.question.answer)
-        for d in qq.distractors:
-            result['options'].append(d.answer)
-        shuffle(result['options'])
-        return result
-
-    
-    
     def populate(self):
         '''
             Just populating the DB with some mock quizzes
