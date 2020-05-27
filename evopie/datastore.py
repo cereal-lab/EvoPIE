@@ -106,17 +106,6 @@ class DataStore:
         
         
     
-    def delete_question(self, question_id):
-        q = self.get_question(question_id)
-        if q != None:
-            models.DB.session.delete(q)
-            models.DB.session.commit()
-            return True
-        else:
-            return False
-
-    
-
     def get_distractors_for_question(self, qid):
         return models.Question.query.get(qid).distractors
 
@@ -177,18 +166,6 @@ class DataStore:
     
 
 
-    def delete_distractor_for_question(self, qid, index):
-        #NOTE - see above
-        d = self.get_distractor_for_question(qid, index)
-        if d == None:
-            return False
-        else:
-            models.DB.session.delete(d)
-            models.DB.session.commit()
-            return True
-    
-
-
     # The following methods use a proper distractor_id
 
 
@@ -218,17 +195,6 @@ class DataStore:
     
 
 
-    def delete_distractor(self, did):
-        d = self.get_distractor(did)
-        if d == None:
-            return False
-        else:
-            models.DB.session.delete(d)
-            models.DB.session.commit()
-            return True
-    
-        
-        
     def add_quiz_question(self, question_id, distractors_ids):
         q = self.get_question(question_id)
         if q == None: 

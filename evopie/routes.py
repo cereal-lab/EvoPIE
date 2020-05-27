@@ -103,12 +103,13 @@ def delete_question(question_id):
     '''
     Delete given question.
     '''
-    if DS.delete_question(question_id):
-        return Response('{"status" : "Question deleted from database"}', status=200, mimetype='application/json')
-    else:
-        abort(404)
+    q = models.Question.query.get_or_404(question_id)
+    models.DB.session.delete(q)
+    models.DB.session.commit()
+    response = ('Question Deleted from database', 200, {"Content-Type": "application/json"})
+    return make_response(response)
 
-
+    
 
 @APP.route('/questions/<int:question_id>/distractors', methods=['GET'])
 def get_distractors_for_question(question_id):
@@ -193,10 +194,11 @@ def delete_distractor_for_question(question_id, distractor_index):
     '''
     Delete given distractor.
     '''
-    if DS.delete_distractor_for_question(question_id, distractor_index):
-        return Response('{"status" : "Distractor deleted from database"}', status=200, mimetype='application/json')
-    else:
-        abort(404)
+    d = DS.get_distractor_for_question(question_id, distractor_index)
+    models.DB.session.delete(d)
+    models.DB.session.commit()
+    response = ('Distractor Deleted from database', 200, {"Content-Type": "application/json"})
+    return make_response(response)
 
 
 
@@ -238,10 +240,11 @@ def delete_distractor(distractor_id):
     '''
     Delete given distractor.
     '''
-    if DS.delete_distractor(distractor_id):
-        return Response('{"status" : "Distractor deleted from database"}', status=200, mimetype='application/json')
-    else:
-        abort(404)
+    d = models.Distractor.query.get_or_404(distractor_id)
+    models.DB.session.delete(d)
+    models.DB.session.commit()
+    response = ('Distractor Deleted from database', 200, {"Content-Type": "application/json"})
+    return make_response(response)
 
 
 
