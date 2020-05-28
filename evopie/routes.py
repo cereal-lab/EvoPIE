@@ -18,9 +18,7 @@ def index():
     index page for the whole thing; use to test out a rudimentary user interface
     '''
     all = models.Question.query.all()
-    result =  []
-    for q in all:
-        result.append(q.dump_as_dict())
+    result =  [q.dump_as_dict() for q in all]
     return render_template('index.html', quizzes=result)
 
 
@@ -32,9 +30,7 @@ def get_all_questions():
     including all its distractors.
     '''
     all = models.Question.query.all()
-    result = []
-    for q in all:
-        result.append(q.dump_as_dict())
+    result = [q.dump_as_dict() for q in all]
     return jsonify(result)
 
 
@@ -130,9 +126,7 @@ def get_distractors_for_question(question_id):
     Get all distractors for the specified question.
     '''
     q = models.Question.query.get_or_404(question_id)
-    result = []
-    for d in q.distractors:
-        result.append(d.dump_as_dict())
+    result = [d.dump_as_dict() for d in q.distractors]
     return jsonify(result)
     
 
@@ -260,9 +254,7 @@ def get_all_quiz_questions():
     Get, in JSON format, all the QuizQuestions from the database.
     '''
     all = models.QuizQuestion.query.all()
-    result = []
-    for q in all:
-        result.append(q.dump_as_dict())
+    result = [q.dump_as_dict() for q in all]
     return jsonify(result)
 
 
@@ -285,10 +277,8 @@ def post_new_quiz_question():
 
     q = models.Question.query.get_or_404(question_id)
     qq = models.QuizQuestion(question=q)
-    distractors = []
-    for id in distractors_ids:
-        obj = models.Distractor.query.get_or_404(id)
-        distractors.append(obj)
+    distractors = [models.Distractor.query.get_or_404(id) for id in distractors_ids]
+    
     for d in distractors:
         qq.distractors.append(d)
     
@@ -336,3 +326,4 @@ def quiz_questions(qq_id):
     else:
         abort(406) # not acceptable; should never trigger based on @APP.route
     
+
