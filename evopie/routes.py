@@ -267,9 +267,7 @@ def post_new_quiz_question():
     distractors_ids = []
     if request.json:
         question_id = request.json['qid']
-        distractors_ids.append(request.json['d1'])
-        distractors_ids.append(request.json['d2'])
-        distractors_ids.append(request.json['d3'])
+        distractors_ids = [did for did in request.json['distractors_ids']]
     else:
         abort(406) # not acceptable
         #FIXME we have been redirecting for posts from forms, but this does not allow to handle errors statuses.
@@ -333,7 +331,6 @@ def post_new_quiz():
     '''
     Create a new quiz
     '''
-    #TODO - do this last; use hardcoded DB records to test the take / review quiz features first
     title = request.json['title']
     description = request.json['description']
 
