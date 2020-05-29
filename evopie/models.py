@@ -130,14 +130,20 @@ class Quiz(DB.Model):
     
     # Each quiz has many QuizAttempts
     quiz_attempts = DB.relationship('QuizAttempt', backref='quiz', lazy=True)
-        
+    
+    title = DB.Column(DB.String)
+    description = DB.Column(DB.String)
+
     # list of tags provided by the author to help them organize their stuff :)
     # later, we might add some global tags
     author_tags = DB.Column(DB.String)
 
     def dump_as_dict(self):
-        return [q.dump_as_dict() for q in self.quiz_questions]
-
+        questions = [q.dump_as_dict() for q in self.quiz_questions]
+        return {    "title" : self.title, 
+                    "description" : self.description,
+                    "questions" : questions
+                }
 
 
 class QuizAttempt(DB.Model):

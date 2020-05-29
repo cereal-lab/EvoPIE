@@ -329,18 +329,47 @@ def quiz_questions(qq_id):
     
 
 @APP.route('/quizzes', methods=['POST'])
-def quizzes_creation():
+def post_new_quiz():
     '''
     Create a new quiz
     '''
-    pass
+    #TODO - do this last; use hardcoded DB records to test the take / review quiz features first
+    title = request.json['title']
+    description = request.json['description']
+
+    q = models.Quiz(title=title, description=description)
+    
+    # Adding the questions, based on the questions_id submitted
+    for qid in request.json['questions_ids']:
+        print(f"--> fetching QuizQuestion with id {qid}")
+        question = models.QuizQuestion.query.get_or_404(qid)
+        q.quiz_questions.append(question)
+    
+    # There should be no quiz attempts for us to add at this point
+    # q.quiz_attempts.append()
+    
+    models.DB.session.add(q)
+    models.DB.session.commit()
+
+    response = ('Quiz added to database', 201, {"Content-Type": "application/json"})
+    return make_response(response)
 
 
 
-@APP.route('/quizzes/<int:qid>', methods=['GET', 'PUT', 'DELETE'])
-def quizzes_edits(qid):
+@APP.route('/quizzes', methods=['GET'])
+def get_all_quizzes():
     '''
-    Handles requests on a specific QuizQuestion
+    Get us all quizzes, for debugging purposes
+    '''
+    quizzes = models.Quiz.query.all()
+    return jsonify([q.dump_as_dict()for q in quizzes])
+
+
+    
+@APP.route('/quizzes/<int:qid>', methods=['GET', 'PUT', 'DELETE'])
+def ALL_quiz(qid):
+    '''
+    Handles all accepted requests on a specific QuizQuestion
     '''
     quiz = models.Quiz.query.get_or_404(qid)
     
@@ -350,7 +379,7 @@ def quizzes_edits(qid):
         if not request.json:
             abort(406) # not acceptable
         else:
-            pass #TODO
+            pass #TODO implement PUT request for Quiz
     elif request.method == 'DELETE':
         models.DB.session.delete(quiz)
         models.DB.session.commit()
@@ -362,7 +391,7 @@ def quizzes_edits(qid):
 
     
 @APP.route('/quizzes/<int:qid>/take', methods=['GET', 'POST'])
-def quizzes_take(qid):
+def ALL_quizzes_take(qid):
     '''
     Take the quiz and post the answers / justifications
     '''
@@ -374,20 +403,22 @@ def quizzes_take(qid):
         if not request.json:
             abort(406) # not acceptable
         else:
-            responses = [] #TODO
-            r = models.QuizResponse(quiz_id=quiz.id, responses=responses)
-            models.DB.session.add(r)
-            models.DB.session.commit()
+            # extract array of responses indexes
+            #responses = request.json['responses']
+            #r = models.QuizResponse(quiz_id=quiz.id)
+            #TODO r.responses = responses
+            #models.DB.session.add(r)
+            #models.DB.session.commit()
             response     = ('Quiz repsonses recorded in database', 204, {"Content-Type": "application/json"})
             return make_response(response)
     
 
     
 @APP.route('/quizzes/<int:qid>/review', methods=['GET', 'POST'])
-def quizzes_review(qid):
+def ALL_quizzes_review(qid):
     '''
     Re-take the quiz with peers' answers and justifications
     '''
-    pass
+    pass #TODO
 
     
