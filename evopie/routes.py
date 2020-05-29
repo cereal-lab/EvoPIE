@@ -325,5 +325,69 @@ def quiz_questions(qq_id):
         return make_response(response)
     else:
         abort(406) # not acceptable; should never trigger based on @APP.route
+
     
 
+@APP.route('/quizzes', methods=['POST'])
+def quizzes_creation():
+    '''
+    Create a new quiz
+    '''
+    pass
+
+
+
+@APP.route('/quizzes/<int:qid>', methods=['GET', 'PUT', 'DELETE'])
+def quizzes_edits(qid):
+    '''
+    Handles requests on a specific QuizQuestion
+    '''
+    quiz = models.Quiz.query.get_or_404(qid)
+    
+    if request.method == 'GET':
+        return jsonify(quiz.dump_as_dict())
+    elif request.method == 'PUT':
+        if not request.json:
+            abort(406) # not acceptable
+        else:
+            pass #TODO
+    elif request.method == 'DELETE':
+        models.DB.session.delete(quiz)
+        models.DB.session.commit()
+        response = ('Quiz deleted from database', 204, {"Content-Type": "application/json"})
+        return make_response(response)
+    else:
+        abort(406) # not acceptable; should never trigger based on @APP.route
+
+
+    
+@APP.route('/quizzes/<int:qid>/take', methods=['GET', 'POST'])
+def quizzes_take(qid):
+    '''
+    Take the quiz and post the answers / justifications
+    '''
+    quiz = models.Quiz.query.get_or_404(qid)
+    
+    if request.method == 'GET':
+        return jsonify(quiz.dump_as_dict())
+    elif request.method == 'POST':
+        if not request.json:
+            abort(406) # not acceptable
+        else:
+            responses = [] #TODO
+            r = models.QuizResponse(quiz_id=quiz.id, responses=responses)
+            models.DB.session.add(r)
+            models.DB.session.commit()
+            response     = ('Quiz repsonses recorded in database', 204, {"Content-Type": "application/json"})
+            return make_response(response)
+    
+
+    
+@APP.route('/quizzes/<int:qid>/review', methods=['GET', 'POST'])
+def quizzes_review(qid):
+    '''
+    Re-take the quiz with peers' answers and justifications
+    '''
+    pass
+
+    

@@ -1,7 +1,5 @@
 # pylint: disable=no-member
-# pylint: disable=E1101 
-# Dynamic classes like scoped_session are caught by pylint as not having any
-# of the members they end up featuring at runtime. This is a way to tell pylint to let it be
+# pylint: disable=E1101
 
 from evopie import models # get also DB from there
 

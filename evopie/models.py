@@ -84,7 +84,7 @@ class QuizQuestion(DB.Model):
     id = DB.Column(DB.Integer, primary_key=True)
 
     # to allow for 1-to-many relationship Question / QuizQuestion
-    question_id = DB.Column(None, DB.ForeignKey('question.id'), nullable=False)
+    question_id = DB.Column(DB.Integer, DB.ForeignKey('question.id'), nullable=False)
 
     
     # many-to-many with Distractor
@@ -109,7 +109,7 @@ class QuizQuestion(DB.Model):
 
 
 #Table used to implement the many-to-many relationship between QuizQuestions and Quizzes
-quizzes_hub = DB.Table('quizzes_hub',
+relation_questions_vs_quizzes = DB.Table('relation_questions_vs_quizzes',
    DB.Column('quiz_id',             DB.Integer, DB.ForeignKey('quiz.id'),           primary_key=True),
    DB.Column('quiz_question_id',    DB.Integer, DB.ForeignKey('quiz_question.id'),  primary_key=True)
 )
@@ -117,12 +117,79 @@ quizzes_hub = DB.Table('quizzes_hub',
 
 
 class Quiz(DB.Model):
-   '''
-   A Quiz object is a collection of QuizQuestion objects to be presented as a complete quiz
-   to students.
-   '''
+    '''
+    A Quiz object is a collection of QuizQuestion objects to be presented as a complete quiz
+    to students.
+    '''
 
-   id = DB.Column(DB.Integer, primary_key=True)
+    id = DB.Column(DB.Integer, primary_key=True)
 
-   quiz_questions = DB.relationship('QuizQuestion', secondary=quizzes_hub, lazy='subquery',
+    # Quiz author
+    author = DB.Column(DB.Integer, DB.ForeignKey('user.id'))
+    
+    # list of tags provided by the author to help them organize their stuff :)
+    # later, we might add some global tags
+    author_tags = DB.Column(DB.String)
+
+    quiz_questions = DB.relationship('QuizQuestion', secondary=relation_questions_vs_quizzes, lazy='subquery',
        backref=DB.backref('quizzes', lazy=True))
+    
+    def dump_as_dict(self):
+        return [q.dump_as_dict() for q in self.quiz_questions]
+
+
+
+class QuizAttempt(DB.Model):
+    '''
+    Holds the responses from a student to all questions of a given Quiz
+    '''
+    id = DB.Column(DB.Integer, primary_key=True)
+    
+    # time stamps
+    # initial --> start / end 
+    # revised --> start / end
+
+    # store students answers to all questions
+    initial_responses = DB.Column(DB.String) # as json list of distractor_ID or none for answer
+    revised_responses = DB.Column(DB.String) # as json list of distractor_ID or none for answer
+    #NOTE alternatively, we could store just an int representing the index of the response.
+    # If we do so, then order to options matters and must be fixed by instructors instead
+    # of being shuffled as we do right now
+
+    # justifications to each possible answer
+    justifications = DB.Column(DB.String) # json list of text entries
+    
+    # score
+    initial_score = DB.Column(DB.String) # as json list of yes/no
+    revised_score = DB.Column(DB.String) # as json list of yes/no
+
+    # each QuizAttempt refers to exactly 1 Quiz
+    quiz_id = DB.Column(DB.Integer, DB.ForeignKey('quiz.id'))
+    
+    #each QuizAttempt refers to exactly 1 student
+    student = DB.Column(DB.Integer, DB.ForeignKey('user.id'))
+
+
+
+#Table used to implement the many-to-many relationship between QuizQuestions and QuizAttempts
+'''
+    Responses from student to a given QuizQuestion.
+    These are bulk-generated when a Quiz is received.   
+    The UI should not operate at the level of QuizResponse but just at the Quiz level.
+    Then, internally, we keep more detailed records.
+'''
+relation_questions_vs_attempts = DB.Table('relation_questions_vs_attempts',
+   DB.Column('quiz_attempt_id', DB.Integer, DB.ForeignKey('quiz_attempt.id'), primary_key=True),
+   DB.Column('quiz_question_id',DB.Integer, DB.ForeignKey('quiz_question.id'),primary_key=True)
+)
+
+
+
+class User(DB.Model):
+    '''
+    '''
+    id = DB.Column(DB.Integer, primary_key=True)
+    email = DB.Column(DB.String)
+    first_name = DB.Column(DB.String)
+    last_name = DB.Column(DB.String)
+    # all attempts
