@@ -72,8 +72,6 @@ class Distractor(DB.Model):
 
 
 
-
-
 class QuizQuestion(DB.Model):
     '''
     A QuizQuestion object is built based on a Question and its related Distractors.
@@ -107,7 +105,6 @@ class QuizQuestion(DB.Model):
 
 
 
-
 #Table used to implement the many-to-many relationship between QuizQuestions and Quizzes
 relation_questions_vs_quizzes = DB.Table('relation_questions_vs_quizzes',
    DB.Column('quiz_id',             DB.Integer, DB.ForeignKey('quiz.id'),           primary_key=True),
@@ -124,16 +121,20 @@ class Quiz(DB.Model):
 
     id = DB.Column(DB.Integer, primary_key=True)
 
-    # Quiz author
-    author = DB.Column(DB.Integer, DB.ForeignKey('user.id'))
+    # Each quiz has 1 author
+    author_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'))
+
+    # Each quiz has many QuizQuestions
+    quiz_questions = DB.relationship('QuizQuestion', secondary=relation_questions_vs_quizzes, lazy='subquery',
+       backref=DB.backref('quizzes', lazy=True))
     
+    # Each quiz has many QuizAttempts
+    quiz_attempts = DB.relationship('QuizAttempt', backref='quiz', lazy=True)
+        
     # list of tags provided by the author to help them organize their stuff :)
     # later, we might add some global tags
     author_tags = DB.Column(DB.String)
 
-    quiz_questions = DB.relationship('QuizQuestion', secondary=relation_questions_vs_quizzes, lazy='subquery',
-       backref=DB.backref('quizzes', lazy=True))
-    
     def dump_as_dict(self):
         return [q.dump_as_dict() for q in self.quiz_questions]
 
@@ -144,7 +145,13 @@ class QuizAttempt(DB.Model):
     Holds the responses from a student to all questions of a given Quiz
     '''
     id = DB.Column(DB.Integer, primary_key=True)
+
+    # each QuizAttempt refers to exactly 1 Quiz
+    quiz_id = DB.Column(DB.Integer, DB.ForeignKey('quiz.id'))
     
+    # each QuizAttempt refers to exactly 1 student
+    student_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'))
+
     # time stamps
     # initial --> start / end 
     # revised --> start / end
@@ -163,11 +170,6 @@ class QuizAttempt(DB.Model):
     initial_score = DB.Column(DB.String) # as json list of yes/no
     revised_score = DB.Column(DB.String) # as json list of yes/no
 
-    # each QuizAttempt refers to exactly 1 Quiz
-    quiz_id = DB.Column(DB.Integer, DB.ForeignKey('quiz.id'))
-    
-    #each QuizAttempt refers to exactly 1 student
-    student = DB.Column(DB.Integer, DB.ForeignKey('user.id'))
 
 
 
@@ -192,4 +194,11 @@ class User(DB.Model):
     email = DB.Column(DB.String)
     first_name = DB.Column(DB.String)
     last_name = DB.Column(DB.String)
+
+
+    # Each user may have authored several quizzes
+    quizzes = DB.relationship('Quiz', backref='author', lazy=True)
+    
+    # Each user may have made many QuizAttempts
+    quiz_attempts = DB.relationship('QuizAttempt', backref='student', lazy=True)
     # all attempts
