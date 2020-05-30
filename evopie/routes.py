@@ -376,7 +376,16 @@ def ALL_quiz(qid):
         if not request.json:
             abort(406) # not acceptable
         else:
-            pass #TODO implement PUT request for Quiz
+            #TODO implement PUT request for Quiz
+            quiz.title = request.json['title']
+            quiz.description = request.json['description']
+            quiz.quiz_questions = []
+            for qid in request.json['questions_ids']:
+                question = models.QuizQuestion.query.get_or_404(qid)
+                quiz.quiz_questions.append(question)
+            models.DB.session.commit()
+            response = ('Quiz updated in database', 204, {"Content-Type": "application/json"})
+            return make_response(response)
     elif request.method == 'DELETE':
         models.DB.session.delete(quiz)
         models.DB.session.commit()
@@ -393,6 +402,8 @@ def ALL_quizzes_take(qid):
     Take the quiz and post the answers / justifications
     '''
     quiz = models.Quiz.query.get_or_404(qid)
+    
+    #TODO ensure that authenticated student user is able to take the quiz
     
     if request.method == 'GET':
         return jsonify(quiz.dump_as_dict())
