@@ -42,17 +42,17 @@ def post_new_question():
     '''
     if request.json:
         title = request.json['title']
-        question = request.json['question']
+        stem = request.json['stem']
         answer = request.json['answer']
     else:
         title = request.form['title']
-        question = request.form['question']
+        stem = request.form['stem']
         answer = request.form['answer']
     
-    if answer == None or question == None or title == None:
+    if answer == None or stem == None or title == None:
         abort(400) # bad request
     
-    q = models.Question(title=title, question=question, answer=answer)
+    q = models.Question(title=title, stem=stem, answer=answer)
     models.DB.session.add(q)
     models.DB.session.commit()
 
@@ -71,7 +71,7 @@ def get_question(question_id):
     including all its distractors.
     The fact that all distractors are included is the main difference
     between Question and QuizQuestion.
-    Answer and distractors are shuffled together as options from which
+    Answer and distractors are shuffled together as alternatives from which
     the student will have to pick.
     '''
     q = models.Question.query.get_or_404(question_id)
@@ -89,17 +89,17 @@ def put_question(question_id):
         abort(406) # not acceptable
 
     title = request.json['title']
-    question = request.json['question']
+    stem = request.json['stem']
     answer = request.json['answer']
     
-    if answer == None or question == None or title == None:
+    if answer == None or stem == None or title == None:
         abort(400) # bad request
     
     q = models.Question.query.get_or_404(question_id)
     #TODO only assign the fields that were not None in the request
     #NOTE are they even None at some point; e.g., instead of empty strings?
     q.title = title
-    q.question = question
+    q.stem = stem
     q.answer = answer
     models.DB.session.commit()
     response = ('Distractor updated in database', 204, {"Content-Type": "application/json"})
@@ -153,61 +153,6 @@ def post_new_distractor_for_question(question_id):
     else:
         return redirect(url_for('index'))
         #TODO how to handle error in a non-REST client?
-
-
-
-#NOTE Using index for distractors, relative to question, rather than their IDs.
-# Please note that, in the next 3 routes, the distractor is identified by its index
-# in the list of distractors for this question, instead of using its distractor ID.
-# Assuming here that the queries from the DB will be idempotent
-# with respect to the ordering of the distractors.
-# The caller must also display them to the user in the same order.
-# Probably something to keep an eye on and eventually fix...
-
-
-
-@APP.route('/questions/<int:question_id>/distractors/<int:distractor_index>', methods=['GET'])
-def get_distractor_for_question(question_id, distractor_index):
-    all = models.Question.query.get_or_404(question_id).distractors
-    if len(all) <= distractor_index or distractor_index < 0:
-        abort(406)
-    return jsonify(all[distractor_index].dump_as_dict())
-    
-
-
-@APP.route('/questions/<int:question_id>/distractors/<int:distractor_index>', methods=['PUT'])
-def put_distractor_for_question(question_id, distractor_index):
-    if not request.json:
-        abort(406) # not acceptable
-    
-    answer = request.json['answer']
-    if answer == None:
-        abort(400) # bad request
-    
-    q = models.Question.query.get_or_404(question_id)
-    d = q.distractors[distractor_index]
-    d.answer = answer
-    models.DB.session.commit()
-    response = ('Distractor updated in database', 204, {"Content-Type": "application/json"})
-    return make_response(response)
-
-
-
-@APP.route('/questions/<int:question_id>/distractors/<int:distractor_index>', methods=['DELETE'])
-def delete_distractor_for_question(question_id, distractor_index):
-    '''
-    Delete given distractor.
-    '''
-    q = models.Question.query.get_or_404(question_id)
-    d = q.distractors[distractor_index]
-    models.DB.session.delete(d)
-    models.DB.session.commit()
-    response = ('Distractor Deleted from database', 204, {"Content-Type": "application/json"})
-    return make_response(response)
-
-
-
-# In the following routes, we are accessing distractors by their unique IDs
 
 
 
@@ -289,7 +234,7 @@ def post_new_quiz_question():
 
 
 @APP.route('/quizquestions/<int:qq_id>', methods=['GET', 'PUT', 'DELETE'])
-def quiz_questions(qq_id):
+def ALL_quiz_questions(qq_id):
     '''
     Handles requests on a specific QuizQuestion
     '''
@@ -303,18 +248,26 @@ def quiz_questions(qq_id):
         if not request.json:
             abort(406) # not acceptable
         else:
-            #TODO implement PUT on QuizQuestions; how do we handle the update of a variable number of distractors?
-            # Extracting data from request
-            # ... = request.json['...']
-            # Making sure all fields were there 
-            # Also make sure all distractors refer to actual distractors in the DB
-            # if ... == None:
-            abort(400) # bad request
-            #else:
-            # update the distractors on our object
-            # qq.distractors = ...
-            # commit changes to DB via ORM
-            #models.session.commit()
+            distractors_ids = []
+            if request.json:
+                question_id = request.json['qid']
+                distractors_ids = [did for did in request.json['distractors_ids']]
+            else:
+                abort(406) # not acceptable
+            
+            q = models.Question.query.get_or_404(question_id)
+            qq.question = q
+            distractors = [models.Distractor.query.get_or_404(id) for id in distractors_ids]
+    
+            for d in distractors:
+                qq.distractors.append(d)
+    
+            models.DB.session.add(qq)
+            models.DB.session.commit()
+
+            response = ('Quiz Question updated in database', 201, {"Content-Type": "application/json"})
+            return make_response(response)
+
     elif request.method == 'DELETE':
         models.DB.session.delete(qq)
         models.DB.session.commit()
@@ -364,7 +317,7 @@ def get_all_quizzes():
 
     
 @APP.route('/quizzes/<int:qid>', methods=['GET', 'PUT', 'DELETE'])
-def ALL_quiz(qid):
+def ALL_quizzes(qid):
     '''
     Handles all accepted requests on a specific QuizQuestion
     '''
@@ -376,7 +329,6 @@ def ALL_quiz(qid):
         if not request.json:
             abort(406) # not acceptable
         else:
-            #TODO implement PUT request for Quiz
             quiz.title = request.json['title']
             quiz.description = request.json['description']
             quiz.quiz_questions = []

@@ -11,14 +11,14 @@ class Question(DB.Model):
     '''
     A Question object contains both the text of the question to be 
     posed to students, along with its solution.
-    The solution will always appear as a response option in the
+    The solution will always appear as a response alternative in the
     Multiple Choice Question presentation.
     '''
 
     id = DB.Column(DB.Integer, primary_key=True)
 
     title = DB.Column(DB.String, nullable=False)
-    question = DB.Column(DB.String, nullable=False)
+    stem = DB.Column(DB.String, nullable=False)
     answer = DB.Column(DB.String, nullable=False)
     
     # 1-to-many with Distractor
@@ -28,18 +28,19 @@ class Question(DB.Model):
     quiz_questions = DB.relationship('QuizQuestion', backref='question', lazy=True)
     
     def __repr__(self):
-        return "Question(id='%d',title='%s',question='%s',solution='%s')" % (self.id, self.title, self.question, self.answer)
+        return "Question(id='%d',title='%s',question='%s',solution='%s')" % (self.id, self.title, self.stem, self.answer)
 
     def dump_as_dict(self):
         q = {
+            "id" : self.id,
             "title" : self.title,
-            "question" : self.question,
+            "stem" : self.stem,
             "answer" : self.answer,
-            "options" : []
+            "alternatives" : []
         }
-        q['options'] = [d.answer for d in self.distractors]
-        q['options'].append(self.answer)
-        shuffle(q['options'])
+        q['alternatives'] = [d.answer for d in self.distractors]
+        q['alternatives'].append(self.answer)
+        shuffle(q['alternatives'])
         return q
 
 
@@ -68,7 +69,7 @@ class Distractor(DB.Model):
         return "Distractor(id='%d',question_id=%d,answer='%s')" % (self.question_id, self.id, self.answer)
 
     def dump_as_dict(self):
-        return {"answer": self.answer}
+        return {"id" : self.id, "answer": self.answer}
 
 
 
@@ -92,15 +93,16 @@ class QuizQuestion(DB.Model):
     # for a given question, to be features in this particular question to appear in a quiz
 
     def dump_as_dict(self):
-        result = {  "title": self.question.title,
-                    "question": self.question.question,
+        result = {  "id" : self.id,
+                    "title": self.question.title,
+                    "stem": self.question.stem,
                     "answer": self.question.answer,
-                    "options": [] }
+                    "alternatives": [] }
         
-        result['options'].append(self.question.answer)
+        result['alternatives'].append(self.question.answer)
         for d in self.distractors:
-            result['options'].append(d.answer)
-        shuffle(result['options'])
+            result['alternatives'].append(d.answer)
+        shuffle(result['alternatives'])
         return result
 
 
@@ -140,7 +142,8 @@ class Quiz(DB.Model):
 
     def dump_as_dict(self):
         questions = [q.dump_as_dict() for q in self.quiz_questions]
-        return {    "title" : self.title, 
+        return {    "id" : self.id,
+                    "title" : self.title, 
                     "description" : self.description,
                     "questions" : questions
                 }
@@ -166,7 +169,7 @@ class QuizAttempt(DB.Model):
     initial_responses = DB.Column(DB.String) # as json list of distractor_ID or none for answer
     revised_responses = DB.Column(DB.String) # as json list of distractor_ID or none for answer
     #NOTE alternatively, we could store just an int representing the index of the response.
-    # If we do so, then order to options matters and must be fixed by instructors instead
+    # If we do so, then order of alternatives matters and must be fixed by instructors instead
     # of being shuffled as we do right now
 
     # justifications to each possible answer

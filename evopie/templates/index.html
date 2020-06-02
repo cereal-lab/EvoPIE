@@ -19,8 +19,8 @@
   <form id="questionForm" method="post" onsubmit="return onSubmitQuestionForm();" action='http://localhost:5000/questions'>
     <label for="title">Title</label>
     <input name="title" id="title" required>
-    <label for="question">Question</label>
-    <input name="question" id="question" required>
+    <label for="stem">Question</label>
+    <input name="stem" id="question" required>
     <label for="answer">Answer</label>
     <input name="answer" id="answer" required>
     <input type="submit" value="Submit">
@@ -45,10 +45,10 @@
   {% for quiz in quizzes %}
       <div>
           <h2> {{ quiz['title'] }}       </h2>
-          <p>  {{ quiz['question'] }}    </p>
+          <p>  {{ quiz['stem'] }}    </p>
           <ul>
-              {% for option in quiz['options'] %}
-                  <li> {{ option }} </li>
+              {% for alternative in quiz['alternatives'] %}
+                  <li> {{ alternative }} </li>
               {% endfor %}    
           </ul>
       </div>
