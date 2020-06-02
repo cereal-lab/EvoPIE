@@ -22,6 +22,8 @@ curl -X "PUT" -d '{ "title": "[UPDATED] Review Quiz", "description": "[UPDATED] 
 # curl -X "PUT" -d '{ "title": "[UPDATED] Review Quiz", "description": "[UPDATED] This is our first quiz", "questions_ids":[3, 3, 3]}' -H 'Content-Type: application/json' http://localhost:5000/quizzes/1 && echo
 
 
+#taking quiz #1 w/ 3 questions
+curl -X "POST" -d '{"initial_responses" : {"1":"9" , "2":"6", "3":"0"}, "justifications": {"1":"yup, bad soution", "2":"this one too", "3":"pretty sure this one is right"} }' -H 'Content-Type: application/json' http://localhost:5000/quizzes/1/take && echo
 
 
 

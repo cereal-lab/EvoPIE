@@ -176,8 +176,8 @@ class QuizAttempt(DB.Model):
     justifications = DB.Column(DB.String) # json list of text entries
     
     # score
-    initial_score = DB.Column(DB.String) # as json list of yes/no
-    revised_score = DB.Column(DB.String) # as json list of yes/no
+    initial_scores = DB.Column(DB.String) # as json list of yes/no
+    revised_scores = DB.Column(DB.String) # as json list of yes/no
 
 
 

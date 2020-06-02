@@ -128,7 +128,7 @@ def get_distractors_for_question(question_id):
     q = models.Question.query.get_or_404(question_id)
     result = [d.dump_as_dict() for d in q.distractors]
     return jsonify(result)
-    
+
 
 
 @APP.route('/questions/<int:question_id>/distractors', methods=['POST'])
@@ -177,8 +177,8 @@ def put_distractor(distractor_id):
     models.DB.session.commit()
     response = ('Distractor updated in database', 204, {"Content-Type": "application/json"})
     return make_response(response)
-    
-    
+
+
 
 @APP.route('/distractors/<int:distractor_id>', methods=['DELETE'])
 def delete_distractor(distractor_id):
@@ -230,7 +230,7 @@ def post_new_quiz_question():
 
     response = ('Quiz Question added to database', 201, {"Content-Type": "application/json"})
     return make_response(response)
-    
+
 
 
 @APP.route('/quizquestions/<int:qq_id>', methods=['GET', 'PUT', 'DELETE'])
@@ -277,7 +277,7 @@ def ALL_quiz_questions(qq_id):
     else:
         abort(406) # not acceptable; should never trigger based on @APP.route
 
-    
+
 
 @APP.route('/quizzes', methods=['POST'])
 def post_new_quiz():
@@ -291,7 +291,6 @@ def post_new_quiz():
     
     # Adding the questions, based on the questions_id submitted
     for qid in request.json['questions_ids']:
-        print(f"--> fetching QuizQuestion with id {qid}")
         question = models.QuizQuestion.query.get_or_404(qid)
         q.quiz_questions.append(question)
     
@@ -315,7 +314,7 @@ def get_all_quizzes():
     return jsonify([q.dump_as_dict()for q in quizzes])
 
 
-    
+
 @APP.route('/quizzes/<int:qid>', methods=['GET', 'PUT', 'DELETE'])
 def ALL_quizzes(qid):
     '''
@@ -347,7 +346,7 @@ def ALL_quizzes(qid):
         abort(406) # not acceptable; should never trigger based on @APP.route
 
 
-    
+
 @APP.route('/quizzes/<int:qid>/take', methods=['GET', 'POST'])
 def ALL_quizzes_take(qid):
     '''
@@ -355,7 +354,7 @@ def ALL_quizzes_take(qid):
     '''
     quiz = models.Quiz.query.get_or_404(qid)
     
-    #TODO ensure that authenticated student user is able to take the quiz
+    #TODO ensure that authenticated student user is assigned this quiz
     
     if request.method == 'GET':
         return jsonify(quiz.dump_as_dict())
@@ -363,22 +362,38 @@ def ALL_quizzes_take(qid):
         if not request.json:
             abort(406) # not acceptable
         else:
-            # extract array of responses indexes
-            #responses = request.json['responses']
-            #r = models.QuizResponse(quiz_id=quiz.id)
-            #TODO r.responses = responses
-            #models.DB.session.add(r)
-            #models.DB.session.commit()
-            response     = ('Quiz repsonses recorded in database', 204, {"Content-Type": "application/json"})
-            return make_response(response)
-    
+            #TODO check if len(responses) == len(justifications) == len(quiz.quiz_questions)
+            r = models.QuizAttempt(quiz_id=quiz.id)
+            r.initial_responses = str(request.json['initial_responses']) # extract dictionary of question_id : distractor_ID (or none if correct answer)
 
-    
+            #TODO take into consideration what mode was set by instructor; regular quiz vs. peer instruction quiz
+            r.justifications = str(request.json['justifications']) # same structure here; distractor_ID : justification
+            #TODO set the student_id / timestamps / ... fields
+            #TODO do we compute the initial score
+            r.initial_scores = ""
+
+            #TODO validate the quiz attempt;
+            # make sure that the student has been assigned this quiz
+            # check the due dates for too early / too late
+            # check the max duration
+            # If answers have already been submitted, accept edits only until due date.
+
+            models.DB.session.add(r)
+            models.DB.session.commit()
+
+            response     = ('Quiz attempt recorded in database', 204, {"Content-Type": "application/json"})
+            return make_response(response)
+
+
+
 @APP.route('/quizzes/<int:qid>/review', methods=['GET', 'POST'])
 def ALL_quizzes_review(qid):
     '''
     Re-take the quiz with peers' answers and justifications
     '''
     pass #TODO
-
-    
+    # GET	get the quiz data for client to administer to students
+    #       including answers + justifications of two other students.
+    # POST	submit the answers to all questions; no justification needed, regardless of quiz mode
+    #       Select one of the two students whose answers + justifications were seen as the most useful
+    #       Specify which of their justification was the most conductive to learning something.
