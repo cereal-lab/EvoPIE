@@ -352,9 +352,15 @@ def ALL_quizzes_take(qid):
     '''
     Take the quiz and post the answers / justifications
     '''
+    #TODO validate the quiz attempt;
+    # ensure that student is authenticated
+    # make sure that the student has been assigned this quiz
+    # check the due dates for too early / too late
+    # check the max duration
+    # If answers have already been submitted, accept edits only until due date.
+    # make sure quiz mode is peer instruction
+
     quiz = models.Quiz.query.get_or_404(qid)
-    
-    #TODO ensure that authenticated student user is assigned this quiz
     
     if request.method == 'GET':
         return jsonify(quiz.dump_as_dict())
@@ -372,12 +378,6 @@ def ALL_quizzes_take(qid):
             #TODO do we compute the initial score
             r.initial_scores = ""
 
-            #TODO validate the quiz attempt;
-            # make sure that the student has been assigned this quiz
-            # check the due dates for too early / too late
-            # check the max duration
-            # If answers have already been submitted, accept edits only until due date.
-
             models.DB.session.add(r)
             models.DB.session.commit()
 
@@ -391,9 +391,42 @@ def ALL_quizzes_review(qid):
     '''
     Re-take the quiz with peers' answers and justifications
     '''
-    pass #TODO
-    # GET	get the quiz data for client to administer to students
-    #       including answers + justifications of two other students.
-    # POST	submit the answers to all questions; no justification needed, regardless of quiz mode
-    #       Select one of the two students whose answers + justifications were seen as the most useful
-    #       Specify which of their justification was the most conductive to learning something.
+    #TODO validate the quiz attempt;
+    # ensure that student is authenticated
+    # make sure that the student has been assigned this quiz
+    # check the due dates for too early / too late
+    # check the max duration
+    # If answers have already been submitted, accept edits only until due date.
+    # make sure quiz mode is peer instruction
+
+    quiz = models.Quiz.query.get_or_404(qid)
+    
+    if request.method == 'GET':
+        #TODO need to also return the answers + justifications of 2 peers
+        return jsonify(quiz.dump_as_dict())
+    elif request.method == 'POST':
+        #TODO only get answers to all questions; no justifications needed, regardless of quiz mode
+        #       Select one of the two students whose answers + justifications were seen as the most useful
+        #       Specify which of their justification was the most conductive to learning something.
+        #       sounds like we're going to need to make the feedback another model connected 1-to-1
+        #       between QuizAttempts
+        
+        #TODO check if len(responses) == len(quiz.quiz_questions)
+        
+        sid = 1 #FIXME need to use student ID too
+        r = models.QuizAttempt.query.get_or_404(quiz_id=quiz.id, student_id=sid)
+        #TODO make sure result of the above request is unique
+
+        r.revised_responses = str(request.json['revised_responses'])
+            
+        #TODO set the student_id / timestamps / ... fields
+        #TODO do we compute the revised score
+        r.revised_scores = ""
+
+        models.DB.session.add(r)
+        models.DB.session.commit()
+
+        response     = ('Quiz answers updated & feeback recorded in database', 204, {"Content-Type": "application/json"})
+        return make_response(response)
+
+

@@ -29,33 +29,26 @@ curl -d '{ "answer": "Yellow"}' -H 'Content-Type: application/json' http://local
 
 
 
-# question just to test delete
+# Extra question
 curl -d '{ "title": "delete this question", "stem": "What did it ever do to deserve deletion?", "answer": "nothing, really"}' -H 'Content-Type: application/json' http://localhost:5000/questions && echo
 curl -d '{ "answer": "I do not know"}' -H 'Content-Type: application/json' http://localhost:5000/questions/4/distractors && echo
 curl -d '{ "answer": "Maybe it knows?"}' -H 'Content-Type: application/json' http://localhost:5000/questions/4/distractors && echo
 curl -d '{ "answer": "Who knows?"}' -H 'Content-Type: application/json' http://localhost:5000/questions/4/distractors && echo
 
-
-# testing deleting question
-curl -X 'DELETE' http://localhost:5000/questions/4 && echo
-
-
-
 # updating questions
-curl -X 'PUT' -d '{ "title": "[modified] Sir Lancelot and the bridge keeper, part 3", "stem": "[modified] What... is your favorite colour?", "answer": "[modified] Blue"}' -H 'Content-Type: application/json' http://localhost:5000/questions/3 && echo
-
-
+curl -X 'PUT' -d '{ "title": "[modified] delete this question", "stem": "[modified] What did it ever do to deserve deletion?", "answer": "[modified]nothing, really"}' -H 'Content-Type: application/json' http://localhost:5000/questions/4 && echo
 
 # updating distrator for a given question
-curl -d '{ "answer": "EXTRA ANSWER TO BE UPDATED"}' -H 'Content-Type: application/json' http://localhost:5000/questions/3/distractors && echo
-curl -X 'PUT' -d '{ "answer": "REDACTED ;p"}' -H 'Content-Type: application/json' http://localhost:5000/distractors/1 && echo
-
-# deleting extraneous distractor
-curl -X 'DELETE' http://localhost:5000/distractors/2 && echo
-
+curl -d '{ "answer": "EXTRA ANSWER TO BE UPDATED"}' -H 'Content-Type: application/json' http://localhost:5000/questions/4/distractors && echo
 
 # testing RESTful API on distractors directly
-curl -X 'PUT' -d '{ "answer": "HACKING THIS DISTRACTOR"}' -H 'Content-Type: application/json' http://localhost:5000/distractors/3 && echo
-curl -X 'DELETE' http://localhost:5000/distractors/3 && echo
+curl -X 'PUT' -d '{ "answer": "REDACTED ;p"}' -H 'Content-Type: application/json' http://localhost:5000/distractors/14 && echo
+curl -X 'PUT' -d '{ "answer": "HACKING THIS DISTRACTOR"}' -H 'Content-Type: application/json' http://localhost:5000/distractors/14 && echo
+#curl -X 'DELETE' http://localhost:5000/distractors/14 && echo
+
+# testing deleting question
+#curl -X 'DELETE' http://localhost:5000/questions/4 && echo
+
+
 
 
