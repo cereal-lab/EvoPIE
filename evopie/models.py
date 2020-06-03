@@ -142,6 +142,7 @@ class Quiz(DB.Model):
 
     def dump_as_dict(self):
         questions = [q.dump_as_dict() for q in self.quiz_questions]
+        shuffle(questions)
         return {    "id" : self.id,
                     "title" : self.title, 
                     "description" : self.description,
