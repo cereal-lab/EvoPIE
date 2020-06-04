@@ -13,7 +13,7 @@ import evopie.models as models
 @APP.route('/')
 def index():
     '''
-    index page for the whole thing; use to test out a rudimentary user interface
+    Index page for the whole thing; used to test out a rudimentary user interface
     '''
     all = models.Question.query.all()
     result =  [q.dump_as_dict() for q in all]
@@ -25,7 +25,7 @@ def index():
 def get_all_questions():
     '''
     Get, in JSON format, all the questions from the database,
-    including all its distractors.
+    including, for each, all its distractors.
     '''
     all = models.Question.query.all()
     result = [q.dump_as_dict() for q in all]
@@ -43,11 +43,13 @@ def post_new_question():
         stem = request.json['stem']
         answer = request.json['answer']
     else:
+        #FIXME do we want to continue handling both formats?
         title = request.form['title']
         stem = request.form['stem']
         answer = request.form['answer']
-    
-    if answer == None or stem == None or title == None:
+    #here
+    # validate that all required information was sent
+    if answer is None or stem is None or title is None:
         abort(400) # bad request
     
     q = models.Question(title=title, stem=stem, answer=answer)
@@ -90,7 +92,8 @@ def put_question(question_id):
     stem = request.json['stem']
     answer = request.json['answer']
     
-    if answer == None or stem == None or title == None:
+    # validate that all required information was sent
+    if answer is None or stem is None or title is None:
         abort(400) # bad request
     
     q = models.Question.query.get_or_404(question_id)
@@ -139,12 +142,14 @@ def post_new_distractor_for_question(question_id):
     else:
         answer = request.form['answer']
     
-    if answer == None:
+    # validate that all required information was sent
+    if answer is None:
         abort(400) # bad request
     
     q = models.Question.query.get_or_404(question_id)
     q.distractors.append(models.Distractor(answer=answer,question_id=q.id))
     models.DB.session.commit()
+    
     if request.json:
         response = ('Distractor added to Question in database', 201, {"Content-Type": "application/json"})
         return make_response(response)
@@ -165,14 +170,17 @@ def get_distractor(distractor_id):
 def put_distractor(distractor_id):
     if not request.json:
         abort(406) # not acceptable
-    else:
-        answer = request.json['answer']    
-        if answer == None:
-            abort(400) # bad request
     
+    answer = request.json['answer']    
+    
+    # validate that all required information was sent
+    if answer is None:
+        abort(400) # bad request
+
     d = models.Distractor.query.get_or_404(distractor_id)
     d.answer = answer
     models.DB.session.commit()
+
     response = ('Distractor updated in database', 204, {"Content-Type": "application/json"})
     return make_response(response)
 
@@ -210,6 +218,9 @@ def post_new_quiz_question():
     distractors_ids = []
     if request.json:
         question_id = request.json['qid']
+        # validate that all required information was sent
+        if question_id is None or request.json['distractors_ids'] is None:
+            abort(400) # bad request
         distractors_ids = [did for did in request.json['distractors_ids']]
     else:
         abort(406) # not acceptable
@@ -249,7 +260,11 @@ def ALL_quiz_questions(qq_id):
             distractors_ids = []
             if request.json:
                 question_id = request.json['qid']
+                # validate that all required information was sent
+                if question_id is None or request.json['distractors_ids'] is None:
+                    abort(400) # bad request
                 distractors_ids = [did for did in request.json['distractors_ids']]
+
             else:
                 abort(406) # not acceptable
             
@@ -285,9 +300,17 @@ def post_new_quiz():
     title = request.json['title']
     description = request.json['description']
 
+    # validate that all required information was sent
+    if title is None or description is None:
+        abort(400) # bad request
+
     q = models.Quiz(title=title, description=description)
     
     # Adding the questions, based on the questions_id submitted
+    
+    if request.json['questions_ids'] is None:
+        abort(400) # bad request
+        
     for qid in request.json['questions_ids']:
         question = models.QuizQuestion.query.get_or_404(qid)
         q.quiz_questions.append(question)
@@ -328,7 +351,17 @@ def ALL_quizzes(qid):
         else:
             quiz.title = request.json['title']
             quiz.description = request.json['description']
+
+            # validate that all required information was sent
+            if quiz.title is None or quiz.description is None:
+                abort(400) # bad request
+
             quiz.quiz_questions = []
+
+            # validate that all required information was sent
+            if request.json['questions_ids'] is None:
+                abort(400) # bad request
+
             for qid in request.json['questions_ids']:
                 question = models.QuizQuestion.query.get_or_404(qid)
                 quiz.quiz_questions.append(question)
@@ -368,6 +401,11 @@ def ALL_quizzes_take(qid):
         else:
             #TODO check if len(responses) == len(justifications) == len(quiz.quiz_questions)
             r = models.QuizAttempt(quiz_id=quiz.id)
+
+            # validate that all required information was sent
+            if request.json['initial_responses'] is None or request.json['justifications'] is None:
+                abort(400) # bad request
+
             r.initial_responses = str(request.json['initial_responses']) # extract dictionary of question_id : distractor_ID (or none if correct answer)
 
             #TODO take into consideration what mode was set by instructor; regular quiz vs. peer instruction quiz
@@ -411,6 +449,10 @@ def ALL_quizzes_review(qid):
         
         #TODO check if len(responses) == len(quiz.quiz_questions)
         
+        # validate that all required information was sent
+        if request.json['revised_responses'] is None:
+            abort(400) # bad request
+
         sid = 1 #FIXME need to use student ID too
         r = models.QuizAttempt.query.get_or_404(quiz_id=quiz.id, student_id=sid)
         #TODO make sure result of the above request is unique

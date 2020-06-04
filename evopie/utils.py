@@ -5,6 +5,8 @@ from evopie import models, APP # get also DB from there
 
 import click
 
+
+
 @APP.cli.command("DB-init")
 def DB_init():
     models.DB.create_all()
