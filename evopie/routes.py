@@ -10,8 +10,6 @@ from random import shuffle # to shuffle lists
 from evopie import APP
 import evopie.models as models
 
-
-
 @APP.route('/')
 def index():
     '''

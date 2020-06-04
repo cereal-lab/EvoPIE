@@ -1,9 +1,18 @@
 # pylint: disable=no-member
 # pylint: disable=E1101
 
-from evopie import models # get also DB from there
+from evopie import models, APP # get also DB from there
 
-def DB_populate(self):
+import click
+
+@APP.cli.command("DB-init")
+def DB_init():
+    models.DB.create_all()
+
+
+
+@APP.cli.command("DB-populate")
+def DB_populate():
     '''
         Just populating the DB with some mock quizzes
     '''
@@ -17,13 +26,13 @@ def DB_populate(self):
 
     all_mcqs = [
             models.Question(title=u'Sir Lancelot and the bridge keeper, part 1',
-                            question=u'What... is your name?',
+                            stem=u'What... is your name?',
                             answer=u'Sir Lancelot of Camelot'),
             models.Question(title=u'Sir Lancelot and the bridge keeper, part 2',
-                            question=u'What... is your quest?', 
+                            stem=u'What... is your quest?', 
                             answer=u'To seek the holy grail'),
             models.Question(title=u'Sir Lancelot and the bridge keeper, part 3',
-                            question=u'What... is your favorite colour?', 
+                            stem=u'What... is your favorite colour?', 
                             answer=u'Blue')
     ]
     
@@ -55,3 +64,5 @@ def DB_populate(self):
 
     models.DB.session.add_all(some_distractors + more_distractors + yet_more_distractors)
     models.DB.session.commit()
+
+
