@@ -150,6 +150,7 @@ class Quiz(DB.Model):
                 }
 
 
+
 class QuizAttempt(DB.Model):
     '''
     Holds the responses from a student to all questions of a given Quiz
