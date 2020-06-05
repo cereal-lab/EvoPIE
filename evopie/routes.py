@@ -10,14 +10,15 @@ from random import shuffle # to shuffle lists
 from evopie import APP
 import evopie.models as models
 
+
+
 @APP.route('/')
 def index():
     '''
     Index page for the whole thing; used to test out a rudimentary user interface
     '''
-    all = models.Question.query.all()
-    result =  [q.dump_as_dict() for q in all]
-    return render_template('index.html', quizzes=result)
+    all_quizzes =  [q.dump_as_dict() for q in models.Question.query.all()]
+    return render_template('index.html', quizzes=all_quizzes)
 
 
 
@@ -27,9 +28,8 @@ def get_all_questions():
     Get, in JSON format, all the questions from the database,
     including, for each, all its distractors.
     '''
-    all = models.Question.query.all()
-    result = [q.dump_as_dict() for q in all]
-    return jsonify(result)
+    all_questions = [q.dump_as_dict() for q in models.Question.query.all()]
+    return jsonify(all_questions)
 
 
 
@@ -47,10 +47,10 @@ def post_new_question():
         title = request.form['title']
         stem = request.form['stem']
         answer = request.form['answer']
-    #here
+
     # validate that all required information was sent
     if answer is None or stem is None or title is None:
-        abort(400) # bad request
+        abort(400, "Unable to create new question due to missing data") # bad request
     
     q = models.Question(title=title, stem=stem, answer=answer)
     models.DB.session.add(q)
@@ -86,7 +86,7 @@ def put_question(question_id):
     '''
     #NOTE HTML5 forms can not submit a PUT (only POST), so we reject any non-json request
     if not request.json:
-        abort(406) # not acceptable
+        abort(406, "JSON format required for request") # not acceptable
 
     title = request.json['title']
     stem = request.json['stem']
@@ -94,7 +94,7 @@ def put_question(question_id):
     
     # validate that all required information was sent
     if answer is None or stem is None or title is None:
-        abort(400) # bad request
+        abort(400, "Unable to modify question due to missing data") # bad request
     
     q = models.Question.query.get_or_404(question_id)
     #TODO only assign the fields that were not None in the request
@@ -103,7 +103,7 @@ def put_question(question_id):
     q.stem = stem
     q.answer = answer
     models.DB.session.commit()
-    response = ('Distractor updated in database', 204, {"Content-Type": "application/json"})
+    response = ('Distractor updated in database', 200, {"Content-Type": "application/json"}) #FIXME should it be 204?
     return make_response(response)
 
 
@@ -144,7 +144,7 @@ def post_new_distractor_for_question(question_id):
     
     # validate that all required information was sent
     if answer is None:
-        abort(400) # bad request
+        abort(400, "Unable to create new distractor due to missing data") # bad request
     
     q = models.Question.query.get_or_404(question_id)
     q.distractors.append(models.Distractor(answer=answer,question_id=q.id))
@@ -169,19 +169,19 @@ def get_distractor(distractor_id):
 @APP.route('/distractors/<int:distractor_id>', methods=['PUT'])
 def put_distractor(distractor_id):
     if not request.json:
-        abort(406) # not acceptable
+        abort(406, "JSON format required for request") # not acceptable
     
     answer = request.json['answer']    
     
     # validate that all required information was sent
     if answer is None:
-        abort(400) # bad request
+        abort(400, "Unable to modify distractor due to missing data") # bad request
 
     d = models.Distractor.query.get_or_404(distractor_id)
     d.answer = answer
     models.DB.session.commit()
 
-    response = ('Distractor updated in database', 204, {"Content-Type": "application/json"})
+    response = ('Distractor updated in database', 200, {"Content-Type": "application/json"}) #FIXME should it be 204?
     return make_response(response)
 
 
@@ -215,18 +215,17 @@ def post_new_quiz_question():
     '''
     Add a QuizQuestion.
     '''
+    if not request.json:
+        abort(406, "JSON format required for request") # not acceptable
+        
     distractors_ids = []
-    if request.json:
-        question_id = request.json['qid']
-        # validate that all required information was sent
-        if question_id is None or request.json['distractors_ids'] is None:
-            abort(400) # bad request
-        distractors_ids = [did for did in request.json['distractors_ids']]
-    else:
-        abort(406) # not acceptable
-        #FIXME we have been redirecting for posts from forms, but this does not allow to handle errors statuses.
-        # so, instead, we restrict ourselves to only the JSON format, for now at least.
+    question_id = request.json['qid']
 
+    # validate that all required information was sent
+    if question_id is None or request.json['distractors_ids'] is None:
+        abort(400, "Unable to create new quiz question due to missing data") # bad request
+    distractors_ids = [did for did in request.json['distractors_ids']]
+    
     q = models.Question.query.get_or_404(question_id)
     qq = models.QuizQuestion(question=q)
     distractors = [models.Distractor.query.get_or_404(id) for id in distractors_ids]
@@ -242,53 +241,62 @@ def post_new_quiz_question():
 
 
 
-@APP.route('/quizquestions/<int:qq_id>', methods=['GET', 'PUT', 'DELETE'])
-def ALL_quiz_questions(qq_id):
+@APP.route('/quizquestions/<int:qq_id>', methods=['GET'])
+def get_quiz_questions(qq_id):
     '''
-    Handles requests on a specific QuizQuestion
+    Handles GET requests on a specific QuizQuestion
     '''
-    
+    #making sure the QuizQuestion exists
+    qq = models.QuizQuestion.query.get_or_404(qq_id)
+    return jsonify(qq.dump_as_dict())
+
+
+
+@APP.route('/quizquestions/<int:qq_id>', methods=['DELETE'])
+def delete_quiz_questions(qq_id):
+    '''
+    Handles DELETE requests on a specific QuizQuestion
+    '''
+    #making sure the QuizQuestion exists
+    qq = models.QuizQuestion.query.get_or_404(qq_id)
+    models.DB.session.delete(qq)
+    models.DB.session.commit()
+    response = ('Quiz Question Deleted from database', 200, {"Content-Type": "application/json"}) #FIXME should it be 204?
+    #NOTE the above is a bloody tuple, not 3 separate parameters to make_response
+    return make_response(response)
+
+
+
+@APP.route('/quizquestions/<int:qq_id>', methods=['PUT'])
+def put_quiz_questions(qq_id):
+    '''
+    Handles PUT requests on a specific QuizQuestion
+    '''
+
     #making sure the QuizQuestion exists
     qq = models.QuizQuestion.query.get_or_404(qq_id)
     
-    if request.method == 'GET':
-        return jsonify(qq.dump_as_dict())
-    elif request.method == 'PUT':
-        if not request.json:
-            abort(406) # not acceptable
-        else:
-            distractors_ids = []
-            if request.json:
-                question_id = request.json['qid']
-                # validate that all required information was sent
-                if question_id is None or request.json['distractors_ids'] is None:
-                    abort(400) # bad request
-                distractors_ids = [did for did in request.json['distractors_ids']]
+    if not request.json:
+        abort(406, "JSON format required for request") # not acceptable
 
-            else:
-                abort(406) # not acceptable
-            
-            q = models.Question.query.get_or_404(question_id)
-            qq.question = q
-            distractors = [models.Distractor.query.get_or_404(id) for id in distractors_ids]
-    
-            for d in distractors:
-                qq.distractors.append(d)
-    
-            models.DB.session.add(qq)
-            models.DB.session.commit()
+    # validate that all required information was sent
+    if request.json['qid'] is None or request.json['distractors_ids'] is None:
+        abort(400, "Unable to modify quiz question due to missing data") # bad request
 
-            response = ('Quiz Question updated in database', 201, {"Content-Type": "application/json"})
-            return make_response(response)
+    question_id = request.json['qid']
+    distractors_ids = [did for did in request.json['distractors_ids']]
 
-    elif request.method == 'DELETE':
-        models.DB.session.delete(qq)
-        models.DB.session.commit()
-        response = ('Quiz Question Deleted from database', 204, {"Content-Type": "application/json"})
-        #NOTE the above is a bloody tuple, not 3 separate parameters to make_response
-        return make_response(response)
-    else:
-        abort(406) # not acceptable; should never trigger based on @APP.route
+    qq.question = models.Question.query.get_or_404(question_id)
+    distractors = [models.Distractor.query.get_or_404(id) for id in distractors_ids]
+
+    for d in distractors:
+        qq.distractors.append(d)
+
+    models.DB.session.add(qq)
+    models.DB.session.commit()
+
+    response = ('Quiz Question updated in database', 201, {"Content-Type": "application/json"})
+    return make_response(response)
 
 
 
@@ -302,14 +310,14 @@ def post_new_quiz():
 
     # validate that all required information was sent
     if title is None or description is None:
-        abort(400) # bad request
+        abort(400, "Unable to create new quiz due to missing data") # bad request
 
     q = models.Quiz(title=title, description=description)
     
     # Adding the questions, based on the questions_id submitted
     
     if request.json['questions_ids'] is None:
-        abort(400) # bad request
+        abort(400, "Unable to create new quiz due to missing data") # bad request
         
     for qid in request.json['questions_ids']:
         question = models.QuizQuestion.query.get_or_404(qid)
@@ -336,52 +344,79 @@ def get_all_quizzes():
 
 
 
-@APP.route('/quizzes/<int:qid>', methods=['GET', 'PUT', 'DELETE'])
-def ALL_quizzes(qid):
+@APP.route('/quizzes/<int:qid>', methods=['GET'])
+def get_quizzes(qid):
     '''
-    Handles all accepted requests on a specific QuizQuestion
+    Handles GET requests on a specific QuizQuestion
     '''
     quiz = models.Quiz.query.get_or_404(qid)
-    
-    if request.method == 'GET':
-        return jsonify(quiz.dump_as_dict())
-    elif request.method == 'PUT':
-        if not request.json:
-            abort(406) # not acceptable
-        else:
-            quiz.title = request.json['title']
-            quiz.description = request.json['description']
-
-            # validate that all required information was sent
-            if quiz.title is None or quiz.description is None:
-                abort(400) # bad request
-
-            quiz.quiz_questions = []
-
-            # validate that all required information was sent
-            if request.json['questions_ids'] is None:
-                abort(400) # bad request
-
-            for qid in request.json['questions_ids']:
-                question = models.QuizQuestion.query.get_or_404(qid)
-                quiz.quiz_questions.append(question)
-            models.DB.session.commit()
-            response = ('Quiz updated in database', 204, {"Content-Type": "application/json"})
-            return make_response(response)
-    elif request.method == 'DELETE':
-        models.DB.session.delete(quiz)
-        models.DB.session.commit()
-        response = ('Quiz deleted from database', 204, {"Content-Type": "application/json"})
-        return make_response(response)
-    else:
-        abort(406) # not acceptable; should never trigger based on @APP.route
+    return jsonify(quiz.dump_as_dict())
 
 
 
-@APP.route('/quizzes/<int:qid>/take', methods=['GET', 'POST'])
-def ALL_quizzes_take(qid):
+@APP.route('/quizzes/<int:qid>', methods=['DELETE'])
+def delete_quizzes(qid):
     '''
-    Take the quiz and post the answers / justifications
+    Handles DELETE requests on a specific QuizQuestion
+    '''
+    quiz = models.Quiz.query.get_or_404(qid)
+    models.DB.session.delete(quiz)
+    models.DB.session.commit()
+    response = ('Quiz deleted from database', 200, {"Content-Type": "application/json"}) #FIXME should it be 204?
+    return make_response(response)
+
+
+
+@APP.route('/quizzes/<int:qid>', methods=['PUT'])
+def put_quizzes(qid):
+    '''
+    Handles PUT requests on a specific QuizQuestion
+    '''
+    quiz = models.Quiz.query.get_or_404(qid)
+
+    if not request.json:
+        abort(406, "JSON format required for request") # not acceptable
+
+    quiz.title = request.json['title']
+    quiz.description = request.json['description']
+
+    # validate that all required information was sent
+    if quiz.title is None or quiz.description is None:
+        abort(400, "Unable to modify quiz due to missing data") # bad request
+
+    quiz.quiz_questions = []
+
+    # validate that all required information was sent
+    if request.json['questions_ids'] is None:
+        abort(400, "Unable to modify quiz due to missing data") # bad request
+
+    for qid in request.json['questions_ids']:
+        question = models.QuizQuestion.query.get_or_404(qid)
+        quiz.quiz_questions.append(question)
+
+    models.DB.session.commit()
+
+    response = ('Quiz updated in database', 200, {"Content-Type": "application/json"}) #FIXME should it be 204?
+    return make_response(response)
+    
+
+
+@APP.route('/quizzes/<int:qid>/take', methods=['GET'])
+def get_quizzes_take(qid):
+    '''
+    Post the answers, for the regular quiz mode, or answers along with
+    justifications for the asynchronous peer instruction mode.
+    '''
+    quiz = models.Quiz.query.get_or_404(qid)
+    return jsonify(quiz.dump_as_dict())
+
+
+
+@APP.route('/quizzes/<int:qid>/take', methods=['POST'])
+def post_quizzes_take(qid):
+    '''
+    Post the answers, for the regular quiz mode, or answers along with
+    justifications for the asynchronous peer instruction mode.
     '''
     #TODO validate the quiz attempt;
     # ensure that student is authenticated
@@ -392,38 +427,46 @@ def ALL_quizzes_take(qid):
     # make sure quiz mode is peer instruction
 
     quiz = models.Quiz.query.get_or_404(qid)
-    
-    if request.method == 'GET':
-        return jsonify(quiz.dump_as_dict())
-    elif request.method == 'POST':
-        if not request.json:
-            abort(406) # not acceptable
-        else:
-            #TODO check if len(responses) == len(justifications) == len(quiz.quiz_questions)
-            r = models.QuizAttempt(quiz_id=quiz.id)
 
-            # validate that all required information was sent
-            if request.json['initial_responses'] is None or request.json['justifications'] is None:
-                abort(400) # bad request
+    if not request.json:
+        abort(406, "JSON format required for request") # not acceptable
 
-            r.initial_responses = str(request.json['initial_responses']) # extract dictionary of question_id : distractor_ID (or none if correct answer)
+    #TODO check if len(responses) == len(justifications) == len(quiz.quiz_questions)
+    r = models.QuizAttempt(quiz_id=quiz.id)
 
-            #TODO take into consideration what mode was set by instructor; regular quiz vs. peer instruction quiz
-            r.justifications = str(request.json['justifications']) # same structure here; distractor_ID : justification
-            #TODO set the student_id / timestamps / ... fields
-            #TODO do we compute the initial score
-            r.initial_scores = ""
+    # validate that all required information was sent
+    if request.json['initial_responses'] is None or request.json['justifications'] is None:
+        abort(400, "Unable to submit quiz response due to missing data") # bad request
 
-            models.DB.session.add(r)
-            models.DB.session.commit()
+    r.initial_responses = str(request.json['initial_responses']) # extract dictionary of question_id : distractor_ID (or none if correct answer)
 
-            response     = ('Quiz attempt recorded in database', 204, {"Content-Type": "application/json"})
-            return make_response(response)
+    #TODO take into consideration what mode was set by instructor; regular quiz vs. peer instruction quiz
+    r.justifications = str(request.json['justifications']) # same structure here; distractor_ID : justification
+    #TODO set the student_id / timestamps / ... fields
+    #TODO do we compute the initial score
+    r.initial_scores = ""
+
+    models.DB.session.add(r)
+    models.DB.session.commit()
+
+    response     = ('Quiz attempt recorded in database', 200, {"Content-Type": "application/json"}) #FIXME should it be 204?
+    return make_response(response)
 
 
 
-@APP.route('/quizzes/<int:qid>/review', methods=['GET', 'POST'])
-def ALL_quizzes_review(qid):
+@APP.route('/quizzes/<int:qid>/review', methods=['GET'])
+def get_quizzes_review(qid):
+    '''
+    Re-take the quiz with peers' answers and justifications
+    '''
+    quiz = models.Quiz.query.get_or_404(qid)
+    #TODO need to also return the answers + justifications of 2 peers
+    return jsonify(quiz.dump_as_dict())
+
+
+
+@APP.route('/quizzes/<int:qid>/review', methods=['POST'])
+def post_quizzes_review(qid):
     '''
     Re-take the quiz with peers' answers and justifications
     '''
@@ -437,36 +480,32 @@ def ALL_quizzes_review(qid):
 
     quiz = models.Quiz.query.get_or_404(qid)
     
-    if request.method == 'GET':
-        #TODO need to also return the answers + justifications of 2 peers
-        return jsonify(quiz.dump_as_dict())
-    elif request.method == 'POST':
-        #TODO only get answers to all questions; no justifications needed, regardless of quiz mode
-        #       Select one of the two students whose answers + justifications were seen as the most useful
-        #       Specify which of their justification was the most conductive to learning something.
-        #       sounds like we're going to need to make the feedback another model connected 1-to-1
-        #       between QuizAttempts
+    #TODO only get answers to all questions; no justifications needed, regardless of quiz mode
+    #       Select one of the two students whose answers + justifications were seen as the most useful
+    #       Specify which of their justification was the most conductive to learning something.
+    #       sounds like we're going to need to make the feedback another model connected 1-to-1
+    #       between QuizAttempts
+    
+    #TODO check if len(responses) == len(quiz.quiz_questions)
+    
+    # validate that all required information was sent
+    if request.json['revised_responses'] is None:
+        abort(400, "Unable to submit quiz again due to missing data") # bad request
+
+    sid = 1 #FIXME need to use student ID too
+    r = models.QuizAttempt.query.get_or_404(quiz_id=quiz.id, student_id=sid)
+    #TODO make sure result of the above request is unique
+
+    r.revised_responses = str(request.json['revised_responses'])
         
-        #TODO check if len(responses) == len(quiz.quiz_questions)
-        
-        # validate that all required information was sent
-        if request.json['revised_responses'] is None:
-            abort(400) # bad request
+    #TODO set the student_id / timestamps / ... fields
+    #TODO do we compute the revised score
+    r.revised_scores = ""
 
-        sid = 1 #FIXME need to use student ID too
-        r = models.QuizAttempt.query.get_or_404(quiz_id=quiz.id, student_id=sid)
-        #TODO make sure result of the above request is unique
+    models.DB.session.add(r)
+    models.DB.session.commit()
 
-        r.revised_responses = str(request.json['revised_responses'])
-            
-        #TODO set the student_id / timestamps / ... fields
-        #TODO do we compute the revised score
-        r.revised_scores = ""
-
-        models.DB.session.add(r)
-        models.DB.session.commit()
-
-        response     = ('Quiz answers updated & feeback recorded in database', 204, {"Content-Type": "application/json"})
-        return make_response(response)
+    response     = ('Quiz answers updated & feeback recorded in database', 0, {"Content-Type": "application/json"}) #FIXME should it be 204?
+    return make_response(response)
 
 
