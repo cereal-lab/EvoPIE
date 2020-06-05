@@ -347,7 +347,7 @@ def get_all_quizzes():
 @APP.route('/quizzes/<int:qid>', methods=['GET'])
 def get_quizzes(qid):
     '''
-    Handles GET requests on a specific QuizQuestion
+    Handles GET requests on a specific quiz
     '''
     quiz = models.Quiz.query.get_or_404(qid)
     return jsonify(quiz.dump_as_dict())
@@ -357,7 +357,7 @@ def get_quizzes(qid):
 @APP.route('/quizzes/<int:qid>', methods=['DELETE'])
 def delete_quizzes(qid):
     '''
-    Handles DELETE requests on a specific QuizQuestion
+    Handles DELETE requests on a specific quiz
     '''
     quiz = models.Quiz.query.get_or_404(qid)
     models.DB.session.delete(quiz)
@@ -370,7 +370,7 @@ def delete_quizzes(qid):
 @APP.route('/quizzes/<int:qid>', methods=['PUT'])
 def put_quizzes(qid):
     '''
-    Handles PUT requests on a specific QuizQuestion
+    Handles PUT requests on a specific quiz
     '''
     quiz = models.Quiz.query.get_or_404(qid)
 
@@ -404,8 +404,7 @@ def put_quizzes(qid):
 @APP.route('/quizzes/<int:qid>/take', methods=['GET'])
 def get_quizzes_take(qid):
     '''
-    Post the answers, for the regular quiz mode, or answers along with
-    justifications for the asynchronous peer instruction mode.
+    Get the quiz a student is trying to take.
     '''
     quiz = models.Quiz.query.get_or_404(qid)
     return jsonify(quiz.dump_as_dict())
@@ -457,7 +456,7 @@ def post_quizzes_take(qid):
 @APP.route('/quizzes/<int:qid>/review', methods=['GET'])
 def get_quizzes_review(qid):
     '''
-    Re-take the quiz with peers' answers and justifications
+    Get the specified quiz with peers' answers and justifications
     '''
     quiz = models.Quiz.query.get_or_404(qid)
     #TODO need to also return the answers + justifications of 2 peers
@@ -468,7 +467,7 @@ def get_quizzes_review(qid):
 @APP.route('/quizzes/<int:qid>/review', methods=['POST'])
 def post_quizzes_review(qid):
     '''
-    Re-take the quiz with peers' answers and justifications
+    Re-take the specified quiz with peers' answers and justifications
     '''
     #TODO validate the quiz attempt;
     # ensure that student is authenticated
