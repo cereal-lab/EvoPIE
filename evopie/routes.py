@@ -5,7 +5,7 @@
 
 from flask import jsonify, abort, request, Response, render_template, redirect, url_for, make_response
 
-from random import shuffle # to shuffle lists
+from random import shuffle
 
 from evopie import APP
 import evopie.models as models
@@ -69,7 +69,7 @@ def get_question(question_id):
     '''
     Get, in JSON format, a specified question from the database,
     including all its distractors.
-    The fact that all distractors are included is the main difference
+    The fact that *all* of the distractors are included is the main difference
     between Question and QuizQuestion.
     Answer and distractors are shuffled together as alternatives from which
     the student will have to pick.
@@ -103,7 +103,8 @@ def put_question(question_id):
     q.stem = stem
     q.answer = answer
     models.DB.session.commit()
-    response = ('Distractor updated in database', 200, {"Content-Type": "application/json"}) #FIXME should it be 204?
+    response = ('Question updated in database', 200, {"Content-Type": "application/json"})
+    #NOTE should it be 204? probably but I prefer to return a message so that CURL displays something indicating that the operation succeeded
     return make_response(response)
 
 
@@ -155,7 +156,7 @@ def post_new_distractor_for_question(question_id):
         return make_response(response)
     else:
         return redirect(url_for('index'))
-        #TODO how to handle error in a non-REST client?
+        #TODO how to handle error in a non-REST client? e.g., flash an error message then redirect?
 
 
 
@@ -181,7 +182,8 @@ def put_distractor(distractor_id):
     d.answer = answer
     models.DB.session.commit()
 
-    response = ('Distractor updated in database', 200, {"Content-Type": "application/json"}) #FIXME should it be 204?
+    response = ('Distractor updated in database', 200, {"Content-Type": "application/json"})
+    #NOTE see previous note about using 204 vs 200
     return make_response(response)
 
 
@@ -194,7 +196,7 @@ def delete_distractor(distractor_id):
     d = models.Distractor.query.get_or_404(distractor_id)
     models.DB.session.delete(d)
     models.DB.session.commit()
-    response = ('Distractor Deleted from database', 204, {"Content-Type": "application/json"})
+    response = ('Distractor deleted from database', 204, {"Content-Type": "application/json"})
     return make_response(response)
 
 
@@ -218,7 +220,6 @@ def post_new_quiz_question():
     if not request.json:
         abort(406, "JSON format required for request") # not acceptable
         
-    distractors_ids = []
     question_id = request.json['qid']
 
     # validate that all required information was sent
@@ -246,7 +247,6 @@ def get_quiz_questions(qq_id):
     '''
     Handles GET requests on a specific QuizQuestion
     '''
-    #making sure the QuizQuestion exists
     qq = models.QuizQuestion.query.get_or_404(qq_id)
     return jsonify(qq.dump_as_dict())
 
@@ -257,11 +257,11 @@ def delete_quiz_questions(qq_id):
     '''
     Handles DELETE requests on a specific QuizQuestion
     '''
-    #making sure the QuizQuestion exists
     qq = models.QuizQuestion.query.get_or_404(qq_id)
     models.DB.session.delete(qq)
     models.DB.session.commit()
-    response = ('Quiz Question Deleted from database', 200, {"Content-Type": "application/json"}) #FIXME should it be 204?
+    response = ('Quiz Question Deleted from database', 200, {"Content-Type": "application/json"})
+    #NOTE see previous note about using 204 vs 200
     #NOTE the above is a bloody tuple, not 3 separate parameters to make_response
     return make_response(response)
 
@@ -272,8 +272,6 @@ def put_quiz_questions(qq_id):
     '''
     Handles PUT requests on a specific QuizQuestion
     '''
-
-    #making sure the QuizQuestion exists
     qq = models.QuizQuestion.query.get_or_404(qq_id)
     
     if not request.json:
@@ -289,10 +287,11 @@ def put_quiz_questions(qq_id):
     qq.question = models.Question.query.get_or_404(question_id)
     distractors = [models.Distractor.query.get_or_404(id) for id in distractors_ids]
 
-    for d in distractors:
-        qq.distractors.append(d)
-
-    models.DB.session.add(qq)
+    #BUG we are adding distractors not replacing them. Checked for multiple occurences of this bug in all put_* methods;
+    #for d in distractors:
+    #    qq.distractors.append(d)
+    qq.distractors = distractors
+    #BUG models.DB.session.add(qq)
     models.DB.session.commit()
 
     response = ('Quiz Question updated in database', 201, {"Content-Type": "application/json"})
@@ -312,19 +311,15 @@ def post_new_quiz():
     if title is None or description is None:
         abort(400, "Unable to create new quiz due to missing data") # bad request
 
-    q = models.Quiz(title=title, description=description)
-    
-    # Adding the questions, based on the questions_id submitted
-    
     if request.json['questions_ids'] is None:
         abort(400, "Unable to create new quiz due to missing data") # bad request
-        
+    
+    q = models.Quiz(title=title, description=description)
+    
+    # Adding the questions, based on the questions_id that were submitted
     for qid in request.json['questions_ids']:
         question = models.QuizQuestion.query.get_or_404(qid)
         q.quiz_questions.append(question)
-    
-    # There should be no quiz attempts for us to add at this point
-    # q.quiz_attempts.append()
     
     models.DB.session.add(q)
     models.DB.session.commit()
@@ -362,7 +357,8 @@ def delete_quizzes(qid):
     quiz = models.Quiz.query.get_or_404(qid)
     models.DB.session.delete(quiz)
     models.DB.session.commit()
-    response = ('Quiz deleted from database', 200, {"Content-Type": "application/json"}) #FIXME should it be 204?
+    response = ('Quiz deleted from database', 200, {"Content-Type": "application/json"})
+    #NOTE see previous note about using 204 vs 200
     return make_response(response)
 
 
@@ -384,19 +380,19 @@ def put_quizzes(qid):
     if quiz.title is None or quiz.description is None:
         abort(400, "Unable to modify quiz due to missing data") # bad request
 
-    quiz.quiz_questions = []
-
     # validate that all required information was sent
     if request.json['questions_ids'] is None:
         abort(400, "Unable to modify quiz due to missing data") # bad request
 
+    quiz.quiz_questions = []
     for qid in request.json['questions_ids']:
         question = models.QuizQuestion.query.get_or_404(qid)
         quiz.quiz_questions.append(question)
 
     models.DB.session.commit()
 
-    response = ('Quiz updated in database', 200, {"Content-Type": "application/json"}) #FIXME should it be 204?
+    response = ('Quiz updated in database', 200, {"Content-Type": "application/json"})
+    #NOTE see previous note about using 204 vs 200
     return make_response(response)
     
 
@@ -431,24 +427,31 @@ def post_quizzes_take(qid):
         abort(406, "JSON format required for request") # not acceptable
 
     #TODO check if len(responses) == len(justifications) == len(quiz.quiz_questions)
-    r = models.QuizAttempt(quiz_id=quiz.id)
+    #TODO check taht that the quiz has not been already attempted
 
     # validate that all required information was sent
     if request.json['initial_responses'] is None or request.json['justifications'] is None:
         abort(400, "Unable to submit quiz response due to missing data") # bad request
 
-    r.initial_responses = str(request.json['initial_responses']) # extract dictionary of question_id : distractor_ID (or none if correct answer)
-
+    r = models.QuizAttempt(quiz_id=quiz.id)
+    # extract dictionary of question_id : distractor_ID (or none if correct answer)
+    r.initial_responses = str(request.json['initial_responses'])
+    
     #TODO take into consideration what mode was set by instructor; regular quiz vs. peer instruction quiz
-    r.justifications = str(request.json['justifications']) # same structure here; distractor_ID : justification
+    
+    # extract same structure here; distractor_ID : justification
+    r.justifications = str(request.json['justifications'])
+    
     #TODO set the student_id / timestamps / ... fields
-    #TODO do we compute the initial score
+
+    #TODO do we compute the initial score?
     r.initial_scores = ""
 
     models.DB.session.add(r)
     models.DB.session.commit()
 
-    response     = ('Quiz attempt recorded in database', 200, {"Content-Type": "application/json"}) #FIXME should it be 204?
+    response     = ('Quiz attempt recorded in database', 200, {"Content-Type": "application/json"})
+    #NOTE see previous note about using 204 vs 200
     return make_response(response)
 
 
@@ -460,6 +463,8 @@ def get_quizzes_review(qid):
     '''
     quiz = models.Quiz.query.get_or_404(qid)
     #TODO need to also return the answers + justifications of 2 peers
+    #TODO what do we do if 2 peers answers are not available?
+    # That should not happen if we enforce due dates for review to be past due dates for quiz
     return jsonify(quiz.dump_as_dict())
 
 
@@ -477,8 +482,6 @@ def post_quizzes_review(qid):
     # If answers have already been submitted, accept edits only until due date.
     # make sure quiz mode is peer instruction
 
-    quiz = models.Quiz.query.get_or_404(qid)
-    
     #TODO only get answers to all questions; no justifications needed, regardless of quiz mode
     #       Select one of the two students whose answers + justifications were seen as the most useful
     #       Specify which of their justification was the most conductive to learning something.
@@ -491,6 +494,8 @@ def post_quizzes_review(qid):
     if request.json['revised_responses'] is None:
         abort(400, "Unable to submit quiz again due to missing data") # bad request
 
+    quiz = models.Quiz.query.get_or_404(qid)
+    
     sid = 1 #FIXME need to use student ID too
     r = models.QuizAttempt.query.get_or_404(quiz_id=quiz.id, student_id=sid)
     #TODO make sure result of the above request is unique
@@ -498,13 +503,15 @@ def post_quizzes_review(qid):
     r.revised_responses = str(request.json['revised_responses'])
         
     #TODO set the student_id / timestamps / ... fields
-    #TODO do we compute the revised score
+    
+    #TODO do we compute the revised score?
     r.revised_scores = ""
 
     models.DB.session.add(r)
     models.DB.session.commit()
 
-    response     = ('Quiz answers updated & feeback recorded in database', 0, {"Content-Type": "application/json"}) #FIXME should it be 204?
+    response     = ('Quiz answers updated & feeback recorded in database', 0, {"Content-Type": "application/json"})
+    #NOTE see previous note about using 204 vs 200
     return make_response(response)
 
 
