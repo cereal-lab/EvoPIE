@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block title %}EvoPIE{% endblock %}
+
+{% block content %}
+{% with messages = get_flashed_messages() %}
+{% if messages %}
+    <div class="notification">
+        {{ messages[0] }}
+    </div>
+{% endif %}
+{% endwith %}
+<form method="POST" action="/login">
+    <input class="input" type="email" name="email" placeholder="Your Email" autofocus="">
+    <input class="input" type="password" name="password" placeholder="Your Password">
+    <label class="checkbox">
+        <input type="checkbox">Remember me
+    </label>
+    <button class="button">Login</button>
+</form>
+{% endblock %}

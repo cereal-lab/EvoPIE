@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block title %}EvoPIE{% endblock %}
+
+{% block content %}
+{% with messages = get_flashed_messages() %}
+{% if messages %}
+    <div class="notification">
+        {{ messages[0] }}. Go to <a href="{{ url_for('auth_get_login') }}">login page</a>.
+    </div>
+{% endif %}
+{% endwith %}
+<form method="POST" action="/signup">
+    <input class="input" type="email" name="email" placeholder="Your Email" autofocus="">
+    <input class="input" type="text" name="firstname" placeholder="Your First Name" autofocus="">
+    <input class="input" type="text" name="lastname" placeholder="Your Last Name" autofocus="">
+    <input class="input" type="password" name="password" placeholder="Your Password">
+    <button class="button">Sign Up</button>
+</form>
+{% endblock %}
