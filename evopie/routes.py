@@ -4,11 +4,78 @@
 # of the members they end up featuring at runtime. This is a way to tell pylint to let it be
 
 from flask import jsonify, abort, request, Response, render_template, redirect, url_for, make_response
+from flask import flash # for auth routes
+from flask_login import login_user, login_required, current_user, login_manager
 
 from random import shuffle
 
 from evopie import APP
 import evopie.models as models
+
+
+
+@APP.route('/login')
+def auth_get_login():
+    return render_template('login.html')
+
+
+
+@APP.route('/login', methods=['POST'])
+def auth_post_login():
+    email = request.form.get('email')
+    password = request.form.get('password')
+    remember = True if request.form.get('remember') else False
+
+    user = models.User.query.filter_by(email=email).first()
+
+    if not user or not user.password == password:
+        #FIXME part of not storing clear text passwords in the DB
+        # check_password_hash(user.password, password):
+        flash('Please check your login details and try again.')
+        return redirect(url_for('auth_get_login'))
+    login_user(user, remember=remember)
+    return redirect(url_for('dashboard'))
+
+
+@APP.route('/signup')
+def auth_get_signup():
+    return render_template('signup.html')
+
+
+
+@APP.route('/signup', methods=['POST'])
+def auth_post_signup():
+    email = request.form.get('email')
+    first_name = request.form.get('firstname')
+    last_name = request.form.get('lastname')
+    password = request.form.get('password')
+
+    # making sure the user does not already exist
+    if models.User.query.filter_by(email=email).first():
+        flash('Email address already exists')
+        return redirect(url_for('auth_get_signup'))
+
+    new_user = models.User(email=email, first_name=first_name, last_name=last_name, password=password, role='student') #FIXME ROLES tbd
+    #FIXME alright we're not gonna store pwd in clear but just playing around for now
+    #generate_password_hash(password, method='sha256')
+
+    models.DB.session.add(new_user)
+    models.DB.session.commit()
+
+    return redirect(url_for('auth_get_login'))
+    
+
+
+@APP.route('/logout')
+def auth_logout():
+    return 'Logout'
+    
+    
+
+@APP.route('/dashboard')
+@login_required
+def dashboard():
+    return render_template('dashboard.html', name=current_user.first_name)
 
 
 
@@ -466,8 +533,8 @@ def get_quizzes_review(qid):
     #TODO what do we do if 2 peers answers are not available?
     # That should not happen if we enforce due dates for review to be past due dates for quiz
     return jsonify(quiz.dump_as_dict())
-
-
+    
+    
 
 @APP.route('/quizzes/<int:qid>/review', methods=['POST'])
 def post_quizzes_review(qid):

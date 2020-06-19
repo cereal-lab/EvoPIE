@@ -2,6 +2,7 @@
 # pylint: disable=E1101 
 
 from random import shuffle # to shuffle lists
+from flask_login import UserMixin
 
 from evopie import DB
 
@@ -198,13 +199,16 @@ relation_questions_vs_attempts = DB.Table('relation_questions_vs_attempts',
 
 
 
-class User(DB.Model):
+class User(UserMixin, DB.Model):
     '''
+    Information about users, compatible with flask_login.
     '''
     id = DB.Column(DB.Integer, primary_key=True)
     email = DB.Column(DB.String)
     first_name = DB.Column(DB.String)
     last_name = DB.Column(DB.String)
+    password = DB.Column(DB.String)
+    role = DB.Column(DB.String)
 
 
     # Each user may have authored several quizzes

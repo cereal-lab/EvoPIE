@@ -4,42 +4,6 @@
 
 {% block content %}
 
-  <script type="text/javascript">
-    function onSubmitDistractorForm(){
-        var quiz = document.getElementById('qid');
-        var action = document.getElementById('distractorForm');
-        action.action = 'http://localhost:5000/questions/' + quiz.value + '/distractors';
-    }
-  </script>
-
-
-
-  <h1>Adding a Question</h1>
-
-  <form id="questionForm" method="post" onsubmit="return onSubmitQuestionForm();" action='http://localhost:5000/questions'>
-    <label for="title">Title</label>
-    <input name="title" id="title" required>
-    <label for="stem">Question</label>
-    <input name="stem" id="question" required>
-    <label for="answer">Answer</label>
-    <input name="answer" id="answer" required>
-    <input type="submit" value="Submit">
-  </form>
-  
-  
-  
-  <h1>Adding a Distractor to a Question</h1>
-  
-  <form id="distractorForm" method="post" onsubmit="return onSubmitDistractorForm();" action='http://localhost:5000/questions/'>
-    <label for="qid">Quiz</label>
-    <input name="qid" id="qid" value="2" required>
-    <label for="answer">Answer</label>
-    <input name="answer" id="answer" required>
-    <input type="submit" value="Submit">
-  </form>
-
-  
-
   <h1>All Questions in our Data Base</h1>
 
   {% for quiz in quizzes %}

@@ -13,7 +13,7 @@ curl  http://localhost:5000/quizquestions/1 && echo
 echo "--> GET QuizQuestion #2"
 curl  http://localhost:5000/quizquestions/2 && echo
 echo "--> PUT QuizQuestion #2"
-curl -X 'PUT' -d '{ "qid": "2", "distractors_ids": [2, 4, 5]}' -H 'Content-Type: application/json' http://localhost:5000/quizquestions/2 && echo
+curl -i -X 'PUT' -d '{ "qid": "2", "distractors_ids": [2, 4, 5]}' -H 'Content-Type: application/json' http://localhost:5000/quizquestions/2 && echo
 echo "---> QuizQuestion #2 should look like QuizQuestion#1 now"
 echo "--> GET QuizQuestion #2"
 curl  http://localhost:5000/quizquestions/2 && echo
