@@ -10,8 +10,11 @@ DB = SQLAlchemy(APP)
 
 from evopie import routes
 
+from .routes_auth import auth as auth_blueprint
+APP.register_blueprint(auth_blueprint)
+
 login_manager = LoginManager()
-login_manager.login_view = 'auth_get_login'
+login_manager.login_view = 'auth.get_login'
 
 from .models import User
 

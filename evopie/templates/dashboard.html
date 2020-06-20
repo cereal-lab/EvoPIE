@@ -27,7 +27,7 @@
     <h1>Adding a Distractor to a Question</h1>
     
     <form id="distractorForm" method="post" onsubmit="return onSubmitDistractorForm();" action='http://localhost:5000/questions/'>
-        <label for="qid">Quiz</label>
+        <label for="qid">Question ID</label>
         <input name="qid" id="qid" value="2" required>
         <label for="answer">Answer</label>
         <input name="answer" id="answer" required>
@@ -46,12 +46,47 @@
 
     <h1>Adding a QuizQuestion</h1>
     
-    <form id="distractorForm" method="post" action='http://localhost:5000/quizquestions'>
-        <label for="qid">Quiz</label>
-        <input name="qid" id="qid" value="2" required>
-        <label for="answer">Answer</label>
-        <input name="answer" id="answer" required>
-        <input type="submit" value="Submit">
-    </form>
+        <label for="qq_qid">Question ID</label>
+        <input name="qq_qid" id="qq_qid" value="2" required>
+
+        <label for="qq_d1">Distractor #1</label>
+        <input name="qq_d1" id="qq_d1" required>
+        <label for="qq_d2">Distractor #2</label>
+        <input name="qq_d2" id="qq_d2" required>
+        <label for="qq_d3">Distractor #3</label>
+        <input name="qq_d3" id="qq_d3" required>
+
+        <p name="result" id="result">
+        </p>
+        <button onclick="submitQuizQuestionForm()">Submit</button>
+
+    <script type="text/javascript">
+        function submitQuizQuestionForm(){
+            let result = document.querySelector('#result');
+            let qid = document.querySelector('#qq_qid');
+            let d1 = document.querySelector('#qq_d1');
+            let d2 = document.querySelector('#qq_d2');
+            let d3 = document.querySelector('#qq_d3');
+               
+            let xhr = new XMLHttpRequest();
+            let url = 'http://localhost:5000/quizquestions';
+        
+            xhr.open("POST", url, true);
+            xhr.setRequestHeader("Content-Type", "application/json");
+  
+            // Create a state change callback 
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    result.innerHTML = this.responseText;
+                  }
+            };
+  
+            // Converting JSON data to string 
+            var data = JSON.stringify({ "qid": parseInt(qid.value), "distractors_ids": [parseInt(d1.value), parseInt(d2.value), parseInt(d3.value)] }); 
+            console.log("sending --> " + data)
+            // Sending data with the request 
+            xhr.send(data);
+        }
+    </script>
 
 {% endblock %}
