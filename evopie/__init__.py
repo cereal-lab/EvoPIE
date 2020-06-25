@@ -8,7 +8,8 @@ APP.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///DB_quizlib.sqlite'
 APP.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 DB = SQLAlchemy(APP)
 
-from evopie import routes
+from .routes_mcq import mcq as mcq_blueprint
+APP.register_blueprint(mcq_blueprint)
 
 from .routes_auth import auth as auth_blueprint
 APP.register_blueprint(auth_blueprint)
@@ -23,3 +24,5 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 login_manager.init_app(APP)
+
+from . import utils

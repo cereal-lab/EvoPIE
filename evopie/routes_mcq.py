@@ -4,12 +4,12 @@
 # of the members they end up featuring at runtime. This is a way to tell pylint to let it be
 
 from flask import jsonify, abort, request, Response, render_template, redirect, url_for, make_response
+from flask import Blueprint
 from flask_login import login_required, current_user
 
 from random import shuffle
 
-#from evopie import APP
-import evopie.models as models
+from . import models
     
     
 
@@ -35,6 +35,7 @@ def index():
 
 
 @mcq.route('/questions', methods=['GET'])
+@login_required
 def get_all_questions():
     '''
     Get, in JSON format, all the questions from the database,
@@ -46,6 +47,7 @@ def get_all_questions():
 
 
 @mcq.route('/questions', methods=['POST'])
+@login_required
 def post_new_question():
     '''
     Add a question and its answer to the database.
@@ -77,6 +79,7 @@ def post_new_question():
     
 
 @mcq.route('/questions/<int:question_id>', methods=['GET'])
+@login_required
 def get_question(question_id):
     '''
     Get, in JSON format, a specified question from the database,
@@ -92,6 +95,7 @@ def get_question(question_id):
 
 
 @mcq.route('/questions/<int:question_id>', methods=['PUT'])
+@login_required
 def put_question(question_id):
     '''
     Update a given question.
@@ -122,6 +126,7 @@ def put_question(question_id):
 
 
 @mcq.route('/questions/<int:question_id>', methods=['DELETE'])
+@login_required
 def delete_question(question_id):
     '''
     Delete given question.
@@ -135,6 +140,7 @@ def delete_question(question_id):
     
 
 @mcq.route('/questions/<int:question_id>/distractors', methods=['GET'])
+@login_required
 def get_distractors_for_question(question_id):
     '''
     Get all distractors for the specified question.
@@ -146,6 +152,7 @@ def get_distractors_for_question(question_id):
 
 
 @mcq.route('/questions/<int:question_id>/distractors', methods=['POST'])
+@login_required
 def post_new_distractor_for_question(question_id):
     '''
     Add a distractor to the specified question.
@@ -173,6 +180,7 @@ def post_new_distractor_for_question(question_id):
 
 
 @mcq.route('/distractors/<int:distractor_id>', methods=['GET'])
+@login_required
 def get_distractor(distractor_id):
     d = models.Distractor.query.get_or_404(distractor_id)
     return jsonify({ "answer": d.answer })
@@ -180,6 +188,7 @@ def get_distractor(distractor_id):
 
 
 @mcq.route('/distractors/<int:distractor_id>', methods=['PUT'])
+@login_required
 def put_distractor(distractor_id):
     if not request.json:
         abort(406, "JSON format required for request") # not acceptable
@@ -201,6 +210,7 @@ def put_distractor(distractor_id):
 
 
 @mcq.route('/distractors/<int:distractor_id>', methods=['DELETE'])
+@login_required
 def delete_distractor(distractor_id):
     '''
     Delete given distractor.
@@ -214,6 +224,7 @@ def delete_distractor(distractor_id):
 
 
 @mcq.route('/quizquestions', methods=['GET'])
+@login_required
 def get_all_quiz_questions():
     '''
     Get, in JSON format, all the QuizQuestions from the database.
@@ -225,6 +236,7 @@ def get_all_quiz_questions():
 
 
 @mcq.route('/quizquestions', methods=['POST'])
+@login_required
 def post_new_quiz_question():
     '''
     Add a QuizQuestion.
@@ -257,6 +269,7 @@ def post_new_quiz_question():
 
 
 @mcq.route('/quizquestions/<int:qq_id>', methods=['GET'])
+@login_required
 def get_quiz_questions(qq_id):
     '''
     Handles GET requests on a specific QuizQuestion
@@ -267,6 +280,7 @@ def get_quiz_questions(qq_id):
 
 
 @mcq.route('/quizquestions/<int:qq_id>', methods=['DELETE'])
+@login_required
 def delete_quiz_questions(qq_id):
     '''
     Handles DELETE requests on a specific QuizQuestion
@@ -282,6 +296,7 @@ def delete_quiz_questions(qq_id):
 
 
 @mcq.route('/quizquestions/<int:qq_id>', methods=['PUT'])
+@login_required
 def put_quiz_questions(qq_id):
     '''
     Handles PUT requests on a specific QuizQuestion
@@ -314,6 +329,7 @@ def put_quiz_questions(qq_id):
 
 
 @mcq.route('/quizzes', methods=['POST'])
+@login_required
 def post_new_quiz():
     '''
     Create a new quiz
@@ -344,6 +360,7 @@ def post_new_quiz():
 
 
 @mcq.route('/quizzes', methods=['GET'])
+@login_required
 def get_all_quizzes():
     '''
     Get us all quizzes, for debugging purposes
@@ -354,6 +371,7 @@ def get_all_quizzes():
 
 
 @mcq.route('/quizzes/<int:qid>', methods=['GET'])
+@login_required
 def get_quizzes(qid):
     '''
     Handles GET requests on a specific quiz
@@ -364,6 +382,7 @@ def get_quizzes(qid):
 
 
 @mcq.route('/quizzes/<int:qid>', methods=['DELETE'])
+@login_required
 def delete_quizzes(qid):
     '''
     Handles DELETE requests on a specific quiz
@@ -378,6 +397,7 @@ def delete_quizzes(qid):
 
 
 @mcq.route('/quizzes/<int:qid>', methods=['PUT'])
+@login_required
 def put_quizzes(qid):
     '''
     Handles PUT requests on a specific quiz
@@ -412,6 +432,7 @@ def put_quizzes(qid):
 
 
 @mcq.route('/quizzes/<int:qid>/take', methods=['GET'])
+@login_required
 def get_quizzes_take(qid):
     '''
     Get the quiz a student is trying to take.
@@ -422,6 +443,7 @@ def get_quizzes_take(qid):
 
 
 @mcq.route('/quizzes/<int:qid>/take', methods=['POST'])
+@login_required
 def post_quizzes_take(qid):
     '''
     Post the answers, for the regular quiz mode, or answers along with
@@ -471,6 +493,7 @@ def post_quizzes_take(qid):
 
 
 @mcq.route('/quizzes/<int:qid>/review', methods=['GET'])
+@login_required
 def get_quizzes_review(qid):
     '''
     Get the specified quiz with peers' answers and justifications
@@ -484,6 +507,7 @@ def get_quizzes_review(qid):
     
 
 @mcq.route('/quizzes/<int:qid>/review', methods=['POST'])
+@login_required
 def post_quizzes_review(qid):
     '''
     Re-take the specified quiz with peers' answers and justifications

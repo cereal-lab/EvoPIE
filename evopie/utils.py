@@ -1,7 +1,7 @@
 # pylint: disable=no-member
 # pylint: disable=E1101
 
-from evopie import models, APP # get also DB from there
+from . import models, APP # get also DB from there
 
 import click
 
