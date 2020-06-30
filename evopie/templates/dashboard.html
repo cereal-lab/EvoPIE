@@ -10,7 +10,7 @@
 
 
 
-    <h1>Adding a Question</h1>
+    <h1>Create new Question</h1>
 
     <form id="questionForm" method="post" action='http://localhost:5000/questions'>
         <label for="title">Title</label>
@@ -24,7 +24,7 @@
 
 
   
-    <h1>Adding a Distractor to a Question</h1>
+    <h1>Create a new Distractor &amp; add it to a Question</h1>
     
     <form id="distractorForm" method="post" onsubmit="return onSubmitDistractorForm();" action='http://localhost:5000/questions/'>
         <label for="qid">Question ID</label>
@@ -44,7 +44,7 @@
 
   
 
-    <h1>Adding a QuizQuestion</h1>
+    <h1>Compose new QuizQuestion</h1>
     
         <label for="qq_qid">Question ID</label>
         <input name="qq_qid" id="qq_qid" value="2" required>
@@ -83,6 +83,57 @@
   
             // Converting JSON data to string 
             var data = JSON.stringify({ "qid": parseInt(qid.value), "distractors_ids": [parseInt(d1.value), parseInt(d2.value), parseInt(d3.value)] }); 
+            console.log("sending --> " + data)
+            // Sending data with the request 
+            xhr.send(data);
+        }
+    </script>
+
+
+
+<h1>Compose new Quiz</h1>
+    
+        <label for="quiz_title">Title</label>
+        <input name="quiz_title" id="quiz_title" value="Your Quiz Title" required>
+
+        <label for="quiz_description">Title</label>
+        <input name="quiz_description" id="quiz_description" value="Your Quiz Description" required>
+
+        <label for="quiz_qq1">QuizQuestion #1</label>
+        <input name="iz_qq1" id="quiz_qq1" required>
+        <label for="quiz_qq2"></label>QuizQuestion #2</label>
+        <input name="quiz_qq2" id="quiz_qq2" required>
+        <label for="quiz_qq3">QuizQuestion #3</label>
+        <input name="quiz_qq3" id="quiz_qq3" required>
+
+        <p name="quiz_result" id="quiz_result">
+        </p>
+        <button onclick="submitQuizForm()">Submit</button>
+
+    <script type="text/javascript">
+        function submitQuizForm(){
+            let result = document.querySelector('#quiz_result');
+            let title = document.querySelector('#quiz_title');
+            let description = document.querySelector('#quiz_description');
+            let qq1 = document.querySelector('#quiz_qq1');
+            let qq2 = document.querySelector('#quiz_qq2');
+            let qq3 = document.querySelector('#quiz_qq3');
+               
+            let xhr = new XMLHttpRequest();
+            let url = 'http://localhost:5000/quizzes';
+        
+            xhr.open("POST", url, true);
+            xhr.setRequestHeader("Content-Type", "application/json");
+  
+            // Create a state change callback 
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    result.innerHTML = this.responseText;
+                  }
+            };
+  
+            // Converting JSON data to string 
+            var data = JSON.stringify({ "title": title.value, "description": description.value, "questions_ids": [parseInt(qq1.value), parseInt(qq2.value), parseInt(qq3.value)] }); 
             console.log("sending --> " + data)
             // Sending data with the request 
             xhr.send(data);
