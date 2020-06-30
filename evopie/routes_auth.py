@@ -28,10 +28,14 @@ def get_signup():
 
 @auth.route('/login', methods=['POST'])
 def post_login():
-    email = request.form.get('email')
-    password = request.form.get('password')
-    remember = True if request.form.get('remember') else False
-
+    if request.json:
+        email = request.json.get('email')
+        password = request.json.get('password')
+        remember = True if request.json.get('remember') else False
+    else:
+        email = request.form.get('email')
+        password = request.form.get('password')
+        remember = True if request.form.get('remember') else False
     user = models.User.query.filter_by(email=email).first()
 
     if not user or not user.password == password:
@@ -40,16 +44,22 @@ def post_login():
         flash(Markup('Login or password incorrect. Do you need to <a href="' + url_for('auth.get_signup') + '">sign up</a> for an account?'))
         return redirect(url_for('auth.get_login'))
     login_user(user, remember=remember)
-    return redirect(url_for('dashboard'))
+    return redirect(url_for('mcq.dashboard'))
 
 
 
 @auth.route('/signup', methods=['POST'])
 def post_signup():
-    email = request.form.get('email')
-    first_name = request.form.get('firstname')
-    last_name = request.form.get('lastname')
-    password = request.form.get('password')
+    if request.json:
+        email = request.json.get('email')
+        first_name = request.json.get('firstname')
+        last_name = request.json.get('lastname')
+        password = request.json.get('password')
+    else:
+        email = request.form.get('email')
+        first_name = request.form.get('firstname')
+        last_name = request.form.get('lastname')
+        password = request.form.get('password')
 
     # making sure the user does not already exist
     if models.User.query.filter_by(email=email).first():
