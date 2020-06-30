@@ -13,13 +13,19 @@
     <h1>Create new Question</h1>
 
     <form id="questionForm" method="post" action='http://localhost:5000/questions'>
-        <label for="title">Title</label>
-        <input name="title" id="title" required>
-        <label for="stem">Question</label>
-        <input name="stem" id="question" required>
-        <label for="answer">Answer</label>
-        <input name="answer" id="answer" required>
-        <input type="submit" value="Submit">
+        <div class="form-group">
+            <label for="title">Title</label>
+            <input name="title" id="title" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label for="stem">Question</label>
+            <input name="stem" id="question" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label for="answer">Answer</label>
+            <input name="answer" id="answer" class="form-control" required>
+        </div>
+        <input type="submit" value="Submit" class="btn btn-primary">
     </form>
 
 
@@ -27,11 +33,15 @@
     <h1>Create a new Distractor &amp; add it to a Question</h1>
     
     <form id="distractorForm" method="post" onsubmit="return onSubmitDistractorForm();" action='http://localhost:5000/questions/'>
-        <label for="qid">Question ID</label>
-        <input name="qid" id="qid" value="2" required>
-        <label for="answer">Answer</label>
-        <input name="answer" id="answer" required>
-        <input type="submit" value="Submit">
+        <div class="form-group">
+            <label for="qid">Question ID</label>
+            <input name="qid" id="qid" value="2" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label for="answer">Answer</label>
+            <input name="answer" id="answer" class="form-control" required>
+        </div>
+        <input type="submit" value="Submit" class="btn btn-primary">
     </form>
 
     <script type="text/javascript">
@@ -46,19 +56,27 @@
 
     <h1>Compose new QuizQuestion</h1>
     
-        <label for="qq_qid">Question ID</label>
-        <input name="qq_qid" id="qq_qid" value="2" required>
-
-        <label for="qq_d1">Distractor #1</label>
-        <input name="qq_d1" id="qq_d1" required>
-        <label for="qq_d2">Distractor #2</label>
-        <input name="qq_d2" id="qq_d2" required>
-        <label for="qq_d3">Distractor #3</label>
-        <input name="qq_d3" id="qq_d3" required>
-
-        <p name="result" id="result">
-        </p>
-        <button onclick="submitQuizQuestionForm()">Submit</button>
+        <form id='QuizQuestionForm'>
+            <div class="form-group">
+                <label for="qq_qid">Question ID</label>
+                <input name="qq_qid" id="qq_qid" value="2" required>
+            </div>
+            <div class="form-group">
+                <label for="qq_d1">Distractor #1</label>
+                <input name="qq_d1" id="qq_d1" required>
+            </div>
+            <div class="form-group">
+                <label for="qq_d2">Distractor #2</label>
+                <input name="qq_d2" id="qq_d2" required>
+            </div>
+            <div class="form-group">
+                <label for="qq_d3">Distractor #3</label>
+                <input name="qq_d3" id="qq_d3" required>
+            </div>
+            <p name="result" id="result">
+            </p>
+            <button onclick="submitQuizQuestionForm()" class="btn btn-primary">Submit</button>
+        </form>
 
     <script type="text/javascript">
         function submitQuizQuestionForm(){
@@ -93,23 +111,31 @@
 
 <h1>Compose new Quiz</h1>
     
-        <label for="quiz_title">Title</label>
-        <input name="quiz_title" id="quiz_title" value="Your Quiz Title" required>
-
-        <label for="quiz_description">Title</label>
-        <input name="quiz_description" id="quiz_description" value="Your Quiz Description" required>
-
-        <label for="quiz_qq1">QuizQuestion #1</label>
-        <input name="iz_qq1" id="quiz_qq1" required>
-        <label for="quiz_qq2"></label>QuizQuestion #2</label>
-        <input name="quiz_qq2" id="quiz_qq2" required>
-        <label for="quiz_qq3">QuizQuestion #3</label>
-        <input name="quiz_qq3" id="quiz_qq3" required>
-
+    <form id='QuizForm'>
+        <div class="form-group">
+            <label for="quiz_title">Title</label>
+            <input name="quiz_title" id="quiz_title" value="Your Quiz Title" required>
+        </div>
+        <div class="form-group">
+            <label for="quiz_description">Title</label>
+            <input name="quiz_description" id="quiz_description" value="Your Quiz Description" required>
+        </div>
+        <div class="form-group">
+            <label for="quiz_qq1">QuizQuestion #1</label>
+            <input name="iz_qq1" id="quiz_qq1" required>
+        </div>
+        <div class="form-group">
+            <label for="quiz_qq2"></label>QuizQuestion #2</label>
+            <input name="quiz_qq2" id="quiz_qq2" required>
+        </div>
+        <div class="form-group">
+            <label for="quiz_qq3">QuizQuestion #3</label>
+            <input name="quiz_qq3" id="quiz_qq3" required>
+        </div>
         <p name="quiz_result" id="quiz_result">
         </p>
-        <button onclick="submitQuizForm()">Submit</button>
-
+        <button onclick="submitQuizForm()" class="btn btn-primary">Submit</button>
+    </form>
     <script type="text/javascript">
         function submitQuizForm(){
             let result = document.querySelector('#quiz_result');
