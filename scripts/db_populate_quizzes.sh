@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# PRE-REQUISITES
+#   ./scripts/signup_login.sh
+#   ./scripts/db_populate_questions_distractors.sh
+#   ./scripts/db_populate_quizquestions.sh
+
 LOGIN="-L -b ./mycookies"
 
 # assuming we already injected a few QuizQuestions, and therefore Questions & Distractors before that

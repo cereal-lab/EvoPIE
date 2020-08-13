@@ -431,9 +431,51 @@ def put_quizzes(qid):
     
 
 
-@mcq.route('/quizzes/<int:qid>/take', methods=['GET'])
+@mcq.route('/quizzes/<int:qid>/take', methods=['GET', 'POST'])
 @login_required
-def get_quizzes_take(qid):
+def all_quizzes_take(qid):
+    '''
+    This is the route that will determine whether the student is taking the 
+    quiz for the first time, or is coming back to view peers' feedback.
+    '''
+    # TODO implement logic
+    # IF date <= DL1 THEN step #1 ELSE IF DL1 < date <= DL2 && previous attempt exists THEN step #2
+    step1 = False
+    step2 = False
+    
+    sid = 1 #FIXME need to use student ID too
+    r = models.QuizAttempt.query.filter_by(quiz_id=qid).filter_by(student_id=sid).first()
+    if r is None:
+        step1 = True
+    else:
+        step2 = True
+    
+    if step1 == step2:
+        # we have an issue, either the student should be taking simulatneously the two steps of the
+        # quiz, which would be a BUG or they should take none, which most likely means the quiz
+        # is not yet available
+        response     = ('Quiz not accessible at this time', 403, {"Content-Type": "application/json"})
+        #NOTE 403 better than 401 (unauthorized) here since there is no issue w/ auth
+        return make_response(response)
+    
+    if request.method == 'GET':
+        if step1:
+            return get_quizzes_answer(qid)
+        else: #step2
+            return get_quizzes_review(qid)
+    else: #request.method == 'POST'
+        # NOTE do that function call retain access to request?
+        # yup https://flask.palletsprojects.com/en/1.1.x/reqcontext/
+        if step1:
+            return post_quizzes_answer(qid)
+        else: #step2
+            return post_quizzes_review(qid)
+    
+
+
+@mcq.route('/quizzes/<int:qid>/answer', methods=['GET'])
+@login_required
+def get_quizzes_answer(qid):
     '''
     Get the quiz a student is trying to take.
     '''
@@ -442,9 +484,9 @@ def get_quizzes_take(qid):
 
 
 
-@mcq.route('/quizzes/<int:qid>/take', methods=['POST'])
+@mcq.route('/quizzes/<int:qid>/answer', methods=['POST'])
 @login_required
-def post_quizzes_take(qid):
+def post_quizzes_answer(qid):
     '''
     Post the answers, for the regular quiz mode, or answers along with
     justifications for the asynchronous peer instruction mode.
@@ -468,8 +510,9 @@ def post_quizzes_take(qid):
     # validate that all required information was sent
     if request.json['initial_responses'] is None or request.json['justifications'] is None:
         abort(400, "Unable to submit quiz response due to missing data") # bad request
-
-    r = models.QuizAttempt(quiz_id=quiz.id)
+    
+    sid = 1 #FIXME need to use student ID too
+    r = models.QuizAttempt(quiz_id=quiz.id, student_id=sid)
     # extract dictionary of question_id : distractor_ID (or none if correct answer)
     r.initial_responses = str(request.json['initial_responses'])
     
@@ -478,7 +521,7 @@ def post_quizzes_take(qid):
     # extract same structure here; distractor_ID : justification
     r.justifications = str(request.json['justifications'])
     
-    #TODO set the student_id / timestamps / ... fields
+    #TODO set timestamps & other fields
 
     #TODO do we compute the initial score?
     r.initial_scores = ""
@@ -531,21 +574,24 @@ def post_quizzes_review(qid):
     # validate that all required information was sent
     if request.json['revised_responses'] is None:
         abort(400, "Unable to submit quiz again due to missing data") # bad request
-
+    
     quiz = models.Quiz.query.get_or_404(qid)
     
     sid = 1 #FIXME need to use student ID too
-    r = models.QuizAttempt.query.get_or_404(quiz_id=quiz.id, student_id=sid)
+    r = models.QuizAttempt.query.filter_by(quiz_id=quiz.id).filter_by(student_id=sid).first()
+    if r is None:
+        abort(404)
     #TODO make sure result of the above request is unique
 
     r.revised_responses = str(request.json['revised_responses'])
         
-    #TODO set the student_id / timestamps / ... fields
+    #TODO set timestamps & other fields
     
     #TODO do we compute the revised score?
     r.revised_scores = ""
 
-    models.DB.session.add(r)
+    # BUG no need to re-add just commit the changes
+    # models.DB.session.add(r)
     models.DB.session.commit()
 
     response     = ('Quiz answers updated & feeback recorded in database', 0, {"Content-Type": "application/json"})

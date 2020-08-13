@@ -13,6 +13,13 @@ def DB_init():
 
 
 
+@APP.cli.command("DB-reboot")
+def DB_reboot():
+    models.DB.drop_all()
+    models.DB.create_all()
+
+
+
 @APP.cli.command("DB-populate")
 def DB_populate():
     '''

@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# PRE-REQUISITES
+#   ./scripts/signup_login.sh
+#   ./scripts/db_populate_questions_distractors.sh
+
 LOGIN="-L -b ./mycookies"
 
 # WARNING
