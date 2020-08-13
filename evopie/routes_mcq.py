@@ -445,6 +445,8 @@ def all_quizzes_take(qid):
     
     sid = 1 #FIXME need to use student ID too
     r = models.QuizAttempt.query.filter_by(quiz_id=qid).filter_by(student_id=sid).first()
+    # FIXME we are taking the first... would be better to ensure uniqueness
+
     if r is None:
         step1 = True
     else:
@@ -455,7 +457,7 @@ def all_quizzes_take(qid):
         # quiz, which would be a BUG or they should take none, which most likely means the quiz
         # is not yet available
         response     = ('Quiz not accessible at this time', 403, {"Content-Type": "application/json"})
-        #NOTE 403 better than 401 (unauthorized) here since there is no issue w/ auth
+        #NOTE 403 is better here than 401 (unauthorized) here since there is no issue w/ auth
         return make_response(response)
     
     if request.method == 'GET':
