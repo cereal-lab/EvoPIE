@@ -24,4 +24,4 @@ curl $LOGIN -X "POST" -d '{"initial_responses" : {"1":"9" , "2":"6", "3":"0"}, "
 echo "TAKING Quiz #1 --> GET --> should be reviewing now"
 curl $LOGIN -X "GET" $TARGET && echo
 echo "TAKING Quiz #1 --> POST --> should be reviewing now"
-curl $LOGIN -X "POST" -d '{ "revised_responses": {"1":"0" , "2":"6", "3":"9"}}' -H 'Content-Type: application/json' $TARGET && echo
+curl $LOGIN -X "POST" -d '{"revised_responses": {"1":"0" , "2":"6", "3":"9"}}' -H 'Content-Type: application/json' $TARGET && echo

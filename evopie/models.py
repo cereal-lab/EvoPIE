@@ -175,13 +175,28 @@ class QuizAttempt(DB.Model):
     # If we do so, then order of alternatives matters and must be fixed by instructors instead
     # of being shuffled as we do right now
 
+    initial_total_score = DB.Column(DB.Integer)
+    revised_total_score = DB.Column(DB.Integer)
+    
     # justifications to each possible answer
     justifications = DB.Column(DB.String) # json list of text entries
     
     # score
-    initial_scores = DB.Column(DB.String) # as json list of yes/no
-    revised_scores = DB.Column(DB.String) # as json list of yes/no
+    initial_scores = DB.Column(DB.String) # as json list of None / distractor ID
+    revised_scores = DB.Column(DB.String) # as json list of None / distractor ID
 
+    def dump_as_dict(self):
+        return {    "id" : self.id,
+                    "quiz_id" : self.quiz_id, 
+                    "student_id" : self.student_id,
+                    "initial_responses" : self.initial_responses,
+                    "revised_responses" : self.revised_responses,
+                    "justifications" : self.justifications,
+                    "initial_scores" : self.initial_scores,
+                    "revised_scores" : self.revised_scores,
+                    "initial_total_score" : self.initial_total_score,
+                    "revised_total_score" : self.revised_total_score
+                }
 
 
 

@@ -8,6 +8,7 @@ from flask import Blueprint
 from flask_login import login_required, current_user
 
 from random import shuffle
+import json
 
 from . import models
     
@@ -438,20 +439,22 @@ def all_quizzes_take(qid):
     This is the route that will determine whether the student is taking the 
     quiz for the first time, or is coming back to view peers' feedback.
     '''
+    sid = 1 #FIXME need to use student ID too
+    
     # TODO implement logic
     # IF date <= DL1 THEN step #1 ELSE IF DL1 < date <= DL2 && previous attempt exists THEN step #2
+
+    # Is the student POSTing initial answer (step 1) or revised answers (step 2)
     step1 = False
     step2 = False
-    
-    sid = 1 #FIXME need to use student ID too
     r = models.QuizAttempt.query.filter_by(quiz_id=qid).filter_by(student_id=sid).first()
     # FIXME we are taking the first... would be better to ensure uniqueness
-
     if r is None:
         step1 = True
     else:
         step2 = True
     
+    # sanity check
     if step1 == step2:
         # we have an issue, either the student should be taking simulatneously the two steps of the
         # quiz, which would be a BUG or they should take none, which most likely means the quiz
@@ -460,6 +463,12 @@ def all_quizzes_take(qid):
         #NOTE 403 is better here than 401 (unauthorized) here since there is no issue w/ auth
         return make_response(response)
     
+    #TODO validate the quiz attempt;
+    # ensure that student is authenticated
+    # make sure that the student has been assigned this quiz
+    # check the due dates for too early / too late
+    # check the max duration
+
     if request.method == 'GET':
         if step1:
             return get_quizzes_answer(qid)
@@ -468,77 +477,107 @@ def all_quizzes_take(qid):
     else: #request.method == 'POST'
         # NOTE do that function call retain access to request?
         # yup https://flask.palletsprojects.com/en/1.1.x/reqcontext/
+        if not request.json:
+            abort(406, "JSON format required for request") # not acceptable
+        
         if step1:
-            return post_quizzes_answer(qid)
+            # validate that all required information was sent
+            if request.json['initial_responses'] is None or request.json['justifications'] is None:
+                abort(400, "Unable to submit quiz response due to missing data") # bad request
+            updated_quiz_attempt = post_quizzes_answer(qid)
+            models.DB.session.add(updated_quiz_attempt)
+            models.DB.session.commit()
+
+            response     = ('Quiz attempt recorded in database', 200, {"Content-Type": "application/json"})
+            #NOTE see previous note about using 204 vs 200
+            return make_response(response)
+
         else: #step2
+            # validate that all required information was sent
+            if request.json['revised_responses'] is None:
+                abort(400, "Unable to submit quiz again due to missing data") # bad request
+    
             return post_quizzes_review(qid)
     
 
 
-@mcq.route('/quizzes/<int:qid>/answer', methods=['GET'])
-@login_required
+#@mcq.route('/quizzes/<int:qid>/answer', methods=['GET'])
+#@login_required
 def get_quizzes_answer(qid):
     '''
     Get the quiz a student is trying to take.
+    This route / function refers to step #1 of peer instruction, whereby
+    the student is going to answer the question on his/her own.
     '''
     quiz = models.Quiz.query.get_or_404(qid)
     return jsonify(quiz.dump_as_dict())
 
 
 
-@mcq.route('/quizzes/<int:qid>/answer', methods=['POST'])
-@login_required
+#@mcq.route('/quizzes/<int:qid>/answer', methods=['POST'])
+#@login_required
 def post_quizzes_answer(qid):
     '''
     Post the answers, for the regular quiz mode, or answers along with
     justifications for the asynchronous peer instruction mode.
     '''
-    #TODO validate the quiz attempt;
-    # ensure that student is authenticated
-    # make sure that the student has been assigned this quiz
-    # check the due dates for too early / too late
-    # check the max duration
     # If answers have already been submitted, accept edits only until due date.
     # make sure quiz mode is peer instruction
 
     quiz = models.Quiz.query.get_or_404(qid)
 
-    if not request.json:
-        abort(406, "JSON format required for request") # not acceptable
-
     #TODO check if len(responses) == len(justifications) == len(quiz.quiz_questions)
-    #TODO check taht that the quiz has not been already attempted
 
-    # validate that all required information was sent
-    if request.json['initial_responses'] is None or request.json['justifications'] is None:
-        abort(400, "Unable to submit quiz response due to missing data") # bad request
+    ### validate that all required information was sent
+    ### if request.json['initial_responses'] is None or request.json['justifications'] is None:
+    ###    abort(400, "Unable to submit quiz response due to missing data") # bad request
     
     sid = 1 #FIXME need to use student ID too
+
+    # Check that the quiz has not been already attempted; e.g., QuizAttempt object
+    #       for this quiz & student combination already exists
+    r = models.QuizAttempt.query.filter_by(quiz_id=qid).filter_by(student_id=sid).first()
+    # FIXME we are taking the first... would be better to ensure uniqueness
+    if r is not None:
+        abort(400, "Unable to submit quiz, already existing attempt previously submitted") # bad request
+
+    # create new QuizAttempt
     r = models.QuizAttempt(quiz_id=quiz.id, student_id=sid)
-    # extract dictionary of question_id : distractor_ID (or none if correct answer)
-    r.initial_responses = str(request.json['initial_responses'])
     
-    #TODO take into consideration what mode was set by instructor; regular quiz vs. peer instruction quiz
-    
-    # extract same structure here; distractor_ID : justification
+    # extract from request the dictionary of question_id : distractor_ID (or None if correct answer)
+    initial_responses_dict = request.json['initial_responses']
+    # NOTE not 100% sure why we need the [0]. working under hypothesis that, right now, we have a list
+    # containing one element: the dictionary.
+    # see https://pynative.com/python-convert-json-string-to-dictionary-not-list/
+
+    # we save a string version of this data in the proper field
+    r.initial_responses = str(initial_responses_dict)
+    # we compute a dictionary of question_id : score in which score is 0 or 1
+    #   1 means the student selected the solution (None shows in the responses)
+    #   0 means the student selected one of the distractors (its ID shows in the responses)
+    initial_scores_dict = {}
+    # we also save the total score as we go
+    r.initial_total_score = 0
+    for key in initial_responses_dict:
+        if initial_responses_dict[key] is None:
+            result = 1
+        else:
+            result = 0
+        initial_scores_dict[key] = result
+        r.initial_total_score = r.initial_total_score + result
+    r.initial_scores = initial_scores_dict
+
+    # extract same structure here; question_id : justification string
     r.justifications = str(request.json['justifications'])
     
     #TODO set timestamps & other fields
-
-    #TODO do we compute the initial score?
-    r.initial_scores = ""
-
-    models.DB.session.add(r)
-    models.DB.session.commit()
-
-    response     = ('Quiz attempt recorded in database', 200, {"Content-Type": "application/json"})
-    #NOTE see previous note about using 204 vs 200
-    return make_response(response)
+    
+    return r
+    
 
 
-
-@mcq.route('/quizzes/<int:qid>/review', methods=['GET'])
-@login_required
+#@mcq.route('/quizzes/<int:qid>/review', methods=['GET'])
+#@login_required
 def get_quizzes_review(qid):
     '''
     Get the specified quiz with peers' answers and justifications
@@ -551,8 +590,8 @@ def get_quizzes_review(qid):
     
     
 
-@mcq.route('/quizzes/<int:qid>/review', methods=['POST'])
-@login_required
+#@mcq.route('/quizzes/<int:qid>/review', methods=['POST'])
+#@login_required
 def post_quizzes_review(qid):
     '''
     Re-take the specified quiz with peers' answers and justifications
@@ -572,10 +611,6 @@ def post_quizzes_review(qid):
     #       between QuizAttempts
     
     #TODO check if len(responses) == len(quiz.quiz_questions)
-    
-    # validate that all required information was sent
-    if request.json['revised_responses'] is None:
-        abort(400, "Unable to submit quiz again due to missing data") # bad request
     
     quiz = models.Quiz.query.get_or_404(qid)
     
@@ -599,5 +634,16 @@ def post_quizzes_review(qid):
     response     = ('Quiz answers updated & feeback recorded in database', 0, {"Content-Type": "application/json"})
     #NOTE see previous note about using 204 vs 200
     return make_response(response)
+
+
+
+@mcq.route('/quizzes/<int:qid>/responses', methods=['GET'])
+@login_required
+def get_quizzes_responses(qid):
+    '''
+    Returns all the date on all the attempts made so far on that quiz by students.
+    '''
+    attempts = models.QuizAttempt.query.filter_by(quiz_id=qid).all()
+    return jsonify([a.dump_as_dict() for a in attempts])
 
 
