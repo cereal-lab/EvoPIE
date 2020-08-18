@@ -114,8 +114,6 @@ def put_question(question_id):
         abort(400, "Unable to modify question due to missing data") # bad request
     
     q = models.Question.query.get_or_404(question_id)
-    #TODO only assign the fields that were not None in the request
-    #NOTE are they even None at some point; e.g., instead of empty strings?
     q.title = title
     q.stem = stem
     q.answer = answer
@@ -161,6 +159,7 @@ def post_new_distractor_for_question(question_id):
     if request.json:
         answer = request.json['answer']
     else:
+        #FIXME do we want to continue handling both formats?
         answer = request.form['answer']
     
     # validate that all required information was sent
@@ -175,6 +174,7 @@ def post_new_distractor_for_question(question_id):
         response = ('Distractor added to Question in database', 201, {"Content-Type": "application/json"})
         return make_response(response)
     else:
+        #FIXME do we want to continue handling both formats?
         return redirect(url_for('dashboard'))
         #TODO how to handle error in a non-REST client? e.g., flash an error message then redirect?
 
@@ -317,11 +317,7 @@ def put_quiz_questions(qq_id):
     qq.question = models.Question.query.get_or_404(question_id)
     distractors = [models.Distractor.query.get_or_404(id) for id in distractors_ids]
 
-    #BUG we are adding distractors not replacing them. Checked for multiple occurences of this bug in all put_* methods;
-    #for d in distractors:
-    #    qq.distractors.append(d)
     qq.distractors = distractors
-    #BUG models.DB.session.add(qq)
     models.DB.session.commit()
 
     response = ('Quiz Question updated in database', 201, {"Content-Type": "application/json"})
@@ -412,11 +408,7 @@ def put_quizzes(qid):
     quiz.description = request.json['description']
 
     # validate that all required information was sent
-    if quiz.title is None or quiz.description is None:
-        abort(400, "Unable to modify quiz due to missing data") # bad request
-
-    # validate that all required information was sent
-    if request.json['questions_ids'] is None:
+    if quiz.title is None or quiz.description is None or request.json['questions_ids'] is None:
         abort(400, "Unable to modify quiz due to missing data") # bad request
 
     quiz.quiz_questions = []
@@ -439,19 +431,12 @@ def all_quizzes_take(qid):
     This is the route that will determine whether the student is taking the 
     quiz for the first time, or is coming back to view peers' feedback.
     '''
-    #TODO validate the quiz attempt;
-    # ensure that student is authenticated
-    # make sure that the student has been assigned this quiz
-    # check the due dates for too early / too late
-    # check the max duration
-    # If answers have already been submitted, accept edits only until due date.
-    # make sure quiz mode is peer instruction
 
     quiz = models.Quiz.query.get_or_404(qid)
     
-    sid = 1 #FIXME need to use student ID too
+    sid = current_user.id #FIXME need to use student ID too
     
-    # TODO implement logic
+    # TODO implement logic for deadlines
     # IF date <= DL1 THEN step #1 ELSE IF DL1 < date <= DL2 && previous attempt exists THEN step #2
 
     # Is the student POSTing initial answer (step 1) or revised answers (step 2)
@@ -468,33 +453,24 @@ def all_quizzes_take(qid):
     # sanity check
     if step1 == step2:
         # we have an issue, either the student should be taking simulatneously the two steps of the
-        # quiz, which would be a BUG or they should take none, which most likely means the quiz
-        # is not yet available
+        # quiz, which would be a BUG or they should take none, which most likely means the quiz is not yet available
         response     = ('Quiz not accessible at this time', 403, {"Content-Type": "application/json"})
         #NOTE 403 is better here than 401 (unauthorized) here since there is no issue w/ auth
         return make_response(response)
     
-    #TODO validate the quiz attempt;
-    # ensure that student is authenticated
-    # make sure that the student has been assigned this quiz
-    # check the due dates for too early / too late
-    # check the max duration
-
     if request.method == 'GET':
 
         if step1:
             return jsonify(quiz.dump_as_dict())
         else: #step2
             #TODO need to also return the answers + justifications of 2 peers
-            #TODO what do we do if 2 peers answers are not available?
+            #TODO what do we do if n peers answers are not available? with n+1 being # options for MCQ
             # That should not happen if we enforce due dates for review to be past due dates for quiz
             return jsonify(quiz.dump_as_dict())
 
     else: #request.method == 'POST'
-        # NOTE do that function call retain access to request?
-        # yup https://flask.palletsprojects.com/en/1.1.x/reqcontext/
-
-        #TODO check if len(responses) == len(justifications) == len(quiz.quiz_questions)
+        #TODO sanity check
+        # if len(responses) == len(justifications) == len(quiz.quiz_questions)
 
         if not request.json:
             abort(406, "JSON format required for request") # not acceptable
@@ -514,9 +490,6 @@ def all_quizzes_take(qid):
             
             # extract from request the dictionary of question_id : distractor_ID (or None if correct answer)
             initial_responses_dict = request.json['initial_responses']
-            # NOTE not 100% sure why we need the [0]. working under hypothesis that, right now, we have a list
-            # containing one element: the dictionary.
-            # see https://pynative.com/python-convert-json-string-to-dictionary-not-list/
 
             # we save a string version of this data in the proper field
             attempt.initial_responses = str(initial_responses_dict)
@@ -527,7 +500,7 @@ def all_quizzes_take(qid):
             # we also save the total score as we go
             attempt.initial_total_score = 0
             for key in initial_responses_dict:
-                if initial_responses_dict[key] is None:
+                if int(initial_responses_dict[key]) < 0:
                     result = 1
                 else:
                     result = 0
@@ -537,8 +510,6 @@ def all_quizzes_take(qid):
 
             # extract same structure here; question_id : justification string
             attempt.justifications = str(request.json['justifications'])
-            
-            #TODO set timestamps & other fields
             
             models.DB.session.add(attempt)
             models.DB.session.commit()
@@ -561,16 +532,15 @@ def all_quizzes_take(qid):
             #       Specify which of their justification was the most conductive to learning something.
             #       sounds like we're going to need to make the feedback another model connected 1-to-1
             #       between QuizAttempts
-                
             
             # we update the existing attempt with step 2 information
             revised_responses_dict = request.json['revised_responses']
-            attempt.revised_responses = str(revised_responses_dict)
             revised_scores_dict = {}
+            attempt.revised_responses = str(revised_responses_dict)
             # we also save the total score as we go
             attempt.revised_total_score = 0
             for key in revised_responses_dict:
-                if revised_responses_dict[key] is None:
+                if int(revised_responses_dict[key]) < 0:
                     result = 1
                 else:
                     result = 0
@@ -578,8 +548,6 @@ def all_quizzes_take(qid):
                 attempt.revised_total_score += result
             attempt.revised_scores = str(revised_scores_dict)
             
-            #TODO set timestamps & other fields
-                
             models.DB.session.commit()
 
             response     = ('Quiz answers updated & feeback recorded in database', 0, {"Content-Type": "application/json"})
@@ -592,7 +560,7 @@ def all_quizzes_take(qid):
 @login_required
 def get_quizzes_responses(qid):
     '''
-    Returns all the date on all the attempts made so far on that quiz by students.
+    Returns all the data on all the attempts made so far on that quiz by students.
     '''
     attempts = models.QuizAttempt.query.filter_by(quiz_id=qid).all()
     return jsonify([a.dump_as_dict() for a in attempts])
