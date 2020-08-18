@@ -22,6 +22,8 @@ mcq = Blueprint('mcq', __name__)
 @login_required
 def dashboard():
     return render_template('dashboard.html', name=current_user.first_name)
+    # based on the current_user.is_student & current_user.is_instructor we could
+    # redirect to different dashboards
 
 
 
@@ -42,6 +44,10 @@ def get_all_questions():
     Get, in JSON format, all the questions from the database,
     including, for each, all its distractors.
     '''
+    if not current_user.is_instructor():
+        response     = ('You are not allowed to view all questions', 403, {"Content-Type": "application/json"})
+        return make_response(response)
+
     all_questions = [q.dump_as_dict() for q in models.Question.query.all()]
     return jsonify(all_questions)
 
@@ -53,6 +59,10 @@ def post_new_question():
     '''
     Add a question and its answer to the database.
     '''
+    if not current_user.is_instructor():
+        response     = ('You are not allowed to create questions', 403, {"Content-Type": "application/json"})
+        return make_response(response)
+
     if request.json:
         title = request.json['title']
         stem = request.json['stem']
@@ -90,6 +100,10 @@ def get_question(question_id):
     Answer and distractors are shuffled together as alternatives from which
     the student will have to pick.
     '''
+    if not current_user.is_instructor():
+        response     = ('You are not allowed to access individual questions', 403, {"Content-Type": "application/json"})
+        return make_response(response)
+
     q = models.Question.query.get_or_404(question_id)
     return jsonify(q.dump_as_dict())
 
@@ -101,6 +115,10 @@ def put_question(question_id):
     '''
     Update a given question.
     '''
+    if not current_user.is_instructor():
+        response     = ('You are not allowed to modify questions', 403, {"Content-Type": "application/json"})
+        return make_response(response)
+
     #NOTE HTML5 forms can not submit a PUT (only POST), so we reject any non-json request
     if not request.json:
         abort(406, "JSON format required for request") # not acceptable
@@ -130,6 +148,10 @@ def delete_question(question_id):
     '''
     Delete given question.
     '''
+    if not current_user.is_instructor():
+        response     = ('You are not allowed to delete questions', 403, {"Content-Type": "application/json"})
+        return make_response(response)
+
     q = models.Question.query.get_or_404(question_id)
     models.DB.session.delete(q)
     models.DB.session.commit()
@@ -144,6 +166,10 @@ def get_distractors_for_question(question_id):
     '''
     Get all distractors for the specified question.
     '''
+    if not current_user.is_instructor():
+        response     = ('You are not allowed to view individual distractors', 403, {"Content-Type": "application/json"})
+        return make_response(response)
+
     q = models.Question.query.get_or_404(question_id)
     result = [d.dump_as_dict() for d in q.distractors]
     return jsonify(result)
@@ -156,6 +182,10 @@ def post_new_distractor_for_question(question_id):
     '''
     Add a distractor to the specified question.
     '''
+    if not current_user.is_instructor():
+        response     = ('You are not allowed to create distrators', 403, {"Content-Type": "application/json"})
+        return make_response(response)
+
     if request.json:
         answer = request.json['answer']
     else:
@@ -183,6 +213,10 @@ def post_new_distractor_for_question(question_id):
 @mcq.route('/distractors/<int:distractor_id>', methods=['GET'])
 @login_required
 def get_distractor(distractor_id):
+    if not current_user.is_instructor():
+        response     = ('You are not allowed to view individual distractors', 403, {"Content-Type": "application/json"})
+        return make_response(response)
+
     d = models.Distractor.query.get_or_404(distractor_id)
     return jsonify({ "answer": d.answer })
 
@@ -191,6 +225,10 @@ def get_distractor(distractor_id):
 @mcq.route('/distractors/<int:distractor_id>', methods=['PUT'])
 @login_required
 def put_distractor(distractor_id):
+    if not current_user.is_instructor():
+        response     = ('You are not allowed to modify distractors', 403, {"Content-Type": "application/json"})
+        return make_response(response)
+
     if not request.json:
         abort(406, "JSON format required for request") # not acceptable
     
@@ -216,6 +254,10 @@ def delete_distractor(distractor_id):
     '''
     Delete given distractor.
     '''
+    if not current_user.is_instructor():
+        response     = ('You are not allowed to delete distractors', 403, {"Content-Type": "application/json"})
+        return make_response(response)
+    
     d = models.Distractor.query.get_or_404(distractor_id)
     models.DB.session.delete(d)
     models.DB.session.commit()
@@ -230,6 +272,10 @@ def get_all_quiz_questions():
     '''
     Get, in JSON format, all the QuizQuestions from the database.
     '''
+    if not current_user.is_instructor():
+        response     = ('You are not allowed to view all quiz questions', 403, {"Content-Type": "application/json"})
+        return make_response(response)
+
     all = models.QuizQuestion.query.all()
     result = [q.dump_as_dict() for q in all]
     return jsonify(result)
@@ -242,6 +288,10 @@ def post_new_quiz_question():
     '''
     Add a QuizQuestion.
     '''
+    if not current_user.is_instructor():
+        response     = ('You are not allowed to create quiz questions', 403, {"Content-Type": "application/json"})
+        return make_response(response)
+
     if not request.json:
         abort(406, "JSON format required for request") # not acceptable
         
@@ -275,6 +325,10 @@ def get_quiz_questions(qq_id):
     '''
     Handles GET requests on a specific QuizQuestion
     '''
+    if not current_user.is_instructor():
+        response     = ('You are not allowed to access individual quiz questions', 403, {"Content-Type": "application/json"})
+        return make_response(response)
+
     qq = models.QuizQuestion.query.get_or_404(qq_id)
     return jsonify(qq.dump_as_dict())
 
@@ -286,6 +340,10 @@ def delete_quiz_questions(qq_id):
     '''
     Handles DELETE requests on a specific QuizQuestion
     '''
+    if not current_user.is_instructor():
+        response     = ('You are not allowed to delete quiz questions', 403, {"Content-Type": "application/json"})
+        return make_response(response)
+
     qq = models.QuizQuestion.query.get_or_404(qq_id)
     models.DB.session.delete(qq)
     models.DB.session.commit()
@@ -302,6 +360,10 @@ def put_quiz_questions(qq_id):
     '''
     Handles PUT requests on a specific QuizQuestion
     '''
+    if not current_user.is_instructor():
+        response     = ('You are not allowed to modify quiz questions', 403, {"Content-Type": "application/json"})
+        return make_response(response)
+
     qq = models.QuizQuestion.query.get_or_404(qq_id)
     
     if not request.json:
@@ -331,6 +393,10 @@ def post_new_quiz():
     '''
     Create a new quiz
     '''
+    if not current_user.is_instructor():
+        response     = ('You are not allowed to create quizzes', 403, {"Content-Type": "application/json"})
+        return make_response(response)
+
     title = request.json['title']
     description = request.json['description']
 
@@ -362,6 +428,10 @@ def get_all_quizzes():
     '''
     Get us all quizzes, for debugging purposes
     '''
+    if not current_user.is_instructor():
+        response     = ('You are not allowed to view all quizzes', 403, {"Content-Type": "application/json"})
+        return make_response(response)
+
     quizzes = models.Quiz.query.all()
     return jsonify([q.dump_as_dict()for q in quizzes])
 
@@ -373,6 +443,10 @@ def get_quizzes(qid):
     '''
     Handles GET requests on a specific quiz
     '''
+    if not current_user.is_instructor():
+        response     = ('You are not allowed to download individual quizzes', 403, {"Content-Type": "application/json"})
+        return make_response(response)
+
     quiz = models.Quiz.query.get_or_404(qid)
     return jsonify(quiz.dump_as_dict())
 
@@ -384,6 +458,10 @@ def delete_quizzes(qid):
     '''
     Handles DELETE requests on a specific quiz
     '''
+    if not current_user.is_instructor():
+        response     = ('You are not allowed to delete quizzes', 403, {"Content-Type": "application/json"})
+        return make_response(response)
+
     quiz = models.Quiz.query.get_or_404(qid)
     models.DB.session.delete(quiz)
     models.DB.session.commit()
@@ -399,6 +477,10 @@ def put_quizzes(qid):
     '''
     Handles PUT requests on a specific quiz
     '''
+    if not current_user.is_instructor():
+        response     = ('You are not allowed to modify quizzes', 403, {"Content-Type": "application/json"})
+        return make_response(response)
+
     quiz = models.Quiz.query.get_or_404(qid)
 
     if not request.json:
@@ -431,6 +513,10 @@ def all_quizzes_take(qid):
     This is the route that will determine whether the student is taking the 
     quiz for the first time, or is coming back to view peers' feedback.
     '''
+    if not current_user.is_student():
+        response     = ('You are not allowed to take quizzes', 403, {"Content-Type": "application/json"})
+        return make_response(response)
+
 
     quiz = models.Quiz.query.get_or_404(qid)
     
@@ -452,7 +538,7 @@ def all_quizzes_take(qid):
     
     # sanity check
     if step1 == step2:
-        # we have an issue, either the student should be taking simulatneously the two steps of the
+        # we have an issue, either the student should be taking simultaneously the two steps of the
         # quiz, which would be a BUG or they should take none, which most likely means the quiz is not yet available
         response     = ('Quiz not accessible at this time', 403, {"Content-Type": "application/json"})
         #NOTE 403 is better here than 401 (unauthorized) here since there is no issue w/ auth
@@ -562,6 +648,10 @@ def get_quizzes_responses(qid):
     '''
     Returns all the data on all the attempts made so far on that quiz by students.
     '''
+    if not current_user.is_instructor():
+        response     = ('You are not allowed to view quizzes responses', 403, {"Content-Type": "application/json"})
+        return make_response(response)
+
     attempts = models.QuizAttempt.query.filter_by(quiz_id=qid).all()
     return jsonify([a.dump_as_dict() for a in attempts])
 

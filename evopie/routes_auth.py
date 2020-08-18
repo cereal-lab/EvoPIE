@@ -65,8 +65,22 @@ def post_signup():
     if models.User.query.filter_by(email=email).first():
         flash('Email address already exists')
         return redirect(url_for('auth.get_signup'))
+        #TODO we should redirect to password recovery so that, if someone is spam-creating
+        # accounts, the first one will be salvageable by whoever actually has legitimate access
+        # to the email address associated with it. 
 
-    new_user = models.User(email=email, first_name=first_name, last_name=last_name, password=password, role='student') #FIXME ROLES tbd
+    #FIXME for now, we hardcode that the 1st user to signup is an INSTRUCTOR
+    # the testing scripts are hardwired to work with that assumption too. 
+    # Need to fix this as soon as we bootstrap an ADMIN user and allow them 
+    # to promote a user to a different role; e.g., promote_to_instructor()
+    if models.User.query.all():
+        # there is at least one user so this one is going to be a STUDENT
+        its_role = "STUDENT"
+    else:
+        # first to the key, first to the egg!
+        its_role = "INSTRUCTOR"
+
+    new_user = models.User(email=email, first_name=first_name, last_name=last_name, password=password, role=its_role) #NOTE default role is STUDENT
     #FIXME alright we're not gonna store pwd in clear but just playing around for now
     #generate_password_hash(password, method='sha256')
 

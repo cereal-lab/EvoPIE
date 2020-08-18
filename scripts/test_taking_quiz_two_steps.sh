@@ -6,6 +6,10 @@
 
 LOGIN="-L -b ./mycookies"
 
+#login as INSTRUCTOR
+curl -L -c ./mycookies -d '{ "email": "alessio1@usf.edu", "password": "secret1"}' -H 'Content-Type: application/json'  http://localhost:5000/login &> /dev/null && echo "login as INSTRUCTOR"
+#TODO for now, we hardcode that user id 1 is an instructor, fix that later.
+
 echo "--> making sure we have at least 3 QuizQuestions"
 #NOTE that the order specified in the request does not matter.
 # The associations are not featuring a field to preserve order.
@@ -15,6 +19,10 @@ curl $LOGIN -d '{ "qid": "2", "distractors_ids": [6, 5, 4]}' -H 'Content-Type: a
 curl $LOGIN -d '{ "qid": "3", "distractors_ids": [1, 9, 6]}' -H 'Content-Type: application/json' http://localhost:5000/quizquestions && echo
 
 curl $LOGIN -d '{ "title": "Review Quiz", "description": "This is our first quiz", "questions_ids":[3, 2, 1]}' -H 'Content-Type: application/json' http://localhost:5000/quizzes && echo
+
+#login as STUDENT
+curl -L -c ./mycookies -d '{ "email": "alessio3@usf.edu", "password": "secret3"}' -H 'Content-Type: application/json'  http://localhost:5000/login &> /dev/null && echo "login as STUDENT"
+#TODO for now, we hardcode that user id 1 is an instructor, fix that later.
 
 #answer the quiz
 TARGET="http://localhost:5000/quizzes/1/answer"

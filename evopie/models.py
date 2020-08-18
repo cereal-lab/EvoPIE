@@ -224,7 +224,7 @@ class User(UserMixin, DB.Model):
     last_name = DB.Column(DB.String)
     password = DB.Column(DB.String)
     role = DB.Column(DB.String)
-
+    # NOTE for now the roles that are handled are STUDENT (default), INSTRUCTOR, ADMIN
 
     # Each user may have authored several quizzes
     quizzes = DB.relationship('Quiz', backref='author', lazy=True)
@@ -232,3 +232,18 @@ class User(UserMixin, DB.Model):
     # Each user may have made many QuizAttempts
     quiz_attempts = DB.relationship('QuizAttempt', backref='student', lazy=True)
     # all attempts
+
+
+
+    def is_instructor(self):
+        return self.role == "INSTRUCTOR"
+   
+
+
+    def is_student(self):
+        return self.role == "STUDENT"
+    
+
+
+    def is_admin(self):
+        return self.role == "ADMIN"
