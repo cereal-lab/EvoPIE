@@ -100,10 +100,23 @@ class QuizQuestion(DB.Model):
                     "answer": self.question.answer,
                     "alternatives": [] }
         
-        result['alternatives'].append(self.question.answer)
+        tmp1 = [] # list of distractors IDs, -1 for right answer
+        tmp2 = [] # list of alternatives, including the right answer
+        
+        tmp1.append(-1)
+        tmp2.append(self.question.answer)
+        
         for d in self.distractors:
-            result['alternatives'].append(d.answer)
+            tmp1.append(d.id)
+            tmp2.append(d.answer)
+        
+        result['alternatives'] = list(zip(tmp1,tmp2))
         shuffle(result['alternatives'])
+        # DO NOT USE if we append tuples above
+        # shuffle both arrays but keep them in same order relatively speaking
+        #both = list(zip(result['alternatives'], result['alternatives_ids']))
+        #shuffle(both)
+        #result['alternatives'] , result['alternatives_ids'] = zip(*both)
         return result
 
 
