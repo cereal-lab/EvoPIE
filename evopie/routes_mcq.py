@@ -29,8 +29,8 @@ def dashboard():
 
 @mcq.route('/student/<int:qid>', methods=['GET'])
 @login_required
-def student(qid):
-    if not current_user.is_instructor():
+def get_student(qid):
+    if not current_user.is_student():
         response = ('You are not allowed to take this quiz', 403, {"Content-Type": "application/json"})
         return make_response(response)
 
@@ -47,8 +47,23 @@ def student(qid):
     else:
         step = 1
     quiz_questions = [question.dump_as_dict() for question in q.quiz_questions]
+    # --> redirect to the other routes
     return render_template('student.html', step=step, quiz=q, questions=quiz_questions, student=u, attempt=a)
     
+
+
+@mcq.route('/student/<int:qid>', methods=['POST'])
+@login_required
+def post_student(qid):
+    if not current_user.is_student():
+        response = ('You are not allowed to take this quiz', 403, {"Content-Type": "application/json"})
+        return make_response(response)
+    # TODO accept both Json and form
+    # --> redirect to the other routes
+
+    # TODO get the options value field from the form with 
+    # request.form['XYZ'] where XYZ is used in the name field
+ 
 
 
 @mcq.route('/')

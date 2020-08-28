@@ -17,12 +17,12 @@
         <p>
             {{q.stem}}
         </p>
-        <ul>
+        
             {% for id,alt in q.alternatives %}
-                <li>
+                <input type="radio" name="question_{{q.id}}" id="alternative_{{id}}" value="alternative_{{id}}">
                     #{{id}} - {{alt}}
-                </li>
+                </input></br>
             {% endfor %}
-        </ul>
+        
     {% endfor %}
 {% endblock %}
