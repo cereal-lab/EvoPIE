@@ -8,17 +8,22 @@
         console.log("hiya");
     }
 </script>
-<p>
-    Hello, {{student.first_name}} {{student.last_name}}, {{student.email}}
-</p>
-<h1>Quiz #{{quiz.id}} - {{quiz.title}}</h1>
-<p>
-    {{quiz.description}}
-</p>
-    <p>
-        When you are done taking the quiz, press <button class="btn btn-primary" onClick="submitQuiz()">Submit Quiz</button>
-    </p>
-    
+<div class="jumbotron jumbotron-fluid">
+    <div class="container">
+        <h1 class="display-4">Quiz #{{quiz.id}} - {{quiz.title}}</h1>
+        <p class="lead">
+            Hello, {{student.first_name}} {{student.last_name}}, {{student.email}}
+        </p>
+        <p class="lead">
+            {{quiz.description}}
+        </p>
+        <p class="lead">
+            When you are done taking the quiz, press <button class="btn btn-primary" onclick="submitQuiz()">Submit Quiz</button>
+        </p>
+    </div>
+</div>
+
+    <!-- BASIC VERSION
     {% for q in questions %}
         <h2>
             Question #{{q.id}} - {{q.title}}
@@ -46,4 +51,37 @@
         {% endfor %}
         
     {% endfor %}
+    -->
+    <!-- BOOTSTRAP CARDS VERSION -->
+        <div class="cad-deck">
+            {% for q in questions %}
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <h5 class="card-title">Question #{{q.id}} - {{q.title}}</h2>
+                        <p class="card-text">{{q.stem}}</p>
+                        <ul class="list-group list-group-flush">
+                        {% for id,alt in q.alternatives %}
+                            <li class="list-group-item border border-primaryrounded">
+                            <div class="form-group">
+                                <div id="alternative_{{q.id}}_{{id}}"
+                                    class="form-check">
+                                    <input type="radio"
+                                        name="question_{{q.id}}"
+                                        id="alternative_{{q.id}}_{{id}}_check" value="alternative_{{q.id}}_{{id}}_check"
+                                        class="form-check-input"></input>
+                                    <label for="alternative_{{q.id}}_{{id}}_check"
+                                        class="form-check-label">#{{id}} - {{alt}}</label>
+                                    <textarea
+                                        id="alternative_{{q.id}}_{{id}}_justify" name="alternative_{{q.id}}_{{id}}_justify"
+                                        class="form-control reveal-if-not-selected"
+                                        rows="3"
+                                        placeholder="Explain here why you did not select this alternative."></textarea>
+                                </div>
+                            </div>
+                            </li>
+                        {% endfor %}
+                        </ul>
+                </div>
+            {% endfor %}
+        </div>
 {% endblock %}
