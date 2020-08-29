@@ -47,7 +47,7 @@ def get_student(qid):
     else:
         step = 1
     quiz_questions = [question.dump_as_dict() for question in q.quiz_questions]
-    # --> redirect to the other routes
+    # TODO redirect to different pages depending on step; e.g., student1.html vs. student2.html
     return render_template('student.html', step=step, quiz=q, questions=quiz_questions, student=u, attempt=a)
     
 

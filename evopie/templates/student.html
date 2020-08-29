@@ -6,6 +6,7 @@
 <script>
     function submitQuiz(){
         console.log("hiya");
+        // POSTing to /quizzes/X/answer since this page is for step#1
     }
 </script>
 <div class="jumbotron jumbotron-fluid">
@@ -23,45 +24,45 @@
     </div>
 </div>
 
-    <!-- BASIC VERSION
-    {% for q in questions %}
-        <h2>
-            Question #{{q.id}} - {{q.title}}
-        </h2>
-        <p>
-            {{q.stem}}
-        </p>
-        
-        {% for id,alt in q.alternatives %}
-            <div class="form-group">
-                <div id="alternative_{{q.id}}_{{id}}"
-                    class="form-check">
-                    <input type="radio"
-                        name="question_{{q.id}}"
-                        id="alternative_{{q.id}}_{{id}}_check" value="alternative_{{q.id}}_{{id}}_check"
-                        class="form-check-input"></input>
-                    <label for="alternative_{{q.id}}_{{id}}_check"
-                        class="form-check-label">#{{id}} - {{alt}}</label>
-                    <input type="text"
-                        id="alternative_{{q.id}}_{{id}}_justify" name="alternative_{{q.id}}_{{id}}_justify"
-                        class="form-control reveal-if-not-selected"
-                        placeholder="Explain here why you did not select this alternative."></input>
-                </div>
+<!-- BASIC VERSION
+{% for q in questions %}
+    <h2>
+        Question #{{q.id}} - {{q.title}}
+    </h2>
+    <p>
+        {{q.stem}}
+    </p>
+    
+    {% for id,alt in q.alternatives %}
+        <div class="form-group">
+            <div id="alternative_{{q.id}}_{{id}}"
+                class="form-check">
+                <input type="radio"
+                    name="question_{{q.id}}"
+                    id="alternative_{{q.id}}_{{id}}_check" value="alternative_{{q.id}}_{{id}}_check"
+                    class="form-check-input"></input>
+                <label for="alternative_{{q.id}}_{{id}}_check"
+                    class="form-check-label">#{{id}} - {{alt}}</label>
+                <input type="text"
+                    id="alternative_{{q.id}}_{{id}}_justify" name="alternative_{{q.id}}_{{id}}_justify"
+                    class="form-control reveal-if-not-selected"
+                    placeholder="Explain here why you did not select this alternative."></input>
             </div>
-        {% endfor %}
-        
+        </div>
     {% endfor %}
-    -->
-    <!-- BOOTSTRAP CARDS VERSION -->
-        <div class="cad-deck">
-            {% for q in questions %}
-                <div class="card bg-light">
-                    <div class="card-body">
-                        <h5 class="card-title">Question #{{q.id}} - {{q.title}}</h2>
-                        <p class="card-text">{{q.stem}}</p>
-                        <ul class="list-group list-group-flush">
-                        {% for id,alt in q.alternatives %}
-                            <li class="list-group-item border border-primaryrounded">
+    
+{% endfor %}
+-->
+<!-- BOOTSTRAP CARDS VERSION -->
+    <div class="card-deck">
+        {% for q in questions %}
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5 class="card-title">Question #{{q.id}} - {{q.title}}</h5>
+                    <p class="card-text">{{q.stem}}</p>
+                    <ul class="list-group list-group-flush">
+                    {% for id,alt in q.alternatives %}
+                        <li class="list-group-item border border-primaryrounded">
                             <div class="form-group">
                                 <div id="alternative_{{q.id}}_{{id}}"
                                     class="form-check">
@@ -78,10 +79,11 @@
                                         placeholder="Explain here why you did not select this alternative."></textarea>
                                 </div>
                             </div>
-                            </li>
-                        {% endfor %}
-                        </ul>
+                        </li>
+                    {% endfor %}
+                    </ul>
                 </div>
-            {% endfor %}
-        </div>
+            </div>
+        {% endfor %}
+    </div>
 {% endblock %}
