@@ -6,6 +6,19 @@
 
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
         <link rel="stylesheet" href="{{ url_for('static', filename='basestyle.css') }}">
+        <style>
+            .reveal-if-not-selected {
+                opacity: 1;
+                max-height: 100px;
+                overflow: visible;
+                padding: 10px 20px;
+            }
+            input[type="radio"]:checked ~ .reveal-if-not-selected {
+                opacity: 0;
+                max-height: 0;
+                overflow: hidden;                
+            }
+        </style>
     </head>
     
     <body>

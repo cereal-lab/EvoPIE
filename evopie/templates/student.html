@@ -3,13 +3,22 @@
 {% block title %}EvoPIE{% endblock %}
 
 {% block content %}
+<script>
+    function submitQuiz(){
+        console.log("hiya");
+    }
+</script>
 <p>
     Hello, {{student.first_name}} {{student.last_name}}, {{student.email}}
 </p>
-    <h1>Quiz #{{quiz.id}} - {{quiz.title}}</h1>
+<h1>Quiz #{{quiz.id}} - {{quiz.title}}</h1>
+<p>
+    {{quiz.description}}
+</p>
     <p>
-        {{quiz.description}}
+        When you are done taking the quiz, press <button class="btn btn-primary" onClick="submitQuiz()">Submit Quiz</button>
     </p>
+    
     {% for q in questions %}
         <h2>
             Question #{{q.id}} - {{q.title}}
@@ -18,11 +27,23 @@
             {{q.stem}}
         </p>
         
-            {% for id,alt in q.alternatives %}
-                <input type="radio" name="question_{{q.id}}" id="alternative_{{id}}" value="alternative_{{id}}">
-                    #{{id}} - {{alt}}
-                </input></br>
-            {% endfor %}
+        {% for id,alt in q.alternatives %}
+            <div class="form-group">
+                <div id="alternative_{{q.id}}_{{id}}"
+                    class="form-check">
+                    <input type="radio"
+                        name="question_{{q.id}}"
+                        id="alternative_{{q.id}}_{{id}}_check" value="alternative_{{q.id}}_{{id}}_check"
+                        class="form-check-input"></input>
+                    <label for="alternative_{{q.id}}_{{id}}_check"
+                        class="form-check-label">#{{id}} - {{alt}}</label>
+                    <input type="text"
+                        id="alternative_{{q.id}}_{{id}}_justify" name="alternative_{{q.id}}_{{id}}_justify"
+                        class="form-control reveal-if-not-selected"
+                        placeholder="Explain here why you did not select this alternative."></input>
+                </div>
+            </div>
+        {% endfor %}
         
     {% endfor %}
 {% endblock %}
