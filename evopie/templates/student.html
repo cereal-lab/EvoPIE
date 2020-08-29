@@ -54,10 +54,10 @@
 {% endfor %}
 -->
 <!-- BOOTSTRAP CARDS VERSION -->
-    <div class="card-deck">
+    <!div class="card-deck">
         {% for q in questions %}
-            <div class="card bg-light">
-                <div class="card-body">
+            <div class="card bg-light m-3">
+                <div class="card-body" bg-light>
                     <h5 class="card-title">Question #{{q.id}} - {{q.title}}</h5>
                     <p class="card-text">{{q.stem}}</p>
                     <ul class="list-group list-group-flush">
@@ -85,5 +85,5 @@
                 </div>
             </div>
         {% endfor %}
-    </div>
+    <!/div>
 {% endblock %}
