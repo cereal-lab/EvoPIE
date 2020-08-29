@@ -38,12 +38,15 @@
         var post_data = { "initial_responses" : {}, "justifications" : {}};
         for (var i = 0 ; i < json_data.length ; i++){
             let question_number = i + 1;
+            var question = json_data[i];
+            console.log("working with");
+            console.log(question);
             //fetch the distractor id of the selected alternative
             var distractor_id = 99; // TODO
-            post_data["initial_responses"][question_number.toString()] = distractor_id;
+            post_data["initial_responses"][question["id"]] = distractor_id;
             // fetch justification text
             var justification = "oops"; // TODO
-            post_data["justifications"][question_number.toString()] = justification;
+            post_data["justifications"][question["id"]] = justification;
             
         }
 
