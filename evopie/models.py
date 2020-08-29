@@ -110,7 +110,12 @@ class QuizQuestion(DB.Model):
             tmp1.append(d.id)
             tmp2.append(d.answer)
         
-        result['alternatives'] = list(zip(tmp1,tmp2))
+        #result['alternatives'] = list(zip(tmp1,tmp2))
+        # BUG the above causes the list to be made of tuples which are not well handled when we are trying to
+        # use the |tojson template in Jinja. We want a list of lists instead.
+        result['alternatives'] = [list(tup) for tup in zip(tmp1,tmp2)]
+
+
         shuffle(result['alternatives'])
         # DO NOT USE if we append tuples above
         # shuffle both arrays but keep them in same order relatively speaking
