@@ -1,11 +1,31 @@
 #!/bin/bash
 
+# run this script right after starting the server with
+# flask DB-reboot && flask-run
+
 # The questions' IDs are hardcoded, meaning that this script should be run 
 # right after starting the server on an empty database.
 # If there are already questions in the DB when this script is run, then
 # we will add distractors to the wrong questions
 
+echo
+echo
+echo '---> SIGNING UP 3 ACCOUNTS'
+curl -L -d '{ "email": "alessio1@usf.edu", "password": "secret1", "firstname": "first1", "lastname": "last1" }' -H 'Content-Type: application/json'  http://localhost:5000/signup &> /dev/null && echo "signup"
+curl -L -d '{ "email": "alessio2@usf.edu", "password": "secret2", "firstname": "first2", "lastname": "last2" }' -H 'Content-Type: application/json'  http://localhost:5000/signup &> /dev/null && echo "signup"
+curl -L -d '{ "email": "alessio3@usf.edu", "password": "secret3", "firstname": "first3", "lastname": "last3" }' -H 'Content-Type: application/json'  http://localhost:5000/signup &> /dev/null && echo "signup"
+
+echo
+echo
+echo '---> login as INSTRUCTOR'
+curl -L -c ./mycookies -d '{ "email": "alessio1@usf.edu", "password": "secret1"}' -H 'Content-Type: application/json'  http://localhost:5000/login &> /dev/null && echo "login as INSTRUCTOR"
+#TODO for now, we hardcode that user id 1 is an instructor, fix that later.
+
 LOGIN="-L -b ./mycookies"
+
+echo
+echo
+echo '--->\tADDING QUESTIONS & DISTRACTORS'
 
 # question #1
 curl $LOGIN -d '{ "title": "Sir Lancelot and the bridge keeper, part 1", "stem": "What... is your name?", "answer": "Sir Lancelot of Camelot"}' -H 'Content-Type: application/json' http://localhost:5000/questions && echo
@@ -49,6 +69,23 @@ curl $LOGIN -X 'PUT' -d '{ "answer": "HACKING THIS DISTRACTOR"}' -H 'Content-Typ
 
 # testing deleting question
 #curl $LOGIN -X 'DELETE' http://localhost:5000/questions/4 && echo
+
+echo
+echo
+echo '--->\tADDING QUIZQUESTIONS'
+
+#NOTE that the order specified in the request does not matter.
+# The associations are not featuring a field to preserve order.
+# besides, we also shuffle all QuizQuestions in a quiz and all alternatives in a QuizQuestion
+curl $LOGIN -d '{ "qid": "1", "distractors_ids": [9, 8, 7]}' -H 'Content-Type: application/json' http://localhost:5000/quizquestions && echo
+curl $LOGIN -d '{ "qid": "2", "distractors_ids": [6, 5, 4]}' -H 'Content-Type: application/json' http://localhost:5000/quizquestions && echo
+curl $LOGIN -d '{ "qid": "3", "distractors_ids": [1, 9, 6]}' -H 'Content-Type: application/json' http://localhost:5000/quizquestions && echo
+
+echo
+echo
+echo '--->\tADDING QUIZ'
+
+curl $LOGIN -d '{ "title": "Review Quiz", "description": "This is our first quiz", "questions_ids":[3, 2, 1]}' -H 'Content-Type: application/json' http://localhost:5000/quizzes && echo
 
 
 

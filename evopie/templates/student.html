@@ -37,27 +37,45 @@
 
         var post_data = { "initial_responses" : {}, "justifications" : {}};
         for (var i = 0 ; i < json_data.length ; i++){
-            let question_number = i + 1;
             var question = json_data[i];
-            console.log("working with");
-            console.log(question);
-            //fetch the distractor id of the selected alternative
-            var distractor_id = 99; // TODO
-            post_data["initial_responses"][question["id"]] = distractor_id;
-            // fetch justification text
-            var justification = "oops"; // TODO
-            post_data["justifications"][question["id"]] = justification;
+            var name = "question_" + question["id"]; // radio group has name based on question ID
+            var elements = document.getElementsByName(name);
             
-        }
+            var distractor_id = 0; // distractor id of the selected alternative
+            
+            for(var j=0 ; j < elements.length ; j++){
+                if(elements[j].checked)
+                    distractor_id = elements[i].value;
+            }
+            // TODO what if nothing was selected, should we use distractor ID 0?
+            // We don't need to since we pull all justifications below.
 
-        console.log(JSON.stringify(post_data));
+            // for this same question, we pull all justifications for all alternatives from the DOM
+            var justifications = {};
+            for(var j = 0 ; j < question.alternatives.length; j++){
+                var alternative = question.alternatives[j];
+                var target_id = "alternative_" + question["id"] + "_" + alternative[0] + "_justify";
+                justifications[alternative[0]] = document.getElementById(target_id).value;
+            }
+            post_data["initial_responses"][question["id"]] = distractor_id;
+            post_data["justifications"][question["id"]] = justifications;
+        }
         // POSTing to /quizzes/X/take since this page is for step#1
-        // Content-Type: application/json
-        /* {    
-                "initial_responses" : {"1":"9" , "2":"6", "3":"-1"},
-                "justifications": {"1":"yup, bad soution", "2":"this one too", "3":"pretty sure this one is right"}
-           }
-        */
+        let target_url = 'http://localhost:5000/quizzes/' + "{{quiz.id}}" + "/take"; 
+        fetch(target_url,{
+            method: 'POST',
+            headers: {'Content-Type' : 'application/json'},
+            body: JSON.stringify(post_data),
+            credentials: 'same-origin'
+        })
+        //.then(response => response.json())
+        .then(response => response.statusText)
+        .then(data => {
+            console.log('woohoo --> ', data);
+        })
+        .catch((error) => {
+            console.error('Doh! -->', error);
+        })
     }
 </script>
 <div class="jumbotron jumbotron-fluid">
@@ -119,7 +137,7 @@
                                     class="form-check">
                                     <input type="radio"
                                         name="question_{{q.id}}"
-                                        id="alternative_{{q.id}}_{{id}}_check" value="alternative_{{q.id}}_{{id}}_check"
+                                        id="alternative_{{q.id}}_{{id}}_check" value="{{id}}"
                                         class="form-check-input"></input>
                                     <label for="alternative_{{q.id}}_{{id}}_check"
                                         class="form-check-label">#{{id}} - {{alt}}</label>
