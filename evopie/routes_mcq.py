@@ -42,29 +42,15 @@ def get_student(qid):
     # do so in the /quizzes/x/take route below as well
     # e.g., store step # in attribute of Quiz
     a = models.QuizAttempt.query.filter_by(student_id=current_user.id).filter_by(quiz_id=qid).all()
-    if a:
-        step = 2
-    else:
-        step = 1
     quiz_questions = [question.dump_as_dict() for question in q.quiz_questions]
-    # TODO redirect to different pages depending on step; e.g., student1.html vs. student2.html
-    return render_template('student.html', step=step, quiz=q, questions=quiz_questions, student=u, attempt=a)
     
-
-
-@mcq.route('/student/<int:qid>', methods=['POST'])
-@login_required
-def post_student(qid):
-    if not current_user.is_student():
-        response = ('You are not allowed to take this quiz', 403, {"Content-Type": "application/json"})
-        return make_response(response)
-    # TODO accept both Json and form
-    # --> redirect to the other routes
-
-    # TODO get the options value field from the form with 
-    # request.form['XYZ'] where XYZ is used in the name field
- 
-
+    # Redirect to different pages depending on step; e.g., student1.html vs. student2.html
+    if a: # step = 2
+        return render_template('student2.html', quiz=q, questions=quiz_questions, student=u, attempt=a[0])
+    else: # step = 1
+        return render_template('student1.html', quiz=q, questions=quiz_questions, student=u)
+    
+    
 
 @mcq.route('/')
 def index():
@@ -602,12 +588,13 @@ def all_quizzes_take(qid):
         
         if step1:
             # validate that all required information was sent
+            # BUG if the keys are missing we crash
             if request.json['initial_responses'] is None or request.json['justifications'] is None:
                 abort(400, "Unable to submit quiz response due to missing data") # bad request
 
             # Being in step 1 means that the quiz has not been already attempted
             # i.e., QuizAttempt object for this quiz & student combination does not already exist
-            if attempt is not None:
+            if attempt is not None: # FIXME should never happen
                 abort(400, "Unable to submit quiz, already existing attempt previously submitted") # bad request
 
             # so we make a brand new one!
@@ -615,9 +602,9 @@ def all_quizzes_take(qid):
             
             # extract from request the dictionary of question_id : distractor_ID (or None if correct answer)
             initial_responses_dict = request.json['initial_responses']
-
+            
             # we save a string version of this data in the proper field
-            attempt.initial_responses = str(initial_responses_dict)
+            attempt.initial_responses = str(initial_responses_dict)###
             # we compute a dictionary of question_id : score in which score is 0 or 1
             #   1 means the student selected the solution (None shows in the responses)
             #   0 means the student selected one of the distractors (its ID shows in the responses)

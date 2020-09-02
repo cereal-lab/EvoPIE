@@ -6,6 +6,9 @@ from flask_login import UserMixin
 
 from evopie import DB
 
+import ast
+
+
 
 
 class Question(DB.Model):
@@ -187,8 +190,8 @@ class QuizAttempt(DB.Model):
     # revised --> start / end
 
     # store students answers to all questions
-    initial_responses = DB.Column(DB.String) # as json list of distractor_ID or none for answer
-    revised_responses = DB.Column(DB.String) # as json list of distractor_ID or none for answer
+    initial_responses = DB.Column(DB.String, default="{}") # as json list of distractor_ID or none for answer
+    revised_responses = DB.Column(DB.String, default="{}") # as json list of distractor_ID or none for answer
     #NOTE alternatively, we could store just an int representing the index of the response.
     # If we do so, then order of alternatives matters and must be fixed by instructors instead
     # of being shuffled as we do right now
@@ -197,7 +200,7 @@ class QuizAttempt(DB.Model):
     revised_total_score = DB.Column(DB.Integer)
     
     # justifications to each possible answer
-    justifications = DB.Column(DB.String) # json list of text entries
+    justifications = DB.Column(DB.String, default="{}") # json list of text entries
     
     # score
     initial_scores = DB.Column(DB.String) # as json list of None / distractor ID

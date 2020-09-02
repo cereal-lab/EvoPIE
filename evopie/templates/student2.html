@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+{% block title %}EvoPIE{% endblock %}
+
+{% block content %}
+
+<script>
+    document.addEventListener(
+        "DOMContentLoaded",
+        function(){
+            // removing #&39;
+            var attempt_raw = "{{ attempt.initial_responses }}"
+            var parser = new DOMParser;
+            var dom = parser.parseFromString('<!doctype html><body>' + attempt_raw, 'text/html');
+            var usable = dom.body.textContent;
+            console.log(usable);
+            /*
+               we have stuff like "{'1': '7', '2': 0, '3': 0}" in usable but we can still not parse it int JSON
+               the string uses '' inside of it but JSON does not accept single quotes
+            */
+           // this is one ugly hack to make sure we don't screw with data like {'1': 'let's roll'}
+           usable = usable.replace(/ /g,'')
+           usable = usable.replace(/{\'/g,'{"')
+           usable = usable.replace(/\'}/g,'"}')
+           usable = usable.replace(/,\'/g,',"')
+           usable = usable.replace(/\',/g,'",')
+           usable = usable.replace(/:\'/g,':"')
+           usable = usable.replace(/\':/g,'":')
+           
+           json_data = JSON.parse(usable);
+           console.log(json_data);
+           for(var key in json_data){
+                console.log("KEY = " + key)
+                console.log("VALUE = " + json_data[key])
+                // find the question key
+                var element = document.getElementById('question_'+key+'_original_answer')
+                // insert the distractor ID for original response
+                element.innerHTML = "" + json_data[key]
+           }
+        }
+    );
+</script>
+<script>
+    function submitQuiz(){
+        var all_questions = '{{ questions|tojson }}';
+        // removing #&39;
+        var parser = new DOMParser;
+        var dom = parser.parseFromString('<!doctype html><body>' + all_questions, 'text/html');
+        var usable = dom.body.textContent;
+        json_data = JSON.parse(usable);
+
+        var post_data = { "revised_responses" : {} };
+        for (var i = 0 ; i < json_data.length ; i++){
+            var question = json_data[i];
+            var name = "question_" + question["id"]; // radio group has name based on question ID
+            var elements = document.getElementsByName(name);
+            
+            var distractor_id = 0; // distractor id of the selected alternative
+            
+            for(var j=0 ; j < elements.length ; j++){
+                if(elements[j].checked)
+                    distractor_id = elements[i].value;
+            }
+            post_data["revised_responses"][question["id"]] = distractor_id;
+        }
+        // POSTing to /quizzes/X/take since this page is for step#2
+        let target_url = 'http://localhost:5000/quizzes/' + "{{quiz.id}}" + "/take"; 
+        fetch(target_url,{
+            method: 'POST',
+            headers: {'Content-Type' : 'application/json'},
+            body: JSON.stringify(post_data),
+            credentials: 'same-origin'
+        })
+        .then(response => response.statusText)
+        .then(data => {
+            console.log('woohoo --> ', data);
+        })
+        .catch((error) => {
+            console.error('Doh! -->', error);
+        })
+    }
+</script>
+<div class="jumbotron jumbotron-fluid">
+    <div class="container">
+        <h1 class="display-4">Quiz #{{quiz.id}} - {{quiz.title}}</h1>
+        <p class="lead">
+            Hello, {{student.first_name}} {{student.last_name}}, {{student.email}}
+        </p>
+        <p class="lead">
+            {{quiz.description}}
+        </p>
+        <p class="lead">
+            When you are done taking the quiz, press <button class="btn btn-primary" onclick="submitQuiz()">Submit Quiz</button>
+        </p>
+    </div>
+</div>
+
+<!div class="card-deck">
+    {% for q in questions %}
+        <div class="card bg-light m-3">
+            <div class="card-body" bg-light>
+                <h5 class="card-title">Question #{{q.id}} - {{q.title}}</h5>
+                <p class="card-text">{{q.stem}}</p>
+                <dl>
+                    <dt>Your orginal answer was:</dt>
+                    <dd id='question_{{q.id}}_original_answer'>
+                        
+                    </dd>
+                </dl>
+                <ul class="list-group list-group-flush">
+                {% for id,alt in q.alternatives %}
+                    <li class="list-group-item border border-primaryrounded">
+                        <div class="form-group">
+                            <div id="alternative_{{q.id}}_{{id}}"
+                                class="form-check">
+                                <input type="radio"
+                                    name="question_{{q.id}}"
+                                    id="alternative_{{q.id}}_{{id}}_check" value="{{id}}"
+                                    class="form-check-input"></input>
+                                <label for="alternative_{{q.id}}_{{id}}_check"
+                                    class="form-check-label">#{{id}} - {{alt}}</label>
+                            </div>
+                        </div>
+                    </li>
+                {% endfor %}
+                </ul>
+            </div>
+        </div>
+    {% endfor %}
+<!/div>
+{% endblock %}
