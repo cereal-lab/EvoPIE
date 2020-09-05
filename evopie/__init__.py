@@ -14,6 +14,9 @@ APP.register_blueprint(mcq_blueprint)
 from .routes_auth import auth as auth_blueprint
 APP.register_blueprint(auth_blueprint)
 
+from .routes_pages import pages as pages_blueprint
+APP.register_blueprint(pages_blueprint)
+
 login_manager = LoginManager()
 login_manager.login_view = 'auth.get_login'
 
