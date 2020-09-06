@@ -7,7 +7,7 @@ from flask import jsonify, abort, request, Response, render_template, redirect, 
 from flask import Blueprint
 from flask_login import login_required, current_user
 
-import json
+import json, random
 
 from . import models
 
@@ -43,21 +43,53 @@ def get_student(qid):
         response = ('You are not allowed to take this quiz', 403, {"Content-Type": "application/json"})
         return make_response(response)
 
-    q = models.Quiz.query.get_or_404(qid)
     u = models.User.query.get_or_404(current_user.id)
-    
-    # determine which step of the peer instruction the student is in
-    # TODO we need to reject step2 until it has been enabled by instructor
-    # do so in the /quizzes/x/take route below as well
-    # e.g., store step # in attribute of Quiz
-    a = models.QuizAttempt.query.filter_by(student_id=current_user.id).filter_by(quiz_id=qid).all()
+    q = models.Quiz.query.get_or_404(qid)
     quiz_questions = [question.dump_as_dict() for question in q.quiz_questions]
     
+    # determine which step of the peer instruction the student is in
+    a = models.QuizAttempt.query.filter_by(student_id=current_user.id).filter_by(quiz_id=qid).all()
+    
     # Redirect to different pages depending on step; e.g., student1.html vs. student2.html
-    if a: # step = 2
-        # TODO generate the peers' justifications for each question
-        return render_template('student2.html', quiz=q, questions=quiz_questions, student=u, attempt=a[0])
-    else: # step = 1
-        return render_template('student1.html', quiz=q, questions=quiz_questions, student=u)
+    if a: # step == 2
+        # retrieve the peers' justifications for each question
+        quiz_justifications = {}
+        for quiz_question in q.quiz_questions:
+            question_justifications = {}
+            for distractor in quiz_question.distractors:
+                # get all justifications for that alternative / question pair
+                question_justifications[str(distractor.id)] = models.Justification.query\
+                    .filter_by(quiz_question_id=quiz_question.id)\
+                    .filter_by(distractor_id=distractor.id)\
+                    .all()
+            # also handle the solution -1
+            question_justifications["-1"] = models.Justification.query\
+                .filter_by(quiz_question_id=quiz_question.id)\
+                .filter_by(distractor_id="-1")\
+                .all()
+            
+            # record this array of objects as corresponding to this question
+            quiz_justifications[str(quiz_question.id)] = question_justifications
+            
+        # This is where we apply the peer selection policy
+        # We now revisit the data we collected and pick one justification in each array of Justification objects
+        for key_question in quiz_justifications:
+            for key_distractor in quiz_justifications[key_question]:
+                #pick one of the justification objects at random
+                index = random.randint(0,len(quiz_justifications[key_question][key_distractor])-1)
+                neo = quiz_justifications[key_question][key_distractor][index]
+                
+                # now replace the object by a dictionary so that the javascript may handle it easily
+                quiz_justifications[key_question][key_distractor] = {
+                    "id" : neo.id,
+                    "justification": neo.justification
+                }
 
+        return render_template('student2.html', quiz=q, questions=quiz_questions, student=u, attempt=a[0], justifications=quiz_justifications)
+    else: # step == 1
+        return render_template('student1.html', quiz=q, questions=quiz_questions, student=u)
+    
+    # FIXME we need to reject step2 until it has been enabled by instructor
+    # do so in the /quizzes/x/take route below as well e.g., store step # in attribute of Quiz
+    
 

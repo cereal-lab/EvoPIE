@@ -8,7 +8,7 @@ LOGIN="-L -b ./mycookies"
 
 #login as INSTRUCTOR
 curl -L -c ./mycookies -d '{ "email": "alessio1@usf.edu", "password": "secret1"}' -H 'Content-Type: application/json'  http://localhost:5000/login &> /dev/null && echo "login as INSTRUCTOR"
-#TODO for now, we hardcode that user id 1 is an instructor, fix that later.
+#FIXME for now, we hardcode that user id 1 is an instructor, fix that later.
 
 echo "--> making sure we have at least 3 QuizQuestions"
 #NOTE that the order specified in the request does not matter.
@@ -22,7 +22,6 @@ curl $LOGIN -d '{ "title": "Review Quiz", "description": "This is our first quiz
 
 #login as STUDENT
 curl -L -c ./mycookies -d '{ "email": "alessio3@usf.edu", "password": "secret3"}' -H 'Content-Type: application/json'  http://localhost:5000/login &> /dev/null && echo "login as STUDENT"
-#TODO for now, we hardcode that user id 1 is an instructor, fix that later.
 
 #answer the quiz
 TARGET="http://localhost:5000/quizzes/1/answer"

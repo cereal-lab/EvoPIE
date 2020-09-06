@@ -19,7 +19,7 @@ echo
 echo
 echo '---> login as INSTRUCTOR'
 curl -L -c ./mycookies -d '{ "email": "alessio1@usf.edu", "password": "secret1"}' -H 'Content-Type: application/json'  http://localhost:5000/login &> /dev/null && echo "login as INSTRUCTOR"
-#TODO for now, we hardcode that user id 1 is an instructor, fix that later.
+#FIXME for now, we hardcode that user id 1 is an instructor, fix that later.
 
 LOGIN="-L -b ./mycookies"
 

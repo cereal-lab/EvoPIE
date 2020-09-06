@@ -15,7 +15,7 @@
             var usable = dom.body.textContent;
             console.log(usable);
             /*
-               we have stuff like "{'1': '7', '2': 0, '3': 0}" in usable but we can still not parse it int JSON
+               we have stuff like "{'1': '7', '2': 0, '3': 0}" in usable but we can still not parse it in JSON
                the string uses '' inside of it but JSON does not accept single quotes
             */
            // this is one ugly hack to make sure we don't screw with data like {'1': 'let's roll'}
@@ -35,6 +35,7 @@
                 // find the question key
                 var element = document.getElementById('question_'+key+'_original_answer')
                 // insert the distractor ID for original response
+                // TODO would be nice to have more than just the key here
                 element.innerHTML = "" + json_data[key]
            }
         }
@@ -94,7 +95,24 @@
         </p>
     </div>
 </div>
-
+<!--
+    <p>
+    <h1>All Justifications</h1>
+    <ul>
+    {% for question_key, question in justifications.items() %}
+        <li>Question {{question_key}}
+            <ul>
+                {% for distractor_key,justification in question.items() %}
+                <li>
+                    Distractor {{ distractor_key }} - {{ justification }}
+                </li>
+                {% endfor %}
+            </ul>
+        </li>
+    {% endfor %}
+    </ul>
+</p>
+-->
 <!div class="card-deck">
     {% for q in questions %}
         <div class="card bg-light m-3">
@@ -119,6 +137,18 @@
                                     class="form-check-input"></input>
                                 <label for="alternative_{{q.id}}_{{id}}_check"
                                     class="form-check-label">#{{id}} - {{alt}}</label>
+                                <p> Reason suggested by one of your peers for not selecting this one: </p>
+                                <p>
+                                    {% for question_key, question in justifications.items() %}
+                                        {% if question_key|int == q.id|int %}
+                                            {% for distractor_key,justification in question.items() %}
+                                                {% if distractor_key|int == id|int %}
+                                                    <p> Distractor {{ distractor_key }} - {{ justification["id"] }} - {{ justification["justification"] }} </p>
+                                                {% endif %}
+                                            {% endfor %}
+                                        {% endif %}
+                                    {% endfor %}
+                                </p>
                             </div>
                         </div>
                     </li>

@@ -5,7 +5,7 @@ curl -L -d '{ "email": "alessio3@usf.edu", "password": "secret3", "firstname": "
 
 #login
 curl -L -c ./mycookies -d '{ "email": "alessio1@usf.edu", "password": "secret1"}' -H 'Content-Type: application/json'  http://localhost:5000/login &> /dev/null && echo "login"
-#TODO for now, we hardcode that user id 1 is an instructor, fix that later.
+#FIXME for now, we hardcode that user id 1 is an instructor, fix that later.
 
 #test accessing something while logged in
 curl -L -b ./mycookies http://localhost:5000/quizquestions && echo

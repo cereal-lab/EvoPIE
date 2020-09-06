@@ -8,7 +8,7 @@ LOGIN="-L -b ./mycookies"
 
 #login as STUDENT
 curl -L -c ./mycookies -d '{ "email": "alessio3@usf.edu", "password": "secret3"}' -H 'Content-Type: application/json'  http://localhost:5000/login &> /dev/null && echo "login as STUDENT"
-#TODO for now, we hardcode that user id 1 is an instructor, fix that later.
+#FIXME for now, we hardcode that user id 1 is an instructor, fix that later.
 
 TARGET="http://localhost:5000/quizzes/1/take"
 echo "TAKING Quiz #1 --> GET"

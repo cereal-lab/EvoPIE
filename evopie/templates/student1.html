@@ -45,10 +45,9 @@
             
             for(var j=0 ; j < elements.length ; j++){
                 if(elements[j].checked)
-                    distractor_id = elements[j].value; // BUG fixed, we were using i instead of j here
+                    distractor_id = elements[j].value;
             }
-            // TODO what if nothing was selected, should we use distractor ID 0?
-            // We don't need to since we pull all justifications below.
+            // NOTE if nothing was selected, we do not use distractor ID 0 since we pull all justifications below.
 
             // for this same question, we pull all justifications for all alternatives from the DOM
             var justifications = {};

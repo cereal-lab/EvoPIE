@@ -113,7 +113,7 @@ class QuizQuestion(DB.Model):
             tmp2.append(d.answer)
         
         #result['alternatives'] = list(zip(tmp1,tmp2))
-        # BUG the above causes the list to be made of tuples which are not well handled when we are trying to
+        # NOTE the above would cause the list to be made of tuples which are not well handled when we are trying to
         # use the |tojson template in Jinja. We want a list of lists instead.
         result['alternatives'] = [list(tup) for tup in zip(tmp1,tmp2)]
 
@@ -272,9 +272,6 @@ class Justification(DB.Model):
     id = DB.Column(DB.Integer, primary_key=True)
 
     quiz_question_id = DB.Column(DB.Integer, DB.ForeignKey('quiz_question.id'), nullable=False)
-    # NOTE no need for the above since we only allow to add distractors already to a given Question
-    # then QuizQuestions are based off such a Question
-    # FIXME --> need it for -1 distractor IDs
     distractor_id = DB.Column(DB.Integer, DB.ForeignKey('distractor.id'), nullable=False)
     student_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'), nullable=False)
     justification = DB.Column(DB.String) # FIXME do we allow duplicates like empty strings?
