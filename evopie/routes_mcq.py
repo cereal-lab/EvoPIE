@@ -549,7 +549,7 @@ def all_quizzes_take(qid):
 
             # Being in step 1 means that the quiz has not been already attempted
             # i.e., QuizAttempt object for this quiz & student combination does not already exist
-            if attempt is not None: # FIXME should never happen
+            if attempt is not None: # NOTE should never happen
                 abort(400, "Unable to submit quiz, already existing attempt previously submitted") # bad request
 
             # so we make a brand new one!
@@ -579,7 +579,7 @@ def all_quizzes_take(qid):
             justifications_dict = request.json['justifications']
             attempt.justifications = str(justifications_dict)
             
-            # TODO - add models with quizquestion id + distractor id + student ID--> justifications
+            # Record in DB the justification with quizquestion id + distractor id + student ID--> justifications
             for key_quest in justifications_dict:
                 quest = justifications_dict[key_quest]
                 for key_just in quest:
@@ -590,7 +590,7 @@ def all_quizzes_take(qid):
             models.DB.session.commit()
 
             response     = ('Quiz attempt recorded in database', 200, {"Content-Type": "application/json"})
-            #NOTE see previous note about using 204 vs 200
+            # NOTE see previous note about using 204 vs 200
             return make_response(response)
 
 

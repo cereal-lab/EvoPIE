@@ -55,6 +55,7 @@ def get_student(qid):
     
     # Redirect to different pages depending on step; e.g., student1.html vs. student2.html
     if a: # step = 2
+        # TODO generate the peers' justifications for each question
         return render_template('student2.html', quiz=q, questions=quiz_questions, student=u, attempt=a[0])
     else: # step = 1
         return render_template('student1.html', quiz=q, questions=quiz_questions, student=u)
