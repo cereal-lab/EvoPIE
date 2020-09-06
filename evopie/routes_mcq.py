@@ -498,7 +498,6 @@ def all_quizzes_take(qid):
         response     = ('You are not allowed to take quizzes', 403, {"Content-Type": "application/json"})
         return make_response(response)
 
-
     quiz = models.Quiz.query.get_or_404(qid)
     
     sid = current_user.id #FIXME need to use student ID too
@@ -577,8 +576,16 @@ def all_quizzes_take(qid):
             attempt.initial_scores = str(initial_scores_dict)
 
             # extract same structure here; question_id : justification string
-            attempt.justifications = str(request.json['justifications'])
+            justifications_dict = request.json['justifications']
+            attempt.justifications = str(justifications_dict)
             
+            # TODO - add models with quizquestion id + distractor id + student ID--> justifications
+            for key_quest in justifications_dict:
+                quest = justifications_dict[key_quest]
+                for key_just in quest:
+                    just = models.Justification(quiz_question_id=key_quest, distractor_id=key_just, student_id=sid, justification=quest[key_just])
+                    models.DB.session.add(just)
+
             models.DB.session.add(attempt)
             models.DB.session.commit()
 

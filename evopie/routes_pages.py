@@ -7,14 +7,23 @@ from flask import jsonify, abort, request, Response, render_template, redirect, 
 from flask import Blueprint
 from flask_login import login_required, current_user
 
-from random import shuffle
 import json
 
 from . import models
-    
-    
+
+
 
 pages = Blueprint('pages', __name__)
+
+
+
+@pages.route('/')
+def index():
+    '''
+    Index page for the whole thing; used to test out a rudimentary user interface
+    '''
+    all_quizzes =  [q.dump_as_dict() for q in models.Question.query.all()]
+    return render_template('index.html', quizzes=all_quizzes)
 
 
 
@@ -49,16 +58,5 @@ def get_student(qid):
         return render_template('student2.html', quiz=q, questions=quiz_questions, student=u, attempt=a[0])
     else: # step = 1
         return render_template('student1.html', quiz=q, questions=quiz_questions, student=u)
-    
-    
-
-@pages.route('/')
-def index():
-    '''
-    Index page for the whole thing; used to test out a rudimentary user interface
-    '''
-    all_quizzes =  [q.dump_as_dict() for q in models.Question.query.all()]
-    return render_template('index.html', quizzes=all_quizzes)
-
 
 

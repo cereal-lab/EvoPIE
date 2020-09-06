@@ -10,7 +10,6 @@ import ast
 
 
 
-
 class Question(DB.Model):
     '''
     A Question object contains both the text of the question to be 
@@ -254,17 +253,30 @@ class User(UserMixin, DB.Model):
     quiz_attempts = DB.relationship('QuizAttempt', backref='student', lazy=True)
     # all attempts
 
-
-
     def is_instructor(self):
         return self.role == "INSTRUCTOR"
    
-
-
     def is_student(self):
         return self.role == "STUDENT"
     
-
-
     def is_admin(self):
         return self.role == "ADMIN"
+
+
+    
+class Justification(DB.Model):
+    '''
+    A Justification object is the justification that a student provided for a given
+    distractor or solution (id -1) in a given QuizAttempt
+    '''
+    id = DB.Column(DB.Integer, primary_key=True)
+
+    quiz_question_id = DB.Column(DB.Integer, DB.ForeignKey('quiz_question.id'), nullable=False)
+    # NOTE no need for the above since we only allow to add distractors already to a given Question
+    # then QuizQuestions are based off such a Question
+    # FIXME --> need it for -1 distractor IDs
+    distractor_id = DB.Column(DB.Integer, DB.ForeignKey('distractor.id'), nullable=False)
+    student_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'), nullable=False)
+    justification = DB.Column(DB.String) # FIXME do we allow duplicates like empty strings?
+
+
