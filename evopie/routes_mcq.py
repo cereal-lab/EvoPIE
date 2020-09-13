@@ -625,7 +625,7 @@ def all_quizzes_take(qid):
             
             models.DB.session.commit()
 
-            response     = ('Quiz answers updated & feeback recorded in database', 0, {"Content-Type": "application/json"})
+            response     = ('Quiz answers updated & feeback recorded in database', 200, {"Content-Type": "application/json"})
             #NOTE see previous note about using 204 vs 200
             return make_response(response)
 

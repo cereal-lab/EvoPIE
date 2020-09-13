@@ -1,13 +1,12 @@
 #!/bin/bash
 
 # PRE-REQUISITES
-#   ./scripts/signup_login.sh
-#   ./scripts/db_populate_questions_distractors.sh
+#   ./scripts/setup_test_DB.sh
 
 LOGIN="-L -b ./mycookies"
 
 #login as STUDENT
-curl -L -c ./mycookies -d '{ "email": "alessio3@usf.edu", "password": "secret3"}' -H 'Content-Type: application/json'  http://localhost:5000/login &> /dev/null && echo "login as STUDENT"
+curl -L -c ./mycookies -d '{ "email": "student1@usf.edu", "password": "student1"}' -H 'Content-Type: application/json'  http://localhost:5000/login &> /dev/null && echo "login as STUDENT"
 #FIXME for now, we hardcode that user id 1 is an instructor, fix that later.
 
 TARGET="http://localhost:5000/quizzes/1/take"
