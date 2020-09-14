@@ -6,6 +6,10 @@
 
 source ./TestDB_functions.sh
 
+#login as INSTRUCTOR to release quiz in step #2
+curl_login                          "instructor"            '{ "email": "instructor@usf.edu", "password": "instructor" }'
+curlit  "set quiz to step 2"        "/quizzes/1/status"     ' { "status" : "STEP2" }'
+
 # step #2
 header "Step #2 for Student #1"
 curl_login              "student #1"        '{ "email": "student1@usf.edu", "password": "student1"}'

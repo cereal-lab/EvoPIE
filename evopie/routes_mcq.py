@@ -487,6 +487,49 @@ def put_quizzes(qid):
     
 
 
+@mcq.route('/quizzes/<int:qid>/status', methods=['GET'])
+@login_required
+def get_quizzes_status(qid):
+    '''
+    Returns the status of a given quiz
+    '''
+    if not current_user.is_instructor():
+        response     = ('You are not allowed to get quiz status', 403, {"Content-Type": "application/json"})
+        return make_response(response)
+
+    quiz = models.Quiz.query.get_or_404(qid)
+
+    if not request.json:
+        abort(406, "JSON format required for request") # not acceptable
+
+    response     = (f'{{ "status" : {quiz.status} }}', 403, {"Content-Type": "application/json"})
+    return make_response(response)
+
+
+@mcq.route('/quizzes/<int:qid>/status', methods=['POST'])
+@login_required
+def pOSt_quizzes_status(qid):
+    '''
+    Modifies the status of given quiz
+    '''
+    if not current_user.is_instructor():
+        response     = ('You are not allowed to get quiz status', 403, {"Content-Type": "application/json"})
+        return make_response(response)
+
+    quiz = models.Quiz.query.get_or_404(qid)
+
+    if not request.json:
+        abort(406, "JSON format required for request") # not acceptable
+    new_status = request.json['status']
+    if(quiz.set_status(new_status)):
+        response     = ('OK', 200, {"Content-Type": "application/json"})
+        models.DB.session.commit()
+    else:
+        response     = (f'Unable to switch to status {new_status}', 400, {"Content-Type": "application/json"})
+    return make_response(response)
+
+
+
 @mcq.route('/quizzes/<int:qid>/take', methods=['GET', 'POST'])
 @login_required
 def all_quizzes_take(qid):
@@ -504,18 +547,28 @@ def all_quizzes_take(qid):
     
     # TODO implement logic for deadlines
     # IF date <= DL1 THEN step #1 ELSE IF DL1 < date <= DL2 && previous attempt exists THEN step #2
-
-    # Is the student POSTing initial answer (step 1) or revised answers (step 2)
-    step1 = False
-    step2 = False
+    
     attempt = models.QuizAttempt.query.filter_by(quiz_id=qid).filter_by(student_id=sid).first()
     # FIXME we are taking the first... would be better to ensure uniqueness
     
-    if attempt is None:
-        step1 = True
-    else:
-        step2 = True
+    step1 = False
+    step2 = False
     
+    # NOTE old way to determine our step
+    ## Is the student POSTing initial answer (step 1) or revised answers (step 2)
+    ##if attempt is None:
+    ##    step1 = True
+    ##else:
+    ##    step2 = True
+    
+    # new way to do so
+    if quiz.status == "HIDDEN":
+        response     = ('Quiz not accessible at this time', 403, {"Content-Type": "application/json"})
+        return make_response(response)
+    
+    step1 = (quiz.status == "STEP1" and attempt is None)
+    step2 = (quiz.status == "STEP2" and attempt is not None)
+
     # sanity check
     if step1 == step2:
         # we have an issue, either the student should be taking simultaneously the two steps of the
@@ -523,7 +576,7 @@ def all_quizzes_take(qid):
         response     = ('Quiz not accessible at this time', 403, {"Content-Type": "application/json"})
         #NOTE 403 is better here than 401 (unauthorized) here since there is no issue w/ auth
         return make_response(response)
-    
+
     if request.method == 'GET':
 
         if step1:

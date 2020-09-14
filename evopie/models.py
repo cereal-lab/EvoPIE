@@ -160,6 +160,19 @@ class Quiz(DB.Model):
     # list of tags provided by the author to help them organize their stuff :)
     # later, we might add some global tags
     author_tags = DB.Column(DB.String)
+    status = DB.Column(DB.String, default="HIDDEN")
+    # NOTE for now the statuses that are handled are "HIDDEN", "STEP1", "STEP2"
+    # TODO might want to make this a foreign key to a table of statuses
+
+    def set_status(self, stat):
+        ustat = stat.upper()
+        if ustat != "HIDDEN" and ustat != "STEP1" and ustat != "STEP2": 
+            return False
+        else:
+            self.status = ustat
+            return True
+
+
 
     def dump_as_dict(self):
         questions = [q.dump_as_dict() for q in self.quiz_questions]
@@ -167,7 +180,8 @@ class Quiz(DB.Model):
         return {    "id" : self.id,
                     "title" : self.title, 
                     "description" : self.description,
-                    "questions" : questions
+                    "questions" : questions,
+                    "status" : self.status
                 }
 
 
@@ -195,15 +209,15 @@ class QuizAttempt(DB.Model):
     # If we do so, then order of alternatives matters and must be fixed by instructors instead
     # of being shuffled as we do right now
 
-    initial_total_score = DB.Column(DB.Integer)
-    revised_total_score = DB.Column(DB.Integer)
+    initial_total_score = DB.Column(DB.Integer, default=0)
+    revised_total_score = DB.Column(DB.Integer, default=0)
     
     # justifications to each possible answer
     justifications = DB.Column(DB.String, default="{}") # json list of text entries
     
     # score
-    initial_scores = DB.Column(DB.String) # as json list of None / distractor ID
-    revised_scores = DB.Column(DB.String) # as json list of None / distractor ID
+    initial_scores = DB.Column(DB.String, default="") # as json list of None / distractor ID
+    revised_scores = DB.Column(DB.String, default="") # as json list of None / distractor ID
 
     def dump_as_dict(self):
         return {    "id" : self.id,
@@ -243,8 +257,9 @@ class User(UserMixin, DB.Model):
     first_name = DB.Column(DB.String)
     last_name = DB.Column(DB.String)
     password = DB.Column(DB.String)
-    role = DB.Column(DB.String)
+    role = DB.Column(DB.String, default="STUDENT")
     # NOTE for now the roles that are handled are STUDENT (default), INSTRUCTOR, ADMIN
+    # TODO might want to make this a foreign key to a table of statuses
 
     # Each user may have authored several quizzes
     quizzes = DB.relationship('Quiz', backref='author', lazy=True)
