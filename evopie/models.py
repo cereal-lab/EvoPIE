@@ -275,7 +275,8 @@ class User(UserMixin, DB.Model):
         return self.role == "STUDENT"
     
     def is_admin(self):
-        return self.role == "ADMIN"
+        return self.id == 1
+        #FIXME self.role == "ADMIN"
 
 
     
