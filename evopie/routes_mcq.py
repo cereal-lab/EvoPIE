@@ -508,7 +508,7 @@ def get_quizzes_status(qid):
 
 @mcq.route('/quizzes/<int:qid>/status', methods=['POST'])
 @login_required
-def pOSt_quizzes_status(qid):
+def post_quizzes_status(qid):
     '''
     Modifies the status of given quiz
     '''

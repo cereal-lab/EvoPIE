@@ -38,9 +38,7 @@ def post_login():
         remember = True if request.form.get('remember') else False
     user = models.User.query.filter_by(email=email).first()
 
-    if not user or not user.password == password:
-        #FIXME part of not storing clear text passwords in the DB
-        # check_password_hash(user.password, password):
+    if not user or not check_password_hash(user.password, password):        
         flash(Markup('Login or password incorrect. Do you need to <a href="' + url_for('auth.get_signup') + '">sign up</a> for an account?'))
         return redirect(url_for('auth.get_login'))
     login_user(user, remember=remember)
@@ -80,9 +78,8 @@ def post_signup():
         # first to the key, first to the egg!
         its_role = "INSTRUCTOR"
 
+    password = generate_password_hash(password, method='sha256')
     new_user = models.User(email=email, first_name=first_name, last_name=last_name, password=password, role=its_role) #NOTE default role is STUDENT
-    #FIXME alright we're not gonna store pwd in clear but just playing around for now
-    #generate_password_hash(password, method='sha256')
 
     models.DB.session.add(new_user)
     models.DB.session.commit()
