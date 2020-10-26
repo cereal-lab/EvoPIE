@@ -12,11 +12,20 @@ APP.config['FLASK_ADMIN_SWATCH'] = 'cerulean' # set optional bootswatch theme fo
 DB = SQLAlchemy(APP)
 
 
-from flask_admin import Admin
+from flask_admin import Admin, AdminIndexView
 from flask_admin.contrib.sqla import ModelView
 from evopie import models
 from flask_login import current_user
 from flask import request, redirect, url_for
+
+class ProtectedAdminIndexView(AdminIndexView):
+    def is_accessible(self):
+        id = current_user.get_id()
+        user = models.User.query.get(id)
+        if user:
+            return user.is_admin() #FIXME use the user loader instead
+        else:
+            return False # for the anonymous user when no one is logged in
 
 class ProtectedModelView(ModelView):
     def is_accessible(self):
@@ -36,7 +45,7 @@ class QuizQuestionView(ProtectedModelView):
     column_list = ('id', 'question_id', 'distractors')
 
 
-admin = Admin(APP, name='EvoPIE', template_mode='bootstrap3')
+admin = Admin(APP, index_view=ProtectedAdminIndexView(), name='EvoPIE', template_mode='bootstrap3')
 admin.add_view(ProtectedModelView(models.User, DB.session))
 admin.add_view(ProtectedModelView(models.Quiz, DB.session))
 admin.add_view(QuizQuestionView(models.QuizQuestion, DB.session))
