@@ -38,15 +38,15 @@ def DB_populate():
                             stem=u'What... is your name?',
                             answer=u'Sir Lancelot of Camelot'),
             models.Question(title=u'Sir Lancelot and the bridge keeper, part 2',
-                            stem=u'What... is your quest?', 
+                            stem=u'What... is your quest?',
                             answer=u'To seek the holy grail'),
             models.Question(title=u'Sir Lancelot and the bridge keeper, part 3',
-                            stem=u'What... is your favorite colour?', 
+                            stem=u'What... is your favorite colour?',
                             answer=u'Blue')
     ]
-    
+
     models.DB.session.add_all(all_mcqs)
-    models.DB.session.commit()        
+    models.DB.session.commit()
     # need to commit right now; if not, the qid below will not be added in the distractors table's rows
 
     qid=all_mcqs[0].id
@@ -56,7 +56,7 @@ def DB_populate():
         models.Distractor(question_id=qid,answer=u'Sir Bevedere of Camelot'),
         models.Distractor(question_id=qid,answer=u'Sir Robin of Camelot'),
     ]
-    
+
     qid=all_mcqs[1].id
     more_distractors = [
         models.Distractor(question_id=qid,answer=u'To bravely run away'),
@@ -73,5 +73,3 @@ def DB_populate():
 
     models.DB.session.add_all(some_distractors + more_distractors + yet_more_distractors)
     models.DB.session.commit()
-
-
