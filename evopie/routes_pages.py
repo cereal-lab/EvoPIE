@@ -39,6 +39,10 @@ def dashboard():
 @pages.route('/student/<int:qid>', methods=['GET'])
 @login_required
 def get_student(qid):
+    '''
+    Links using this route are meant to be shared with students so that they may take the quiz
+    and engage in the asynchronous peer instrution aspects. 
+    '''
     if not current_user.is_student():
         response = ('You are not allowed to take this quiz', 403, {"Content-Type": "application/json"})
         return make_response(response)
@@ -92,4 +96,3 @@ def get_student(qid):
     # FIXME we need to reject step2 until it has been enabled by instructor
     # do so in the /quizzes/x/take route below as well e.g., store step # in attribute of Quiz
     
-
