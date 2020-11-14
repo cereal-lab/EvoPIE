@@ -24,7 +24,7 @@ During the installation
 
 
 Download & run the Visual Studio Code installer from
-https://code.visualstudio.com/docs/?dv=win
+https://code.visualstudio.com/
 
 During the installation
     -   Select add to path option
@@ -34,7 +34,7 @@ Download & run the git installer from https://git-scm.com/
 During the installation
     -   Used version 2.29.2.2
     -   Select VSCode as default text editor for git
-    -   Select checkout windows style, commit unix st
+    -   Select checkout windows style, commit unix style
 
 After the installation
     -   git config --global user.name "John Doe"
