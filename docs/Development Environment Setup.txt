@@ -10,7 +10,43 @@ Search below the corresponding [#n] tag to jump to that section.
 
     
 ---------------------------------------------------------------------------------
+[#1]    Run on Linux natively or inside a Linux virtual Box
+---------------------------------------------------------------------------------
+
+If you are not going to run native on Linux, first do the following; 
+    -   Install VirtualBox from https://www.virtualbox.org/
+    -   Install the extension pack from
+        https://download.virtualbox.org/virtualbox/6.1.16/Oracle_VM_VirtualBox_Extension_Pack-6.1.16.vbox-extpack
+    -   Download the ISO install CD for Ubuntu 20.04 (or whatever you like)
+        https://ubuntu.com/
+    -   Install Ubuntu in a new VirtualBox virtual machine
+        Steps are not provided here, but here is a google link ;p
+        https://linuxhint.com/install_ubuntu_virtualbox_2004/
+
+If you are running Linux already, or just set it up in a VirtualBox virtual machine,
+then work throught he following steps to install the software you will use while
+working on this project; 
+
+    -   sudo apt install curl
+    -   sudo apt install sqlite3
+    -   sudo apt-get install python3-pip
+    -   sudo apt install pipenv
+
+At this point, use VSCode to clone the repository, then cd into the project's folder
+and tell pipenv to install all the required dependencies specified in the Pipfile.lock file; 
+
+    -   pipenv sync
+
+If you came to this section after installing Windows Subsystem for Linux,
+you might skip the following and install them instead directly on windows;
+    -   snap install postman
+    -   sudo snap install --classic code # or code-insiders
+
+
+
+---------------------------------------------------------------------------------
 [#2]    Run on Windows natively
+---------------------------------------------------------------------------------
 
 
 Download and run the python 3.8 installer from https://www.python.org/.
@@ -68,3 +104,56 @@ Now you may open a browser at http://127.0.0.1:5000/
 
 The following resource may also be helpful in getting started with python on VSCode
 https://code.visualstudio.com/docs/python/python-tutorial
+
+
+
+---------------------------------------------------------------------------------
+[#3]    Run on Windows using the Windows Subsystem for Linux
+---------------------------------------------------------------------------------
+
+These instructions are based on the following tutorial
+https://docs.microsoft.com/en-us/windows/wsl/install-win10
+
+Before to start, make sure the virtualization extensions are enabled in your BIOS.
+
+Run the following in a power shell terminal (as admin);
+    -   Enable WSL2 (on win10)
+        dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart
+    -   Enable the VM features
+        dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart
+
+The install of Linux below failed for me so I had to reboot the system to ensure that WSL2
+is installed / seen by the installer below
+
+The next time you restart VSCode it will suggest installing "Remote - WSL"
+
+    -   Check what kind of system you are running
+        systeminfo | find "System Type"
+        if the type is ARM64, download the ARM64 package at the following link instead
+    -   Download the Linux kernel
+        https://wslstorestorage.blob.core.windows.net/wslblob/wsl_update_x64.msi
+
+Install the new windows terminal to run the following. 
+    (The powershell did not find the wsl command in the path. 
+    Had to run the above in a cmd.exe terminal (as admin) instead.)
+    https://docs.microsoft.com/en-us/windows/terminal/get-started
+
+    -   set WSL2 as default WSL
+        wsl --set-default-version 2
+    -   Download Ubuntu 20.04 (or whatever you like)
+        https://aka.ms/wslstore
+        https://www.microsoft.com/store/apps/9n6svws3rx71
+
+        -   Don't forget to launch it once it's downloaded
+        -   Enter password for default user (also in sudoers)
+        -   update all packages
+            sudo apt update
+            sudo apt upgrade
+
+    -   If WSL2 is not the default, set the distributions to WSL2
+        wsl --list --verbose
+        wsl --set-version <distribution name> <versionNumber>
+        wsl --set-default-version 2
+    
+You should now head over to [#1] to see about installing the software you
+will need to run on the WSL2 you just installed.
