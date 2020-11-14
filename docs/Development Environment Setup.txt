@@ -37,6 +37,11 @@ and tell pipenv to install all the required dependencies specified in the Pipfil
 
     -   pipenv sync
 
+While you might still run the whole stuff from within VSCode, you are now able to also 
+    -   pipenv shell 
+    -   flask DB-reboot
+    -   flask run
+
 If you came to this section after installing Windows Subsystem for Linux,
 you might skip the following and install them instead directly on windows;
     -   snap install postman
