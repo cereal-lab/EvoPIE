@@ -1,0 +1,70 @@
+This file provides instructions to setup a suitable development environment for this project and run the flask app in it.
+We consider 4 options;
+    [#1]    Run on Linux natively or inside a Linux virtual Box
+    [#2]    Run on Windows natively
+    [#3]    Run on Windows using the Windows Subsystem for Linux
+    [#4]    Run inside a docker Container
+
+Search below the corresponding [#n] tag to jump to that section.
+
+
+    
+---------------------------------------------------------------------------------
+[#2]    Run on Windows natively
+
+
+Download and run the python 3.8 installer from https://www.python.org/.
+Tried installing 3.9 instead but as of the writting of these instructions, it
+leads pipenv to wonder where 3.8 is and apparently there are issues for it to
+install it on its own; i.e. missing tools?
+
+During the installation
+    -   Select add python to path just to be done with this
+    -   Allow it to bypass the 260 chars MAX_PATH limit after install
+
+
+Download & run the Visual Studio Code installer from
+https://code.visualstudio.com/docs/?dv=win
+
+During the installation
+    -   Select add to path option
+
+
+Download & run the git installer from https://git-scm.com/
+During the installation
+    -   Used version 2.29.2.2
+    -   Select VSCode as default text editor for git
+    -   Select checkout windows style, commit unix st
+
+After the installation
+    -   git config --global user.name "John Doe"
+    -   git config --global user.email johndoe@example.com
+
+
+Open VSCode, click the Git tool button on the left-most vertical panel,
+select the github repository for the project: cereal-lab/EvoPIE
+
+
+Finish python setup by running the following commands in the VSCode terminal
+that you can open using CMD-`.
+See details at https://docs.python-guide.org/starting/install3/win/
+    -   python -m pip install -U pip
+    -   pip install --user pipenv
+    -   Add the following to the path environment variable
+        C:\Users\USERNAME\AppData\Roaming\Python\Python39\Scripts
+ 
+ 
+ Setup flask app from the VSCode terminal
+    -   Install all the packages specified in pipfile.lock
+        pipenv sync
+    -   Activate the pipenvironment for the app
+        pipenv shell
+    -   Run a custom flask command defined in utils.py to tear down & rebuild an empty data base
+        flask DB-reboot
+    -   Run the server on local host
+        flask run 
+Now you may open a browser at http://127.0.0.1:5000/
+
+
+The following resource may also be helpful in getting started with python on VSCode
+https://code.visualstudio.com/docs/python/python-tutorial
