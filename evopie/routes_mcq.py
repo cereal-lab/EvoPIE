@@ -74,12 +74,14 @@ def post_new_question():
 @login_required
 def get_question(question_id):
     '''
-    Get, in JSON format, a specified question from the database,
-    including all its distractors.
+    Get, in JSON format, a specified question from the database.
+    We extend here the concept of "Question" by also including ALL its distractors.
     The fact that *all* of the distractors are included is the main difference
     between Question and QuizQuestion.
-    Answer and distractors are shuffled together as alternatives from which
-    the student will have to pick.
+    While the answer and distractors are shuffled together as alternatives from which
+    the student will have to pick, this is not intended to be presented to any
+    student since it has ALL the distractors. It is more intended as a debugging
+    feature.
     '''
     if not current_user.is_instructor():
         response     = ('You are not allowed to access individual questions', 403, {"Content-Type": "application/json"})
@@ -99,6 +101,8 @@ def put_question(question_id):
     if not current_user.is_instructor():
         response     = ('You are not allowed to modify questions', 403, {"Content-Type": "application/json"})
         return make_response(response)
+
+    #TODO validation - All of the quizzes containing question_id must be HIDDEN to be able to update
 
     #NOTE HTML5 forms can not submit a PUT (only POST), so we reject any non-json request
     if not request.json:
@@ -133,6 +137,8 @@ def delete_question(question_id):
         response     = ('You are not allowed to delete questions', 403, {"Content-Type": "application/json"})
         return make_response(response)
 
+    #TODO validation - All of the quizzes containing question_id must be HIDDEN to be able to update
+
     q = models.Question.query.get_or_404(question_id)
     models.DB.session.delete(q)
     models.DB.session.commit()
@@ -166,6 +172,8 @@ def post_new_distractor_for_question(question_id):
     if not current_user.is_instructor():
         response     = ('You are not allowed to create distrators', 403, {"Content-Type": "application/json"})
         return make_response(response)
+
+    #TODO validation - All of the quizzes containing question_id must be HIDDEN to be able to add distractor
 
     if request.json:
         answer = request.json['answer']
@@ -210,6 +218,8 @@ def put_distractor(distractor_id):
         response     = ('You are not allowed to modify distractors', 403, {"Content-Type": "application/json"})
         return make_response(response)
 
+    #TODO validation - All of the quizzes containing a question that distractor_id is related to must be HIDDEN to be able to update
+
     if not request.json:
         abort(406, "JSON format required for request") # not acceptable
     
@@ -239,6 +249,8 @@ def delete_distractor(distractor_id):
         response     = ('You are not allowed to delete distractors', 403, {"Content-Type": "application/json"})
         return make_response(response)
     
+    #TODO validation - All of the quizzes containing a question that distractor_id is related to must be HIDDEN to be able to update
+
     d = models.Distractor.query.get_or_404(distractor_id)
     models.DB.session.delete(d)
     models.DB.session.commit()
@@ -267,7 +279,7 @@ def get_all_quiz_questions():
 @login_required
 def post_new_quiz_question():
     '''
-    Add a QuizQuestion.
+    Add a new QuizQuestion.
     '''
     if not current_user.is_instructor():
         response     = ('You are not allowed to create quiz questions', 403, {"Content-Type": "application/json"})
@@ -325,6 +337,8 @@ def delete_quiz_questions(qq_id):
         response     = ('You are not allowed to delete quiz questions', 403, {"Content-Type": "application/json"})
         return make_response(response)
 
+    #TODO validation - All of the quizzes using this qq_id must be HIDDEN to be able to delete
+
     qq = models.QuizQuestion.query.get_or_404(qq_id)
     models.DB.session.delete(qq)
     models.DB.session.commit()
@@ -344,6 +358,8 @@ def put_quiz_questions(qq_id):
     if not current_user.is_instructor():
         response     = ('You are not allowed to modify quiz questions', 403, {"Content-Type": "application/json"})
         return make_response(response)
+
+    #TODO validation - All of the quizzes using this qq_id must be HIDDEN to be able to update
 
     qq = models.QuizQuestion.query.get_or_404(qq_id)
     
@@ -443,6 +459,8 @@ def delete_quizzes(qid):
         response     = ('You are not allowed to delete quizzes', 403, {"Content-Type": "application/json"})
         return make_response(response)
 
+    #TODO validation - qid must be HIDDEN to be able to delete
+
     quiz = models.Quiz.query.get_or_404(qid)
     models.DB.session.delete(quiz)
     models.DB.session.commit()
@@ -461,6 +479,8 @@ def put_quizzes(qid):
     if not current_user.is_instructor():
         response     = ('You are not allowed to modify quizzes', 403, {"Content-Type": "application/json"})
         return make_response(response)
+
+    #TODO validation - qid must be HIDDEN to be able to modify
 
     quiz = models.Quiz.query.get_or_404(qid)
 
@@ -504,6 +524,7 @@ def get_quizzes_status(qid):
 
     response     = (f'{{ "status" : {quiz.status} }}', 403, {"Content-Type": "application/json"})
     return make_response(response)
+
 
 
 @mcq.route('/quizzes/<int:qid>/status', methods=['POST'])
