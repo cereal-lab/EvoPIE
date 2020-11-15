@@ -1,2 +1,4 @@
 __pycache__/
 .vscode/settings.json
+evopie/DB_quizlib.sqlite
+evopie/scripts/mycookies

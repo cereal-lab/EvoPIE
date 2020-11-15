@@ -8,6 +8,10 @@ from evopie import DB
 
 import ast
 
+# All models used in the DB and by EvoPIE.
+# Refer to docs/DB diagram - yyyy-mm-dd.png for a snapshot of the DB diagram.
+# Alternatively, run DBeaver on the sqlite file (that is where the png comes from).
+
 
 
 class Question(DB.Model):

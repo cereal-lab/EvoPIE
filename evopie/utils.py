@@ -1,18 +1,24 @@
 # pylint: disable=no-member
 # pylint: disable=E1101
 
+# The following are flask custom commands; 
 from . import models, APP # get also DB from there
 
 import click
 
 
 
+# Invoke with flask DB-init
+# Initialize the DB but without first dropping it.
+# NOTE Not used in a while, consider removing.
 @APP.cli.command("DB-init")
 def DB_init():
     models.DB.create_all()
 
 
 
+# Invoke with flask DB-reboot
+# Tear down the data base and rebuild an empty one.
 @APP.cli.command("DB-reboot")
 def DB_reboot():
     models.DB.drop_all()
@@ -20,13 +26,16 @@ def DB_reboot():
 
 
 
+# Invoke with flask DB-populate
+# Empties the table and insert some testing data in the DB.
+# Consider using scripts/TestDB_[setup|step1|step2].sh 
 @APP.cli.command("DB-populate")
 def DB_populate():
     '''
         Just populating the DB with some mock quizzes
     '''
     # For some reason Flask restarts the app when we launch it with
-    # pipenv run python inn.py
+    # pipenv run python app.py
     # as a result, we populate twice and get too many quizzes / distractors
     # let's fix this by deleting all data from the tables first
     models.Question.query.delete()

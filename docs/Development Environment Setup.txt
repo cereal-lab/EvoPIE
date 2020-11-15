@@ -45,6 +45,7 @@ While you might still run the whole stuff from within VSCode, you are now able t
 If you came to this section after installing Windows Subsystem for Linux,
 you might skip the following and install them instead directly on windows;
     -   snap install postman
+    -   sudo snap install dbeaver-ce
     -   sudo snap install --classic code # or code-insiders
 
 
