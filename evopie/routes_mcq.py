@@ -458,10 +458,14 @@ def delete_quizzes(qid):
     if not current_user.is_instructor():
         response     = ('You are not allowed to delete quizzes', 403, {"Content-Type": "application/json"})
         return make_response(response)
-
-    #TODO validation - qid must be HIDDEN to be able to delete
-
     quiz = models.Quiz.query.get_or_404(qid)
+
+    # validation - quiz must be HIDDEN to be able to delete w/o affecting students who are taking it
+    if quiz.status != "HIDDEN":
+        response     = ('Quiz not accessible at this time', 403, {"Content-Type": "application/json"})
+        return make_response(response)
+    
+
     models.DB.session.delete(quiz)
     models.DB.session.commit()
     response = ('Quiz deleted from database', 200, {"Content-Type": "application/json"})
@@ -480,9 +484,12 @@ def put_quizzes(qid):
         response     = ('You are not allowed to modify quizzes', 403, {"Content-Type": "application/json"})
         return make_response(response)
 
-    #TODO validation - qid must be HIDDEN to be able to modify
-
     quiz = models.Quiz.query.get_or_404(qid)
+
+    # validation - quiz must be HIDDEN to be able to modify w/o affecting students who are taking it
+    if quiz.status != "HIDDEN":
+        response     = ('Quiz not accessible at this time', 403, {"Content-Type": "application/json"})
+        return make_response(response)
 
     if not request.json:
         abort(406, "JSON format required for request") # not acceptable
