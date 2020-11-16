@@ -102,7 +102,7 @@ def put_question(question_id):
         response     = ('You are not allowed to modify questions', 403, {"Content-Type": "application/json"})
         return make_response(response)
 
-    #TODO validation - All of the quizzes containing question_id must be HIDDEN to be able to update
+    # validation - All of the quizzes containing question_id must be HIDDEN to be able to update
     for quiz in models.Quiz.query.all():
         for qq in quiz.quiz_questions:
             if qq.question_id == question_id and quiz.status != "HIDDEN":
@@ -229,8 +229,15 @@ def put_distractor(distractor_id):
         response     = ('You are not allowed to modify distractors', 403, {"Content-Type": "application/json"})
         return make_response(response)
 
-    #TODO validation - All of the quizzes containing a question that distractor_id is related to must be HIDDEN to be able to update
-
+    # validation - All of the quizzes containing a question that distractor_id is related to must be HIDDEN to be able to update
+    for quiz in models.Quiz.query.all():
+        for qq in quiz.quiz_questions:
+            question = models.Question.query.get(qq.question_id)
+            for d in question.distractors:
+                if d.id == distractor_id and quiz.status != "HIDDEN":
+                    response = ('Quiz not accessible at this time', 403, {"Content-Type": "application/json"})
+                    return make_response(response)
+    
     if not request.json:
         abort(406, "JSON format required for request") # not acceptable
     
@@ -260,9 +267,17 @@ def delete_distractor(distractor_id):
         response     = ('You are not allowed to delete distractors', 403, {"Content-Type": "application/json"})
         return make_response(response)
     
-    #TODO validation - All of the quizzes containing a question that distractor_id is related to must be HIDDEN to be able to update
-
     d = models.Distractor.query.get_or_404(distractor_id)
+    
+    # validation - All of the quizzes containing a question that distractor_id is related to must be HIDDEN to be able to update
+    for quiz in models.Quiz.query.all():
+        for qq in quiz.quiz_questions:
+            question = models.Question.query.get(qq.question_id)
+            for d in question.distractors:
+                if d.id == distractor_id and quiz.status != "HIDDEN":
+                    response     = ('Quiz not accessible at this time', 403, {"Content-Type": "application/json"})
+                    return make_response(response)
+    
     models.DB.session.delete(d)
     models.DB.session.commit()
     response = ('Distractor deleted from database', 204, {"Content-Type": "application/json"})
