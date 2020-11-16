@@ -103,7 +103,12 @@ def put_question(question_id):
         return make_response(response)
 
     #TODO validation - All of the quizzes containing question_id must be HIDDEN to be able to update
-
+    for quiz in models.Quiz.query.all():
+        for qq in quiz.quiz_questions:
+            if qq.question_id == question_id and quiz.status != "HIDDEN":
+                response     = ('Quiz not accessible at this time', 403, {"Content-Type": "application/json"})
+                return make_response(response)
+    
     #NOTE HTML5 forms can not submit a PUT (only POST), so we reject any non-json request
     if not request.json:
         abort(406, "JSON format required for request") # not acceptable
@@ -137,9 +142,15 @@ def delete_question(question_id):
         response     = ('You are not allowed to delete questions', 403, {"Content-Type": "application/json"})
         return make_response(response)
 
-    #TODO validation - All of the quizzes containing question_id must be HIDDEN to be able to update
-
     q = models.Question.query.get_or_404(question_id)
+    
+    # validation - All of the quizzes containing question_id must be HIDDEN to be able to update
+    for quiz in models.Quiz.query.all():
+        for qq in quiz.quiz_questions:
+            if qq.question_id == question_id and quiz.status != "HIDDEN":
+                response     = ('Quiz not accessible at this time', 403, {"Content-Type": "application/json"})
+                return make_response(response)
+    
     models.DB.session.delete(q)
     models.DB.session.commit()
     response = ('Question Deleted from database', 200, {"Content-Type": "application/json"})

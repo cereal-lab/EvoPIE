@@ -24,7 +24,14 @@ header "Try to delete QuizQuestions #1 used by Quiz #1"
 curl $LOGIN -X DELETE $TARGET
 header "Try to modify QuizQuestions used by Quiz #1"
 curl $LOGIN -X PUT -d "$JUNK" $TARGET
-# Try to delete / modify Questions used by the QuizQuestions used by Quiz #1
+
+TARGET='http://localhost:5000/questions/1'
+header "Try to delete Question #1 used by QuizQuestions #1 used by Quiz #1"
+curl $LOGIN -X DELETE $TARGET
+header "Try to modify Question #1 used by QuizQuestions #1 used by Quiz #1"
+curl $LOGIN -X PUT -d "$JUNK" $TARGET
+
+
 # Try to delete / modify Distractors used by Questions used by the QuizQuestions used by Quiz #1
 
 
