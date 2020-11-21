@@ -22,16 +22,16 @@ curlit  'QuizQuestion composed'     "/quizquestions"                '{ "qid": "1
 
 header 'ADDING QUESTION #2' #QID 2
 curlit  'Added Question'            "/questions"                    '{ "title": "Polymorphic ArrayList", "stem": "How would you declare an ArrayList that may contain Book, EBook, and AudioBook objects simultaneously?", "answer": "ArrayList<Book> list = new ArrayList<>();"}'
-curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "ArrayList<EBook> list = new ArrayList<>();"}'         #D5
-curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "ArrayList<AudioBook> list = new ArrayList<>();"}'     #D6
-curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "ArrayList<Object> list = new ArrayList<>();"}'        #D7
+curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "ArrayList<EBook> list = new ArrayList<>();"}'         #D4
+curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "ArrayList<AudioBook> list = new ArrayList<>();"}'     #D5
+curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "ArrayList<Object> list = new ArrayList<>();"}'        #D6
 curlit  'QuizQuestion composed'     "/quizquestions"                '{ "qid": "2", "distractors_ids": [4, 5, 6]}'
 
 header 'ADDING QUESTION #2' #QID 3
-curlit  'Added Question'            "/questions"                    '{ "title": "", "stem": "", "answer": ""}'
-curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": ""}'   #D8
-curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": ""}'   #D9
-curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": ""}'   #D10
+curlit  'Added Question'            "/questions"                    '{ "title": "Polymorphic Method", "stem": "Which of the following polymorphic static method is correct?", "answer": "public static String onlyEBooks(Book b){ if(b instanceof EBook) return b.toString(); else return \"\";}"}'
+curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "public static String onlyEBooks(Book b){ return ((EBook) b).toString();}"}'   #D7
+curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "public static String onlyEBooks(Book b){ return ((Book) b).toString();}"}'   #D8
+curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "public static String onlyEBooks(Book b){ if(!(EBook)b) return b.toString(); else return \"\";}"}'   #D9
 curlit  'QuizQuestion composed'     "/quizquestions"                '{ "qid": "3", "distractors_ids": [7, 8, 9]}'
 
 
