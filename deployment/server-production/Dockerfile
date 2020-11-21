@@ -10,8 +10,10 @@ WORKDIR /app
 RUN git clone https://github.com/cereal-lab/EvoPIE.git
 
 WORKDIR /app/EvoPIE
-RUN echo "START" ; pipenv sync
+RUN pipenv sync
+RUN pipenv run flask DB-reboot
 
 
-
-ENTRYPOINT [ "pipenv", "run", "flask", "run" ]
+ENTRYPOINT [ "pipenv", "run", "flask", "run", "--host", "0.0.0.0" ]
+# docker build -t evopie .
+# docker run -d -p 5000:5000 evopie
