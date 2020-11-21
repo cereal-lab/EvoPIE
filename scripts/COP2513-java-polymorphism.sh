@@ -25,14 +25,14 @@ curlit  'Added Question'            "/questions"                    '{ "title": 
 curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "ArrayList<EBook> list = new ArrayList<>();"}'         #D5
 curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "ArrayList<AudioBook> list = new ArrayList<>();"}'     #D6
 curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "ArrayList<Object> list = new ArrayList<>();"}'        #D7
-curlit  'QuizQuestion composed'     "/quizquestions"                '{ "qid": "2", "distractors_ids": [5, 6, 7]}'
+curlit  'QuizQuestion composed'     "/quizquestions"                '{ "qid": "2", "distractors_ids": [4, 5, 6]}'
 
 header 'ADDING QUESTION #2' #QID 3
 curlit  'Added Question'            "/questions"                    '{ "title": "", "stem": "", "answer": ""}'
 curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": ""}'   #D8
 curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": ""}'   #D9
 curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": ""}'   #D10
-curlit  'QuizQuestion composed'     "/quizquestions"                '{ "qid": "3", "distractors_ids": [8, 9, 10]}'
+curlit  'QuizQuestion composed'     "/quizquestions"                '{ "qid": "3", "distractors_ids": [7, 8, 9]}'
 
 
 header 'CREATING QUIZ & releasing it as STEP1'
