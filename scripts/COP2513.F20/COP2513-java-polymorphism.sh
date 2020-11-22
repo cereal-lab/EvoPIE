@@ -4,7 +4,7 @@
 # run this script right after starting the server with
 # flask DB-reboot && flask-run
 
-source ./TestDB_functions.sh
+source ./evopie.sh
 
 
 header 'SIGNING UP INSTRUCTOR THEN LOGIN AS INSTRUCTOR'

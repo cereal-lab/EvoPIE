@@ -16,4 +16,4 @@ RUN pipenv run flask DB-reboot
 
 ENTRYPOINT [ "pipenv", "run", "flask", "run", "--host", "0.0.0.0" ]
 # docker build -t evopie .
-# docker run -d -p 5000:5000 evopie
+# docker run -d -p 5000:5000 -v /EvoPIE/DB_quizlib.sqlite:/app/EvoPIE/evopie/DB_quizlib.sqlite evopie
