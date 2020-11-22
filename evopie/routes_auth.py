@@ -42,7 +42,7 @@ def post_login():
         flash(Markup('Login or password incorrect. Do you need to <a href="' + url_for('auth.get_signup') + '">sign up</a> for an account?'))
         return redirect(url_for('auth.get_login'))
     login_user(user, remember=remember)
-    return redirect(url_for('pages.dashboard'))
+    return redirect(url_for('pages.index'))
 
 
 

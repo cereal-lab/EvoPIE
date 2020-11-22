@@ -2,9 +2,64 @@
 
 {% block title %}EvoPIE{% endblock %}
 
+{% block head %}
+<style>
+    .bd-placeholder-img {
+      font-size: 1.125rem;
+      text-anchor: middle;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
+
+    @media (min-width: 768px) {
+      .bd-placeholder-img-lg {
+        font-size: 3.5rem;
+      }
+    }
+    .jumbotron {
+  padding-top: 3rem;
+  padding-bottom: 3rem;
+  margin-bottom: 0;
+  background-color: #fff;
+}
+@media (min-width: 768px) {
+  .jumbotron {
+    padding-top: 6rem;
+    padding-bottom: 6rem;
+  }
+}
+
+.jumbotron p:last-child {
+  margin-bottom: 0;
+}
+
+.jumbotron h1 {
+  font-weight: 300;
+}
+
+.jumbotron .container {
+  max-width: 40rem;
+}
+
+footer {
+  padding-top: 3rem;
+  padding-bottom: 3rem;
+}
+
+footer p {
+  margin-bottom: .25rem;
+}
+</style>
+  
+  {% endblock %}
+
 {% block content %}
 
-  <h1>All Questions in our Data Base</h1>
+<!--
+
+<h1>All Questions in our Data Base</h1>
 
   {% for quiz in quizzes %}
       <div>
@@ -17,5 +72,20 @@
           </ul>
       </div>
   {% endfor %}
-    
+--> 
+
+<main role="main">
+
+    <section class="jumbotron text-center">
+      <div class="container">
+        <h1>EvoPIE</h1>
+        <p class="lead text-muted">Evolutionary Peer Instruction Environment</p>
+        <p>
+          <a href="{{ url_for('auth.get_login') }}" class="btn btn-primary my-2">Login Page</a>
+          <a href="{{ url_for('auth.get_signup') }}" class="btn btn-secondary my-2">Signup for n Account</a>
+          <a href="/student/1" class="btn btn-secondary my-2"> Open the extra credit Quiz</a> 
+        </p>
+      </div>
+    </section>
+</main>
 {% endblock %}
