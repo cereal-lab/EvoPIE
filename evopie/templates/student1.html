@@ -81,7 +81,24 @@
     <div class="container">
         <h1 class="display-4">Quiz #{{quiz.id}} - {{quiz.title}}</h1>
         <p class="lead">
-            Hello, {{student.first_name}} {{student.last_name}}, {{student.email}}
+            Hello, {{student.first_name}} {{student.last_name}}, {{student.email}}.
+        </p>
+        <p class="lead">
+            Instructions:
+            In order to receive any credit at all for your quiz, make sure that you: 
+            <ul>
+                <li>Select 1 solution for each question below.</li>
+                <li>Provide a meaningful justification of why you think that the alternatives
+                    that you did not select are incorrect.</li>
+            </ul>
+        </p>
+        <p class="lead">
+            After you are done submitting your quiz answers, the instructor will let you know
+            when the quiz is re-opened.
+            At that point, you will be able to re-take the same quiz but with the added benefits
+            of seeing some of the justifications that your peers entered when they took the quiz.
+            The objective is to get some feedback from your peers to help you determine whether
+            your initial answers must be revised or not.
         </p>
         <p class="lead">
             {{quiz.description}}
