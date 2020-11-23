@@ -64,8 +64,9 @@
             }
             post_data["revised_responses"][question["id"]] = distractor_id;
         }
+        var what_is_next = '{{ url_for("pages.index") }}';
         // POSTing to /quizzes/X/take since this page is for step#2
-        let target_url = 'http://localhost:5000/quizzes/' + "{{quiz.id}}" + "/take"; 
+        let target_url = '/quizzes/' + "{{quiz.id}}" + "/take"; 
         fetch(target_url,{
             method: 'POST',
             headers: {'Content-Type' : 'application/json'},
@@ -74,10 +75,14 @@
         })
         .then(response => response.statusText)
         .then(data => {
-            console.log('woohoo --> ', data);
+            // console.log('woohoo --> ', data);
+            alert("Result of your submission is: " + data);
+            window.location.href = what_is_next;
         })
         .catch((error) => {
-            console.error('Doh! -->', error);
+            // console.error('Doh! -->', error);
+            alert("Result of your submission is: " + error);
+            window.location.href = what_is_next;
         })
     }
 </script>
@@ -102,10 +107,12 @@
             </ul>
         </p>
         <p class="lead">
-            {{quiz.description}}
+            When you are done taking the quiz, press <button class="btn btn-primary" onclick="submitQuiz()">Submit Quiz</button>. 
+            A crude popup will let you know whether it was accepted ("OK"), of if you tried to resubmit twice ("FORBIDDEN").
+            If you were trying to submit twice, no worries, your first submission is enough.
         </p>
         <p class="lead">
-            When you are done taking the quiz, press <button class="btn btn-primary" onclick="submitQuiz()">Submit Quiz</button>
+            {{quiz.description}}
         </p>
     </div>
 </div>
@@ -149,15 +156,22 @@
                                     name="question_{{q.id}}"
                                     id="alternative_{{q.id}}_{{id}}_check" value="{{id}}"
                                     class="form-check-input"></input>
+                                    <!--
                                 <label for="alternative_{{q.id}}_{{id}}_check"
                                     class="form-check-label">#{{id}} - {{alt}}</label>
+                                    -->
+                                <label for="alternative_{{q.id}}_{{id}}_check"
+                                    class="form-check-label">{{alt}}</label>
                                 <p> Reason suggested by one of your peers for not selecting this one: </p>
                                 <p>
                                     {% for question_key, question in justifications.items() %}
                                         {% if question_key|int == q.id|int %}
                                             {% for distractor_key,justification in question.items() %}
                                                 {% if distractor_key|int == id|int %}
-                                                    <p> Distractor {{ distractor_key }} - {{ justification["id"] }} - {{ justification["justification"] }} </p>
+                                                    <!--
+                                                        <p> Distractor {{ distractor_key }} - {{ justification["id"] }} - {{ justification["justification"] }} </p>
+                                                    -->
+                                                    <p> {{ justification["justification"] }} </p>
                                                 {% endif %}
                                             {% endfor %}
                                         {% endif %}
@@ -172,4 +186,13 @@
         </div>
     {% endfor %}
 <!/div>
+
+
+<div class='container'>
+    <p class="lead">
+        When you are done taking the quiz, press <button class="btn btn-primary" onclick="submitQuiz()">Submit Quiz</button>. 
+        A crude popup will let you know whether it was accepted ("OK"), of if you tried to resubmit twice ("FORBIDDEN").
+        If you were trying to submit twice, no worries, your first submission is enough.
+    </p>
+</div>
 {% endblock %}

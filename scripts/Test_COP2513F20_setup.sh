@@ -28,10 +28,19 @@ curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer":
 curlit  'QuizQuestion composed'     "/quizquestions"                '{ "qid": "2", "distractors_ids": [4, 5, 6]}'
 
 header 'ADDING QUESTION #3' #QID 3
-curlit  'Added Question'            "/questions"                    '{ "title": "Polymorphic Method", "stem": "Which of the following polymorphic static method is correct?", "answer": "public static String onlyEBooks(Book b){ if(b instanceof EBook) return b.toString(); else return \"\";}"}'
-curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "public static String onlyEBooks(Book b){ return ((EBook) b).toString();}"}'   #D7
-curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "public static String onlyEBooks(Book b){ return ((Book) b).toString();}"}'   #D8
-curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "public static String onlyEBooks(Book b){ if(!(EBook)b) return b.toString(); else return \"\";}"}'   #D9
+# BUG the following question casues a bug when Json.parsing the usable variable in student1.html
+# it will probably be an issue with studen2.html too since there are "" that are misinterpreted
+# as closing the json strings instead of being just elements of these strings.
+# see item in todo list about sanitizing code.
+#curlit  'Added Question'            "/questions"                    '{ "title": "Polymorphic Method", "stem": "Which of the following polymorphic static method is correct?", "answer": "public static String onlyEBooks(Book b){ if(b instanceof EBook) return b.toString(); else return \"\";}"}'
+#curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "public static String onlyEBooks(Book b){ return ((EBook) b).toString();}"}'   #D7
+#curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "public static String onlyEBooks(Book b){ return ((Book) b).toString();}"}'   #D8
+#curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "public static String onlyEBooks(Book b){ if(!(EBook)b) return b.toString(); else return \"\";}"}'   #D9
+#curlit  'QuizQuestion composed'     "/quizquestions"                '{ "qid": "3", "distractors_ids": [7, 8, 9]}'
+curlit  'Added Question'            "/questions"                    '{ "title": "Polymorphic Method", "stem": "Let us assume that Book, EBook and AudioBook have an additional method (overridden in the subclasses) that places an order for that item. We want a polymorphic static method that will place an order on its parameter but only if it is an EBook. Which of the following is correct?", "answer": "public static void placeOrder(Book b){ if(b instanceof EBook) b.placeOrder();}"}'
+curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "public static void placeOrder(Book b){ ((EBook) b).placeOrder();}"}'   #D7
+curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "public static void placeOrder(Book b){ ((Book) b).placeOrder();}"}'   #D8
+curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "public static void placeOrder(Book b){ if(!(EBook)b) b.placeOrder(); }"}'   #D9
 curlit  'QuizQuestion composed'     "/quizquestions"                '{ "qid": "3", "distractors_ids": [7, 8, 9]}'
 
 header 'ADDING QUESTION #4' #QID 4
@@ -42,7 +51,7 @@ curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer":
 curlit  'QuizQuestion composed'     "/quizquestions"                '{ "qid": "4", "distractors_ids": [10, 11, 12]}'
 
 header 'ADDING QUESTION #5' #QID 5
-curlit  'Added Question'            "/questions"                    '{ "title": "Opinion question", "stem": "What if we would use this kind of 2-step quiz all semester long? Select the option that is the closest to your opinion: Being able to revise my answer after seeing other students justifications is...", "answer": "...useful in helping me catch a misunderstanding on my part."}'
+curlit  'Added Question'            "/questions"                    '{ "title": "Opinion question", "stem": "What if we would use this kind of 2-step quiz all semester long? Select the option that is the closest to your opinion: Being able to revise my answer after seeing other students justifications is...", "answer": "...useful in helping me catch a potential misunderstanding on my part."}'
 curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "...useless because I do not need help."}'   #D13
 curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "...useless because the justifications of my peers are not helpful."}'   #D14
 curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "...useless because of other reasons."}'   #D15

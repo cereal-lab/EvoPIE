@@ -54,6 +54,20 @@ def get_student(qid):
     # determine which step of the peer instruction the student is in
     a = models.QuizAttempt.query.filter_by(student_id=current_user.id).filter_by(quiz_id=qid).all()
     
+    if q.status == "HIDDEN":
+        response     = ({ "message" : "Quiz not accessible at this time"}, 403, {"Content-Type": "application/json"})
+        return make_response(response)
+    if a and q.status == "STEP1":
+        response     = ({ "message" : "You already submitted your initial answers for this quiz, wait for the instructor to re-release it."}, 403, {"Content-Type": "application/json"})
+        return make_response(response)
+    if not a and q.status == "STEP2":
+        response     = ({ "message" : "You did not submit your initial answers for this quiz, you may not participate in the second step."}, 403, {"Content-Type": "application/json"})
+        return make_response(response)
+    if q.status == "STEP2" and a[0].revised_responses != "{}":
+        #TODO the above is ugly, add a boolean method instead
+        response     = ({ "message" : "You already revised your initial answers, you are done with both steps of this quiz."}, 403, {"Content-Type": "application/json"})
+        return make_response(response)
+        
     # Redirect to different pages depending on step; e.g., student1.html vs. student2.html
     if a: # step == 2
         # retrieve the peers' justifications for each question
