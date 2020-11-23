@@ -21,10 +21,17 @@ curlit  'Added distractor'          "/questions/1/distractors"      '{ "answer":
 curlit  'QuizQuestion composed'     "/quizquestions"                '{ "qid": "1", "distractors_ids": [1, 2, 3]}'
 
 header 'ADDING QUESTION #2' #QID 2
-curlit  'Added Question'            "/questions"                    '{ "title": "Polymorphic ArrayList", "stem": "How would you declare an ArrayList that may contain Book, EBook, and AudioBook objects simultaneously?", "answer": "ArrayList<Book> list = new ArrayList<>();"}'
-curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "ArrayList<EBook> list = new ArrayList<>();"}'         #D4
-curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "ArrayList<AudioBook> list = new ArrayList<>();"}'     #D5
-curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "ArrayList<Object> list = new ArrayList<>();"}'        #D6
+# BUG The <AudioBook> parts disappear when we iterate over the javascript in student2.html even thought they are
+# properly rendered by jinja2 when displaying the actual alternatives...
+#curlit  'Added Question'            "/questions"                    '{ "title": "Polymorphic ArrayList", "stem": "How would you declare an ArrayList that may contain Book, EBook, and AudioBook objects simultaneously?", "answer": "ArrayList<Book> list = new ArrayList<>();"}'
+#curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "ArrayList<EBook> list = new ArrayList<>();"}'         #D4
+#curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "ArrayList<AudioBook> list = new ArrayList<>();"}'     #D5
+#curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "ArrayList<Object> list = new ArrayList<>();"}'        #D6
+#curlit  'QuizQuestion composed'     "/quizquestions"                '{ "qid": "2", "distractors_ids": [4, 5, 6]}'
+curlit  'Added Question'            "/questions"                    '{ "title": "Polymorphic methods", "stem": "Assuming a static polymorphic method public static void display(Book b){...}. Which of the following type of argument would NOT be accepted?", "answer": "They would all be accepted."}'
+curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "Book"}'         #D4
+curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "EBook"}'     #D5
+curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "AudioBook"}'        #D6
 curlit  'QuizQuestion composed'     "/quizquestions"                '{ "qid": "2", "distractors_ids": [4, 5, 6]}'
 
 header 'ADDING QUESTION #3' #QID 3
@@ -51,7 +58,7 @@ curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer":
 curlit  'QuizQuestion composed'     "/quizquestions"                '{ "qid": "4", "distractors_ids": [10, 11, 12]}'
 
 header 'ADDING QUESTION #5' #QID 5
-curlit  'Added Question'            "/questions"                    '{ "title": "Opinion question", "stem": "What if we would use this kind of 2-step quiz all semester long? Select the option that is the closest to your opinion: Being able to revise my answer after seeing other students justifications is...", "answer": "...useful in helping me catch a potential misunderstanding on my part."}'
+curlit  'Added Question'            "/questions"                    '{ "title": "Opinion question", "stem": "What if we would use this kind of 2-step quiz all semester long? Select the option that is the closest to your opinion: Being able to revise my answer after seeing other students justifications is...", "answer": "...useful because it may help me catch a potential misunderstanding on my part."}'
 curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "...useless because I do not need help."}'   #D13
 curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "...useless because the justifications of my peers are not helpful."}'   #D14
 curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "...useless because of other reasons."}'   #D15
