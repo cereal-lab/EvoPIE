@@ -6,7 +6,15 @@
 <script>
     function submitQuiz(){
         // PROBLEM 1 we have #&39; in the jinja expansion of questions. Possible solution below from user Negatar on stackoverflow
-        var all_questions = '{{ questions|tojson }}'; // use single quote since JSON is valid and uses only double quotes
+        var all_questions = '{{ questions }}'; // use single quote since JSON is valid and uses only double quotes
+        //console.log("RAW QUESTIONS");
+        //console.log(all_questions);
+        var all_questions = '{{ questions|tojson }}';
+        //console.log("JSONified QUESTIONS");
+        //console.log(all_questions);
+        // we still need to neutralize any "" inside the json strings --> done in shell script by \\\" escaping them
+        
+        //console.log(JSON.stringify(all_questions))
         // NOTE if someone as a single quoted string as a value for an attribute in JSON we are screwed.
         // I do not think this is allowed though.
         var parser = new DOMParser;
@@ -119,46 +127,15 @@
         <p class="lead">
             {{quiz.description}}
         </p>
-        
     </div>
 </div>
-
-<!-- BASIC VERSION
-{% for q in questions %}
-    <h2>
-        Question #{{q.id}} - {{q.title}}
-    </h2>
-    <p>
-        {{q.stem}}
-    </p>
-    
-    {% for id,alt in q.alternatives %}
-        <div class="form-group">
-            <div id="alternative_{{q.id}}_{{id}}"
-                class="form-check">
-                <input type="radio"
-                    name="question_{{q.id}}"
-                    id="alternative_{{q.id}}_{{id}}_check" value="alternative_{{q.id}}_{{id}}_check"
-                    class="form-check-input"></input>
-                <label for="alternative_{{q.id}}_{{id}}_check"
-                    class="form-check-label">#{{id}} - {{alt}}</label>
-                <input type="text"
-                    id="alternative_{{q.id}}_{{id}}_justify" name="alternative_{{q.id}}_{{id}}_justify"
-                    class="form-control reveal-if-not-selected"
-                    placeholder="Explain here why you did not select this alternative."></input>
-            </div>
-        </div>
-    {% endfor %}
-    
-{% endfor %}
--->
 <!-- BOOTSTRAP CARDS VERSION -->
     <!div class="card-deck">
         {% for q in questions %}
             <div class="card bg-light m-3">
                 <div class="card-body" bg-light>
-                    <h5 class="card-title">Question #{{q.id}} - {{q.title}}</h5>
-                    <p class="card-text">{{q.stem}}</p>
+                    <h5 class="card-title">Question #{{q.id}} - {{q.title|safe|unescapeDoubleQuotes}}</h5>
+                    <p class="card-text">{{q.stem|safe|unescapeDoubleQuotes}}</p>
                     <ul class="list-group list-group-flush">
                     {% for id,alt in q.alternatives %}
                         <li class="list-group-item border border-primaryrounded">
@@ -169,12 +146,8 @@
                                         name="question_{{q.id}}"
                                         id="alternative_{{q.id}}_{{id}}_check" value="{{id}}"
                                         class="form-check-input"></input>
-                                    <!--
-                                        <label for="alternative_{{q.id}}_{{id}}_check"
-                                        class="form-check-label">#{{id}} - {{alt}}</label>
-                                    -->
                                     <label for="alternative_{{q.id}}_{{id}}_check"
-                                        class="form-check-label">{{alt}}</label>
+                                        class="form-check-label">{{alt|safe|unescapeDoubleQuotes}}</label>
                                     <textarea
                                         id="alternative_{{q.id}}_{{id}}_justify" name="alternative_{{q.id}}_{{id}}_justify"
                                         class="form-control reveal-if-not-selected"

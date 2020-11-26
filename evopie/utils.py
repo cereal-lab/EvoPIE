@@ -3,11 +3,20 @@
 
 # The following are flask custom commands; 
 from . import models, APP # get also DB from there
-
 import click
 
 
 
+# Defining a custom jinja2 filter to get rid of \"
+# in JSON for student[1|2].html
+import jinja2
+
+@APP.template_filter('unescapeDoubleQuotes')
+def unescape_double_quotes(s): 
+    return s.replace('\\"','\"')
+    
+    
+    
 # Invoke with flask DB-init
 # Initialize the DB but without first dropping it.
 # NOTE Not used in a while, consider removing.

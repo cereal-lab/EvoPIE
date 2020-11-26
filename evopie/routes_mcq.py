@@ -6,7 +6,7 @@
 from flask import jsonify, abort, request, Response, render_template, redirect, url_for, make_response
 from flask import Blueprint
 from flask_login import login_required, current_user
-
+from flask import Markup
 from random import shuffle
 import json
 
@@ -58,7 +58,14 @@ def post_new_question():
     if answer is None or stem is None or title is None:
         abort(400, "Unable to create new question due to missing data") # bad request
     
-    q = models.Question(title=title, stem=stem, answer=answer)
+    escaped_answer = json.dumps(answer) # escapes "" used in code
+    escaped_answer = Markup.escape(answer) # escapes HTML characters
+    escaped_stem = json.dumps(stem)
+    escaped_stem = Markup.escape(stem)
+    escaped_title = json.dumps(title)
+    escaped_title = Markup.escape(title)
+    
+    q = models.Question(title=escaped_title, stem=escaped_stem, answer=escaped_answer)
     models.DB.session.add(q)
     models.DB.session.commit()
 
@@ -197,7 +204,10 @@ def post_new_distractor_for_question(question_id):
         abort(400, "Unable to create new distractor due to missing data") # bad request
     
     q = models.Question.query.get_or_404(question_id)
-    q.distractors.append(models.Distractor(answer=answer,question_id=q.id))
+    
+    escaped_answer = json.dumps(answer) # escapes "" used in code
+    escaped_answer = Markup.escape(answer) # escapes HTML characters
+    q.distractors.append(models.Distractor(answer=escaped_answer,question_id=q.id))
     models.DB.session.commit()
     
     if request.json:

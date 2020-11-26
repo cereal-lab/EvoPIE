@@ -21,13 +21,6 @@ curlit  'Added distractor'          "/questions/1/distractors"      '{ "answer":
 curlit  'QuizQuestion composed'     "/quizquestions"                '{ "qid": "1", "distractors_ids": [1, 2, 3]}'
 
 header 'ADDING QUESTION #2' #QID 2
-# BUG The <AudioBook> parts disappear when we iterate over the javascript in student2.html even thought they are
-# properly rendered by jinja2 when displaying the actual alternatives...
-#curlit  'Added Question'            "/questions"                    '{ "title": "Polymorphic ArrayList", "stem": "How would you declare an ArrayList that may contain Book, EBook, and AudioBook objects simultaneously?", "answer": "ArrayList<Book> list = new ArrayList<>();"}'
-#curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "ArrayList<EBook> list = new ArrayList<>();"}'         #D4
-#curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "ArrayList<AudioBook> list = new ArrayList<>();"}'     #D5
-#curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "ArrayList<Object> list = new ArrayList<>();"}'        #D6
-#curlit  'QuizQuestion composed'     "/quizquestions"                '{ "qid": "2", "distractors_ids": [4, 5, 6]}'
 curlit  'Added Question'            "/questions"                    '{ "title": "Polymorphic methods", "stem": "Assuming a static polymorphic method public static void display(Book b){...}. Which of the following type of argument would NOT be accepted?", "answer": "They would all be accepted."}'
 curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "Book"}'         #D4
 curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "EBook"}'     #D5
@@ -35,15 +28,6 @@ curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer":
 curlit  'QuizQuestion composed'     "/quizquestions"                '{ "qid": "2", "distractors_ids": [4, 5, 6]}'
 
 header 'ADDING QUESTION #3' #QID 3
-# BUG the following question casues a bug when Json.parsing the usable variable in student1.html
-# it will probably be an issue with studen2.html too since there are "" that are misinterpreted
-# as closing the json strings instead of being just elements of these strings.
-# see item in todo list about sanitizing code.
-#curlit  'Added Question'            "/questions"                    '{ "title": "Polymorphic Method", "stem": "Which of the following polymorphic static method is correct?", "answer": "public static String onlyEBooks(Book b){ if(b instanceof EBook) return b.toString(); else return \"\";}"}'
-#curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "public static String onlyEBooks(Book b){ return ((EBook) b).toString();}"}'   #D7
-#curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "public static String onlyEBooks(Book b){ return ((Book) b).toString();}"}'   #D8
-#curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "public static String onlyEBooks(Book b){ if(!(EBook)b) return b.toString(); else return \"\";}"}'   #D9
-#curlit  'QuizQuestion composed'     "/quizquestions"                '{ "qid": "3", "distractors_ids": [7, 8, 9]}'
 curlit  'Added Question'            "/questions"                    '{ "title": "Polymorphic Method", "stem": "Let us assume that Book, EBook and AudioBook have an additional method (overridden in the subclasses) that places an order for that item. We want a polymorphic static method that will place an order on its parameter but only if it is an EBook. Which of the following is correct?", "answer": "public static void placeOrder(Book b){ if(b instanceof EBook) b.placeOrder();}"}'
 curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "public static void placeOrder(Book b){ ((EBook) b).placeOrder();}"}'   #D7
 curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "public static void placeOrder(Book b){ ((Book) b).placeOrder();}"}'   #D8
