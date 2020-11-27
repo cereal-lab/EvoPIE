@@ -44,7 +44,7 @@ def get_student(qid):
     and engage in the asynchronous peer instrution aspects. 
     '''
     if not current_user.is_student():
-        response = ('You are not allowed to take this quiz', 403, {"Content-Type": "application/json"})
+        response = ({ "message" : "You are not allowed to take this quiz"}, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
     u = models.User.query.get_or_404(current_user.id)

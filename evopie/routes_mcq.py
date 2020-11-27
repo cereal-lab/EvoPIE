@@ -26,7 +26,7 @@ def get_all_questions():
     including, for each, all its distractors.
     '''
     if not current_user.is_instructor():
-        response     = ('You are not allowed to view all questions', 403, {"Content-Type": "application/json"})
+        response     = ({ "message" : "You are not allowed to view all questions" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
     all_questions = [q.dump_as_dict() for q in models.Question.query.all()]
@@ -41,7 +41,7 @@ def post_new_question():
     Add a question and its answer to the database.
     '''
     if not current_user.is_instructor():
-        response     = ('You are not allowed to create questions', 403, {"Content-Type": "application/json"})
+        response     = ({ "message" : "You are not allowed to create questions" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
     if request.json:
@@ -70,7 +70,7 @@ def post_new_question():
     models.DB.session.commit()
 
     if request.json:
-        response = ('Question & answer added to database', 201, {"Content-Type": "application/json"})
+        response = ({ "message" : "Question & answer added to database" }, 201, {"Content-Type": "application/json"})
         return make_response(response)
     else:
         return redirect(url_for('dashboard'))
@@ -91,7 +91,7 @@ def get_question(question_id):
     feature.
     '''
     if not current_user.is_instructor():
-        response     = ('You are not allowed to access individual questions', 403, {"Content-Type": "application/json"})
+        response     = ({ "message" : "You are not allowed to access individual questions" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
     q = models.Question.query.get_or_404(question_id)
@@ -106,14 +106,14 @@ def put_question(question_id):
     Update a given question.
     '''
     if not current_user.is_instructor():
-        response     = ('You are not allowed to modify questions', 403, {"Content-Type": "application/json"})
+        response     = ({ "message" : "You are not allowed to modify questions" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
     # validation - All of the quizzes containing question_id must be HIDDEN to be able to update
     for quiz in models.Quiz.query.all():
         for qq in quiz.quiz_questions:
             if qq.question_id == question_id and quiz.status != "HIDDEN":
-                response     = ('Quiz not accessible at this time', 403, {"Content-Type": "application/json"})
+                response     = ({ "message" : "Quiz not accessible at this time" }, 403, {"Content-Type": "application/json"})
                 return make_response(response)
     
     #NOTE HTML5 forms can not submit a PUT (only POST), so we reject any non-json request
@@ -133,7 +133,7 @@ def put_question(question_id):
     q.stem = stem
     q.answer = answer
     models.DB.session.commit()
-    response = ('Question updated in database', 200, {"Content-Type": "application/json"})
+    response = ({ "message" : "Question updated in database" }, 200, {"Content-Type": "application/json"})
     #NOTE should it be 204? probably but I prefer to return a message so that CURL displays something indicating that the operation succeeded
     return make_response(response)
 
@@ -146,7 +146,7 @@ def delete_question(question_id):
     Delete given question.
     '''
     if not current_user.is_instructor():
-        response     = ('You are not allowed to delete questions', 403, {"Content-Type": "application/json"})
+        response     = ({ "message" : "You are not allowed to delete questions" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
     q = models.Question.query.get_or_404(question_id)
@@ -155,12 +155,12 @@ def delete_question(question_id):
     for quiz in models.Quiz.query.all():
         for qq in quiz.quiz_questions:
             if qq.question_id == question_id and quiz.status != "HIDDEN":
-                response     = ('Quiz not accessible at this time', 403, {"Content-Type": "application/json"})
+                response     = ({ "message" : "Quiz not accessible at this time" }, 403, {"Content-Type": "application/json"})
                 return make_response(response)
     
     models.DB.session.delete(q)
     models.DB.session.commit()
-    response = ('Question Deleted from database', 200, {"Content-Type": "application/json"})
+    response = ({ "message" : "Question Deleted from database" }, 200, {"Content-Type": "application/json"})
     return make_response(response)
 
     
@@ -172,7 +172,7 @@ def get_distractors_for_question(question_id):
     Get all distractors for the specified question.
     '''
     if not current_user.is_instructor():
-        response     = ('You are not allowed to view individual distractors', 403, {"Content-Type": "application/json"})
+        response     = ({ "message" : "You are not allowed to view individual distractors" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
     q = models.Question.query.get_or_404(question_id)
@@ -188,7 +188,7 @@ def post_new_distractor_for_question(question_id):
     Add a distractor to the specified question.
     '''
     if not current_user.is_instructor():
-        response     = ('You are not allowed to create distrators', 403, {"Content-Type": "application/json"})
+        response     = ({ "message" : "You are not allowed to create distrators" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
     #TODO validation - All of the quizzes containing question_id must be HIDDEN to be able to add distractor
@@ -211,7 +211,7 @@ def post_new_distractor_for_question(question_id):
     models.DB.session.commit()
     
     if request.json:
-        response = ('Distractor added to Question in database', 201, {"Content-Type": "application/json"})
+        response = ({ "message" : "Distractor added to Question in database" }, 201, {"Content-Type": "application/json"})
         return make_response(response)
     else:
         #FIXME do we want to continue handling both formats?
@@ -224,7 +224,7 @@ def post_new_distractor_for_question(question_id):
 @login_required
 def get_distractor(distractor_id):
     if not current_user.is_instructor():
-        response     = ('You are not allowed to view individual distractors', 403, {"Content-Type": "application/json"})
+        response     = ({ "message" : "You are not allowed to view individual distractors" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
     d = models.Distractor.query.get_or_404(distractor_id)
@@ -236,7 +236,7 @@ def get_distractor(distractor_id):
 @login_required
 def put_distractor(distractor_id):
     if not current_user.is_instructor():
-        response     = ('You are not allowed to modify distractors', 403, {"Content-Type": "application/json"})
+        response     = ({ "message" : "You are not allowed to modify distractors" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
     # validation - All of the quizzes containing a question that distractor_id is related to must be HIDDEN to be able to update
@@ -245,7 +245,7 @@ def put_distractor(distractor_id):
             question = models.Question.query.get(qq.question_id)
             for d in question.distractors:
                 if d.id == distractor_id and quiz.status != "HIDDEN":
-                    response = ('Quiz not accessible at this time', 403, {"Content-Type": "application/json"})
+                    response = ({ "message" : "Quiz not accessible at this time" }, 403, {"Content-Type": "application/json"})
                     return make_response(response)
     
     if not request.json:
@@ -261,7 +261,7 @@ def put_distractor(distractor_id):
     d.answer = answer
     models.DB.session.commit()
 
-    response = ('Distractor updated in database', 200, {"Content-Type": "application/json"})
+    response = ({ "message" : "Distractor updated in database" }, 200, {"Content-Type": "application/json"})
     #NOTE see previous note about using 204 vs 200
     return make_response(response)
 
@@ -274,7 +274,7 @@ def delete_distractor(distractor_id):
     Delete given distractor.
     '''
     if not current_user.is_instructor():
-        response     = ('You are not allowed to delete distractors', 403, {"Content-Type": "application/json"})
+        response     = ({ "message" : "You are not allowed to delete distractors" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
     
     d = models.Distractor.query.get_or_404(distractor_id)
@@ -285,12 +285,12 @@ def delete_distractor(distractor_id):
             question = models.Question.query.get(qq.question_id)
             for d in question.distractors:
                 if d.id == distractor_id and quiz.status != "HIDDEN":
-                    response     = ('Quiz not accessible at this time', 403, {"Content-Type": "application/json"})
+                    response     = ({ "message" : "Quiz not accessible at this time" }, 403, {"Content-Type": "application/json"})
                     return make_response(response)
     
     models.DB.session.delete(d)
     models.DB.session.commit()
-    response = ('Distractor deleted from database', 204, {"Content-Type": "application/json"})
+    response = ({ "message" : "Distractor deleted from database" }, 204, {"Content-Type": "application/json"})
     return make_response(response)
 
 
@@ -302,7 +302,7 @@ def get_all_quiz_questions():
     Get, in JSON format, all the QuizQuestions from the database.
     '''
     if not current_user.is_instructor():
-        response     = ('You are not allowed to view all quiz questions', 403, {"Content-Type": "application/json"})
+        response     = ({ "message" : "You are not allowed to view all quiz questions" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
     all = models.QuizQuestion.query.all()
@@ -318,7 +318,7 @@ def post_new_quiz_question():
     Add a new QuizQuestion.
     '''
     if not current_user.is_instructor():
-        response     = ('You are not allowed to create quiz questions', 403, {"Content-Type": "application/json"})
+        response     = ({ "message" : "You are not allowed to create quiz questions" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
     if not request.json:
@@ -343,7 +343,7 @@ def post_new_quiz_question():
     models.DB.session.add(qq)
     models.DB.session.commit()
 
-    response = ('Quiz Question added to database', 201, {"Content-Type": "application/json"})
+    response = ({ "message" : "Quiz Question added to database" }, 201, {"Content-Type": "application/json"})
     return make_response(response)
 
 
@@ -355,7 +355,7 @@ def get_quiz_questions(qq_id):
     Handles GET requests on a specific QuizQuestion
     '''
     if not current_user.is_instructor():
-        response     = ('You are not allowed to access individual quiz questions', 403, {"Content-Type": "application/json"})
+        response     = ({ "message" : "You are not allowed to access individual quiz questions" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
     qq = models.QuizQuestion.query.get_or_404(qq_id)
@@ -370,7 +370,7 @@ def delete_quiz_questions(qq_id):
     Handles DELETE requests on a specific QuizQuestion
     '''
     if not current_user.is_instructor():
-        response     = ('You are not allowed to delete quiz questions', 403, {"Content-Type": "application/json"})
+        response     = ({ "message" : "You are not allowed to delete quiz questions" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
     qq = models.QuizQuestion.query.get_or_404(qq_id)
@@ -379,12 +379,12 @@ def delete_quiz_questions(qq_id):
     for quiz in models.Quiz.query.all():
         for qq in quiz.quiz_questions:
             if qq.id == qq_id and quiz.status != "HIDDEN":
-                response     = ('Quiz not accessible at this time', 403, {"Content-Type": "application/json"})
+                response     = ({ "message" : "Quiz not accessible at this time" }, 403, {"Content-Type": "application/json"})
                 return make_response(response)
     
     models.DB.session.delete(qq)
     models.DB.session.commit()
-    response = ('Quiz Question Deleted from database', 200, {"Content-Type": "application/json"})
+    response = ({ "message" : "Quiz Question Deleted from database" }, 200, {"Content-Type": "application/json"})
     #NOTE see previous note about using 204 vs 200
     #NOTE the above is a bloody tuple, not 3 separate parameters to make_response
     return make_response(response)
@@ -398,7 +398,7 @@ def put_quiz_questions(qq_id):
     Handles PUT requests on a specific QuizQuestion
     '''
     if not current_user.is_instructor():
-        response     = ('You are not allowed to modify quiz questions', 403, {"Content-Type": "application/json"})
+        response     = ({ "message" : "You are not allowed to modify quiz questions" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
     
     qq = models.QuizQuestion.query.get_or_404(qq_id)
@@ -407,7 +407,7 @@ def put_quiz_questions(qq_id):
     for quiz in models.Quiz.query.all():
         for qq in quiz.quiz_questions:
             if qq.id == qq_id and quiz.status != "HIDDEN":
-                response     = ('Quiz not accessible at this time', 403, {"Content-Type": "application/json"})
+                response     = ({ "message" : "Quiz not accessible at this time" }, 403, {"Content-Type": "application/json"})
                 return make_response(response)
         
     if not request.json:
@@ -426,7 +426,7 @@ def put_quiz_questions(qq_id):
     qq.distractors = distractors
     models.DB.session.commit()
 
-    response = ('Quiz Question updated in database', 201, {"Content-Type": "application/json"})
+    response = ({ "message" : "Quiz Question updated in database" }, 201, {"Content-Type": "application/json"})
     return make_response(response)
 
 
@@ -438,7 +438,7 @@ def post_new_quiz():
     Create a new quiz
     '''
     if not current_user.is_instructor():
-        response     = ('You are not allowed to create quizzes', 403, {"Content-Type": "application/json"})
+        response     = ({ "message" : You are not allowed to create quizzes" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
     title = request.json['title']
@@ -461,7 +461,7 @@ def post_new_quiz():
     models.DB.session.add(q)
     models.DB.session.commit()
 
-    response = ('Quiz added to database', 201, {"Content-Type": "application/json"})
+    response = ({ "message" : "Quiz added to database" }, 201, {"Content-Type": "application/json"})
     return make_response(response)
 
 
@@ -473,7 +473,7 @@ def get_all_quizzes():
     Get us all quizzes, for debugging purposes
     '''
     if not current_user.is_instructor():
-        response     = ('You are not allowed to view all quizzes', 403, {"Content-Type": "application/json"})
+        response     = ({ "message" : "You are not allowed to view all quizzes" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
     quizzes = models.Quiz.query.all()
@@ -488,7 +488,7 @@ def get_quizzes(qid):
     Handles GET requests on a specific quiz
     '''
     if not current_user.is_instructor():
-        response     = ('You are not allowed to download individual quizzes', 403, {"Content-Type": "application/json"})
+        response     = ({ "message" : "You are not allowed to download individual quizzes" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
     quiz = models.Quiz.query.get_or_404(qid)
@@ -503,19 +503,19 @@ def delete_quizzes(qid):
     Handles DELETE requests on a specific quiz
     '''
     if not current_user.is_instructor():
-        response     = ('You are not allowed to delete quizzes', 403, {"Content-Type": "application/json"})
+        response     = ({ "message" : "You are not allowed to delete quizzes" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
     quiz = models.Quiz.query.get_or_404(qid)
 
     # validation - quiz must be HIDDEN to be able to delete w/o affecting students who are taking it
     if quiz.status != "HIDDEN":
-        response     = ('Quiz not accessible at this time', 403, {"Content-Type": "application/json"})
+        response     = ({ "message" : "Quiz not accessible at this time" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
     
 
     models.DB.session.delete(quiz)
     models.DB.session.commit()
-    response = ('Quiz deleted from database', 200, {"Content-Type": "application/json"})
+    response = ({ "message" : "Quiz deleted from database" }, 200, {"Content-Type": "application/json"})
     #NOTE see previous note about using 204 vs 200
     return make_response(response)
 
@@ -528,14 +528,14 @@ def put_quizzes(qid):
     Handles PUT requests on a specific quiz
     '''
     if not current_user.is_instructor():
-        response     = ('You are not allowed to modify quizzes', 403, {"Content-Type": "application/json"})
+        response     = ({ "message" : "You are not allowed to modify quizzes" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
     quiz = models.Quiz.query.get_or_404(qid)
 
     # validation - quiz must be HIDDEN to be able to modify w/o affecting students who are taking it
     if quiz.status != "HIDDEN":
-        response     = ('Quiz not accessible at this time', 403, {"Content-Type": "application/json"})
+        response     = ({ "message" : "Quiz not accessible at this time" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
     if not request.json:
@@ -555,7 +555,7 @@ def put_quizzes(qid):
 
     models.DB.session.commit()
 
-    response = ('Quiz updated in database', 200, {"Content-Type": "application/json"})
+    response = ({ "message" : "Quiz updated in database" }, 200, {"Content-Type": "application/json"})
     #NOTE see previous note about using 204 vs 200
     return make_response(response)
     
@@ -568,7 +568,7 @@ def get_quizzes_status(qid):
     Returns the status of a given quiz
     '''
     if not current_user.is_instructor():
-        response     = ('You are not allowed to get quiz status', 403, {"Content-Type": "application/json"})
+        response     = ({ "message" : "You are not allowed to get quiz status" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
     quiz = models.Quiz.query.get_or_404(qid)
@@ -588,7 +588,7 @@ def post_quizzes_status(qid):
     Modifies the status of given quiz
     '''
     if not current_user.is_instructor():
-        response     = ('You are not allowed to get quiz status', 403, {"Content-Type": "application/json"})
+        response     = ({ "message" : "You are not allowed to get quiz status" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
     quiz = models.Quiz.query.get_or_404(qid)
@@ -597,10 +597,10 @@ def post_quizzes_status(qid):
         abort(406, "JSON format required for request") # not acceptable
     new_status = request.json['status']
     if(quiz.set_status(new_status)):
-        response     = ('OK', 200, {"Content-Type": "application/json"})
+        response     = ({ "message" : "OK" }, 200, {"Content-Type": "application/json"})
         models.DB.session.commit()
     else:
-        response     = (f'Unable to switch to status {new_status}', 400, {"Content-Type": "application/json"})
+        response     = ({ "message" : "Unable to switch to new status" }, 400, {"Content-Type": "application/json"})
     return make_response(response)
 
 
@@ -613,7 +613,7 @@ def all_quizzes_take(qid):
     quiz for the first time, or is coming back to view peers' feedback.
     '''
     if not current_user.is_student():
-        response     = ('You are not allowed to take quizzes', 403, {"Content-Type": "application/json"})
+        response     = ({ "message" : "You are not allowed to take quizzes" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
     quiz = models.Quiz.query.get_or_404(qid)
@@ -638,7 +638,7 @@ def all_quizzes_take(qid):
     
     # new way to do so
     if quiz.status == "HIDDEN":
-        response     = ('Quiz not accessible at this time', 403, {"Content-Type": "application/json"})
+        response     = ({ "message" : "Quiz not accessible at this time" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
     
     step1 = (quiz.status == "STEP1" and attempt is None)
@@ -648,7 +648,7 @@ def all_quizzes_take(qid):
     if step1 == step2:
         # we have an issue, either the student should be taking simultaneously the two steps of the
         # quiz, which would be a BUG or they should take none, which most likely means the quiz is not yet available
-        response     = ('Quiz not accessible at this time', 403, {"Content-Type": "application/json"})
+        response     = ({ "message" : "Quiz not accessible at this time" }, 403, {"Content-Type": "application/json"})
         #NOTE 403 is better here than 401 (unauthorized) here since there is no issue w/ auth
         return make_response(response)
 
@@ -717,7 +717,7 @@ def all_quizzes_take(qid):
             models.DB.session.add(attempt)
             models.DB.session.commit()
 
-            response     = ('Quiz attempt recorded in database', 200, {"Content-Type": "application/json"})
+            response     = ({ "message" : "Quiz attempt recorded in database" }, 200, {"Content-Type": "application/json"})
             # NOTE see previous note about using 204 vs 200
             return make_response(response)
 
@@ -753,7 +753,7 @@ def all_quizzes_take(qid):
             
             models.DB.session.commit()
 
-            response     = ('Quiz answers updated & feeback recorded in database', 200, {"Content-Type": "application/json"})
+            response     = ({ "message" : "Quiz answers updated & feeback recorded in database" }, 200, {"Content-Type": "application/json"})
             #NOTE see previous note about using 204 vs 200
             return make_response(response)
 
@@ -766,7 +766,7 @@ def get_quizzes_responses(qid):
     Returns all the data on all the attempts made so far on that quiz by students.
     '''
     if not current_user.is_instructor():
-        response     = ('You are not allowed to view quizzes responses', 403, {"Content-Type": "application/json"})
+        response     = ({ "message" : "You are not allowed to view quizzes responses" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
     attempts = models.QuizAttempt.query.filter_by(quiz_id=qid).all()
