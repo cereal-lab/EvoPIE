@@ -438,7 +438,7 @@ def post_new_quiz():
     Create a new quiz
     '''
     if not current_user.is_instructor():
-        response     = ({ "message" : You are not allowed to create quizzes" }, 403, {"Content-Type": "application/json"})
+        response     = ({ "message" : "You are not allowed to create quizzes" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
     title = request.json['title']
