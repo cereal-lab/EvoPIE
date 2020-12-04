@@ -8,25 +8,29 @@
     document.addEventListener(
         "DOMContentLoaded",
         function(){
-            var attempt_raw = "{{ attempt.initial_responses }}"
             var parser = new DOMParser;
-            var dom = parser.parseFromString('<!doctype html><body>' + attempt_raw, 'text/html');
-            var usable = dom.body.textContent;
-            //console.log(usable);
-            /*
-                we have stuff like "{'1': '7', '2': 0, '3': 0}" in usable but we can still not parse it in JSON
-                the string uses '' inside of it but JSON does not accept single quotes
-            */
-            // this is one ugly hack to make sure we don't screw with data like {'1': 'let's roll'}
-            usable = usable.replace(/ /g,'')
-            usable = usable.replace(/{\'/g,'{"')
-            usable = usable.replace(/\'}/g,'"}')
-            usable = usable.replace(/,\'/g,',"')
-            usable = usable.replace(/\',/g,'",')
-            usable = usable.replace(/:\'/g,':"')
-            usable = usable.replace(/\':/g,'":')
+            var json_data;
 
-            json_data = JSON.parse(usable);
+            if(step == 2){
+                var attempt_raw = "{% if attempt is defined %} {{ attempt.initial_responses }} {% endif %}"
+                var dom = parser.parseFromString('<!doctype html><body>' + attempt_raw, 'text/html');
+                var usable = dom.body.textContent;
+                //console.log(usable);
+                /*
+                    we have stuff like "{'1': '7', '2': 0, '3': 0}" in usable but we can still not parse it in JSON
+                    the string uses '' inside of it but JSON does not accept single quotes
+                */
+                // this is one ugly hack to make sure we don't screw with data like {'1': 'let's roll'}
+                usable = usable.replace(/ /g,'')
+                usable = usable.replace(/{\'/g,'{"')
+                usable = usable.replace(/\'}/g,'"}')
+                usable = usable.replace(/,\'/g,',"')
+                usable = usable.replace(/\',/g,'",')
+                usable = usable.replace(/:\'/g,':"')
+                usable = usable.replace(/\':/g,'":')
+
+                json_data = JSON.parse(usable);
+            }
 
             // let's get the questions also in a usable format
             var all_questions = '{{ questions|tojson }}';
@@ -49,6 +53,13 @@
         }
     );
 </script>
+{% if attempt is defined %}
+<script>var step = 2;</script>
+{% else %}
+<script>var step = 1;</script>
+{% endif %}
+
+
 <script>
     function submitQuiz(){
         var all_questions = '{{ questions|tojson }}';
@@ -58,11 +69,12 @@
         var usable = dom.body.textContent;
         json_data = JSON.parse(usable);
 
-        {% if attempt is defined %}
-            var post_data = { "revised_responses" : {} };
-        {% else %}
-            var post_data = { "initial_responses" : {}, "justifications" : {}};
-        {% endif %}
+        var post_data;
+        if(step==2)
+            post_data = { "revised_responses" : {} };
+        else
+            post_data = { "initial_responses" : {}, "justifications" : {}};
+        
 
         for (var i = 0 ; i < json_data.length ; i++){
             var question = json_data[i];
@@ -76,10 +88,9 @@
                     distractor_id = elements[j].value;
             }
 
-            {% if attempt is defined %}
+            if(step==2)
                 post_data["revised_responses"][question["id"]] = distractor_id;
-
-            {% else %}
+            else{
                 var justifications = {};
                 for(var j = 0 ; j < question.alternatives.length; j++){
                     var alternative = question.alternatives[j];
@@ -88,7 +99,7 @@
                 }
                 post_data["initial_responses"][question["id"]] = distractor_id;
                 post_data["justifications"][question["id"]] = justifications;
-            {% endif %}
+            }
 
             
         }
@@ -117,18 +128,20 @@
 
 <div class="jumbotron jumbotron-fluid">
     <div class="container">
+        {% if attempt is not defined %}
+            <h1 class="display-4">Step 1 - {{quiz.title}}</h1>
+            <p class="lead">
+                Hello, {{student.first_name}} {{student.last_name}}, {{student.email}}. 
+                Welcome to STEP 1 of this quiz.
+            </p>
+        {% else %}
         <h1 class="display-4">Step 2 - {{quiz.title}}</h1>
         <p class="lead">
             Hello, {{student.first_name}} {{student.last_name}}, {{student.email}}. 
-            Welcome to STEP
-            {% if attempt is not defined %}
-            1
-            {% endif %}
-            {% if attempt is defined %}
-            2
-            {% endif %}
-            of this quiz.
+            Welcome to STEP 2 of this quiz.
         </p>
+        {% endif %}
+            
         <p class="lead">
 
             {% if attempt is defined %}

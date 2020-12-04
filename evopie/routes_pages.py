@@ -103,9 +103,9 @@ def get_student(qid):
                     "justification": neo.justification
                 }
 
-        return render_template('student2.html', quiz=q, questions=quiz_questions, student=u, attempt=a[0], justifications=quiz_justifications)
+        return render_template('student.html', quiz=q, questions=quiz_questions, student=u, attempt=a[0], justifications=quiz_justifications)
     else: # step == 1
-        return render_template('student1.html', quiz=q, questions=quiz_questions, student=u)
+        return render_template('student.html', quiz=q, questions=quiz_questions, student=u)
     
     # FIXME we need to reject step2 until it has been enabled by instructor
     # do so in the /quizzes/x/take route below as well e.g., store step # in attribute of Quiz
