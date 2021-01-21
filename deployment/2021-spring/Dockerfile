@@ -7,7 +7,7 @@ RUN pip3 install pipenv
 RUN apt install -y sqlite3 git
 
 WORKDIR /app
-RUN echo fbs
+RUN echo fbsss
 RUN git clone https://github.com/cereal-lab/EvoPIE.git
 
 WORKDIR /app/EvoPIE
