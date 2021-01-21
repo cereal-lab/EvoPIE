@@ -9,6 +9,7 @@ sqlalchemy = "*"
 flask-sqlalchemy = "*"
 flask-login = "*"
 flask-admin = "*"
+gunicorn = "*"
 
 [dev-packages]
 pylint = "*"
