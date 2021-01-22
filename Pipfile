@@ -10,6 +10,8 @@ flask-sqlalchemy = "*"
 flask-login = "*"
 flask-admin = "*"
 gunicorn = "*"
+plotly = "*"
+pandas = "*"
 
 [dev-packages]
 pylint = "*"
