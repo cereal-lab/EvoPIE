@@ -1,12 +1,21 @@
 # pylint: disable=no-member
 # pylint: disable=E1101
 
+import os, sys
+
+# Ugly and horrible way to ensure this can load ...
+# Get the parent directory, add it to the python path explicitly
+pathToThisFilesDir = os.path.dirname(os.path.realpath(__file__))
+pathPieces = pathToThisFilesDir.split(os.path.sep)
+pathToThisFilesParentDir = os.path.sep.join(pathPieces[0:-1])
+sys.path.insert(0,pathToThisFilesParentDir)
+
+
 from evopie import models, APP, DB # get also DB from there
 
 import sqlalchemy
 
 import click
-import os
 import numpy as np
 import json
 
