@@ -12,6 +12,8 @@ flask-admin = "*"
 gunicorn = "*"
 plotly = "*"
 pandas = "*"
+numpy = "*"
+pylint = "*"
 
 [dev-packages]
 pylint = "*"
