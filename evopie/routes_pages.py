@@ -72,9 +72,9 @@ def get_student(qid):
         #TODO the above is ugly, add a boolean method instead
         response     = ({ "message" : "You already revised your initial answers, you are done with both steps of this quiz."}, 403, {"Content-Type": "application/json"})
         # FIXME
-        #print(response)
+        make_response(response)
         flash(response, "error")
-        return make_response(response)
+        # return render_template("student.html")
         
     # Redirect to different pages depending on step; e.g., student1.html vs. student2.html
     if a: # step == 2
