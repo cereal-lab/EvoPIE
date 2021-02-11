@@ -11,6 +11,7 @@ from evopie import models, APP, DB # get also DB from there
 import sqlalchemy
 
 import numpy as np
+import pandas as pd
 import json
 
 
@@ -47,7 +48,7 @@ def GetQuizList(showError=False):
   """
   Return the list of all quizes in the database.
   """
-  quizList = None
+  quizList = []
 
   try:
     quizList = [quiz.dump_as_dict() for quiz in models.Quiz.query.all()]
@@ -62,7 +63,7 @@ def GetAllAttemptsForQuiz(quizID, showError=False):
   """
   Return the list of all attempts for the specified quiz.
   """
-  quizAttemptList = None
+  quizAttemptList = []
 
   try:
     quizAttemptList = [quiz.dump_as_dict() for quiz in models.QuizAttempt.query.filter_by(quiz_id=quizID)]
@@ -77,7 +78,7 @@ def GetQuizQuestions(quizID, showError=False):
   """
   Return the list of questions for a quiz.
   """
-  questionList = None
+  questionList = []
 
   try:
     quiz = models.Quiz.query.get_or_404(quizID)
@@ -89,69 +90,58 @@ def GetQuizQuestions(quizID, showError=False):
   return questionList
 
 
-def GetScoresMatrix(quizID, dbgHtmlObj):
+def GetScoresDataframe(quizID, dbgHtmlObj):
   """
-  This function takes a quiz ID and returns two numpy matrices.
-  The first is the matrix of students-by-question scores of the
-  initial time the students took the quiz.  The second is the
-  matrix of the revised quiz attempt.  These matrices are
-  arranged such that students rows and questions are columns.
-  The row and column index should be consistent between them.
-  That is:  row 1 is the same student in both matrices (and likewise
-  with questions and columns).
+  This function takes a quiz ID and a pandas dataframe containing
+  the students-by-question scores of the initial and revised scores
+  the students took the quiz.  Each student and question are a
+  a separate row in the table.
 
   The dbgHtmlObj is the list of strings being made to HTML.  It's
   not used here, but is available for debugging, in case needed.
   """
+  # Create an empty Pandas data frame
+  StudentIDs    = pd.Series([], dtype='int')
+  QuestionIDs   = pd.Series([], dtype='int')
+  InitialScores = pd.Series([], dtype='float')
+  RevisedScores = pd.Series([], dtype='float')
+
+  df = pd.DataFrame({'StudentID':StudentIDs, \
+                     'QuestionID':QuestionIDs, \
+                     'InitialScore':InitialScores, \
+                     'RevisedScore':RevisedScores})
+
   # Grab all the quiz attempt records for the specivied quiz ID
   # Send back None for the matrices if the quiz was not there
   try:
     quizAttemptList = [quiz.dump_as_dict() for quiz in models.QuizAttempt.query.filter_by(quiz_id=quizID)]
-  except:
-    return None, None
+    initialScoresDict = dict()
+    revisedScoresDict = dict()
 
-  # Initialize the scores dictionaries and quiestion and student ID sets
-  initialScoresDict = {}
-  revisedScoresDict = {}
-  questionIDSet = set()
-  studentIDSet = set()
-
-  # Go through all student quiz attempts for this quiz
-  # Return None for both matrices if there is any kind of problem
-  try:
+    # Go through all student quiz attempts for this quiz
+    # Return None for both matrices if there is any kind of problem
     for attempt in quizAttemptList:
       studentID = attempt['student_id']
       initialScoresDict[studentID] = UnpackJSONDict(attempt['initial_scores'])
       revisedScoresDict[studentID] = UnpackJSONDict(attempt['revised_scores'])
 
-      # Update our sets of question IDs and student IDs
-      studentIDSet.add(studentID)
-      questionIDSet = questionIDSet.union( set(initialScoresDict[studentID].keys()) )
-  except:
-    return None, None
+      for questionID in initialScoresDict[studentID].keys():
+        initialScore = initialScoresDict[studentID][questionID]
+        revisedScore = revisedScoresDict[studentID][questionID]
 
+        StudentIDs    = StudentIDs.append(pd.Series([studentID], dtype='int'))
+        QuestionIDs   = QuestionIDs.append(pd.Series([questionID], dtype='int'))
+        InitialScores = InitialScores.append(pd.Series([initialScore], dtype='float'))
+        RevisedScores = RevisedScores.append(pd.Series([revisedScore], dtype='float'))
 
-  # Initialize the scores matrices with zeros of the correct size
-  initialScoresMatrix = np.zeros( (len(studentIDSet), len(questionIDSet)))
-  revisedScoresMatrix = np.zeros( (len(studentIDSet), len(questionIDSet)))
+    # Now assemble the series into a dataframe
+    df = pd.DataFrame({'StudentID':StudentIDs, \
+                       'QuestionID':QuestionIDs, \
+                       'InitialScore':InitialScores, \
+                       'RevisedScore':RevisedScores})
 
-  # Populate the scores matrices
-  sdx = 0
-  for student in studentIDSet:
-    qdx = 0
-    for question in questionIDSet:
-      # Go look up the student and questin in the dictionary,
-      # but default to 0 if you can't find it
-      try:
-        initialScoresMatrix[sdx,qdx] = initialScoresDict[student][question]
-        revisedScoresMatrix[sdx,qdx] = revisedScoresDict[student][question]
-      except:
-        raise
+  # Must have been an error somewhere ...
+  except Exception as error:
+    return dbgHtmlObj.append("<b>DB Error:</b> " + str(error))
 
-      # Increment question counter
-      qdx += 1
-
-    # Increment student counter
-    sdx += 1
-
-  return initialScoresMatrix, revisedScoresMatrix
+  return df

@@ -1,5 +1,5 @@
 # pylint: disable=no-member
-# pylint: disable=E1101 
+# pylint: disable=E1101
 
 from random import shuffle # to shuffle lists
 from flask_login import UserMixin
@@ -16,7 +16,7 @@ import ast
 
 class Question(DB.Model):
     '''
-    A Question object contains both the text of the question to be 
+    A Question object contains both the text of the question to be
     posed to students, along with its solution.
     The solution will always appear as a response alternative in the
     Multiple Choice Question presentation.
@@ -27,13 +27,13 @@ class Question(DB.Model):
     title = DB.Column(DB.String, nullable=False)
     stem = DB.Column(DB.String, nullable=False)
     answer = DB.Column(DB.String, nullable=False)
-    
+
     # 1-to-many with Distractor
     distractors = DB.relationship('Distractor', backref='question', lazy=True)
-    
+
     # 1-to-many with QuizQuestion
     quiz_questions = DB.relationship('QuizQuestion', backref='question', lazy=True)
-    
+
     def __repr__(self):
         return "Question(id='%d',title='%s',question='%s',solution='%s')" % (self.id, self.title, self.stem, self.answer)
 
@@ -55,7 +55,7 @@ class Question(DB.Model):
 # association table for many-to-many association between QuizQuestion and Distractor
 quiz_questions_hub = DB.Table('quiz_questions_hub',
     DB.Column('quiz_question_id',   DB.Integer, DB.ForeignKey('quiz_question.id'),  primary_key=True),
-    DB.Column('distractor_id',      DB.Integer, DB.ForeignKey('distractor.id'),     primary_key=True)  
+    DB.Column('distractor_id',      DB.Integer, DB.ForeignKey('distractor.id'),     primary_key=True)
 )
 
 
@@ -64,14 +64,14 @@ class Distractor(DB.Model):
     '''
     A Distractor object is a plausible but wrong answer to a Question.
     '''
-    
+
     id = DB.Column(DB.Integer, primary_key=True)
 
     answer = DB.Column(DB.String, nullable=False)
-    
+
     # to allow for 1-to-many relationship Question / Distractor
     question_id = DB.Column(None, DB.ForeignKey('question.id'))
-    
+
     def __repr__(self):
         return "Distractor(id='%d',question_id=%d,answer='%s')" % (self.question_id, self.id, self.answer)
 
@@ -86,13 +86,13 @@ class QuizQuestion(DB.Model):
     It is the object that will be rendered to students.
     '''
     # NOTE auto-generated table is named quiz_question as conversion to lowercase of the above camel case
-    
+
     id = DB.Column(DB.Integer, primary_key=True)
 
     # to allow for 1-to-many relationship Question / QuizQuestion
     question_id = DB.Column(DB.Integer, DB.ForeignKey('question.id'), nullable=False)
 
-    
+
     # many-to-many with Distractor
     distractors = DB.relationship('Distractor', secondary=quiz_questions_hub, lazy='subquery',
         backref=DB.backref('quiz_questions', lazy=True))
@@ -105,17 +105,17 @@ class QuizQuestion(DB.Model):
                     "stem": self.question.stem,
                     "answer": self.question.answer,
                     "alternatives": [] }
-        
+
         tmp1 = [] # list of distractors IDs, -1 for right answer
         tmp2 = [] # list of alternatives, including the right answer
-        
+
         tmp1.append(-1)
         tmp2.append(self.question.answer)
-        
+
         for d in self.distractors:
             tmp1.append(d.id)
             tmp2.append(d.answer)
-        
+
         #result['alternatives'] = list(zip(tmp1,tmp2))
         # NOTE the above would cause the list to be made of tuples which are not well handled when we are trying to
         # use the |tojson template in Jinja. We want a list of lists instead.
@@ -154,10 +154,10 @@ class Quiz(DB.Model):
     # Each quiz has many QuizQuestions
     quiz_questions = DB.relationship('QuizQuestion', secondary=relation_questions_vs_quizzes, lazy='subquery',
        backref=DB.backref('quizzes', lazy=True))
-    
+
     # Each quiz has many QuizAttempts
     quiz_attempts = DB.relationship('QuizAttempt', backref='quiz', lazy=True)
-    
+
     title = DB.Column(DB.String)
     description = DB.Column(DB.String)
 
@@ -170,7 +170,7 @@ class Quiz(DB.Model):
 
     def set_status(self, stat):
         ustat = stat.upper()
-        if ustat != "HIDDEN" and ustat != "STEP1" and ustat != "STEP2": 
+        if ustat != "HIDDEN" and ustat != "STEP1" and ustat != "STEP2":
             return False
         else:
             self.status = ustat
@@ -182,7 +182,7 @@ class Quiz(DB.Model):
         questions = [q.dump_as_dict() for q in self.quiz_questions]
         shuffle(questions)
         return {    "id" : self.id,
-                    "title" : self.title, 
+                    "title" : self.title,
                     "description" : self.description,
                     "questions" : questions,
                     "status" : self.status
@@ -198,12 +198,12 @@ class QuizAttempt(DB.Model):
 
     # each QuizAttempt refers to exactly 1 Quiz
     quiz_id = DB.Column(DB.Integer, DB.ForeignKey('quiz.id'))
-    
+
     # each QuizAttempt refers to exactly 1 student
     student_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'))
 
     # time stamps
-    # initial --> start / end 
+    # initial --> start / end
     # revised --> start / end
 
     # store students answers to all questions
@@ -215,17 +215,17 @@ class QuizAttempt(DB.Model):
 
     initial_total_score = DB.Column(DB.Integer, default=0)
     revised_total_score = DB.Column(DB.Integer, default=0)
-    
+
     # justifications to each possible answer
     justifications = DB.Column(DB.String, default="{}") # json list of text entries
-    
+
     # score
     initial_scores = DB.Column(DB.String, default="") # as json list of None / distractor ID
     revised_scores = DB.Column(DB.String, default="") # as json list of None / distractor ID
 
     def dump_as_dict(self):
         return {    "id" : self.id,
-                    "quiz_id" : self.quiz_id, 
+                    "quiz_id" : self.quiz_id,
                     "student_id" : self.student_id,
                     "initial_responses" : self.initial_responses,
                     "revised_responses" : self.revised_responses,
@@ -241,7 +241,7 @@ class QuizAttempt(DB.Model):
 #Table used to implement the many-to-many relationship between QuizQuestions and QuizAttempts
 '''
     Responses from student to a given QuizQuestion.
-    These are bulk-generated when a Quiz is received.   
+    These are bulk-generated when a Quiz is received.
     The UI should not operate at the level of QuizResponse but just at the Quiz level.
     Then, internally, we keep more detailed records.
 '''
@@ -267,23 +267,23 @@ class User(UserMixin, DB.Model):
 
     # Each user may have authored several quizzes
     quizzes = DB.relationship('Quiz', backref='author', lazy=True)
-    
+
     # Each user may have made many QuizAttempts
     quiz_attempts = DB.relationship('QuizAttempt', backref='student', lazy=True)
     # all attempts
 
     def is_instructor(self):
         return self.role == "INSTRUCTOR"
-   
+
     def is_student(self):
         return self.role == "STUDENT"
-    
+
     def is_admin(self):
         return self.id == 1
         #FIXME self.role == "ADMIN"
 
 
-    
+
 class Justification(DB.Model):
     '''
     A Justification object is the justification that a student provided for a given
@@ -295,5 +295,3 @@ class Justification(DB.Model):
     distractor_id = DB.Column(DB.Integer, DB.ForeignKey('distractor.id'), nullable=False)
     student_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'), nullable=False)
     justification = DB.Column(DB.String) # FIXME do we allow duplicates like empty strings?
-
-
