@@ -6,6 +6,7 @@
 from flask import jsonify, abort, request, Response, render_template, redirect, url_for, make_response
 from flask import Blueprint
 from flask_login import login_required, current_user
+from flask import flash
 
 import json, random
 
@@ -45,6 +46,7 @@ def get_student(qid):
     '''
     if not current_user.is_student():
         response = ({ "message" : "You are not allowed to take this quiz"}, 403, {"Content-Type": "application/json"})
+        # FIXME
         return make_response(response)
 
     u = models.User.query.get_or_404(current_user.id)
@@ -56,17 +58,26 @@ def get_student(qid):
     
     if q.status == "HIDDEN":
         response     = ({ "message" : "Quiz not accessible at this time"}, 403, {"Content-Type": "application/json"})
+        # FIXME
         return make_response(response)
     if a and q.status == "STEP1":
         response     = ({ "message" : "You already submitted your initial answers for this quiz, wait for the instructor to re-release it."}, 403, {"Content-Type": "application/json"})
+        # FIXME
         return make_response(response)
     if not a and q.status == "STEP2":
         response     = ({ "message" : "You did not submit your initial answers for this quiz, you may not participate in the second step."}, 403, {"Content-Type": "application/json"})
+        # FIXME
         return make_response(response)
     if q.status == "STEP2" and a[0].revised_responses != "{}":
         #TODO the above is ugly, add a boolean method instead
         response     = ({ "message" : "You already revised your initial answers, you are done with both steps of this quiz."}, 403, {"Content-Type": "application/json"})
-        return make_response(response)
+        # Not sure if this is what is meant still unsure of how the pages will know what template to go to with this
+        # should I be using a POST route? Probably but what to put on it? I should probably know this by now
+        if request.json:
+            return make_response(response)
+        else:
+            flash("You already revised your initial answers, you are done with both steps of this quiz.", "error")
+            return redirect('/')
         
     # Redirect to different pages depending on step; e.g., student1.html vs. student2.html
     if a: # step == 2
@@ -106,3 +117,76 @@ def get_student(qid):
         return render_template('student.html', quiz=q, questions=quiz_questions, student=u, attempt=a[0], justifications=quiz_justifications)
     else: # step == 1
         return render_template('student.html', quiz=q, questions=quiz_questions, student=u)
+
+
+
+# @pages.route('/student/<int:qid>', methods=['GET'])
+# @login_required
+# def get_student(qid):
+#     '''
+#     Links using this route are meant to be shared with students so that they may take the quiz
+#     and engage in the asynchronous peer instrution aspects. 
+#     '''
+#     if not current_user.is_student():
+#         response = ({ "message" : "You are not allowed to take this quiz"}, 403, {"Content-Type": "application/json"})
+#         return make_response(response)
+
+#     u = models.User.query.get_or_404(current_user.id)
+#     q = models.Quiz.query.get_or_404(qid)
+#     quiz_questions = [question.dump_as_dict() for question in q.quiz_questions]
+    
+#     # determine which step of the peer instruction the student is in
+#     a = models.QuizAttempt.query.filter_by(student_id=current_user.id).filter_by(quiz_id=qid).all()
+    
+#     if q.status == "HIDDEN":
+#         response     = ({ "message" : "Quiz not accessible at this time"}, 403, {"Content-Type": "application/json"})
+#         return make_response(response)
+#     if a and q.status == "STEP1":
+#         response     = ({ "message" : "You already submitted your initial answers for this quiz, wait for the instructor to re-release it."}, 403, {"Content-Type": "application/json"})
+#         return make_response(response)
+#     if not a and q.status == "STEP2":
+#         response     = ({ "message" : "You did not submit your initial answers for this quiz, you may not participate in the second step."}, 403, {"Content-Type": "application/json"})
+#         return make_response(response)
+#     if q.status == "STEP2" and a[0].revised_responses != "{}":
+#         #TODO the above is ugly, add a boolean method instead
+#         response     = ({ "message" : "You already revised your initial answers, you are done with both steps of this quiz."}, 403, {"Content-Type": "application/json"})
+#         return make_response(response)
+        
+#     # Redirect to different pages depending on step; e.g., student1.html vs. student2.html
+#     if a: # step == 2
+#         # retrieve the peers' justifications for each question
+#         quiz_justifications = {}
+#         for quiz_question in q.quiz_questions:
+#             question_justifications = {}
+#             for distractor in quiz_question.distractors:
+#                 # get all justifications for that alternative / question pair
+#                 question_justifications[str(distractor.id)] = models.Justification.query\
+#                     .filter_by(quiz_question_id=quiz_question.id)\
+#                     .filter_by(distractor_id=distractor.id)\
+#                     .all()
+#             # also handle the solution -1
+#             question_justifications["-1"] = models.Justification.query\
+#                 .filter_by(quiz_question_id=quiz_question.id)\
+#                 .filter_by(distractor_id="-1")\
+#                 .all()
+            
+#             # record this array of objects as corresponding to this question
+#             quiz_justifications[str(quiz_question.id)] = question_justifications
+            
+#         # This is where we apply the peer selection policy
+#         # We now revisit the data we collected and pick one justification in each array of Justification objects
+#         for key_question in quiz_justifications:
+#             for key_distractor in quiz_justifications[key_question]:
+#                 #pick one of the justification objects at random
+#                 index = random.randint(0,len(quiz_justifications[key_question][key_distractor])-1)
+#                 neo = quiz_justifications[key_question][key_distractor][index]
+                
+#                 # now replace the object by a dictionary so that the javascript may handle it easily
+#                 quiz_justifications[key_question][key_distractor] = {
+#                     "id" : neo.id,
+#                     "justification": neo.justification
+#                 }
+
+#         return render_template('student.html', quiz=q, questions=quiz_questions, student=u, attempt=a[0], justifications=quiz_justifications)
+#     else: # step == 1
+#         return render_template('student.html', quiz=q, questions=quiz_questions, student=u)

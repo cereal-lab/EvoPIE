@@ -80,6 +80,17 @@ footer p {
       <div class="container">
         <h1>EvoPIE</h1>
         <p class="lead text-muted">Evolutionary Peer Instruction Environment</p>
+        <div>
+          {% with messages = get_flashed_messages(category_filter=["error"]) %}
+          {% if messages %}
+            <ul class=flashes>
+              {% for message in messages %}
+              <li class="{{ category }}">{{ message }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+          {% endwith %}
+        </div>
         <p>
           <a href="{{ url_for('auth.get_signup') }}" class="btn btn-secondary my-2">Signup for an Account</a>
           <a href="{{ url_for('auth.get_login') }}" class="btn btn-primary my-2">Login</a>

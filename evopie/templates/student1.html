@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+
+{% block title %}EvoPIE{% endblock %}
+
+{% block content %}
+<script>
+    function submitQuiz(){
+        // PROBLEM 1 we have #&39; in the jinja expansion of questions. Possible solution below from user Negatar on stackoverflow
+        var all_questions = '{{ questions|tojson }}'; // use single quote since JSON is valid and uses only double quotes
+        // NOTE if someone as a single quoted string as a value for an attribute in JSON we are screwed.
+        // I do not think this is allowed though.
+        var parser = new DOMParser;
+        var dom = parser.parseFromString('<!doctype html><body>' + all_questions, 'text/html');
+        var usable = dom.body.textContent;
+        //console.log("USABLE");
+        //console.log(usable);
+        // PROBLEM 3 
+        // need template |tojson --> see above
+        // in order to ensure we do not try to parse JSON code that has single instead of double quotes
+        // but this bugs right now because we get lists of tuples at some point from the dump_as_dict from the model
+        // had to fix the code in models so that we do not generate lists of tuples
+        
+        // PROBLEM 2 even when we convert these, they are single quotes that have been introduced into JSON
+        // at some point, however, JSON only accepts double quotes so the JSON.parse will fail
+        //console.log("JSON");
+        //console.log(JSON.parse(usable));
+        json_data = JSON.parse(usable);
+
+
+        /*
+        {% for q in questions %}
+        {% for id,alt in q.alternatives %}
+        console.log("question_{{q.id}} alt {{id}} --> {{alt}}");
+        {% endfor %}
+        {% endfor %}
+        */
+
+        var post_data = { "initial_responses" : {}, "justifications" : {}};
+        for (var i = 0 ; i < json_data.length ; i++){
+            var question = json_data[i];
+            var name = "question_" + question["id"]; // radio group has name based on question ID
+            var elements = document.getElementsByName(name);
+            
+            var distractor_id = 0; // distractor id of the selected alternative
+            
+            for(var j=0 ; j < elements.length ; j++){
+                if(elements[j].checked)
+                    distractor_id = elements[j].value;
+            }
+            // NOTE if nothing was selected, we do not use distractor ID 0 since we pull all justifications below.
+
+            // for this same question, we pull all justifications for all alternatives from the DOM
+            var justifications = {};
+            for(var j = 0 ; j < question.alternatives.length; j++){
+                var alternative = question.alternatives[j];
+                var target_id = "alternative_" + question["id"] + "_" + alternative[0] + "_justify";
+                justifications[alternative[0]] = document.getElementById(target_id).value;
+            }
+            post_data["initial_responses"][question["id"]] = distractor_id;
+            post_data["justifications"][question["id"]] = justifications;
+        }
+        // POSTing to /quizzes/X/take since this page is for step#1
+        let target_url = 'http://localhost:5000/quizzes/' + "{{quiz.id}}" + "/take"; 
+        fetch(target_url,{
+            method: 'POST',
+            headers: {'Content-Type' : 'application/json'},
+            body: JSON.stringify(post_data),
+            credentials: 'same-origin'
+        })
+        //.then(response => response.json())
+        .then(response => response.statusText)
+        .then(data => {
+            console.log('woohoo --> ', data);
+        })
+        .catch((error) => {
+            console.error('Doh! -->', error);
+        })
+    }
+</script>
+<div class="jumbotron jumbotron-fluid">
+    <div class="container">
+        <h1 class="display-4">Quiz #{{quiz.id}} - {{quiz.title}}</h1>
+        <p class="lead">
+            Hello, {{student.first_name}} {{student.last_name}}, {{student.email}}
+        </p>
+        <p class="lead">
+            {{quiz.description}}
+        </p>
+        <p class="lead">
+            When you are done taking the quiz, press <button class="btn btn-primary" onclick="submitQuiz()">Submit Quiz</button>
+        </p>
+    </div>
+</div>
+
+<!-- BASIC VERSION
+{% for q in questions %}
+    <h2>
+        Question #{{q.id}} - {{q.title}}
+    </h2>
+    <p>
+        {{q.stem}}
+    </p>
+    
+    {% for id,alt in q.alternatives %}
+        <div class="form-group">
+            <div id="alternative_{{q.id}}_{{id}}"
+                class="form-check">
+                <input type="radio"
+                    name="question_{{q.id}}"
+                    id="alternative_{{q.id}}_{{id}}_check" value="alternative_{{q.id}}_{{id}}_check"
+                    class="form-check-input"></input>
+                <label for="alternative_{{q.id}}_{{id}}_check"
+                    class="form-check-label">#{{id}} - {{alt}}</label>
+                <input type="text"
+                    id="alternative_{{q.id}}_{{id}}_justify" name="alternative_{{q.id}}_{{id}}_justify"
+                    class="form-control reveal-if-not-selected"
+                    placeholder="Explain here why you did not select this alternative."></input>
+            </div>
+        </div>
+    {% endfor %}
+    
+{% endfor %}
+-->
+<!-- BOOTSTRAP CARDS VERSION -->
+    <!div class="card-deck">
+        {% for q in questions %}
+            <div class="card bg-light m-3">
+                <div class="card-body" bg-light>
+                    <h5 class="card-title">Question #{{q.id}} - {{q.title}}</h5>
+                    <p class="card-text">{{q.stem}}</p>
+                    <ul class="list-group list-group-flush">
+                    {% for id,alt in q.alternatives %}
+                        <li class="list-group-item border border-primaryrounded">
+                            <div class="form-group">
+                                <div id="alternative_{{q.id}}_{{id}}"
+                                    class="form-check">
+                                    <input type="radio"
+                                        name="question_{{q.id}}"
+                                        id="alternative_{{q.id}}_{{id}}_check" value="{{id}}"
+                                        class="form-check-input"></input>
+                                    <label for="alternative_{{q.id}}_{{id}}_check"
+                                        class="form-check-label">#{{id}} - {{alt}}</label>
+                                    <textarea
+                                        id="alternative_{{q.id}}_{{id}}_justify" name="alternative_{{q.id}}_{{id}}_justify"
+                                        class="form-control reveal-if-not-selected"
+                                        rows="3"
+                                        placeholder="Explain here why you did not select this alternative."></textarea>
+                                </div>
+                            </div>
+                        </li>
+                    {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        {% endfor %}
+    <!/div>
+{% endblock %}
