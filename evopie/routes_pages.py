@@ -71,11 +71,12 @@ def get_student(qid):
     if q.status == "STEP2" and a[0].revised_responses != "{}":
         #TODO the above is ugly, add a boolean method instead
         response     = ({ "message" : "You already revised your initial answers, you are done with both steps of this quiz."}, 403, {"Content-Type": "application/json"})
-        # Not sure if this is what is meant
+        # Not sure if this is what is meant still unsure of how the pages will know what template to go to with this
+        # should I be using a POST route? Probably but what to put on it? I should probably know this by now
         if request.json:
             return make_response(response)
         else:
-            flash(response, "error")
+            flash("You already revised your initial answers, you are done with both steps of this quiz.", "error")
             return redirect('/')
         
     # Redirect to different pages depending on step; e.g., student1.html vs. student2.html
@@ -116,6 +117,8 @@ def get_student(qid):
         return render_template('student.html', quiz=q, questions=quiz_questions, student=u, attempt=a[0], justifications=quiz_justifications)
     else: # step == 1
         return render_template('student.html', quiz=q, questions=quiz_questions, student=u)
+
+
 
 # @pages.route('/student/<int:qid>', methods=['GET'])
 # @login_required
