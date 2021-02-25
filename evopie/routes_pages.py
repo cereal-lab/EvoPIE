@@ -71,10 +71,12 @@ def get_student(qid):
     if q.status == "STEP2" and a[0].revised_responses != "{}":
         #TODO the above is ugly, add a boolean method instead
         response     = ({ "message" : "You already revised your initial answers, you are done with both steps of this quiz."}, 403, {"Content-Type": "application/json"})
-        # FIXME
-        make_response(response)
-        flash(response, "error")
-        # return render_template("student.html")
+        # Not sure if this is what is meant
+        if request.json:
+            return make_response(response)
+        else:
+            flash(response, "error")
+            return redirect('/')
         
     # Redirect to different pages depending on step; e.g., student1.html vs. student2.html
     if a: # step == 2
