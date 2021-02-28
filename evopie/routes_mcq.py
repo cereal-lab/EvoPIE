@@ -451,8 +451,12 @@ def post_new_quiz():
     Create a new quiz
     '''
     if not current_user.is_instructor():
-        response     = ({ "message" : "You are not allowed to create quizzes" }, 403, {"Content-Type": "application/json"})
-        return make_response(response)
+        if request.json
+            response     = ({ "message" : "You are not allowed to create quizzes" }, 403, {"Content-Type": "application/json"})
+            return make_response(response)
+        else
+            flash("You are not allowed to create quizzes", "postError")
+            return redirect(request.path)
 
     title = request.json['title']
     description = request.json['description']
@@ -601,8 +605,11 @@ def post_quizzes_status(qid):
     Modifies the status of given quiz
     '''
     if not current_user.is_instructor():
-        response     = ({ "message" : "You are not allowed to get quiz status" }, 403, {"Content-Type": "application/json"})
-        return make_response(response)
+        if request.json
+            response     = ({ "message" : "You are not allowed to get quiz status" }, 403, {"Content-Type": "application/json"})
+            return make_response(response)
+        else
+            flash("You are not allowed to get quiz status", "postError")
 
     quiz = models.Quiz.query.get_or_404(qid)
 
