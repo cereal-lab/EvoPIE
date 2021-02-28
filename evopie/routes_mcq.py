@@ -41,8 +41,12 @@ def post_new_question():
     Add a question and its answer to the database.
     '''
     if not current_user.is_instructor():
-        response     = ({ "message" : "You are not allowed to create questions" }, 403, {"Content-Type": "application/json"})
-        return make_response(response)
+        if request.json
+            response     = ({ "message" : "You are not allowed to create questions" }, 403, {"Content-Type": "application/json"})
+            return make_response(response)
+        else
+            flash("You are not allowed to create questions", "postError")
+            return redirect(request.path)
 
     if request.json:
         title = request.json['title']
@@ -188,8 +192,13 @@ def post_new_distractor_for_question(question_id):
     Add a distractor to the specified question.
     '''
     if not current_user.is_instructor():
-        response     = ({ "message" : "You are not allowed to create distrators" }, 403, {"Content-Type": "application/json"})
-        return make_response(response)
+        if request.json
+            response     = ({ "message" : "You are not allowed to create distrators" }, 403, {"Content-Type": "application/json"})
+            return make_response(response)
+        else
+            flash("You are not allowed to create distrators", "postError")
+            return redirect(request.path)
+
 
     #TODO validation - All of the quizzes containing question_id must be HIDDEN to be able to add distractor
 
@@ -318,8 +327,12 @@ def post_new_quiz_question():
     Add a new QuizQuestion.
     '''
     if not current_user.is_instructor():
-        response     = ({ "message" : "You are not allowed to create quiz questions" }, 403, {"Content-Type": "application/json"})
-        return make_response(response)
+        if request.json
+            response     = ({ "message" : "You are not allowed to create quiz questions" }, 403, {"Content-Type": "application/json"})
+            return make_response(response)
+        else
+            flash("You are not allowed to create quiz questions", "postError")
+            return redirect(request.path)
 
     if not request.json:
         abort(406, "JSON format required for request") # not acceptable
