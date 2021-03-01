@@ -45,9 +45,9 @@ def get_student(qid):
     and engage in the asynchronous peer instrution aspects. 
     '''
     if not current_user.is_student():
-        response = ({ "message" : "You are not allowed to take this quiz"}, 403, {"Content-Type": "application/json"})
-        # FIXME
-        return make_response(response)
+        # response = ({ "message" : "You are not allowed to take this quiz"}, 403, {"Content-Type": "application/json"})
+        flash("You are not allowed to take this quiz", "error")
+        return redirect(url_for('pages.index'))
 
     u = models.User.query.get_or_404(current_user.id)
     q = models.Quiz.query.get_or_404(qid)
@@ -59,20 +59,20 @@ def get_student(qid):
     if q.status == "HIDDEN":
         #response     = ({ "message" : "Quiz not accessible at this time"}, 403, {"Content-Type": "application/json"})
         flash("Quiz not accessible at this time", "error")
-        return redirect('/')
+        return redirect(url_for('pages.index'))
     if a and q.status == "STEP1":
         #response     = ({ "message" : "You already submitted your initial answers for this quiz, wait for the instructor to re-release it."}, 403, {"Content-Type": "application/json"})
         flash("You already submitted your initial answers for this quiz, wait for the instructor to re-release it.", "error")
-        return redirect('/')
+        return redirect(url_for('pages.index'))
     if not a and q.status == "STEP2":
         #response     = ({ "message" : "You did not submit your initial answers for this quiz, you may not participate in the second step."}, 403, {"Content-Type": "application/json"})
         flash("You did not submit your initial answers for this quiz, you may not participate in the second step.", "error")
-        return redirect('/')
+        return redirect(url_for('pages.index'))
     if q.status == "STEP2" and a[0].revised_responses != "{}":
         #TODO the above is ugly, add a boolean method instead
         #response     = ({ "message" : "You already revised your initial answers, you are done with both steps of this quiz."}, 403, {"Content-Type": "application/json"})
         flash("You already revised your initial answers, you are done with both steps of this quiz.", "error")
-        return redirect('/')
+        return redirect(url_for('pages.index'))
         
     # Redirect to different pages depending on step; e.g., student1.html vs. student2.html
     if a: # step == 2
