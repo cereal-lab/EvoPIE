@@ -610,6 +610,7 @@ def post_quizzes_status(qid):
             return make_response(response)
         else:
             flash("You are not allowed to get quiz status", "postError")
+            return redirect(request.referrer)
 
     quiz = models.Quiz.query.get_or_404(qid)
 
