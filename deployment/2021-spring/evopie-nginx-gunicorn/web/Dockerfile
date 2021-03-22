@@ -1,5 +1,8 @@
 FROM ubuntu:20.04
 
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
 RUN apt update -y && \
     apt upgrade -y
 RUN apt install -y python3 python3-pip
@@ -7,7 +10,7 @@ RUN pip3 install pipenv
 RUN apt install -y sqlite3 git
 
 WORKDIR /app
-RUN echo fbsss
+RUN echo "forcing rebuild"
 RUN git clone https://github.com/cereal-lab/EvoPIE.git
 
 WORKDIR /app/EvoPIE
