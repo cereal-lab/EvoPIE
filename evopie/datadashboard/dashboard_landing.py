@@ -60,7 +60,8 @@ def dataDashboard():
       HTMLTextLines.append( str(q) + '<br><br>'  )
 
     HTMLTextLines.append('<br><br><hr><h2>Matrix of Initial Attempts of Quiz 1</h2>')
-    df = dbaccess.GetScoresDataframe(1, HTMLTextLines)
+    #df = dbaccess.GetScoresDataframe(1, HTMLTextLines)
+    df = dbaccess.GenerateFakeScoresDataframe(10,2)
     initialScores, revisedScores = formatting.ConvertDFToScoresMatrix(df)
     HTMLTextLines.extend( formatting.CreateHTMLTableFromMatrix(initialScores) )
 
