@@ -81,7 +81,7 @@ footer p {
         <h1>EvoPIE</h1>
         <p class="lead text-muted">Evolutionary Peer Instruction Environment</p>
         <div>
-          {% with messages = get_flashed_messages(category_filter=["error"]) %}
+          {% with messages = get_flashed_messages(category_filter=["error", "postError"]) %}
           {% if messages %}
             <ul class=flashes>
               {% for message in messages %}
