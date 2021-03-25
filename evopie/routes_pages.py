@@ -37,6 +37,16 @@ def dashboard():
 
 
 
+@pages.route('/contributor')
+@login_required
+def instructor():
+    if not current_user.is_instructor():
+        flash("Restricted to instructors.", "error")
+        return redirect(url_for('pages.index'))
+    return render_template('contributor.html')
+
+
+
 @pages.route('/student/<int:qid>', methods=['GET'])
 @login_required
 def get_student(qid):
