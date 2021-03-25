@@ -7,6 +7,7 @@ from flask import jsonify, abort, request, Response, render_template, redirect, 
 from flask import Blueprint
 from flask_login import login_required, current_user
 from flask import Markup
+from flask import flash
 from random import shuffle
 import json
 
