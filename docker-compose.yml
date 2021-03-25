@@ -2,13 +2,13 @@ version: '3.7'
 
 services:
   web:
-    build: ./web
+    build: ./evopie
     volumes:
       - /mnt/c/Users/aless/OneDrive/Desktop/dev/github/EvoPIE/evopie/DB_quizlib.sqlite:/app/EvoPIE/evopie/DB_quizlib.sqlite
     expose:
       - 5000
     env_file:
-      - ./web/.env.dev
+      - ./evopie/.env.dev
   nginx:
     build: ./nginx
     ports:
