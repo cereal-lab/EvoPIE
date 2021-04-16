@@ -21,7 +21,7 @@ curlit  'Added distractor'          "/questions/1/distractors"      '{ "answer":
 curlit  'QuizQuestion composed'     "/quizquestions"                '{ "qid": "1", "distractors_ids": [1, 2, 3]}'
 
 header 'ADDING QUESTION #2' #QID 2
-curlit  'Added Question'            "/questions"                    '{ "title": "Occurences in Arrays", "stem": "We want to count the number of occurences of the value 42 in an int array named data. Which of the following does not work?", "answer": "for(int i = 0 ; i <= data.length ; i++){ if(v==42) occurences++; }"}'
+curlit  'Added Question'            "/questions"                    '{ "title": "Occurences in Arrays", "stem": "We want to count the number of occurences of the value 42 in an int array named data. Which of the following does not work?", "answer": "for(int i = 0 ; i <= data.length ; i++){ if(data[i]==42) occurences++; }"}'
 curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "for(int v : data){ occurences += (v==42)?1:0; }"}'         #D4
 curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "for(int v : data){ if(v==42) occurences++; }"}'     #D5
 curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "for(int i=0 ; i < data.length ; i++){ occurences += (data[i]==42)?1:0; }"}'        #D6
