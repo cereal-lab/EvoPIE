@@ -78,7 +78,8 @@ def post_new_question():
         response = ({ "message" : "Question & answer added to database" }, 201, {"Content-Type": "application/json"})
         return make_response(response)
     else:
-        return redirect(url_for('pages.instructor'))
+        flash("Question successfully added to database.", "shiny")
+        return redirect(url_for('pages.contributor'))
 
     
 
@@ -225,7 +226,7 @@ def post_new_distractor_for_question(question_id):
         return make_response(response)
     else:
         #FIXME do we want to continue handling both formats?
-        return redirect(url_for('pages.dashboard'))
+        return redirect(url_for('pages.contributor'))
         #TODO how to handle error in a non-REST client? e.g., flash an error message then redirect?
 
 
