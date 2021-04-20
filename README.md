@@ -1,5 +1,4 @@
-# EvoPIE
-# Evolutionary Peer Instruction Environment
+# EvoPIE - Evolutionary Peer Instruction Environment
 
 # Synopsis
 This web application supports asynchronous peer instruction.
