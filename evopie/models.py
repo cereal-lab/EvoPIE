@@ -80,7 +80,7 @@ class Distractor(DB.Model):
         return "Distractor(id='%d',question_id=%d,answer='%s')" % (self.question_id, self.id, self.answer)
 
     def dump_as_dict(self):
-        return {"id" : self.id, "answer": self.answer}
+        return {"id" : self.id, "answer": Markup(self.answer).unescape()}
 
 
 
@@ -106,8 +106,8 @@ class QuizQuestion(DB.Model):
     def dump_as_dict(self):
         result = {  "id" : self.id,
                     "title": self.question.title,
-                    "stem": self.question.stem,
-                    "answer": self.question.answer,
+                    "stem": Markup(self.question.stem).unescape(),
+                    "answer": Markup(self.question.answer).unescape(),
                     "alternatives": [] }
 
         tmp1 = [] # list of distractors IDs, -1 for right answer

@@ -234,11 +234,18 @@
                                     {% endfor %}
                                 </p>
                                 {% else %}
-                                <textarea
+                                <!--
+                                    <textarea
                                     id="alternative_{{q.id}}_{{id}}_justify" name="alternative_{{q.id}}_{{id}}_justify"
                                     class="form-control reveal-if-not-selected"
                                     rows="3"
-                                    placeholder="Explain here why you did not select this alternative."></textarea>                                    
+                                    placeholder="Explain here why you did not select this alternative."></textarea>
+                                -->
+                                <textarea
+                                    class="summernote form-control reveal-if-not-selected"
+                                    name="alternative_{{q.id}}_{{id}}_justify" id="alternative_{{q.id}}_{{id}}_justify"
+                                    rows="3"
+                                    placeholder="Explain here why you did not select this alternative."></textarea>                                   
                                 {% endif %}
 
                             </div>
