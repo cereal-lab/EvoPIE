@@ -243,29 +243,39 @@
         </div>
     </div>
     -->
+    <style>
+        table, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+        }
+    </style>
     <div class="card bg-light m-3 mx-auto" style="width: 75%">
         <div class="card-body" bg-light>
             <h5 class="card-title" data-toggle = "collapse" data-target = "#questionsselector">Questions Selector</h5>
             <div  id = "questionsselector" class = "collapse">
                 <p class="card-text">
                     <table>
-                        <tr>
+                        <!--
+                            <tr>
                             <th>ID</th>
-                            <th>Title</th>
-                            <th>Question & Answer</th>
+                            <th colspan="2">Question</th>
+                            <th></th>
                         </tr>
+                        -->
                         {% for single_question in all_questions %}
                         <tr>
-                            <td>{{ single_question.id }}</td>
-                            <td>{{ single_question.title }}</td>
+                            <td rowspan="3" style="vertical-align: top">{{ single_question.id }}</td>
+                            <td colspan="2"><b>{{ single_question.title }}</b></td>
+                        </tr>
+                        <tr>
+                            <td style="vertical-align: top"><b>Q:</b></td>
                             <td>
-                                <b>QUESTION:</b>
-                                <div>
                                     {{ single_question.stem | safe }}
-                                </div>
-                                <b>ANSWER:</b>
-                                {{ single_question.answer }}
-                            </td>
+                             </td>
+                        </tr>
+                        <tr>   
+                            <td style="vertical-align: top"><b>A:</b></td>
+                            <td>{{ single_question.answer | safe }}</td>
                         </tr>
                     {% endfor %}
                     </table>

@@ -3,7 +3,7 @@
 
 from random import shuffle # to shuffle lists
 from flask_login import UserMixin
-
+from jinja2 import Markup
 from evopie import DB
 
 import ast
@@ -41,12 +41,16 @@ class Question(DB.Model):
         q = {
             "id" : self.id,
             "title" : self.title,
-            "stem" : self.stem,
-            "answer" : self.answer,
+            "stem" : Markup(self.stem).unescape(),
+            "answer" : Markup(self.answer).unescape(),
             "alternatives" : []
         }
-        q['alternatives'] = [d.answer for d in self.distractors]
-        q['alternatives'].append(self.answer)
+        #NOTE we have to do the above unescapes so that the html code sent by summernote to the server
+        # is then rendered as HTML instead of being displayed as an escape string, or rendered
+        # with the unescaped symbols but not interpreted as HTML
+
+        q['alternatives'] = [Markup(d.answer).unescape() for d in self.distractors]
+        q['alternatives'].append(Markup(self.answer).unescape())
         shuffle(q['alternatives'])
         return q
 
