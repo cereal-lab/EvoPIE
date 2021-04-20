@@ -199,7 +199,7 @@
 
 <!div class="card-deck">
     {% for q in questions %}
-        <div class="card bg-light m-3">
+        <div class="card bg-light m-3 mx-auto" style="width: 75%">
             <div class="card-body" bg-light>
                 <h5 class="card-title">Question #{{q.id}} - {{q.title|safe|unescapeDoubleQuotes}}</h5>
                 <p class="card-text">{{q.stem|safe|unescapeDoubleQuotes}}</p>
