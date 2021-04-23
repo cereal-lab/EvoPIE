@@ -229,7 +229,7 @@
                                         {% if question_key|int == q.id|int %}
                                             {% for distractor_key,justification in question.items() %}
                                                 {% if distractor_key|int == id|int %}
-                                                    <p> {{ justification["justification"] }} </p>
+                                                    <p> {{ justification["justification"] | safe }} </p>
                                                 {% endif %}
                                             {% endfor %}
                                         {% endif %}

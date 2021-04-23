@@ -15,7 +15,7 @@ import bleach
 from . import models
     
 # allowed tags for bleach.clean
-bleach_allowed_tags = bleach.sanitizer.ALLOWED_TAGS + ['h1','h2','h3','h4','h5','h6','p']
+bleach_allowed_tags = bleach.sanitizer.ALLOWED_TAGS + ['h1','h2','h3','h4','h5','h6','p','pre','span','font','style']
 
 mcq = Blueprint('mcq', __name__)
 
@@ -70,15 +70,15 @@ def post_new_question():
     # Taking a shot at fixing this
     # might be why Paul reported seeing double quotes in the JSON still
     escaped_answer = json.dumps(answer) # escapes "" used in code
-    escaped_answer = Markup.escape(escaped_answer) # escapes HTML characters
+    escaped_answer = Markup.escape(answer) # escapes HTML characters
     escaped_answer = bleach.clean(escaped_answer, tags=bleach_allowed_tags)
 
     escaped_stem = json.dumps(stem)
-    escaped_stem = Markup.escape(escaped_stem)
+    escaped_stem = Markup.escape(stem)
     escaped_stem = bleach.clean(escaped_stem, tags=bleach_allowed_tags)
 
     escaped_title = json.dumps(title)
-    escaped_title = Markup.escape(escaped_title)
+    escaped_title = Markup.escape(title)
     escaped_title = bleach.clean(escaped_title, tags=bleach_allowed_tags)
 
     q = models.Question(title=escaped_title, stem=escaped_stem, answer=escaped_answer)
@@ -230,7 +230,7 @@ def post_new_distractor_for_question(question_id):
     
     #BUG same potential bug here than above, applying same fix
     escaped_answer = json.dumps(answer) # escapes "" used in code
-    escaped_answer = Markup.escape(escaped_answer) # escapes HTML characters
+    escaped_answer = Markup.escape(answer) # escapes HTML characters
     escaped_answer = bleach.clean(escaped_answer, tags=bleach_allowed_tags)
 
     q.distractors.append(models.Distractor(answer=escaped_answer,question_id=q.id))
