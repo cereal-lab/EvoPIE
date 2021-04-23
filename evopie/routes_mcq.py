@@ -65,19 +65,20 @@ def post_new_question():
     if answer is None or stem is None or title is None:
         abort(400, "Unable to create new question due to missing data") # bad request
     
-    #BUG the code below is highly suspicious... why did we keep the jason.dumps lines since both use answer
+    #NOTEthe code below is highly suspicious... why did we keep the jason.dumps lines since both use answer
     # instead of the 2nd line using escaped_answer?
     # Taking a shot at fixing this
     # might be why Paul reported seeing double quotes in the JSON still
-    escaped_answer = json.dumps(answer) # escapes "" used in code
+    # Not a bug actually...
+    # escaped_answer = json.dumps(answer) # escapes "" used in code
     escaped_answer = Markup.escape(answer) # escapes HTML characters
     escaped_answer = bleach.clean(escaped_answer, tags=bleach_allowed_tags)
 
-    escaped_stem = json.dumps(stem)
+    # escaped_stem = json.dumps(stem)
     escaped_stem = Markup.escape(stem)
     escaped_stem = bleach.clean(escaped_stem, tags=bleach_allowed_tags)
 
-    escaped_title = json.dumps(title)
+    # escaped_title = json.dumps(title)
     escaped_title = Markup.escape(title)
     escaped_title = bleach.clean(escaped_title, tags=bleach_allowed_tags)
 
@@ -228,8 +229,8 @@ def post_new_distractor_for_question(question_id):
     
     q = models.Question.query.get_or_404(question_id)
     
-    #BUG same potential bug here than above, applying same fix
-    escaped_answer = json.dumps(answer) # escapes "" used in code
+    #NOTE same potential bug here than above, still a feature
+    # escaped_answer = json.dumps(answer) # escapes "" used in code
     escaped_answer = Markup.escape(answer) # escapes HTML characters
     escaped_answer = bleach.clean(escaped_answer, tags=bleach_allowed_tags)
 
