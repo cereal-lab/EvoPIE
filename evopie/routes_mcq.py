@@ -10,10 +10,12 @@ from flask import Markup
 from flask import flash
 from random import shuffle
 import json
+import bleach
 
 from . import models
     
-    
+# allowed tags for bleach.clean
+bleach_allowed_tags = bleach.sanitizer.ALLOWED_TAGS + ['h1','h2','h3','h4','h5','h6','p']
 
 mcq = Blueprint('mcq', __name__)
 
@@ -63,13 +65,22 @@ def post_new_question():
     if answer is None or stem is None or title is None:
         abort(400, "Unable to create new question due to missing data") # bad request
     
+    #BUG the code below is highly suspicious... why did we keep the jason.dumps lines since both use answer
+    # instead of the 2nd line using escaped_answer?
+    # Taking a shot at fixing this
+    # might be why Paul reported seeing double quotes in the JSON still
     escaped_answer = json.dumps(answer) # escapes "" used in code
-    escaped_answer = Markup.escape(answer) # escapes HTML characters
+    escaped_answer = Markup.escape(escaped_answer) # escapes HTML characters
+    escaped_answer = bleach.clean(escaped_answer, tags=bleach_allowed_tags)
+
     escaped_stem = json.dumps(stem)
-    escaped_stem = Markup.escape(stem)
+    escaped_stem = Markup.escape(escaped_stem)
+    escaped_stem = bleach.clean(escaped_stem, tags=bleach_allowed_tags)
+
     escaped_title = json.dumps(title)
-    escaped_title = Markup.escape(title)
-    
+    escaped_title = Markup.escape(escaped_title)
+    escaped_title = bleach.clean(escaped_title, tags=bleach_allowed_tags)
+
     q = models.Question(title=escaped_title, stem=escaped_stem, answer=escaped_answer)
     models.DB.session.add(q)
     models.DB.session.commit()
@@ -135,9 +146,10 @@ def put_question(question_id):
         abort(400, "Unable to modify question due to missing data") # bad request
     
     q = models.Question.query.get_or_404(question_id)
-    q.title = title
-    q.stem = stem
-    q.answer = answer
+    q.title = bleach.clean(title, tags=bleach_allowed_tags)
+    q.stem = bleach.clean(stem, tags=bleach_allowed_tags)
+    q.answer = bleach.clean(answer, tags=bleach_allowed_tags)
+
     models.DB.session.commit()
     response = ({ "message" : "Question updated in database" }, 200, {"Content-Type": "application/json"})
     #NOTE should it be 204? probably but I prefer to return a message so that CURL displays something indicating that the operation succeeded
@@ -216,8 +228,11 @@ def post_new_distractor_for_question(question_id):
     
     q = models.Question.query.get_or_404(question_id)
     
+    #BUG same potential bug here than above, applying same fix
     escaped_answer = json.dumps(answer) # escapes "" used in code
-    escaped_answer = Markup.escape(answer) # escapes HTML characters
+    escaped_answer = Markup.escape(escaped_answer) # escapes HTML characters
+    escaped_answer = bleach.clean(escaped_answer, tags=bleach_allowed_tags)
+
     q.distractors.append(models.Distractor(answer=escaped_answer,question_id=q.id))
     models.DB.session.commit()
     
@@ -269,7 +284,8 @@ def put_distractor(distractor_id):
         abort(400, "Unable to modify distractor due to missing data") # bad request
 
     d = models.Distractor.query.get_or_404(distractor_id)
-    d.answer = answer
+    d.answer = bleach.clean(answer, tags=bleach_allowed_tags)
+
     models.DB.session.commit()
 
     response = ({ "message" : "Distractor updated in database" }, 200, {"Content-Type": "application/json"})
@@ -470,7 +486,10 @@ def post_new_quiz():
     if request.json['questions_ids'] is None:
         abort(400, "Unable to create new quiz due to missing data") # bad request
     
-    q = models.Quiz(title=title, description=description)
+    bleached_title = bleach.clean(title, tags=bleach_allowed_tags)
+    bleached_description = bleach.clean(description, tags=bleach_allowed_tags)
+
+    q = models.Quiz(title=bleach.clean(bleached_title), description=bleached_description)
     
     # Adding the questions, based on the questions_id that were submitted
     for qid in request.json['questions_ids']:
@@ -560,12 +579,12 @@ def put_quizzes(qid):
     if not request.json:
         abort(406, "JSON format required for request") # not acceptable
 
-    quiz.title = request.json['title']
-    quiz.description = request.json['description']
-
     # validate that all required information was sent
     if quiz.title is None or quiz.description is None or request.json['questions_ids'] is None:
         abort(400, "Unable to modify quiz due to missing data") # bad request
+
+    quiz.title = bleach.clean(request.json['title'], tags=bleach_allowed_tags)
+    quiz.description = bleach.clean(request.json['description'], tags=bleach_allowed_tags)
 
     quiz.quiz_questions = []
     for qid in request.json['questions_ids']:
@@ -618,6 +637,7 @@ def post_quizzes_status(qid):
     if not request.json:
         abort(406, "JSON format required for request") # not acceptable
     new_status = request.json['status']
+    #FIXME how about check that the status is actually valid, eh? :)
     if(quiz.set_status(new_status)):
         response     = ({ "message" : "OK" }, 200, {"Content-Type": "application/json"})
         models.DB.session.commit()
@@ -733,7 +753,7 @@ def all_quizzes_take(qid):
             for key_quest in justifications_dict:
                 quest = justifications_dict[key_quest]
                 for key_just in quest:
-                    just = models.Justification(quiz_question_id=key_quest, distractor_id=key_just, student_id=sid, justification=quest[key_just])
+                    just = models.Justification(quiz_question_id=key_quest, distractor_id=key_just, student_id=sid, justification=bleach.clean(quest[key_just], tags=bleach_allowed_tags))
                     models.DB.session.add(just)
 
             models.DB.session.add(attempt)

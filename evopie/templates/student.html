@@ -23,7 +23,7 @@
                 var attempt_raw = "{% if attempt is defined %} {{ attempt.initial_responses }} {% endif %}"
                 var dom = parser.parseFromString('<!doctype html><body>' + attempt_raw, 'text/html');
                 var usable = dom.body.textContent;
-                // this is one ugly hack to make sure we don't screw with data like {'1': 'let's roll'}
+                // FIXME - this is one ugly hack to make sure we don't screw with data like {'1': 'let's roll'}
                 usable = usable.replace(/ /g,'')
                 usable = usable.replace(/{\'/g,'{"')
                 usable = usable.replace(/\'}/g,'"}')
@@ -160,8 +160,8 @@
             In order to receive any credit at all for your quiz, make sure that you: 
             <ul>
                 <li>Select 1 solution for each question below.</li>
-                <li>Provide a meaningful justification of why you think that the alternatives
-                    that you did not select are incorrect.</li>
+                <li>Provide a meaningful justification of <b>why</b> you think that <b>the alternatives
+                    that you did not select are incorrect</b>.</li>
             </ul>
             {% endif %}
 
@@ -203,9 +203,11 @@
             <div class="card-body" bg-light>
                 <h5 class="card-title">Question #{{q.id}} - {{q.title|safe|unescapeDoubleQuotes}}</h5>
                 <p class="card-text">{{q.stem|safe|unescapeDoubleQuotes}}</p>
+                {% if attempt is defined %}
                 <dl>
                     <dt>Your orginal answer is pre-selected below</dt>
                 </dl>
+                {% endif %}
                 <ul class="list-group list-group-flush">
                 {% for id,alt in q.alternatives %}
                     <li class="list-group-item border border-primaryrounded">
@@ -241,11 +243,18 @@
                                     rows="3"
                                     placeholder="Explain here why you did not select this alternative."></textarea>
                                 -->
+                                <!-- 
+                                    BUG with summernote, the reveal-if-not-selected does not work anymore
+                                    I was unable to find a fix besides bypassing that class from bootstrap
+                                -->
+                                <p>
+                                    Explain below why you did not select this alternative, leave blank if you did.
+                                </p>
                                 <textarea
                                     class="summernote form-control reveal-if-not-selected"
                                     name="alternative_{{q.id}}_{{id}}_justify" id="alternative_{{q.id}}_{{id}}_justify"
                                     rows="3"
-                                    placeholder="Explain here why you did not select this alternative."></textarea>                                   
+                                    placeholder=""></textarea>                                   
                                 {% endif %}
 
                             </div>

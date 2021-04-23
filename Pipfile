@@ -14,6 +14,7 @@ plotly = "*"
 pandas = "*"
 numpy = "*"
 pylint = "*"
+bleach = "*"
 
 [dev-packages]
 pylint = "*"
