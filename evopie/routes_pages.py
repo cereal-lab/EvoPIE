@@ -127,7 +127,7 @@ def get_student(qid):
 
 @pages.route('/student1/<int:qid>', methods=['GET'])
 @login_required
-def get_student(qid):
+def get_student1(qid):
     '''
     Links using this route are meant to be shared with students so that they may take the quiz
     and engage in the asynchronous peer instrution aspects. 
@@ -199,5 +199,5 @@ def get_student(qid):
 
         return render_template('student1.html', quiz=q, questions=quiz_questions, student=u, attempt=a[0], justifications=quiz_justifications)
     else: # step == 1
-        return render_template('student.html1', quiz=q, questions=quiz_questions, student=u)
+        return render_template('student1.html', quiz=q, questions=quiz_questions, student=u)
 
