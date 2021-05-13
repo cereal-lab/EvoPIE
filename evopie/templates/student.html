@@ -244,17 +244,19 @@
                                     placeholder="Explain here why you did not select this alternative."></textarea>
                                 -->
                                 <!-- 
-                                    BUG with summernote, the reveal-if-not-selected does not work anymore
+                                    NOTE with summernote, the reveal-if-not-selected does not work anymore
                                     I was unable to find a fix besides bypassing that class from bootstrap
+                                    UPDATE - fixed, just needed a surrounding div that would have the reveal-if-not-selected class
                                 -->
                                 <p>
                                     Explain below why you did not select this alternative, leave blank if you did.
                                 </p>
-                                <textarea
-                                    class="summernote form-control reveal-if-not-selected"
+                                <div class="reveal-if-not-selected"><textarea
+                                    class="summernote form-control"
                                     name="alternative_{{q.id}}_{{id}}_justify" id="alternative_{{q.id}}_{{id}}_justify"
                                     rows="3"
                                     placeholder=""></textarea>                                   
+                                </div>
                                 {% endif %}
 
                             </div>
