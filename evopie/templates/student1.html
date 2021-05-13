@@ -198,7 +198,7 @@
     </button>
 </div>
 -->
-
+<form action="/quizzes/{{quiz.id}}/take" method="POST">
 <!div class="card-deck">
     {% for q in questions %}
     <div class="card bg-light m-3">
@@ -213,7 +213,6 @@
                 <li class="list-group-item border border-primaryrounded">
                     <div class="form-group">
                         <div id="alternative_{{q.id}}_{{id}}" class="form-check">
-
                             <input type="radio" name="question_{{q.id}}" id="alternative_{{q.id}}_{{id}}_check"
                                 value="{{id}}" class="form-check-input"></input>
 
@@ -259,4 +258,5 @@
                 If you were trying to submit twice, no worries, your first submission is enough.
             </p>
         </div>
+</form>
         {% endblock %}
