@@ -93,13 +93,13 @@ footer p {
         </div>
         <p>
           {% if current_user.is_authenticated %}
-            {% if current_user.role == "STUDENT" %}
+            {% if current_user.is_student() %}
               <a href="/student/1" class="btn btn-primary my-2"> Take the current Quiz</a>
             {% endif %}
-            {% if current_user.role == "INSTRUCTOR" %}
+            {% if current_user.is_instructor() %}
               <a href="/contributor" class="btn btn-primary my-2"> Contribute </a>
             {% endif %}
-            {% if current_user.role == "ADMIN" %}
+            {% if current_user.is_admin() %}
               <a href="/admin" class="btn btn-primary my-2"> Admin Dashboard </a>
             {% endif %}
             <a href="/logout" class="btn btn-secondary my-2"> Logout </a>
