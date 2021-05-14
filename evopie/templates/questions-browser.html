@@ -51,5 +51,12 @@
     </div>
     {% endfor %}
 <!/div>
-
+<div class="w-50 mx-auto d-flex justify-content-around" style="width=75%">
+    {% if prev_url %}
+        <a class="btn btn-primary my-2" href="{{ prev_url }}">Previous Questions</a>
+    {% endif %}
+    {% if next_url %}
+        <a class="btn btn-primary my-2" href="{{ next_url }}">Next Questions</a>
+    {% endif %}
+</div>
 {% endblock %}
