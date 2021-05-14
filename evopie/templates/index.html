@@ -97,7 +97,9 @@ footer p {
               <a href="/student/1" class="btn btn-primary my-2"> Take the current Quiz</a>
             {% endif %}
             {% if current_user.is_instructor() %}
-              <a href="/contributor" class="btn btn-primary my-2"> Contribute </a>
+              <a href="/contributor" class="btn btn-primary my-2"> Contributor Dashboard </a>
+              <a href="/questions-browser" class="btn btn-secondary my-2"> Questions Browser </a>
+              <a href="/quizzes-browser" class="btn btn-secondary my-2"> Quizzes Browser </a>
             {% endif %}
             {% if current_user.is_admin() %}
               <a href="/admin" class="btn btn-primary my-2"> Admin Dashboard </a>

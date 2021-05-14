@@ -249,7 +249,7 @@
             <h5 class="card-title" data-toggle = "collapse" data-target = "#questionsselector">Browse Questions</h5>
             <div  id = "questionsselector" class = "collapse">
                 <p class="card-text">
-                    <table>
+                    <table style="border: 0;border-collapse: separate; border-spacing: 0px 3px 1rem 3px;" cellpadding="10">
                         <!--
                             <tr>
                             <th>ID</th>
@@ -259,7 +259,7 @@
                         -->
                         {% for single_question in all_questions %}
                         <tr>
-                            <td rowspan="3" style="vertical-align: top">{{ single_question.id }}</td>
+                            <td rowspan="3" style="vertical-align: top;">{{ single_question.id }}</td>
                             <td colspan="2"><b>{{ single_question.title }}</b></td>
                         </tr>
                         <tr>
@@ -271,6 +271,9 @@
                         <tr>   
                             <td style="vertical-align: top"><b>A:</b></td>
                             <td>{{ single_question.answer | safe }}</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 0; height: 0.25rem; padding:0; margin:0; border-spacing: 0;" colspan=3> &nbsp;</td>
                         </tr>
                     {% endfor %}
                     </table>

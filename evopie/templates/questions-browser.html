@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block title %}EvoPIE{% endblock %}
+
+{% block head%}
+{% endblock %}
+
+{% block content %}
+<div class="jumbotron jumbotron-fluid">
+    <div class="container">
+        <h1 class="display-4">Questions Browser</h1>
+            <p class="lead">
+                Use this to find questions that are of interest to you. 
+                Take note of their question ID so that you may then integrate
+                them into your quizzes or contribute new distractors to them.
+            </p>
+    </div>
+</div>
+
+<style>
+    table, th, td {
+        border: 0px solid black;
+        border-collapse: separate;
+        border-spacing: 0px 3px 1rem 3px;
+    }
+</style>
+
+<!div class="card-deck">    
+    {% for single_question in all_questions %}
+    <div class="card bg-light m-3 mx-auto" style="width: 75%">
+        <div class="card-body" bg-light>
+    
+            <h5 class="card-title">ID {{ single_question.id }} - {{ single_question.title }}</h5>
+    
+            <p class="card-text">
+            </p>
+    
+            <table style="border: 0; width: 100%;" cellpadding="10">
+                <tr>
+                    <td style="vertical-align: top"><b>Q:</b></td>
+                    <td>
+                            {{ single_question.stem | safe }}
+                    </td>
+                </tr>
+                <tr>   
+                    <td style="vertical-align: top"><b>A:</b></td>
+                    <td>{{ single_question.answer | safe }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    {% endfor %}
+<!/div>
+
+{% endblock %}

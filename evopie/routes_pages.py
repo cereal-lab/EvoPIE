@@ -49,6 +49,30 @@ def contributor():
 
 
 
+@pages.route('/questions-browser')
+@login_required
+def questions_browser():
+    if not current_user.is_instructor():
+        flash("Restricted to contributors.", "error")
+        return redirect(url_for('pages.index'))
+    all_questions = [q.dump_as_dict() for q in models.Question.query.all()]
+    #return jsonify(all_questions) 
+    return render_template('questions-browser.html', all_questions = all_questions)
+
+
+
+@pages.route('/quizzes-browser')
+@login_required
+def quizzes_browser():
+    if not current_user.is_instructor():
+        flash("Restricted to contributors.", "error")
+        return redirect(url_for('pages.index'))
+    all_quizzes = [q.dump_as_dict() for q in models.Quiz.query.all()]
+    return render_template('quizzes-browser.html', all_quizzes = all_quizzes)
+
+
+
+
 @pages.route('/student/<int:qid>', methods=['GET'])
 @login_required
 def get_student(qid):
