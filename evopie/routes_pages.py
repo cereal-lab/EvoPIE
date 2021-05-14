@@ -75,8 +75,15 @@ def quizzes_browser():
     if not current_user.is_instructor():
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
-    all_quizzes = [q.dump_as_dict() for q in models.Quiz.query.all()]
-    return render_template('quizzes-browser.html', all_quizzes = all_quizzes)
+    page = request.args.get('page',1, type=int)
+    QUESTIONS_PER_PAGE = 2 # FIXME make this a field in a global config object
+    paginated = models.Quiz.query.paginate(page, QUESTIONS_PER_PAGE, False)
+    all_quizzes = [q.dump_as_dict() for q in paginated.items]
+    #return jsonify(all_questions)
+    next_url = url_for('pages.quizzes_browser', page=paginated.next_num) if paginated.has_next else None
+    prev_url = url_for('pages.quizzes_browser', page=paginated.prev_num) if paginated.has_prev else None
+    return render_template('quizzes-browser.html', all_quizzes = all_quizzes, next_url=next_url, prev_url=prev_url)
+    
 
 
 
