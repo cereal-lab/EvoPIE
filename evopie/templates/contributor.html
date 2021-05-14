@@ -37,6 +37,7 @@
             <h5 class="card-title" data-toggle = "collapse" data-target = "#newquestion">Create New Question</h5>
             <div  id = "newquestion" class = "collapse">
             <p class="card-text">
+                <!-- BUG why is the action hard coded with a local IP? -->
                 <form id="questionForm" method="post" action='http://172.23.247.249:5000//questions'>
                     <div class="form-group">
                         <label for="title">Title</label>
