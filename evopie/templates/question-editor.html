@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block title %}EvoPIE{% endblock %}
+
+{% block head%}
+{% endblock %}
+
+{% block content %}
+<div class="jumbotron jumbotron-fluid">
+    <div class="container">
+        <h1 class="display-4">Question Editor</h1>
+            <p class="lead">
+                Modify or create questions and their distractors.
+            </p>
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="notification">
+                {{ messages[0] }}
+            </div>
+        {% endif %}
+        {% endwith %}
+    </div>
+</div>
+<!div class="card-deck">
+    <div class="card bg-light m-3 mx-auto" style="width: 75%">
+        <div class="card-body" bg-light>
+    
+            <h5 class="card-title">ID {{ question.id }} - {{ question.title }}</h5>
+    
+            <p class="card-text">
+            </p>
+    
+            <table style="border: 0; width: 100%;" cellpadding="10">
+                <tr>
+                    <td style="vertical-align: top"><b>Q:</b></td>
+                    <td>
+                            {{ question.stem | safe }}
+                    </td>
+                </tr>
+                <tr>   
+                    <td style="vertical-align: top"><b>A:</b></td>
+                    <td>{{ question.answer | safe }}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <h1>Distractors</h1>
+        
+    {% for single_distractor in all_distractors %}
+        <div class="card bg-light m-3 mx-auto" style="width: 75%">
+            <div class="card-body" bg-light>
+                {{ single_distractor.answer | safe }}
+            </div>
+        </div>
+    {% endfor %}
+<!/div>
+{% endblock %}

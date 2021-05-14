@@ -39,6 +39,7 @@
                     <td>{{ single_question.answer | safe }}</td>
                 </tr>
             </table>
+            <a class="btn btn-primary my-2" href="/question-editor/{{ single_question.id }}">Edit Question</a>
         </div>
     </div>
     {% endfor %}

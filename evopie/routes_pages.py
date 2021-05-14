@@ -83,6 +83,18 @@ def quizzes_browser():
     next_url = url_for('pages.quizzes_browser', page=paginated.next_num) if paginated.has_next else None
     prev_url = url_for('pages.quizzes_browser', page=paginated.prev_num) if paginated.has_prev else None
     return render_template('quizzes-browser.html', all_quizzes = all_quizzes, next_url=next_url, prev_url=prev_url)
+
+
+
+@pages.route('/question-editor/<int:question_id>')
+@login_required
+def question_editor(question_id):
+    if not current_user.is_instructor():
+        flash("Restricted to contributors.", "error")
+        return redirect(url_for('pages.index'))
+    q = models.Question.query.get_or_404(question_id)
+    ds = [d.dump_as_dict() for d in q.distractors]
+    return render_template('question-editor.html', all_distractors = ds, question = q)
     
 
 
