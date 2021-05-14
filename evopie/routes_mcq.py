@@ -56,10 +56,26 @@ def post_new_question():
         stem = request.json['stem']
         answer = request.json['answer']
     else:
-        #FIXME do we want to continue handling both formats?
+        #FIXME do we want to continue handling both formats? yes :)
         title = request.form['title']
         stem = request.form['stem']
         answer = request.form['answer']
+        #TODO if the POST from the HTML form refers to an existing question, forward it to the PUT route.
+        # problem is that we do not have the ID, and so it should be.
+        # so, do we end up searching the whole DB for a question w/ same title + stem + answer?!
+        # what about checking if the form actually sent a field ID or not and only send it when we have it on the
+        # browser-side of things?
+        if 'qid' in request.form:
+            # now we know that this should be a PUT
+            # let's put the data in JSON format or the PUT route will reject it
+            request.json = {} # nope not gonna work; see https://stackoverflow.com/questions/57045378/modify-request-data-before-view-functions-in-flask-api
+            request.json['title'] = request.form['title']
+            request.json['stem'] = request.form['stem']
+            request.json['answer'] = request.form['answer']
+            request.json['qid'] = request.form['qid']
+            
+            print("-----> we just transformed a POST into a PUT ;p")
+            return put_question(request.form['qid'])
 
     # validate that all required information was sent
     if answer is None or stem is None or title is None:
