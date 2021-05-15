@@ -521,7 +521,7 @@ def post_new_quiz():
     bleached_title = sanitize(title)
     bleached_description = sanitize(description)
 
-    q = models.Quiz(title=sanitize(bleached_title), description=bleached_description)
+    q = models.Quiz(title=bleached_title, description=bleached_description)
     
     # Adding the questions, based on the questions_id that were submitted
     for qid in request.json['questions_ids']:
@@ -668,7 +668,7 @@ def post_quizzes_status(qid):
 
     if not request.json:
         abort(406, "JSON format required for request") # not acceptable
-    new_status = request.json['status']
+    new_status = sanitize(request.json['status'])
     #FIXME how about check that the status is actually valid, eh? :)
     if(quiz.set_status(new_status)):
         response     = ({ "message" : "OK" }, 200, {"Content-Type": "application/json"})

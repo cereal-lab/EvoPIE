@@ -50,7 +50,7 @@ curlit  'QuizQuestion composed'     "/quizquestions"                '{ "qid": "5
 
 header 'CREATING QUIZ & releasing it as STEP1'
 curlit  'Quiz Created'              "/quizzes"                      '{ "title": "Extra Credit Quiz", "description": "This quiz is a simple extra-credit assignment.", "questions_ids":[1, 2, 3, 4, 5]}'
-curlit  "Quiz released as STEP1"    "/quizzes/1/status"             '{ "status" : "STEP1" }'
+#curlit  "Quiz released as STEP1"    "/quizzes/1/status"             '{ "status" : "STEP1" }'
 
 # new question template
 # curlit  'Added Question'            "/questions"        '{ "title": "", "stem": "", "answer": ""}'
