@@ -101,7 +101,7 @@ def post_new_question():
         return make_response(response)
     else:
         flash("Question successfully added to database.", "shiny")
-        return redirect(url_for('pages.index'))
+        return redirect(request.referrer)
 
     
 
@@ -174,8 +174,8 @@ def put_question(question_id):
         #NOTE should it be 204? probably but I prefer to return a message so that CURL displays something indicating that the operation succeeded
         return make_response(response)
     else:
-        flash("Question successfully added to database.", "shiny")
-        return redirect(url_for('pages.index'))
+        flash("Question successfully updated in database.", "shiny")
+        return redirect(request.referrer)
 
 
 
@@ -262,9 +262,8 @@ def post_new_distractor_for_question(question_id):
         response = ({ "message" : "Distractor added to Question in database" }, 201, {"Content-Type": "application/json"})
         return make_response(response)
     else:
-        #FIXME do we want to continue handling both formats?
-        return redirect(url_for('pages.contributor'))
-        #TODO how to handle error in a non-REST client? e.g., flash an error message then redirect?
+        flash("Distractor successfully added to database.", "shiny")
+        return redirect(request.referrer)
 
 
 
@@ -297,6 +296,7 @@ def put_distractor(distractor_id):
                     return make_response(response)
     
     if not request.json:
+        #TODO NOW accept form data if it's been sent from the POST handler with an ID
         abort(406, "JSON format required for request") # not acceptable
     
     answer = request.json['answer']    
@@ -310,9 +310,13 @@ def put_distractor(distractor_id):
 
     models.DB.session.commit()
 
-    response = ({ "message" : "Distractor updated in database" }, 200, {"Content-Type": "application/json"})
-    #NOTE see previous note about using 204 vs 200
-    return make_response(response)
+    if request.json:
+        response = ({ "message" : "Distractor updated in database" }, 200, {"Content-Type": "application/json"})
+        #NOTE see previous note about using 204 vs 200
+        return make_response(response)
+    else: 
+        flash("Distractor successfully modified in database.", "shiny")
+        return redirect(request.referrer)
 
 
 
