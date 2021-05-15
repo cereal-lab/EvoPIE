@@ -244,6 +244,11 @@ def post_new_distractor_for_question(question_id):
         #FIXME do we want to continue handling both formats?
         answer = request.form['answer']
     
+    #TODO detect if did was passed too; if so, then it's an update
+    if 'did' in request.form:
+        return put_distractor(request.form['did'])
+
+
     # validate that all required information was sent
     if answer is None:
         abort(400, "Unable to create new distractor due to missing data") # bad request
@@ -279,7 +284,7 @@ def get_distractor(distractor_id):
 
 
 
-@mcq.route('/distractors/<int:distractor_id>', methods=['PUT'])
+@mcq.route('/distractors/<int:distractor_id>', methods=['PUT','POST'])
 @login_required
 def put_distractor(distractor_id):
     if not current_user.is_instructor():
@@ -292,14 +297,15 @@ def put_distractor(distractor_id):
             question = models.Question.query.get(qq.question_id)
             for d in question.distractors:
                 if d.id == distractor_id and quiz.status != "HIDDEN":
-                    response = ({ "message" : "Quiz not accessible at this time" }, 403, {"Content-Type": "application/json"})
+                    response = ({ "message" : "Quiz not accessible at this time, unable to update distractors." }, 403, {"Content-Type": "application/json"})
                     return make_response(response)
     
     if not request.json:
         #TODO NOW accept form data if it's been sent from the POST handler with an ID
-        abort(406, "JSON format required for request") # not acceptable
-    
-    answer = request.json['answer']    
+        answer = request.form['answer']
+        #abort(406, "JSON format required for request") # not acceptable
+    else:
+        answer = request.json['answer']    
     
     # validate that all required information was sent
     if answer is None:
