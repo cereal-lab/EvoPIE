@@ -11,11 +11,18 @@ from flask import flash
 from random import shuffle
 import json
 import bleach
+from bleach_allowlist import print_tags, print_attrs, all_styles
 
 from . import models
     
 # allowed tags for bleach.clean
 bleach_allowed_tags = bleach.sanitizer.ALLOWED_TAGS + ['h1','h2','h3','h4','h5','h6','p','pre','span','font','style']
+bleach_allowed_attributes = {'span':['color','style'], 'font':['color','style']}
+bleach_allowed_attributes.update(bleach.sanitizer.ALLOWED_ATTRIBUTES)
+
+# helper method to apply the above to each call to bleach.clean
+def sanitize(html):
+    return bleach.clean(html, tags=bleach_allowed_tags, attributes=bleach_allowed_attributes, styles=all_styles)
 
 mcq = Blueprint('mcq', __name__)
 
@@ -56,47 +63,34 @@ def post_new_question():
         stem = request.json['stem']
         answer = request.json['answer']
     else:
-        #FIXME do we want to continue handling both formats? yes :)
         title = request.form['title']
         stem = request.form['stem']
         answer = request.form['answer']
-        #TODO if the POST from the HTML form refers to an existing question, forward it to the PUT route.
-        # problem is that we do not have the ID, and so it should be.
-        # so, do we end up searching the whole DB for a question w/ same title + stem + answer?!
-        # what about checking if the form actually sent a field ID or not and only send it when we have it on the
-        # browser-side of things?
+        #NOTE if the POST from the HTML form refers to an existing question, we forward it to the PUT route.
+        # We are able to tell this is the case because the form embeds an hidden field named "qid".
         if 'qid' in request.form:
-            # now we know that this should be a PUT
-            # let's put the data in JSON format or the PUT route will reject it
-            request.json = {} # nope not gonna work; see https://stackoverflow.com/questions/57045378/modify-request-data-before-view-functions-in-flask-api
-            request.json['title'] = request.form['title']
-            request.json['stem'] = request.form['stem']
-            request.json['answer'] = request.form['answer']
-            request.json['qid'] = request.form['qid']
-            
-            print("-----> we just transformed a POST into a PUT ;p")
             return put_question(request.form['qid'])
 
     # validate that all required information was sent
     if answer is None or stem is None or title is None:
         abort(400, "Unable to create new question due to missing data") # bad request
     
-    #NOTEthe code below is highly suspicious... why did we keep the jason.dumps lines since both use answer
+    #NOTE the code below is highly suspicious... why did we keep the jason.dumps lines since both use answer
     # instead of the 2nd line using escaped_answer?
     # Taking a shot at fixing this
     # might be why Paul reported seeing double quotes in the JSON still
-    # Not a bug actually...
+    # UPDATE - Not a bug actually...
     # escaped_answer = json.dumps(answer) # escapes "" used in code
     escaped_answer = Markup.escape(answer) # escapes HTML characters
-    escaped_answer = bleach.clean(escaped_answer, tags=bleach_allowed_tags)
+    escaped_answer = sanitize(escaped_answer)
 
     # escaped_stem = json.dumps(stem)
     escaped_stem = Markup.escape(stem)
-    escaped_stem = bleach.clean(escaped_stem, tags=bleach_allowed_tags)
+    escaped_stem = sanitize(escaped_stem)
 
     # escaped_title = json.dumps(title)
     escaped_title = Markup.escape(title)
-    escaped_title = bleach.clean(escaped_title, tags=bleach_allowed_tags)
+    escaped_title = sanitize(escaped_title)
 
     q = models.Question(title=escaped_title, stem=escaped_stem, answer=escaped_answer)
     models.DB.session.add(q)
@@ -107,7 +101,7 @@ def post_new_question():
         return make_response(response)
     else:
         flash("Question successfully added to database.", "shiny")
-        return redirect(url_for('pages.contributor'))
+        return redirect(url_for('pages.index'))
 
     
 
@@ -138,6 +132,8 @@ def get_question(question_id):
 def put_question(question_id):
     '''
     Update a given question.
+    This method may be called by post_new_question if we detect a POST request
+    coming from an HTML form that really wanted to send us a PUT.
     '''
     if not current_user.is_instructor():
         response     = ({ "message" : "You are not allowed to modify questions" }, 403, {"Content-Type": "application/json"})
@@ -151,26 +147,35 @@ def put_question(question_id):
                 return make_response(response)
     
     #NOTE HTML5 forms can not submit a PUT (only POST), so we reject any non-json request
+    #NOTE update to the above; we're going to sort out in the POST whether it's a PUT or not
     if not request.json:
-        abort(406, "JSON format required for request") # not acceptable
+        #abort(406, "JSON format required for request") # not acceptable
+        title = request.form['title']
+        stem = request.form['stem']
+        answer = request.form['answer']
 
-    title = request.json['title']
-    stem = request.json['stem']
-    answer = request.json['answer']
-    
+    else:
+        title = request.json['title']
+        stem = request.json['stem']
+        answer = request.json['answer']
+        
     # validate that all required information was sent
     if answer is None or stem is None or title is None:
         abort(400, "Unable to modify question due to missing data") # bad request
     
     q = models.Question.query.get_or_404(question_id)
-    q.title = bleach.clean(title, tags=bleach_allowed_tags)
-    q.stem = bleach.clean(stem, tags=bleach_allowed_tags)
-    q.answer = bleach.clean(answer, tags=bleach_allowed_tags)
+    q.title = sanitize(title)
+    q.stem = sanitize(stem)
+    q.answer = sanitize(answer)
 
     models.DB.session.commit()
-    response = ({ "message" : "Question updated in database" }, 200, {"Content-Type": "application/json"})
-    #NOTE should it be 204? probably but I prefer to return a message so that CURL displays something indicating that the operation succeeded
-    return make_response(response)
+    if request.json:
+        response = ({ "message" : "Question updated in database" }, 200, {"Content-Type": "application/json"})
+        #NOTE should it be 204? probably but I prefer to return a message so that CURL displays something indicating that the operation succeeded
+        return make_response(response)
+    else:
+        flash("Question successfully added to database.", "shiny")
+        return redirect(url_for('pages.index'))
 
 
 
@@ -248,7 +253,7 @@ def post_new_distractor_for_question(question_id):
     #NOTE same potential bug here than above, still a feature
     # escaped_answer = json.dumps(answer) # escapes "" used in code
     escaped_answer = Markup.escape(answer) # escapes HTML characters
-    escaped_answer = bleach.clean(escaped_answer, tags=bleach_allowed_tags)
+    escaped_answer = sanitize(escaped_answer)
 
     q.distractors.append(models.Distractor(answer=escaped_answer,question_id=q.id))
     models.DB.session.commit()
@@ -301,7 +306,7 @@ def put_distractor(distractor_id):
         abort(400, "Unable to modify distractor due to missing data") # bad request
 
     d = models.Distractor.query.get_or_404(distractor_id)
-    d.answer = bleach.clean(answer, tags=bleach_allowed_tags)
+    d.answer = sanitize(answer)
 
     models.DB.session.commit()
 
@@ -503,10 +508,10 @@ def post_new_quiz():
     if request.json['questions_ids'] is None:
         abort(400, "Unable to create new quiz due to missing data") # bad request
     
-    bleached_title = bleach.clean(title, tags=bleach_allowed_tags)
-    bleached_description = bleach.clean(description, tags=bleach_allowed_tags)
+    bleached_title = sanitize(title)
+    bleached_description = sanitize(description)
 
-    q = models.Quiz(title=bleach.clean(bleached_title), description=bleached_description)
+    q = models.Quiz(title=sanitize(bleached_title), description=bleached_description)
     
     # Adding the questions, based on the questions_id that were submitted
     for qid in request.json['questions_ids']:
@@ -600,8 +605,8 @@ def put_quizzes(qid):
     if quiz.title is None or quiz.description is None or request.json['questions_ids'] is None:
         abort(400, "Unable to modify quiz due to missing data") # bad request
 
-    quiz.title = bleach.clean(request.json['title'], tags=bleach_allowed_tags)
-    quiz.description = bleach.clean(request.json['description'], tags=bleach_allowed_tags)
+    quiz.title = sanitize(request.json['title'])
+    quiz.description = sanitize(request.json['description'])
 
     quiz.quiz_questions = []
     for qid in request.json['questions_ids']:
@@ -770,7 +775,7 @@ def all_quizzes_take(qid):
             for key_quest in justifications_dict:
                 quest = justifications_dict[key_quest]
                 for key_just in quest:
-                    just = models.Justification(quiz_question_id=key_quest, distractor_id=key_just, student_id=sid, justification=bleach.clean(quest[key_just], tags=bleach_allowed_tags))
+                    just = models.Justification(quiz_question_id=key_quest, distractor_id=key_just, student_id=sid, justification=sanitize(quest[key_just]))
                     models.DB.session.add(just)
 
             models.DB.session.add(attempt)

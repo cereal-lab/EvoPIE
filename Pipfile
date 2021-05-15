@@ -15,6 +15,7 @@ pandas = "*"
 numpy = "*"
 pylint = "*"
 bleach = "*"
+bleach-allowlist = "*"
 
 [dev-packages]
 pylint = "*"
