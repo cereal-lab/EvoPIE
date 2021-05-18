@@ -688,7 +688,13 @@ def all_quizzes_take(qid):
         # if len(responses) == len(justifications) == len(quiz.quiz_questions)
 
         if not request.json:
-            abort(406, "JSON format required for request") # not acceptable
+            #abort(406, "JSON format required for request") # not acceptable
+            question_num = 2
+            i = 1
+            while i < question_num 
+                question_id[] = request.form['question_' + i]
+                i+=1
+            
         
         if step1:
             # validate that all required information was sent
