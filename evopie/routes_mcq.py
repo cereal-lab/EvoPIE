@@ -11,18 +11,15 @@ from flask import flash
 from random import shuffle
 import json
 import bleach
-from bleach_allowlist import print_tags, print_attrs, all_styles
+from bleach_allowlist import generally_xss_safe, print_attrs, standard_styles
 
 from . import models
-    
-# allowed tags for bleach.clean
-bleach_allowed_tags = bleach.sanitizer.ALLOWED_TAGS + ['h1','h2','h3','h4','h5','h6','p','pre','span','font','style']
-bleach_allowed_attributes = {'span':['color','style'], 'font':['color','style']}
-bleach_allowed_attributes.update(bleach.sanitizer.ALLOWED_ATTRIBUTES)
 
 # helper method to apply the above to each call to bleach.clean
 def sanitize(html):
-    return bleach.clean(html, tags=bleach_allowed_tags, attributes=bleach_allowed_attributes, styles=all_styles)
+    result = bleach.clean(html, tags=generally_xss_safe, attributes=print_attrs, styles=standard_styles)
+    # print(f'BLEACHING --> {result}')
+    return result
 
 mcq = Blueprint('mcq', __name__)
 

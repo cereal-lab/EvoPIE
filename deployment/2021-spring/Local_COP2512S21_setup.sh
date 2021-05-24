@@ -48,9 +48,8 @@ curlit  'Added distractor'          "/questions/5/distractors"      '{ "answer":
 curlit  'Added distractor'          "/questions/5/distractors"      '{ "answer": "...useless because of other reasons."}'   #D15
 curlit  'QuizQuestion composed'     "/quizquestions"                '{ "qid": "5", "distractors_ids": [13, 14, 15]}'
 
-header 'CREATING QUIZ & releasing it as STEP1'
+header 'CREATING QUIZ'
 curlit  'Quiz Created'              "/quizzes"                      '{ "title": "Extra Credit Quiz", "description": "This quiz is a simple extra-credit assignment.", "questions_ids":[1, 2, 3, 4, 5]}'
-#curlit  "Quiz released as STEP1"    "/quizzes/1/status"             '{ "status" : "STEP1" }'
 
 # new question template
 # curlit  'Added Question'            "/questions"        '{ "title": "", "stem": "", "answer": ""}'

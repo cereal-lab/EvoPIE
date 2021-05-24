@@ -37,7 +37,20 @@
         <script type='text/javascript'>
             $(document).ready(function() {
                 $('.summernote').summernote({
-                    
+                    // NOTE removing codeView
+                    toolbar: [
+                        ['style', ['style']],
+                        ['font', ['bold', 'underline', 'clear']],
+                        ['fontname', ['fontname']],
+                        ['color', ['color']],
+                        ['para', ['ul', 'ol', 'paragraph']],
+                        ['table', ['table']],
+                        ['insert', ['link', 'picture', 'video']],
+                        ['help', ['help']],
+                        ],
+                    // NOTE activating filters
+                    codeviewFilter: true,
+                    codeviewIframeFilter: true
                 });
             });
         </script>
