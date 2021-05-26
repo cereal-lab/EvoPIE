@@ -689,15 +689,21 @@ def all_quizzes_take(qid):
 
         if not request.json:
             #abort(406, "JSON format required for request") # not acceptable
-            question_num = 2
-            i = 1
             
             if step1:
                 step1_data = { "initial_responses" : {}, "justifications" : {}}
+                question_num = 2
+                i = 1
                 while i < question_num: 
                     question_selection = request.form['question_' + i]
                     step1_data[initial_responses][i] = question_selection
                     i+=1
+                    # how to figure out what answers have been selected to get the justifications
+                    # sends justifications for all of the answers
+                    step1_data[justifications][i] = {}
+
+            else:
+                step2_data = { "revised_responses" : {} }
         
         if step1:
             # validate that all required information was sent
