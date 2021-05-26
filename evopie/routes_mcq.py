@@ -691,10 +691,13 @@ def all_quizzes_take(qid):
             #abort(406, "JSON format required for request") # not acceptable
             question_num = 2
             i = 1
-            while i < question_num 
-                question_id[] = request.form['question_' + i]
-                i+=1
             
+            if step1:
+                step1_data = { "initial_responses" : {}, "justifications" : {}}
+                while i < question_num: 
+                    question_selection = request.form['question_' + i]
+                    step1_data[initial_responses][i] = question_selection
+                    i+=1
         
         if step1:
             # validate that all required information was sent
