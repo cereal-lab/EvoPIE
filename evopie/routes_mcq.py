@@ -692,8 +692,11 @@ def all_quizzes_take(qid):
     quiz for the first time, or is coming back to view peers' feedback.
     '''
     if not current_user.is_student():
-        response     = ({ "message" : "You are not allowed to take quizzes" }, 403, {"Content-Type": "application/json"})
-        return make_response(response)
+        if request.json:
+            response     = ({ "message" : "You are not allowed to take quizzes" }, 403, {"Content-Type": "application/json"})
+            return make_response(response)
+        else:
+            flash("You are not allowed to take quizzes", "postError") #FIXME this error category probably needs to change
 
     quiz = models.Quiz.query.get_or_404(qid)
     
@@ -752,11 +755,13 @@ def all_quizzes_take(qid):
             # validate that all required information was sent
             # BUG if the keys are missing we crash
             if request.json['initial_responses'] is None or request.json['justifications'] is None:
+                flash("Unable to submit quiz response due to missing data", "postError") #FIXME the category for this flash might need to be changed
                 abort(400, "Unable to submit quiz response due to missing data") # bad request
 
             # Being in step 1 means that the quiz has not been already attempted
             # i.e., QuizAttempt object for this quiz & student combination does not already exist
             if attempt is not None: # NOTE should never happen
+                flash("Unable to submit quiz, already existing attempt previously submitted", "postError")
                 abort(400, "Unable to submit quiz, already existing attempt previously submitted") # bad request
 
             # so we make a brand new one!
@@ -804,6 +809,7 @@ def all_quizzes_take(qid):
         else: #step2
             # validate that all required information was sent
             if request.json['revised_responses'] is None:
+                flash("Unable to submit quiz response due to missing data", "postError") #FIXME the category for this flash might need to be changed
                 abort(400, "Unable to submit quiz again due to missing data") # bad request
             
             if attempt is None:
