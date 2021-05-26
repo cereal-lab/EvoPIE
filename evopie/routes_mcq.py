@@ -381,20 +381,28 @@ def post_new_quiz_question():
             flash("You are not allowed to create quiz questions", "postError")
             return redirect(request.referrer)
 
-    if not request.json:
+    if request.json:
+        question_id = request.json['qid']
+        if question_id is None or request.json['distractors_ids'] is None:
+            abort(400, "Unable to create new quiz question due to missing data") # bad request
+        distractors_ids = [did for did in request.json['distractors_ids']]
+    else:
         abort(406, "JSON format required for request") # not acceptable
-        
-    question_id = request.json['qid']
-
-    # validate that all required information was sent
-    if question_id is None or request.json['distractors_ids'] is None:
-        abort(400, "Unable to create new quiz question due to missing data") # bad request
-    distractors_ids = [did for did in request.json['distractors_ids']]
+        #TODO apply same modifications tha in post_new_question but also check
+        # whether we currently have a form sending that data first
+        # NOTE of particular interest is how the form will send those arrays.
+        # that was easy in json but I vaguely remember reading some issues
+        # with the variable number of fields and regular forms format
+    
     
     q = models.Question.query.get_or_404(question_id)
     qq = models.QuizQuestion(question=q)
     distractors = [models.Distractor.query.get_or_404(id) for id in distractors_ids]
-    #TODO verify that distractors belong to that question
+    #TODO verify that distractors belong to that question; that led to a funny
+    # glitch in the deployement 2021 scripts whereby all distractors were
+    # assigned to question #2 by the script but, since they were listed also
+    # when creating the QuizQuestion, everything looked like it was working
+    # just fine. Beware when your programs look like they are working...
     #TODO verify that distractors are also all different
     
     for d in distractors:
