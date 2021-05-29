@@ -697,7 +697,7 @@ def all_quizzes_take(qid):
             return make_response(response)
         else:
             flash("You are not allowed to take quizzes", "postError") #FIXME this error category probably needs to change
-            return redirect(request.referrer)
+            return redirect(url_for('pages.index'))
 
     quiz = models.Quiz.query.get_or_404(qid)
     
