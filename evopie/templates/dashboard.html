@@ -12,7 +12,7 @@
 
     <h1>Create new Question</h1>
 
-    <form id="questionForm" method="post" action='http://localhost:5000/questions'>
+    <form id="questionForm" method="post" action='/questions'>
         <div class="form-group">
             <label for="title">Title</label>
             <input name="title" id="title" class="form-control" required>
@@ -32,7 +32,7 @@
   
     <h1>Create a new Distractor &amp; add it to a Question</h1>
     
-    <form id="distractorForm" method="post" onsubmit="return onSubmitDistractorForm();" action='http://localhost:5000/questions/'>
+    <form id="distractorForm" method="post" onsubmit="return onSubmitDistractorForm();" action='/questions/'>
         <div class="form-group">
             <label for="qid">Question ID</label>
             <input name="qid" id="qid" value="2" class="form-control" required>
@@ -48,7 +48,7 @@
         function onSubmitDistractorForm(){
             var quiz = document.getElementById('qid');
             var action = document.getElementById('distractorForm');
-            action.action = 'http://localhost:5000/questions/' + quiz.value + '/distractors';
+            action.action = '/questions/' + quiz.value + '/distractors';
         }
     </script>
 
@@ -87,7 +87,7 @@
             let d3 = document.querySelector('#qq_d3');
                
             let xhr = new XMLHttpRequest();
-            let url = 'http://localhost:5000/quizquestions';
+            let url = '/quizquestions';
         
             xhr.open("POST", url, true);
             xhr.setRequestHeader("Content-Type", "application/json");
@@ -146,7 +146,7 @@
             let qq3 = document.querySelector('#quiz_qq3');
                
             let xhr = new XMLHttpRequest();
-            let url = 'http://localhost:5000/quizzes';
+            let url = '/quizzes';
         
             xhr.open("POST", url, true);
             xhr.setRequestHeader("Content-Type", "application/json");
