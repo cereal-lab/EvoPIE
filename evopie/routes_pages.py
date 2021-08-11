@@ -94,6 +94,7 @@ def question_editor(question_id):
         return redirect(url_for('pages.index'))
     q = models.Question.query.get_or_404(question_id)
     ds = [d.dump_as_dict() for d in q.distractors]
+    q = q.dump_as_dict()
     return render_template('question-editor.html', all_distractors = ds, question = q)
     
 
