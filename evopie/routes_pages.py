@@ -59,7 +59,7 @@ def questions_browser():
     #return render_template('questions-browser.html', all_questions = all_questions)
     # version with pagination below
     page = request.args.get('page',1, type=int)
-    QUESTIONS_PER_PAGE = 2 # FIXME make this a field in a global config object
+    QUESTIONS_PER_PAGE = 10 # FIXME make this a field in a global config object
     paginated = models.Question.query.paginate(page, QUESTIONS_PER_PAGE, False)
     all_questions = [q.dump_as_dict() for q in paginated.items]
     #return jsonify(all_questions)
