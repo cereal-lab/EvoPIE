@@ -129,51 +129,54 @@
         {% if attempt is not defined %}
             <h1 class="display-4">Step 1 - {{quiz.title}}</h1>
             <p class="lead">
-                Hello, {{student.first_name}} {{student.last_name}}, {{student.email}}. 
+                Hello, {{student.first_name}} {{student.last_name}} ({{student.email}}). 
                 Welcome to STEP 1 of this quiz.
             </p>
         {% else %}
-        <h1 class="display-4">Step 2 - {{quiz.title}}</h1>
-        <p class="lead">
-            Hello, {{student.first_name}} {{student.last_name}}, {{student.email}}. 
-            Welcome to STEP 2 of this quiz.
-        </p>
+            <h1 class="display-4">Step 2 - {{quiz.title}}</h1>
+            <p class="lead">
+                Hello, {{student.first_name}} {{student.last_name}} ({{student.email}}).
+                Welcome to STEP 2 of this quiz.
+            </p>
         {% endif %}
             
+       
         <p class="lead">
-
+            <h2>About this quiz:</h2>
+            {{quiz.description | safe}}
+        </p>
+        
+        <p class="lead">
+            <p>
             {% if attempt is defined %}
-            Instructions:
-            <ul>
-                <li> The questions below are the same that you previous answered. </li>
-                <li> The solution that you originally submitted is listed below as a reminder.</li>
-                <li>
-                    Justifications that other students provided for not chosing each of the available
-                    alternatives are also provided.
-                </li>
-                <li>
-                    Use them to determine what is your definitive answer to each question.
-                </li>
-            </ul>
+                <h2>How to take Step 2 of the quiz:</h2>
+                <ul>
+                    <li> The questions below are the same that you previous answered. </li>
+                    <li> The solution that you originally submitted is listed below as a reminder.</li>
+                    <li>
+                        Justifications that other students provided for not chosing each of the available
+                        alternatives are also provided.
+                    </li>
+                    <li>
+                        Use them to determine what is your definitive answer to each question.
+                    </li>
+                </ul>
             {% else %}
-            Instructions:
-            In order to receive any credit at all for your quiz, make sure that you: 
-            <ul>
-                <li>Select 1 solution for each question below.</li>
-                <li>Provide a meaningful justification of <b>why</b> you think that <b>the alternatives
-                    that you did not select are incorrect</b>.</li>
-            </ul>
+                <h2>How to take Step 1 of the quiz:</h2>
+                In order to receive any credit at all for your quiz, make sure that you: 
+                <ul>
+                    <li>Select 1 solution for each question below.</li>
+                    <li>Provide a meaningful justification of <b>why</b> you think that <b>the alternatives
+                        that you did not select are incorrect</b>.</li>
+                </ul>
             {% endif %}
-
+            </p>
         </p>
-        <p class="lead">
+        <p class="lead"><p>
             When you are done taking the quiz, press <button class="btn btn-primary" onclick="submitQuiz()">Submit Quiz</button>. 
-            A crude popup will let you know whether it was accepted ("OK"), of if you tried to resubmit twice ("FORBIDDEN").
-            If you were trying to submit twice, no worries, your first submission is enough.
-        </p>
-        <p class="lead">
-            {{quiz.description}}
-        </p>
+            A crude popup will let you know whether it was accepted ("OK"), or if you just tried to resubmit ("FORBIDDEN").
+            If you were trying to resubmit, no worries, your first submission is enough.
+        </p></p>
     </div>
 </div>
 
@@ -203,12 +206,15 @@
             <div class="card-body" bg-light>
                 <h5 class="card-title">Question #{{q.id}} - {{q.title|safe|unescapeDoubleQuotes}}</h5>
                 <p class="card-text">{{q.stem|safe|unescapeDoubleQuotes}}</p>
+                
                 {% if attempt is defined %}
-                <dl>
-                    <dt>Your orginal answer is pre-selected below</dt>
-                </dl>
+                    <dl>
+                        <dt>Your orginal answer is pre-selected below</dt>
+                    </dl>
                 {% endif %}
+                
                 <ul class="list-group list-group-flush">
+                
                 {% for id,alt in q.alternatives %}
                     <li class="list-group-item border border-primaryrounded">
                         <div class="form-group">
@@ -220,43 +226,47 @@
                                     class="form-check-input"></input>
                                 
                                 <label for="alternative_{{q.id}}_{{id}}_check"
-                                    class="form-check-label">{{alt|safe|unescapeDoubleQuotes}}</label>
+                                    class="form-check-label">{{ alt | safe | unescapeDoubleQuotes }}</label>
                                 
                                 {% if attempt is defined %}
-                                <p> Reason suggested by one of your peers for not selecting this one: </p>
-                                <p>
-                                    {% for question_key, question in justifications.items() %}
-                                        {% if question_key|int == q.id|int %}
-                                            {% for distractor_key,justification in question.items() %}
-                                                {% if distractor_key|int == id|int %}
-                                                    <p> {{ justification["justification"] | safe }} </p>
-                                                {% endif %}
-                                            {% endfor %}
-                                        {% endif %}
-                                    {% endfor %}
-                                </p>
+                                    <p> Reason suggested by one of your peers for not selecting this one: </p>
+                                    <p>
+                                        {% for question_key, question in justifications.items() %}
+                                            {% if question_key|int == q.id|int %}
+                                                {% for distractor_key,justification in question.items() %}
+                                                    {% if distractor_key|int == id|int %}
+                                                        <p> {{ justification["justification"] | safe }} </p>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    </p>
+
                                 {% else %}
-                                <!--
-                                    <textarea
-                                    id="alternative_{{q.id}}_{{id}}_justify" name="alternative_{{q.id}}_{{id}}_justify"
-                                    class="form-control reveal-if-not-selected"
-                                    rows="3"
-                                    placeholder="Explain here why you did not select this alternative."></textarea>
-                                -->
-                                <!-- 
-                                    NOTE with summernote, the reveal-if-not-selected does not work anymore
-                                    I was unable to find a fix besides bypassing that class from bootstrap
-                                    UPDATE - fixed, just needed a surrounding div that would have the reveal-if-not-selected class
-                                -->
-                                <p>
-                                    Explain below why you did not select this alternative, leave blank if you did.
-                                </p>
-                                <div class="reveal-if-not-selected"><textarea
-                                    class="summernote form-control"
-                                    name="alternative_{{q.id}}_{{id}}_justify" id="alternative_{{q.id}}_{{id}}_justify"
-                                    rows="3"
-                                    placeholder=""></textarea>                                   
-                                </div>
+
+                                    <!--
+                                        <textarea
+                                        id="alternative_{{q.id}}_{{id}}_justify" name="alternative_{{q.id}}_{{id}}_justify"
+                                        class="form-control reveal-if-not-selected"
+                                        rows="3"
+                                        placeholder="Explain here why you did not select this alternative."></textarea>
+                                    -->
+                                    <!-- 
+                                        NOTE with summernote, the reveal-if-not-selected does not work anymore
+                                        I was unable to find a fix besides bypassing that class from bootstrap
+                                        UPDATE - fixed, just needed a surrounding div that would have the reveal-if-not-selected class
+                                    -->
+                                    <br/>
+                                    <p>
+                                        Explain below why you did not select this alternative, leave blank if you did.
+                                    </p>
+                                    <div class="reveal-if-not-selected"><textarea
+                                        class="summernote form-control"
+                                        name="alternative_{{q.id}}_{{id}}_justify" id="alternative_{{q.id}}_{{id}}_justify"
+                                        rows="3"
+                                        placeholder=""></textarea>                                   
+                                    </div>
+
                                 {% endif %}
 
                             </div>
@@ -271,10 +281,10 @@
 
 
 <div class='container'>
-    <p class="lead">
+    <p class="lead"><p>
         When you are done taking the quiz, press <button class="btn btn-primary" onclick="submitQuiz()">Submit Quiz</button>. 
-        A crude popup will let you know whether it was accepted ("OK"), of if you tried to resubmit twice ("FORBIDDEN").
-        If you were trying to submit twice, no worries, your first submission is enough.
-    </p>
+        A crude popup will let you know whether it was accepted ("OK"), or if you just tried to resubmit ("FORBIDDEN").
+        If you were trying to resubmit, no worries, your first submission is enough.
+    </p></p>
 </div>
 {% endblock %}
