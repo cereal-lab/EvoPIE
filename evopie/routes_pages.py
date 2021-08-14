@@ -124,7 +124,7 @@ def get_student(qid):
     for qq in quiz_questions:
         for altern in qq["alternatives"]:
             # experimenting, this works: tmp = jinja2.Markup(quiz_questions[0]["alternatives"][0][1]).unescape()
-            altern[1] = jinja2.Markup(quiz_questions[0]["alternatives"][0][1]).unescape()
+            altern[1] = jinja2.Markup(altern[1]).unescape()
 
 
     # determine which step of the peer instruction the student is in
