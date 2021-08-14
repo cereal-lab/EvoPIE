@@ -12,6 +12,7 @@ import json, random
 
 from . import models
 
+import jinja2
 
 
 pages = Blueprint('pages', __name__)
@@ -117,6 +118,15 @@ def get_student(qid):
     q = models.Quiz.query.get_or_404(qid)
     quiz_questions = [question.dump_as_dict() for question in q.quiz_questions]
     
+    
+    # PBM - the alternatives for questions show unescaped when taking the quiz
+    # SOL - need to unescape them before to pass them to the template
+    for qq in quiz_questions:
+        for altern in qq["alternatives"]:
+            # experimenting, this works: tmp = jinja2.Markup(quiz_questions[0]["alternatives"][0][1]).unescape()
+            altern[1] = jinja2.Markup(altern[1]).unescape()
+
+
     # determine which step of the peer instruction the student is in
     a = models.QuizAttempt.query.filter_by(student_id=current_user.id).filter_by(quiz_id=qid).all()
     
