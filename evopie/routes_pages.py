@@ -3,10 +3,12 @@
 # Dynamic classes like scoped_session are caught by pylint as not having any
 # of the members they end up featuring at runtime. This is a way to tell pylint to let it be
 
+from operator import not_
 from flask import jsonify, abort, request, Response, render_template, redirect, url_for, make_response
 from flask import Blueprint
 from flask_login import login_required, current_user
 from flask import flash
+from sqlalchemy import not_
 
 import json, random
 
@@ -156,16 +158,25 @@ def get_student(qid):
             question_justifications = {}
             for distractor in quiz_question.distractors:
                 # get all justifications for that alternative / question pair
+                # NOTE some empty justifications end up making it here, we need to remove them then make sure that we handle, in the template, the possibility of no justification available at all.\
                 question_justifications[str(distractor.id)] = models.Justification.query\
                     .filter_by(quiz_question_id=quiz_question.id)\
                     .filter_by(distractor_id=distractor.id)\
+                    .filter(not_(models.Justification.justification==""))\
                     .all()
             # also handle the solution -1
+            # NOTE some empty justifications end up making it here, we need to remove them then make sure that we handle, in the template, the possibility of no justification available at all.\
             question_justifications["-1"] = models.Justification.query\
                 .filter_by(quiz_question_id=quiz_question.id)\
                 .filter_by(distractor_id="-1")\
+                .filter(not_(models.Justification.justification==""))\
                 .all()
             
+            # NOTE use filter instead of filter_by for != comparisons
+            # https://stackoverflow.com/questions/16093475/flask-sqlalchemy-querying-a-column-with-not-equals/16093713
+
+
+
             # record this array of objects as corresponding to this question
             quiz_justifications[str(quiz_question.id)] = question_justifications
             

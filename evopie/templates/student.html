@@ -35,11 +35,13 @@
                 json_data_initial_responses = JSON.parse(usable);
             }
 
+            // NOTE eliminating " inside a JSON string like "value" : "something with " in it"
             // let's get the questions also in a usable format
             var questions_raw = '{{ questions|tojson }}';
             var dom_questions = parser.parseFromString('<!doctype html><body>' + questions_raw, 'text/html');
             var usable_questions = dom_questions.body.textContent;
             json_data_questions = JSON.parse(usable_questions);
+
 
            // go thru all the initial responses
            for(var key in json_data_initial_responses){
@@ -64,9 +66,13 @@
         var all_questions = '{{ questions|tojson }}';
         // removing #&39;
         var parser = new DOMParser;
+
+
+        // NOTE eliminating " inside a JSON string like "value" : "something with " in it"
         var dom = parser.parseFromString('<!doctype html><body>' + all_questions, 'text/html');
         var usable = dom.body.textContent;
         var json_data = JSON.parse(usable);
+        
         var post_data;
 
         if(step==2)
@@ -102,8 +108,7 @@
         }
 
         var what_is_next = '{{ url_for("pages.index") }}';
-        let target_url = '/quizzes/' + "{{quiz.id}}" + "/take"; 
-        
+        let target_url = '/quizzes/' + "{{quiz.id}}" + "/take";
         fetch(target_url,{
             method:         'POST',
             headers:        {'Content-Type' : 'application/json'},

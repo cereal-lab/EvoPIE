@@ -91,4 +91,4 @@ def post_signup():
 @auth.route('/logout')
 def logout():
     logout_user()
-    return 'Logout'
+    return 'Logged out'
