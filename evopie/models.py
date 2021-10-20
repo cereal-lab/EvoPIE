@@ -49,12 +49,26 @@ class Question(DB.Model):
         # is then rendered as HTML instead of being displayed as an escape string, or rendered
         # with the unescaped symbols but not interpreted as HTML
 
+        #TODO NOW start tracing the path of the strings here 
         q['alternatives'] = [Markup(d.answer).unescape() for d in self.distractors]
         q['alternatives'].append(Markup(self.answer).unescape())
         shuffle(q['alternatives'])
         return q
 
-
+    def dump_as_simplified_dict(self):
+        # NOTE working around the bug with parsing the json
+        # we simply do not pass the questions when we do not need them
+        q = {
+            "id" : self.id,
+            "title" : self.title,
+            "alternatives" : []
+        }
+        #NOTE trying to skip the distractors, eventually we want just their IDs
+        # q['alternatives'] = [Markup(d.answer).unescape() for d in self.distractors]
+        #q['alternatives'].append(Markup(self.answer).unescape())
+        #shuffle(q['alternatives'])
+        return q
+        
 
 # association table for many-to-many association between QuizQuestion and Distractor
 quiz_questions_hub = DB.Table('quiz_questions_hub',
@@ -82,6 +96,9 @@ class Distractor(DB.Model):
     def dump_as_dict(self):
         return {"id" : self.id, "answer": Markup(self.answer).unescape()}
 
+    def dump_as_simplified_dict(self):
+        return {"id" : self.id, "answer": ""}
+        
 
 
 class QuizQuestion(DB.Model):
@@ -134,7 +151,25 @@ class QuizQuestion(DB.Model):
         #result['alternatives'] , result['alternatives_ids'] = zip(*both)
         return result
 
+    def dump_as_simplified_dict(self):
+        result = {  "id" : self.id,
+                    "alternatives": [] }
 
+        tmp1 = [] # list of distractors IDs, -1 for right answer
+        tmp2 = [] # list of alternatives, including the right answer
+
+        tmp1.append(-1)
+        tmp2.append("ANSWER")
+
+        for d in self.distractors:
+            tmp1.append(d.id)
+            tmp2.append("DISTRACTOR")
+
+        result['alternatives'] = [list(tup) for tup in zip(tmp1,tmp2)]
+
+
+        shuffle(result['alternatives'])
+        return result
 
 #Table used to implement the many-to-many relationship between QuizQuestions and Quizzes
 relation_questions_vs_quizzes = DB.Table('relation_questions_vs_quizzes',

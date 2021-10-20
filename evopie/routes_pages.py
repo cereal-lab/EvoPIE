@@ -119,14 +119,14 @@ def get_student(qid):
     u = models.User.query.get_or_404(current_user.id)
     q = models.Quiz.query.get_or_404(qid)
     quiz_questions = [question.dump_as_dict() for question in q.quiz_questions]
-    
-    
+    simplified_quiz_questions = [question.dump_as_simplified_dict() for question in q.quiz_questions]    
     # PBM - the alternatives for questions show unescaped when taking the quiz
     # SOL - need to unescape them before to pass them to the template
     for qq in quiz_questions:
         for altern in qq["alternatives"]:
             # experimenting, this works: tmp = jinja2.Markup(quiz_questions[0]["alternatives"][0][1]).unescape()
             altern[1] = jinja2.Markup(altern[1]).unescape()
+            # nope... altern[1] = jinja2.Markup.escape(altern[1])
 
 
     # determine which step of the peer instruction the student is in
@@ -194,7 +194,7 @@ def get_student(qid):
                     "justification": neo.justification
                 }
 
-        return render_template('student.html', quiz=q, questions=quiz_questions, student=u, attempt=a[0], justifications=quiz_justifications)
+        return render_template('student.html', quiz=q, simplified_questions=simplified_quiz_questions, questions=quiz_questions, student=u, attempt=a[0], justifications=quiz_justifications)
     else: # step == 1
-        return render_template('student.html', quiz=q, questions=quiz_questions, student=u)
+        return render_template('student.html', quiz=q, simplified_questions=simplified_quiz_questions, questions=quiz_questions, student=u)
 
