@@ -95,7 +95,9 @@ footer p {
           {% if current_user.is_authenticated %}
             {% if current_user.is_student() %}
               <a href="/student/2" class="btn btn-primary my-2"> Take the STEER Demo Quiz</a>
-              <a href="/student/1" class="btn btn-primary my-2"> Take the COP2513 Demo Quiz</a>
+              <a href="/student/1" class="btn btn-primary my-2"> Take the COP2513 Demo Quiz</a><br/>
+              
+              <a href="/student/3" class="btn btn-primary my-2"> COP2513 PLQ1</a>
             {% endif %}
             {% if current_user.is_instructor() %}
               <a href="/contributor" class="btn btn-primary my-2"> Contributor Dashboard </a>
