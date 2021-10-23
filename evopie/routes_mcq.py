@@ -15,10 +15,9 @@ from bleach_allowlist import generally_xss_safe, print_attrs, standard_styles
 
 from . import models
 
-# helper method to apply the above to each call to bleach.clean
+# helper method to use instead of directly calling bleach.clean
 def sanitize(html):
     result = bleach.clean(html, tags=generally_xss_safe, attributes=print_attrs, styles=standard_styles)
-    # print(f'BLEACHING --> {result}')
     return result
 
 mcq = Blueprint('mcq', __name__)

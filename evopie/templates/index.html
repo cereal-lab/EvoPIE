@@ -57,47 +57,23 @@ footer p {
 
 {% block content %}
 
-<!--
-
-<h1>All Questions in our Data Base</h1>
-
-  {% for quiz in quizzes %}
-      <div>
-          <h2> {{ quiz['title'] }}       </h2>
-          <p>  {{ quiz['stem'] }}    </p>
-          <ul>
-              {% for alternative in quiz['alternatives'] %}
-                  <li> {{ alternative }} </li>
-              {% endfor %}    
-          </ul>
-      </div>
-  {% endfor %}
---> 
-
 <main role="main">
 
     <section class="jumbotron text-center">
       <div class="container">
         <h1>EvoPIE</h1>
         <p class="lead text-muted">Evolutionary Peer Instruction Environment</p>
-        <div>
-          {% with messages = get_flashed_messages(category_filter=["error", "postError"]) %}
-          {% if messages %}
-            <ul class=flashes>
-              {% for message in messages %}
-              <li class="{{ category }}">{{ message }}</li>
-              {% endfor %}
-            </ul>
-          {% endif %}
-          {% endwith %}
-        </div>
+        
         <p>
           {% if current_user.is_authenticated %}
             {% if current_user.is_student() %}
-              <a href="/student/2" class="btn btn-primary my-2"> Take the STEER Demo Quiz</a>
-              <a href="/student/1" class="btn btn-primary my-2"> Take the COP2513 Demo Quiz</a><br/>
-              
-              <a href="/student/3" class="btn btn-primary my-2"> COP2513 PLQ1</a>
+              For STEER team members:<br/>
+              <a href="/student/2" class="btn btn-primary my-2"> Demo Quiz</a>
+              <a href="/student/1" class="btn btn-primary my-2"> Sample Course Quiz</a>
+              <br/>
+              For COP2513 Students:<br/>
+              <a href="/student/3" class="btn btn-primary my-2"> PLQ1</a>
+              <a href="/student/4" class="btn btn-primary my-2"> PLQ2</a>
             {% endif %}
             {% if current_user.is_instructor() %}
               <a href="/contributor" class="btn btn-primary my-2"> Contributor Dashboard </a>
@@ -115,5 +91,17 @@ footer p {
         </p>
       </div>
     </section>
+    
+    <div class="flashes-div">
+      {% with messages = get_flashed_messages(category_filter=["error", "postError"]) %}
+      {% if messages %}
+        <ul class="flashes">
+          {% for message in messages %}
+          <li class="{{ category }}">{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      {% endwith %}
+    </div>
 </main>
 {% endblock %}

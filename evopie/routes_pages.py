@@ -35,8 +35,8 @@ def index():
 @login_required
 def dashboard():
     return render_template('dashboard.html', name=current_user.first_name)
-    # based on the current_user.is_student & current_user.is_instructor we could
-    # redirect to different dashboards
+    # TODO based on the current_user.is_student & current_user.is_instructor we could
+    # redirect to different dashboards. This might come in handy for the data dashboard.
 
 
 
@@ -138,16 +138,19 @@ def get_student(qid):
         return redirect(url_for('pages.index'))
     if a and q.status == "STEP1":
         #response     = ({ "message" : "You already submitted your initial answers for this quiz, wait for the instructor to re-release it."}, 403, {"Content-Type": "application/json"})
-        flash("You already submitted your initial answers for this quiz, wait for the instructor to re-release it.", "error")
+        flash("You already submitted your answers for step 1 of this quiz.", "error")
+        flash("Wait for the instructor to open step 2 for everyone.", "error")
         return redirect(url_for('pages.index'))
     if not a and q.status == "STEP2":
         #response     = ({ "message" : "You did not submit your initial answers for this quiz, you may not participate in the second step."}, 403, {"Content-Type": "application/json"})
-        flash("You did not submit your initial answers for this quiz, you may not participate in the second step.", "error")
+        flash("You did not submit your answers for step 1 of this quiz.", "error")
+        flash("Because of that, you may not participate in step 2.", "error")
         return redirect(url_for('pages.index'))
     if q.status == "STEP2" and a[0].revised_responses != "{}":
         #TODO the above is ugly, add a boolean method instead
         #response     = ({ "message" : "You already revised your initial answers, you are done with both steps of this quiz."}, 403, {"Content-Type": "application/json"})
-        flash("You already revised your initial answers, you are done with both steps of this quiz.", "error")
+        flash("You already submitted your answers for both step 1 and step 2.", "error")
+        flash("You are done with this quiz.", "error")
         return redirect(url_for('pages.index'))
         
     # Redirect to different pages depending on step; e.g., student1.html vs. student2.html
