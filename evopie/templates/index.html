@@ -74,6 +74,7 @@ footer p {
               For COP2513 Students:<br/>
               <a href="/student/3" class="btn btn-primary my-2"> PLQ1</a>
               <a href="/student/4" class="btn btn-primary my-2"> PLQ2</a>
+              <a href="/student/5" class="btn btn-primary my-2"> PLQ3</a>
             {% endif %}
             {% if current_user.is_instructor() %}
               <a href="/contributor" class="btn btn-primary my-2"> Contributor Dashboard </a>
@@ -83,6 +84,7 @@ footer p {
             {% if current_user.is_admin() %}
               <a href="/admin" class="btn btn-primary my-2"> Admin Dashboard </a>
             {% endif %}
+            <br/>
             <a href="/logout" class="btn btn-secondary my-2"> Logout </a>
           {% else %}
             <a href="{{ url_for('auth.get_signup') }}" class="btn btn-secondary my-2">Signup for an Account</a>
