@@ -91,7 +91,7 @@ class Distractor(DB.Model):
     question_id = DB.Column(None, DB.ForeignKey('question.id'))
 
     def __repr__(self):
-        return "Distractor(id='%d',question_id=%d,answer='%s')" % (self.question_id, self.id, self.answer)
+        return "<Distractor: id='%d',question_id=%d>" % (self.id, self.question_id)
 
     def dump_as_dict(self):
         return {"id" : self.id, "answer": Markup(self.answer).unescape()}
@@ -227,6 +227,8 @@ class Quiz(DB.Model):
                     "status" : self.status
                 }
 
+    def __repr__(self):
+        return f'<{self.title}, {self.id}>'
 
 
 class QuizAttempt(DB.Model):
@@ -320,6 +322,9 @@ class User(UserMixin, DB.Model):
     def is_admin(self):
         return self.id == 1
         #FIXME self.role == "ADMIN"
+
+    def __repr__(self):
+        return f'<{self.last_name}, {self.first_name}, {self.id}>'
 
 
 

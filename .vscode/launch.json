@@ -17,9 +17,10 @@
             "args" : [
                 "run",
                 "--host",
-                "0.0.0.0",
+                //"0.0.0.0",
+                "127.0.0.1",
                 "--no-debugger",
-            //    "--no-reload"
+                "--no-reload"
             ],
             "jinja" : true
             //"program": "app.py",

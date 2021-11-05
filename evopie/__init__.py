@@ -46,7 +46,7 @@ class QuizQuestionView(ProtectedModelView):
 
 class QuizAttemptView(ProtectedModelView):
     column_list = ('id', 'initial_responses', 'revised_responses', 'initial_total_score', 'revised_total_score','quiz','student')
-    
+
 class QuestionView(ProtectedModelView):
     column_list = ('id', 'title')
     
