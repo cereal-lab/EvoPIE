@@ -41,18 +41,39 @@ class ProtectedModelView(ModelView):
         return redirect(url_for('login', next=request.url))
 
 class QuizQuestionView(ProtectedModelView):
-    column_hide_backrefs = False
+    column_hide_backrefs = True
     column_list = ('id', 'question_id', 'distractors')
 
+class QuizAttemptView(ProtectedModelView):
+    column_list = ('id', 'initial_responses', 'revised_responses', 'initial_total_score', 'revised_total_score','quiz','student')
+    
+class QuestionView(ProtectedModelView):
+    column_list = ('id', 'title')
+    
+class JustificationView(ProtectedModelView):
+    column_list = ('id', 'student_id', 'quiz_question_id', 'distractor_id', 'justification')
+
+class DistractorView(ProtectedModelView):
+    column_list = ('id','answer')
+
+class QuizView(ProtectedModelView):
+    column_list = ('id','title','status')
+    column_editable_list = ['status']
+    
+class UserView(ProtectedModelView):
+    column_list = ('id', 'last_name', 'first_name', 'email', 'role')
+    column_exclude_list = ['password']
+    column_searchable_list = ['first_name', 'last_name', 'email']
+    column_editable_list = ['last_name', 'email', 'first_name']
 
 admin = Admin(APP, index_view=ProtectedAdminIndexView(), name='EvoPIE', template_mode='bootstrap3')
-admin.add_view(ProtectedModelView(models.User, DB.session))
-admin.add_view(ProtectedModelView(models.Quiz, DB.session))
+admin.add_view(UserView(models.User, DB.session))
+admin.add_view(QuizView(models.Quiz, DB.session))
 admin.add_view(QuizQuestionView(models.QuizQuestion, DB.session))
-admin.add_view(ProtectedModelView(models.QuizAttempt, DB.session))
-admin.add_view(ProtectedModelView(models.Question, DB.session))
-admin.add_view(ProtectedModelView(models.Justification, DB.session))
-admin.add_view(ProtectedModelView(models.Distractor, DB.session))
+admin.add_view(QuizAttemptView(models.QuizAttempt, DB.session))
+admin.add_view(QuestionView(models.Question, DB.session))
+admin.add_view(JustificationView(models.Justification, DB.session))
+admin.add_view(DistractorView(models.Distractor, DB.session))
 
 
 from .routes_mcq import mcq as mcq_blueprint
