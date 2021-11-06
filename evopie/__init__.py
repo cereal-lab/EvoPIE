@@ -51,7 +51,7 @@ class QuestionView(ProtectedModelView):
     column_list = ('id', 'title')
     
 class JustificationView(ProtectedModelView):
-    column_list = ('id', 'student_id', 'quiz_question_id', 'distractor_id', 'justification')
+    column_list = ('id', 'student', 'quiz_question_id', 'distractor_id', 'justification')
 
 class DistractorView(ProtectedModelView):
     column_list = ('id','answer')

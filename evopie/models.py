@@ -313,6 +313,9 @@ class User(UserMixin, DB.Model):
     quiz_attempts = DB.relationship('QuizAttempt', backref='student', lazy=True)
     # all attempts
 
+    justifications = DB.relationship('Justification', backref='student', lazy=True)
+
+
     def is_instructor(self):
         return self.role == "INSTRUCTOR"
 
