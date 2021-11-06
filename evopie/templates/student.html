@@ -246,7 +246,7 @@
                                                         <p>
 
                                                         </p>
-                                                        <p>
+                                                        <p>This justification has {{ justification.likes.count() }} likes so far.
                                                             <a href="{{ url_for('mcq.like_justification', justification_id=justification.id, action='like') }}">Like</a>
                                                             <a href="{{ url_for('mcq.like_justification', justification_id=justification.id, action='unlike') }}">Unlike</a>
                                                         </p>

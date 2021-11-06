@@ -197,6 +197,9 @@ def get_student(qid):
                     "justification": neo.justification
                 }
 
+                #undo the above and keep a python object right there
+                quiz_justifications[key_question][key_distractor] = neo
+
         return render_template('student.html', quiz=q, simplified_questions=simplified_quiz_questions, questions=quiz_questions, student=u, attempt=a[0], justifications=quiz_justifications)
     else: # step == 1
         return render_template('student.html', quiz=q, simplified_questions=simplified_quiz_questions, questions=quiz_questions, student=u)
