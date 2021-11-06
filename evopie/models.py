@@ -329,6 +329,33 @@ class User(UserMixin, DB.Model):
     def __repr__(self):
         return f'<{self.last_name}, {self.first_name}, {self.id}>'
 
+    # Like / Dislike Feature
+    liked_justifications =DB.relationship('Likes4Justifications', foreign_keys='Likes4Justifications.student_id',
+        backref='student', lazy='dynamic')
+
+    def like_justification(self, justification):
+        if not self.has_liked_justification(justification):
+            like = Likes4Justifications(student_id=self.id, justification_id=justification.id)
+            DB.session.add(like)
+
+    def unlike_justification(self, justification):
+        if self.has_liked_justification(justification):
+            Likes4Justifications.query.filter_by(
+                student_id=self.id,
+                justification_id=justification.id).delete()
+
+    def has_liked_justification(self, justification):
+        return Likes4Justifications.query.filter(
+            Likes4Justifications.student_id == self.id,
+            Likes4Justifications.justification_id == justification.id).count() > 0
+
+
+
+class Likes4Justifications(DB.Model):
+    id = DB.Column(DB.Integer, primary_key=True)
+    student_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'))
+    justification_id = DB.Column(DB.Integer, DB.ForeignKey('justification.id'))
+
 
 
 class Justification(DB.Model):
@@ -342,3 +369,4 @@ class Justification(DB.Model):
     distractor_id = DB.Column(DB.Integer, DB.ForeignKey('distractor.id'), nullable=False)
     student_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'), nullable=False)
     justification = DB.Column(DB.String) # FIXME do we allow duplicates like empty strings?
+    likes = DB.relationship('Likes4Justifications', backref='justification', lazy='dynamic')
