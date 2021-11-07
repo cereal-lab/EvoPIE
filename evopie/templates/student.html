@@ -141,12 +141,12 @@
         })
         .then(response => response.statusText)
         .then(data => {
-            location.reload();
+            location.reload(); //TODO crude way to update the status of the like button, replace later
         })
         .catch((error) => {
             alert("Unable to like / unlike this Justification. Try again later.");
             console.log(error);
-            location.reload();
+            //location.reload();
         })
     }
 </script>
@@ -262,8 +262,9 @@
                                         <table class='table'>
                                         {% for question_key, question in justifications.items() %}
                                             {% if question_key|int == q.id|int %}
-                                                {% for distractor_key,justification in question.items() %}
+                                                {% for distractor_key,selected_justifications in question.items() %}
                                                     {% if distractor_key|int == id|int %}
+                                                        {% for justification in selected_justifications %}
                                                         <tr>
                                                             <td width="25px">
                                                                 <p>
@@ -306,6 +307,7 @@
                                                                 </p>
                                                             </td>
                                                         </tr>
+                                                        {% endfor %}
                                                     {% endif %}
                                                 {% endfor %}
                                             {% endif %}

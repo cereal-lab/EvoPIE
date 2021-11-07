@@ -187,18 +187,29 @@ def get_student(qid):
         # We now revisit the data we collected and pick one justification in each array of Justification objects
         for key_question in quiz_justifications:
             for key_distractor in quiz_justifications[key_question]:
-                #pick one of the justification objects at random
-                index = random.randint(0,len(quiz_justifications[key_question][key_distractor])-1)
-                neo = quiz_justifications[key_question][key_distractor][index]
+                #pick multiple of the justification objects at random
                 
-                # now replace the object by a dictionary so that the javascript may handle it easily
-                quiz_justifications[key_question][key_distractor] = {
-                    "id" : neo.id,
-                    "justification": neo.justification
-                }
+                #NOTE make sure we check that the len of the array is big enough first
+                number_to_select = min(3 , len(quiz_justifications[key_question][key_distractor]))
+                #TODO FFS remove the above ugly, hardcoded, magic, number
 
+                #FIXME prevent selection of our own justifications!!!
+
+                selected = []
+                for n in range(number_to_select): 
+                    
+                    index = random.randint(0,len(quiz_justifications[key_question][key_distractor])-1)
+                    neo = quiz_justifications[key_question][key_distractor].pop(index) #[index]
+                    selected.append(neo)
+
+                # now replace the object by a dictionary so that the javascript may handle it easily
+                #quiz_justifications[key_question][key_distractor] = {
+                #    "id" : neo.id,
+                #    "justification": neo.justification
+                #}
                 #undo the above and keep a python object right there
-                quiz_justifications[key_question][key_distractor] = neo
+                #quiz_justifications[key_question][key_distractor] = neo
+                quiz_justifications[key_question][key_distractor] = selected
 
         return render_template('student.html', quiz=q, simplified_questions=simplified_quiz_questions, questions=quiz_questions, student=u, attempt=a[0], justifications=quiz_justifications)
     else: # step == 1
