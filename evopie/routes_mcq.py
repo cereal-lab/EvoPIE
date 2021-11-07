@@ -856,7 +856,7 @@ def get_quizzes_responses(qid):
 
 
 
-@mcq.route('/justification/<int:justification_id>/<action>')
+@mcq.route('/justification/<int:justification_id>/<action>', methods=['PUT'])
 @login_required
 def like_justification(justification_id, action):
     just = models.Justification.query.filter_by(id=justification_id).first_or_404()
@@ -866,4 +866,6 @@ def like_justification(justification_id, action):
     if action == 'unlike':
         current_user.unlike_justification(just)
         models.DB.session.commit()
-    return redirect(request.referrer)
+    response     = ({ "message" : "ok with no contents to send back" }, 204, {"Content-Type": "application/json"})
+    return make_response(response)
+    #redirect(request.referrer)
