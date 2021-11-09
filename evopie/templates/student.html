@@ -180,7 +180,9 @@
                 <h2>How to take Step 2 of the quiz:</h2>
                 <ul>
                     <li> The questions below are the same that you previous answered. </li>
-                    <li> The solution that you originally submitted is listed below as a reminder.</li>
+                    <!--
+                        <li> The solution that you originally submitted is listed below as a reminder.</li>
+                    -->
                     <li>
                         Justifications that other students provided for not chosing each of the available
                         alternatives are also provided.
@@ -300,6 +302,7 @@
                                                             <td class='text-left'>
                                                                 <p> {{ justification["justification"] | safe }} </p>
                                                             </td>
+                                                            <!--
                                                             <td width="200px">
                                                                 <p class='text-right'> {{ justification.likes.count() }}x 
                                                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-bookmark-heart" viewBox="0 0 16 16">
@@ -308,6 +311,7 @@
                                                                       </svg>
                                                                 </p>
                                                             </td>
+                                                            -->
                                                         </tr>
                                                         {% endfor %}
                                                     {% endif %}
