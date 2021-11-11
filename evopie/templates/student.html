@@ -266,7 +266,7 @@
                             <div id="alternative_{{q.id}}_{{id}}" class="form-check">
                 
                                 {% if attempt is defined %}
-                                    {% if id == attempt.initial_responses[nquestion.value] %}
+                                    {% if id == attempt.initial_responses[nquestion.value-1]|int %}
                                     <!-- FIXME the above syntax is not working out -->
                                     <input type="radio"
                                         checked="true"
@@ -274,7 +274,6 @@
                                         id="alternative_{{q.id}}_{{id}}_check" value="{{id}}"
                                         class="form-check-input"></input>
                                     {% else %}
-                                    NOPE {{ id }} was {{attempt.initial_responses['1']}} &nbsp;&nbsp;&nbsp;
                                     <input type="radio"
                                         name="question_{{q.id}}"
                                         id="alternative_{{q.id}}_{{id}}_check" value="{{id}}"
