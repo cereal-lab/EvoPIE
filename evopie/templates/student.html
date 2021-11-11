@@ -270,9 +270,16 @@
                                     id="alternative_{{q.id}}_{{id}}_check" value="{{id}}"
                                     class="form-check-input"></input>
                                 
-                                <label for="alternative_{{q.id}}_{{id}}_check"
+                                {% if quiz.status != 'SOLUTIONS' %}
+                                    <label for="alternative_{{q.id}}_{{id}}_check"
                                     class="form-check-label">{{ alt | safe | unescapeDoubleQuotes }}</label>
-                                
+                                {% else %}
+                                    {% if id == -1 %}
+                                        <label for="alternative_{{q.id}}_{{id}}_check" class="form-check-label bg-warning">{{ alt | safe | unescapeDoubleQuotes }}</label>
+                                    {% else %}
+                                        <label for="alternative_{{q.id}}_{{id}}_check" class="form-check-label">{{ alt | safe | unescapeDoubleQuotes }}</label>
+                                    {% endif %}
+                                {% endif %}
                                 
                                 {% if quiz.status != 'SOLUTIONS' %}
                                 {% if attempt is defined %}
