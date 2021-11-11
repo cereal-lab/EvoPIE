@@ -42,6 +42,11 @@
             var dom_questions = parser.parseFromString('<!doctype html><body>' + questions_raw, 'text/html');
             var usable_questions = dom_questions.body.textContent;
             json_data_questions = JSON.parse(usable_questions);
+            //BUG whodis? new bug!
+            // actually, old bug about failing the parsing of usable_questions makes the code
+            // stop here thus never reaching the loops below that pre-check the previously 
+            // selected answers.
+            
             //json_data_questions = JSON.parse(questions_raw);
 
            // go thru all the initial responses
@@ -154,26 +159,35 @@
 
 <div class="jumbotron jumbotron-fluid">
     <div class="container">
-        {% if attempt is not defined %}
-            <h1 class="display-4">Step 1 - {{quiz.title}}</h1>
+        {% if quiz.status == 'SOLUTIONS' %}
+            <h1 class="display-4">Solutions - {{quiz.title}}</h1>
             <p class="lead">
                 Hello, {{student.first_name}} {{student.last_name}} ({{student.email}}). 
-                Welcome to STEP 1 of this quiz.
+                Here are the answers to this quiz.
             </p>
         {% else %}
-            <h1 class="display-4">Step 2 - {{quiz.title}}</h1>
-            <p class="lead">
-                Hello, {{student.first_name}} {{student.last_name}} ({{student.email}}).
-                Welcome to STEP 2 of this quiz.
-            </p>
+            {% if attempt is not defined %}
+                <h1 class="display-4">Step 1 - {{quiz.title}}</h1>
+                <p class="lead">
+                    Hello, {{student.first_name}} {{student.last_name}} ({{student.email}}). 
+                    Welcome to STEP 1 of this quiz.
+                </p>
+            {% else %}
+                <h1 class="display-4">Step 2 - {{quiz.title}}</h1>
+                <p class="lead">
+                    Hello, {{student.first_name}} {{student.last_name}} ({{student.email}}).
+                    Welcome to STEP 2 of this quiz.
+                </p>
+            {% endif %}
         {% endif %}
-            
        
         <p class="lead">
             <h2>About this quiz:</h2>
             {{quiz.description | safe}}
         </p>
         
+        
+        {% if quiz.status != 'SOLUTIONS' %}
         <p class="lead">
             <p>
             {% if attempt is defined %}
@@ -205,6 +219,7 @@
         <p class="lead"><p>
             Scroll down to the bottom of the page for instructions on how to submit this quiz once you are done.
         </p></p>
+        {% endif %}
     </div>
 </div>
 
@@ -258,6 +273,8 @@
                                 <label for="alternative_{{q.id}}_{{id}}_check"
                                     class="form-check-label">{{ alt | safe | unescapeDoubleQuotes }}</label>
                                 
+                                
+                                {% if quiz.status != 'SOLUTIONS' %}
                                 {% if attempt is defined %}
                                     <p> Reason suggested by one of your peers for not selecting this one: </p>
                                     <p>
@@ -345,7 +362,7 @@
                                     </div>
 
                                 {% endif %}
-
+                                {% endif %}
                             </div>
                         </div>
                     </li>
