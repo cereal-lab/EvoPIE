@@ -855,3 +855,17 @@ def get_quizzes_responses(qid):
     return jsonify([a.dump_as_dict() for a in attempts])
 
 
+
+@mcq.route('/justification/<int:justification_id>/<action>', methods=['PUT'])
+@login_required
+def like_justification(justification_id, action):
+    just = models.Justification.query.filter_by(id=justification_id).first_or_404()
+    if action == 'like':
+        current_user.like_justification(just)
+        models.DB.session.commit()
+    if action == 'unlike':
+        current_user.unlike_justification(just)
+        models.DB.session.commit()
+    response     = ({ "message" : "ok with no contents to send back" }, 204, {"Content-Type": "application/json"})
+    return make_response(response)
+    #redirect(request.referrer)

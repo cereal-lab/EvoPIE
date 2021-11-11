@@ -66,6 +66,9 @@ class UserView(ProtectedModelView):
     column_searchable_list = ['first_name', 'last_name', 'email']
     column_editable_list = ['last_name', 'email', 'first_name']
 
+class Likes4JustificationsView(ProtectedModelView):
+    pass
+
 admin = Admin(APP, index_view=ProtectedAdminIndexView(), name='EvoPIE', template_mode='bootstrap3')
 admin.add_view(UserView(models.User, DB.session))
 admin.add_view(QuizView(models.Quiz, DB.session))
@@ -74,7 +77,7 @@ admin.add_view(QuizAttemptView(models.QuizAttempt, DB.session))
 admin.add_view(QuestionView(models.Question, DB.session))
 admin.add_view(JustificationView(models.Justification, DB.session))
 admin.add_view(DistractorView(models.Distractor, DB.session))
-
+admin.add_view(Likes4JustificationsView(models.Likes4Justifications, DB.session))
 
 from .routes_mcq import mcq as mcq_blueprint
 APP.register_blueprint(mcq_blueprint)
