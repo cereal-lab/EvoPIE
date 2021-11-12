@@ -34,7 +34,9 @@ class Question(DB.Model):
     # 1-to-many with QuizQuestion
     quiz_questions = DB.relationship('QuizQuestion', backref='question', lazy=True)
 
-    tags = DB.relationship('Tag', secondary='relation_tags_vs_questions')
+    tags = DB.relationship('Tag',   secondary='relation_tags_vs_questions',
+                                    lazy='subquery',
+                                    backref=DB.backref('pages',lazy=True))
 
     def __repr__(self):
         return "Question(id='%d',title='%s',question='%s',solution='%s')" % (self.id, self.title, self.stem, self.answer)
@@ -375,26 +377,26 @@ class Justification(DB.Model):
 
 
 
+
+relation_tags_vs_questions = DB.Table('relation_tags_vs_questions',
+    DB.Column('question_id', DB.Integer, DB.ForeignKey('question.id'), primary_key=True),
+    DB.Column('tag_id', DB.Integer, DB.ForeignKey('tag.id'), primary_key=True)
+)
+
 class Tag(DB.Model):
     '''
     A tag used to mark quizzes, questions, and other resources in order to help find them
     more easily.
     '''
     id = DB.Column(DB.Integer, primary_key=True)
-    questions = DB.relationship('Question', secondary='relation_tags_vs_questions')
     name = DB.Column(DB.String)
     
     
 
-#relation_tags_vs_questions = DB.Table('relation_tags_vs_questions',
-#    DB.Column('question_id', DB.Integer, DB.ForeignKey('question.id'), primary_key=True),
-#    DB.Column('tag_id', DB.Integer, DB.ForeignKey('tag.id'), primary_key=True)
-#)
-
-class RelationTagsVsQuestions(DB.Model):
-    id = DB.Column(DB.Integer, primary_key=True)
-    question_id = DB.Column(DB.Integer, DB.ForeignKey('question.id'))
-    tag_id = DB.Column(DB.Integer, DB.ForeignKey('tag.id'))
-
-    question = DB.relationship(Question, backref=DB.backref("relation_tags_vs_questions", cascade="all, delete-orphan"))
-    tag = DB.relationship(Tag, backref=DB.backref("relation_tags_vs_questions", cascade="all, delete-orphan"))
+#class RelationTagsVsQuestions(DB.Model):
+#    id = DB.Column(DB.Integer, primary_key=True)
+#    question_id = DB.Column(DB.Integer, DB.ForeignKey('question.id'))
+#    tag_id = DB.Column(DB.Integer, DB.ForeignKey('tag.id'))
+#
+#    question = DB.relationship(Question, backref=DB.backref("relation_tags_vs_questions", cascade="all, delete-orphan"))
+#    tag = DB.relationship(Tag, backref=DB.backref("relation_tags_vs_questions", cascade="all, delete-orphan"))
