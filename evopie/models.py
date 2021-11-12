@@ -385,9 +385,16 @@ class Tag(DB.Model):
     name = DB.Column(DB.String)
     
     
-relation_tags_vs_questions = DB.Table('relation_tags_vs_questions',
-    DB.Column('question_id', DB.Integer, DB.ForeignKey('question.id'), primary_key=True),
-    DB.Column('tag_id', DB.Integer, DB.ForeignKey('tag.id'), primary_key=True)
-)
 
+#relation_tags_vs_questions = DB.Table('relation_tags_vs_questions',
+#    DB.Column('question_id', DB.Integer, DB.ForeignKey('question.id'), primary_key=True),
+#    DB.Column('tag_id', DB.Integer, DB.ForeignKey('tag.id'), primary_key=True)
+#)
 
+class RelationTagsVsQuestions(DB.Model):
+    id = DB.Column(DB.Integer, primary_key=True)
+    question_id = DB.Column(DB.Integer, DB.ForeignKey('question.id'))
+    tag_id = DB.Column(DB.Integer, DB.ForeignKey('tag.id'))
+
+    question = DB.relationship(Question, backref=DB.backref("relation_tags_vs_questions", cascade="all, delete-orphan"))
+    tag = DB.relationship(Tag, backref=DB.backref("relation_tags_vs_questions", cascade="all, delete-orphan"))
