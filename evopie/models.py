@@ -34,6 +34,8 @@ class Question(DB.Model):
     # 1-to-many with QuizQuestion
     quiz_questions = DB.relationship('QuizQuestion', backref='question', lazy=True)
 
+    tags = DB.relationship('Tag', secondary='relation_tags_vs_questions')
+
     def __repr__(self):
         return "Question(id='%d',title='%s',question='%s',solution='%s')" % (self.id, self.title, self.stem, self.answer)
 
@@ -370,3 +372,22 @@ class Justification(DB.Model):
     student_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'), nullable=False)
     justification = DB.Column(DB.String) # FIXME do we allow duplicates like empty strings?
     likes = DB.relationship('Likes4Justifications', backref='justification', lazy='dynamic')
+
+
+
+class Tag(DB.Model):
+    '''
+    A tag used to mark quizzes, questions, and other resources in order to help find them
+    more easily.
+    '''
+    id = DB.Column(DB.Integer, primary_key=True)
+    questions = DB.relationship('Question', secondary='relation_tags_vs_questions')
+    name = DB.Column(DB.String)
+    
+    
+relation_tags_vs_questions = DB.Table('relation_tags_vs_questions',
+    DB.Column('question_id', DB.Integer, DB.ForeignKey('question.id'), primary_key=True),
+    DB.Column('tag_id', DB.Integer, DB.ForeignKey('tag.id'), primary_key=True)
+)
+
+
