@@ -9,10 +9,11 @@ from flask import Blueprint
 from flask_login import login_required, current_user
 from flask import flash
 from sqlalchemy import not_
+from sqlalchemy.sql import collate
 
 import json, random
 
-from . import models
+from . import DB, models
 
 import jinja2
 
@@ -219,3 +220,27 @@ def get_student(qid):
     else: # step == 1
         return render_template('student.html', quiz=q, simplified_questions=simplified_quiz_questions, questions=quiz_questions, student=u)
 
+
+
+
+@pages.route('/grades/<int:qid>', methods=['GET'])
+@login_required
+def get_grades(qid):
+    '''
+    This page allows to get all stats on a given quiz.
+    '''
+    if not current_user.is_instructor():
+        flash("Restricted to instructors.", "error")
+        return redirect(url_for('pages.index'))
+    q = models.Quiz.query.get_or_404(qid)
+    # base syntax; returns a list of tupples (blah)
+    # grades=DB.session.query(models.QuizAttempt, models.User)\
+    #    .filter(models.QuizAttempt.quiz_id == qid)\
+    #    .filter(models.QuizAttempt.student_id == models.User.id)\
+    #    .all()
+    grades=models.QuizAttempt.query.join(models.User)\
+        .filter(models.QuizAttempt.quiz_id == qid)\
+        .filter(models.QuizAttempt.student_id == models.User.id)\
+        .order_by(collate(models.User.last_name, 'NOCASE'))\
+        .all()
+    return render_template('grades.html', quiz=q, all_grades=grades)
