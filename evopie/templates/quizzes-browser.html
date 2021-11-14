@@ -24,9 +24,21 @@
     
             <h5 class="card-title">ID {{ single_quiz.id }} - {{ single_quiz.title }}</h5>
     
-            <p class="card-text">
-                    {{ single_quiz.description | safe }}
-            </p>
+            <table>
+                <tr>
+                    <td>
+                        <a  href='{{url_for('pages.get_grades', qid=single_quiz.id)}}'
+                            type="button" class="btn btn-info">
+                            Grade
+                        </a>
+                    </td>
+                    <td>
+                        <p class="card-text">
+                            {{ single_quiz.description | safe }}
+                        </p>
+                    </td>
+                </tr>
+            </table>
         </div>
     </div>
     {% endfor %}

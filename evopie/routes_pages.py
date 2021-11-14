@@ -80,7 +80,7 @@ def quizzes_browser():
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
     page = request.args.get('page',1, type=int)
-    QUESTIONS_PER_PAGE = 2 # FIXME make this a field in a global config object
+    QUESTIONS_PER_PAGE = 5 # FIXME make this a field in a global config object
     paginated = models.Quiz.query.paginate(page, QUESTIONS_PER_PAGE, False)
     all_quizzes = [q.dump_as_dict() for q in paginated.items]
     #return jsonify(all_questions)

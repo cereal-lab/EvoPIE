@@ -3,8 +3,20 @@
 {% block title %}EvoPIE{% endblock %}
 
 {% block content %}
-    <h1>Grades for Quiz {{quiz.title}} [{{quiz.id}}] </h1>
-    <table border='1'>
+    <div class="jumbotron jumbotron-fluid">
+        <div class="container">
+            <h1 class="display-4">Grades for Quiz {{quiz.title}} [{{quiz.id}}] </h1>
+                <p class="lead">
+                    Scores for both step 1 and step 2 are computed below, click them to see 
+                    the details of the student's responses.
+                    Click the justifications button to review the student's contributions
+                    to peer instruction.
+                </p>
+        </div>
+    </div>
+    <div class="card bg-light m-3 mx-auto" style="width: 75%">
+        <div class="card-body text-center" bg-light>
+    <table border='1' width='100%'>
         <tr>
             <th>Last Name</th>
             <th>First Name</th>
@@ -65,4 +77,6 @@
         </div>
     {% endfor %}
     </table>
+    </div>
+    </div>
 {% endblock %}
