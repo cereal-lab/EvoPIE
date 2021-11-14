@@ -25,7 +25,7 @@
     </div>
     <div class="card bg-light m-3 mx-auto" style="width: 75%">
         <div class="card-body text-center" bg-light>
-    <table border='1' width='100%' id="gradingtable">
+    <table class='compact hover' width='100%' id="gradingtable">
         <thead><tr>
             <th>Last Name</th>
             <th>First Name</th>
@@ -41,7 +41,7 @@
             <td>{{grade.student.first_name}}</td>
             <td>{{grade.student.email}}</td>
             <td>
-                <button type="button" class="btn btn-primary" data-toggle="modal"
+                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
                         data-target=".TG-INI-{{grade.student.id}}">
                     {{grade.initial_total_score}}
                 </button>
@@ -55,7 +55,7 @@
                 </div>
             </td>
             <td>
-                <button type="button" class="btn btn-primary" data-toggle="modal"
+                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
                         data-target=".TG-REV-{{grade.student.id}}">
                     {{grade.revised_total_score}}
                 </button>
@@ -69,13 +69,13 @@
                 </div>
             </td>
             <td>
-                <button type="button" class="btn btn-primary" data-toggle="modal"
+                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
                         data-target=".TG-JUS-{{grade.student.id}}">
                     Justifications
                 </button>
                 <div class="modal fade TG-JUS-{{grade.student.id}}" tabindex="-1" role="dialog"
                         aria-labelledby="mySmallModalLabel" aria-hidden="true">
-                    <div class="modal-dialog modal-sm">
+                    <div class="modal-dialog modal-content">
                       <div class="modal-content">
                         {{grade.justifications}}
                       </div>
