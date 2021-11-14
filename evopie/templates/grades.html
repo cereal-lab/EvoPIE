@@ -1,8 +1,17 @@
 {% extends 'base.html' %}
 
 {% block title %}EvoPIE{% endblock %}
-
+{% block head %}
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.css">  
+    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.js"></script>
+    <script>
+        $(document).ready( function () {
+            $('#gradingtable').DataTable();
+        } );
+    </script>
+{% endblock %}
 {% block content %}
+
     <div class="jumbotron jumbotron-fluid">
         <div class="container">
             <h1 class="display-4">Grades for Quiz {{quiz.title}} [{{quiz.id}}] </h1>
@@ -16,15 +25,16 @@
     </div>
     <div class="card bg-light m-3 mx-auto" style="width: 75%">
         <div class="card-body text-center" bg-light>
-    <table border='1' width='100%'>
-        <tr>
+    <table border='1' width='100%' id="gradingtable">
+        <thead><tr>
             <th>Last Name</th>
             <th>First Name</th>
             <th>Email</th>
             <th>Initial Score</th>
             <th>Revised Score</th>
             <th>Justifications</th>
-        </tr>
+        </tr></thead>
+        <tbody>
     {% for grade in all_grades %}
         <tr>
             <td>{{grade.student.last_name}}</td>
@@ -35,47 +45,46 @@
                         data-target=".TG-INI-{{grade.student.id}}">
                     {{grade.initial_total_score}}
                 </button>
+                <div class="modal fade TG-INI-{{grade.student.id}}" tabindex="-1" role="dialog"
+                        aria-labelledby="mySmallModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-sm">
+                      <div class="modal-content">
+                        {{grade.initial_responses}}
+                      </div>
+                    </div>
+                </div>
             </td>
             <td>
                 <button type="button" class="btn btn-primary" data-toggle="modal"
                         data-target=".TG-REV-{{grade.student.id}}">
                     {{grade.revised_total_score}}
                 </button>
+                <div class="modal fade TG-REV-{{grade.student.id}}" tabindex="-1" role="dialog"
+                        aria-labelledby="mySmallModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-sm">
+                      <div class="modal-content">
+                        {{grade.revised_responses}}
+                      </div>
+                    </div>
+                </div>
             </td>
             <td>
                 <button type="button" class="btn btn-primary" data-toggle="modal"
                         data-target=".TG-JUS-{{grade.student.id}}">
                     Justifications
                 </button>
+                <div class="modal fade TG-JUS-{{grade.student.id}}" tabindex="-1" role="dialog"
+                        aria-labelledby="mySmallModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-sm">
+                      <div class="modal-content">
+                        {{grade.justifications}}
+                      </div>
+                    </div>
+                </div>
             </td>
         </tr>
-        <div class="modal fade TG-INI-{{grade.student.id}}" tabindex="-1" role="dialog"
-                aria-labelledby="mySmallModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-sm">
-              <div class="modal-content">
-                {{grade.initial_responses}}
-              </div>
-            </div>
-        </div>
-
-        <div class="modal fade TG-REV-{{grade.student.id}}" tabindex="-1" role="dialog"
-                aria-labelledby="mySmallModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-sm">
-              <div class="modal-content">
-                {{grade.revised_responses}}
-              </div>
-            </div>
-        </div>
-
-        <div class="modal fade TG-JUS-{{grade.student.id}}" tabindex="-1" role="dialog"
-                aria-labelledby="mySmallModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-sm">
-              <div class="modal-content">
-                {{grade.justifications}}
-              </div>
-            </div>
-        </div>
     {% endfor %}
+        </tbody>
     </table>
     </div>
     </div>
