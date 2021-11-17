@@ -50,8 +50,8 @@
     <div class="card bg-light m-3 mx-auto" style="width: 75%">
         <div class="card-body" bg-light>
     
-            <h5 class="card-title">ID {{ single_question.id }} - {{ single_question.title }}</h5>
-    
+            <h5 class="card-title" data-toggle = "collapse" data-target = "#q{{single_question.id}}">ID {{ single_question.id }} - {{ single_question.title }}</h5>
+            <div  id = "q{{single_question.id}}" class = "collapse">
             <p class="card-text">
             </p>
     
@@ -67,6 +67,7 @@
                     <td>{{ single_question.answer | safe }}</td>
                 </tr>
             </table>
+            </div>
             <a class="btn btn-primary my-2" href="/question-editor/{{ single_question.id }}">Edit Question</a>
         </div>
     </div>
