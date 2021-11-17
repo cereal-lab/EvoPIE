@@ -60,8 +60,7 @@
                 <thead><tr>
                     <th>ID</th>
                     <th>Title</th>
-                    <th>Edit</th>
-                    <th>Delete</th>
+                    <th>Actions</th>
                 </tr></thead>
                 <tbody>
                 {% for single_question in all_questions %}
@@ -93,10 +92,9 @@
                                 </div>
                             </div>                    
                         </td>
-                        <td>
-                            <a class="btn btn-primary my-2" href="/question-editor/{{ single_question.id }}">Edit Question</a>
+                        <td class='text-right'>
+                            <a class="btn btn-primary my-2 btn-sm" href="/question-editor/{{ single_question.id }}">Edit</a>
                         </td>
-                        <td></td>
                     </tr>
                 {% endfor %}
                 </tbody>
