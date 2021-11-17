@@ -30,3 +30,16 @@ ON  (justification.quiz_question_id=="10" OR justification.quiz_question_id=="11
     AND quiz.id==quiz_attempt.quiz_id
     AND quiz.title=="PLQ2"
 ORDER BY user.last_name COLLATE NOCASE;
+
+
+
+# Counting likes per user - in progress
+select user.last_name, justification.id
+from likes4_justifications, justification, user
+WHERE likes4_justifications.justification_id==justification.id AND justification.student_id==user.id;
+
+
+select user.last_name, COUNT(*)
+from likes4_justifications, justification, user
+WHERE likes4_justifications.justification_id==justification.id AND justification.student_id==user.id
+GROUP BY user.last_name;
