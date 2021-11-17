@@ -3,6 +3,13 @@
 {% block title %}EvoPIE{% endblock %}
 
 {% block head%}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.css">  
+<script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.js"></script>
+<script>
+    $(document).ready( function () {
+        $('#gradingtable').DataTable();
+    } );
+</script>
 {% endblock %}
 
 {% block content %}
@@ -46,39 +53,56 @@
 
 
 <!div class="card-deck">    
-    {% for single_question in all_questions %}
     <div class="card bg-light m-3 mx-auto" style="width: 75%">
         <div class="card-body" bg-light>
     
-            <h5 class="card-title" data-toggle = "collapse" data-target = "#q{{single_question.id}}">ID {{ single_question.id }} - {{ single_question.title }}</h5>
-            <div  id = "q{{single_question.id}}" class = "collapse">
-            <p class="card-text">
-            </p>
-    
-            <table style="border: 0; width: 100%;" cellpadding="10">
-                <tr>
-                    <td style="vertical-align: top"><b>Q:</b></td>
-                    <td>
-                            {{ single_question.stem | safe }}
-                    </td>
-                </tr>
-                <tr>   
-                    <td style="vertical-align: top"><b>A:</b></td>
-                    <td>{{ single_question.answer | safe }}</td>
-                </tr>
+            <table class='compact stripe' width='100%' id="gradingtable">
+                <thead><tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Edit</th>
+                    <th>Delete</th>
+                </tr></thead>
+                <tbody>
+                {% for single_question in all_questions %}
+                    <tr>
+                        <td>
+                            {{ single_question.id }}
+                        </td>
+                        <td>
+                            <p data-toggle = "modal" data-target = "#q{{single_question.id}}">
+                                {{ single_question.title }}
+                            </p>
+                            <div class="modal fade" id="q{{single_question.id}}" tabindex="-1" role="dialog"
+                                aria-labelledby="mySmallModalLabel" aria-hidden="true">
+                                <div class="modal-dialog modal-sm">
+                                    <div class="modal-content">
+                                        <table style="border: 0; width: 100%;" cellpadding="10">
+                                            <tr>
+                                                <td style="vertical-align: top"><b>Q:</b></td>
+                                                <td>
+                                                        {{ single_question.stem | safe }}
+                                                </td>
+                                            </tr>
+                                            <tr>   
+                                                <td style="vertical-align: top"><b>A:</b></td>
+                                                <td>{{ single_question.answer | safe }}</td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>                    
+                        </td>
+                        <td>
+                            <a class="btn btn-primary my-2" href="/question-editor/{{ single_question.id }}">Edit Question</a>
+                        </td>
+                        <td></td>
+                    </tr>
+                {% endfor %}
+                </tbody>
             </table>
-            </div>
-            <a class="btn btn-primary my-2" href="/question-editor/{{ single_question.id }}">Edit Question</a>
         </div>
     </div>
-    {% endfor %}
+    
 <!/div>
-<div class="w-50 mx-auto d-flex justify-content-around">
-    {% if prev_url %}
-        <a class="btn btn-primary my-2" href="{{ prev_url }}">Previous Questions</a>
-    {% endif %}
-    {% if next_url %}
-        <a class="btn btn-primary my-2" href="{{ next_url }}">Next Questions</a>
-    {% endif %}
-</div>
 {% endblock %}

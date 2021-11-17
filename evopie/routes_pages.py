@@ -59,17 +59,17 @@ def questions_browser():
     if not current_user.is_instructor():
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
-    #all_questions = [q.dump_as_dict() for q in models.Question.query.all()]
-    #return render_template('questions-browser.html', all_questions = all_questions)
+    all_questions = [q.dump_as_dict() for q in models.Question.query.all()]
+    return render_template('questions-browser.html', all_questions = all_questions)
     # version with pagination below
-    page = request.args.get('page',1, type=int)
-    QUESTIONS_PER_PAGE = 10 # FIXME make this a field in a global config object
-    paginated = models.Question.query.paginate(page, QUESTIONS_PER_PAGE, False)
-    all_questions = [q.dump_as_dict() for q in paginated.items]
-    #return jsonify(all_questions)
-    next_url = url_for('pages.questions_browser', page=paginated.next_num) if paginated.has_next else None
-    prev_url = url_for('pages.questions_browser', page=paginated.prev_num) if paginated.has_prev else None
-    return render_template('questions-browser.html', all_questions = all_questions, next_url=next_url, prev_url=prev_url)
+    #page = request.args.get('page',1, type=int)
+    #QUESTIONS_PER_PAGE = 10 # FIXME make this a field in a global config object
+    #paginated = models.Question.query.paginate(page, QUESTIONS_PER_PAGE, False)
+    #all_questions = [q.dump_as_dict() for q in paginated.items]
+    #######return jsonify(all_questions)
+    #next_url = url_for('pages.questions_browser', page=paginated.next_num) if paginated.has_next else None
+    #prev_url = url_for('pages.questions_browser', page=paginated.prev_num) if paginated.has_prev else None
+    #return render_template('questions-browser.html', all_questions = all_questions, next_url=next_url, prev_url=prev_url)
 
 
 
@@ -79,14 +79,17 @@ def quizzes_browser():
     if not current_user.is_instructor():
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
-    page = request.args.get('page',1, type=int)
-    QUESTIONS_PER_PAGE = 5 # FIXME make this a field in a global config object
-    paginated = models.Quiz.query.paginate(page, QUESTIONS_PER_PAGE, False)
-    all_quizzes = [q.dump_as_dict() for q in paginated.items]
-    #return jsonify(all_questions)
-    next_url = url_for('pages.quizzes_browser', page=paginated.next_num) if paginated.has_next else None
-    prev_url = url_for('pages.quizzes_browser', page=paginated.prev_num) if paginated.has_prev else None
-    return render_template('quizzes-browser.html', all_quizzes = all_quizzes, next_url=next_url, prev_url=prev_url)
+    all_quizzes = [q.dump_as_dict() for q in models.Quiz.query.all()]
+    return render_template('quizzes-browser.html', all_quizzes = all_quizzes)
+    # version with pagination below
+    #page = request.args.get('page',1, type=int)
+    #QUESTIONS_PER_PAGE = 5 # FIXME make this a field in a global config object
+    #paginated = models.Quiz.query.paginate(page, QUESTIONS_PER_PAGE, False)
+    #all_quizzes = [q.dump_as_dict() for q in paginated.items]
+    #########return jsonify(all_questions)
+    #next_url = url_for('pages.quizzes_browser', page=paginated.next_num) if paginated.has_next else None
+    #prev_url = url_for('pages.quizzes_browser', page=paginated.prev_num) if paginated.has_prev else None
+    #return render_template('quizzes-browser.html', all_quizzes = all_quizzes, next_url=next_url, prev_url=prev_url)
 
 
 
