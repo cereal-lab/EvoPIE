@@ -53,12 +53,18 @@ def post_signup():
         first_name = request.json.get('firstname')
         last_name = request.json.get('lastname')
         password = request.json.get('password')
+        retype = request.json.get('retype')
     else:
         email = request.form.get('email')
         first_name = request.form.get('firstname')
         last_name = request.form.get('lastname')
         password = request.form.get('password')
+        retype = request.form.get('retype')
 
+    if( retype != password):
+        flash('Passwords do not match')
+        return redirect(url_for('auth.get_signup'))
+        
     # making sure the user does not already exist
     if models.User.query.filter_by(email=email).first():
         flash('Email address already exists')
