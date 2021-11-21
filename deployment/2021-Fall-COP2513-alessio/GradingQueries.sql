@@ -33,13 +33,24 @@ ORDER BY user.last_name COLLATE NOCASE;
 
 
 
-# Counting likes per user - in progress
+# Counting likes per user - in progress / see below
 select user.last_name, justification.id
 from likes4_justifications, justification, user
 WHERE likes4_justifications.justification_id==justification.id AND justification.student_id==user.id;
 
 
+# counting likes received
 select user.last_name, COUNT(*)
 from likes4_justifications, justification, user
 WHERE likes4_justifications.justification_id==justification.id AND justification.student_id==user.id
 GROUP BY user.last_name;
+# TODO - restrict the above to a given quiz
+
+
+
+#counting likes given
+select user.last_name, COUNT(*)
+from likes4_justifications, user
+WHERE likes4_justifications.student_id==user.id
+GROUP BY user.last_name;
+#TODO - restrict the above to a given quiz
