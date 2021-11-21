@@ -304,8 +304,8 @@ class User(UserMixin, DB.Model):
     password = DB.Column(DB.String)
     role = DB.Column(DB.String, default="STUDENT")
     # NOTE for now the roles that are handled are STUDENT (default), INSTRUCTOR, ADMIN
-    # TODO might want to make this a foreign key to a table of statuses
-
+    # TODO might want to make this a foreign key to a table of roles
+    
     # Each user may have authored several quizzes
     quizzes = DB.relationship('Quiz', backref='author', lazy=True)
 
@@ -337,12 +337,14 @@ class User(UserMixin, DB.Model):
         if not self.has_liked_justification(justification):
             like = Likes4Justifications(student_id=self.id, justification_id=justification.id)
             DB.session.add(like)
+            DB.session.commit()
 
     def unlike_justification(self, justification):
         if self.has_liked_justification(justification):
             Likes4Justifications.query.filter_by(
                 student_id=self.id,
                 justification_id=justification.id).delete()
+            DB.session.commit()
 
     def has_liked_justification(self, justification):
         return Likes4Justifications.query.filter(

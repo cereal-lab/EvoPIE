@@ -39,18 +39,23 @@ from likes4_justifications, justification, user
 WHERE likes4_justifications.justification_id==justification.id AND justification.student_id==user.id;
 
 
-# counting likes received
+# counting likes received for a given quiz
 select user.last_name, COUNT(*)
-from likes4_justifications, justification, user
-WHERE likes4_justifications.justification_id==justification.id AND justification.student_id==user.id
+from likes4_justifications, justification, user, relation_questions_vs_quizzes, quiz
+WHERE likes4_justifications.justification_id==justification.id 
+    AND justification.student_id==user.id
+    AND justification.quiz_question_id==relation_questions_vs_quizzes.quiz_question_id
+    AND quiz.id==relation_questions_vs_quizzes.quiz_id
+    AND quiz.title=\"PLQ3\"
 GROUP BY user.last_name;
-# TODO - restrict the above to a given quiz
 
 
-
-#counting likes given
+#counting likes given for a given quiz
 select user.last_name, COUNT(*)
-from likes4_justifications, user
+from likes4_justifications, justification, user, quiz, relation_questions_vs_quizzes
 WHERE likes4_justifications.student_id==user.id
+    AND justification.id==likes4_justifications.justification_id
+    AND justification.quiz_question_id==relation_questions_vs_quizzes.quiz_question_id
+    AND quiz.id==relation_questions_vs_quizzes.quiz_id
+    AND quiz.title=\"PLQ3\"
 GROUP BY user.last_name;
-#TODO - restrict the above to a given quiz
