@@ -150,7 +150,7 @@ def get_student(qid):
         flash("You did not submit your answers for step 1 of this quiz.", "error")
         flash("Because of that, you may not participate in step 2.", "error")
         return redirect(url_for('pages.index'))
-    if q.status == "STEP2" and a[0].revised_responses != "{}":
+    if a and q.status == "STEP2" and a[0].revised_responses != "{}":
         #TODO the above is ugly, add a boolean method instead
         #response     = ({ "message" : "You already revised your initial answers, you are done with both steps of this quiz."}, 403, {"Content-Type": "application/json"})
         flash("You already submitted your answers for both step 1 and step 2.", "error")
