@@ -177,6 +177,10 @@ def get_student(qid):
                 .filter_by(quiz_question_id=quiz_question.id)\
                 .filter_by(distractor_id="-1")\
                 .filter(not_(models.Justification.justification==""))\
+                .filter(not_(models.Justification.justification=="<br>"))\
+                .filter(not_(models.Justification.justification=="<p><br></p>"))\
+                .filter(not_(models.Justification.justification=="<p></p>"))\
+                .filter(not_(models.Justification.student_id==current_user.id))\
                 .all()
             
             # NOTE use filter instead of filter_by for != comparisons
