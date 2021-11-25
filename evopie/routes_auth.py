@@ -97,4 +97,5 @@ def post_signup():
 @auth.route('/logout')
 def logout():
     logout_user()
-    return 'Logged out'
+    return redirect(url_for('pages.index'))
+    #return 'Logged out'
