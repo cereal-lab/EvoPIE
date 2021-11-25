@@ -223,11 +223,11 @@ def get_student(qid):
                 #quiz_justifications[key_question][key_distractor] = neo
                 quiz_justifications[key_question][key_distractor] = selected
 
-                initial_responses = [] 
-                asdict = json.loads(a[0].initial_responses.replace("'",'"'))
-                for k in asdict:
-                    initial_responses.append(asdict[k])
-                return render_template('student.html', quiz=q, simplified_questions=simplified_quiz_questions, questions=quiz_questions, student=u, attempt=a[0], initial_responses=initial_responses, justifications=quiz_justifications)
+        initial_responses = [] 
+        asdict = json.loads(a[0].initial_responses.replace("'",'"'))
+        for k in asdict:
+            initial_responses.append(asdict[k])
+        return render_template('student.html', quiz=q, simplified_questions=simplified_quiz_questions, questions=quiz_questions, student=u, attempt=a[0], initial_responses=initial_responses, justifications=quiz_justifications)
     else: # step == 1
         return render_template('student.html', quiz=q, simplified_questions=simplified_quiz_questions, questions=quiz_questions, student=u)
 
