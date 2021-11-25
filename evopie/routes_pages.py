@@ -132,7 +132,6 @@ def get_student(qid):
             altern[1] = jinja2.Markup(altern[1]).unescape()
             # nope... altern[1] = jinja2.Markup.escape(altern[1])
 
-
     # determine which step of the peer instruction the student is in
     a = models.QuizAttempt.query.filter_by(student_id=current_user.id).filter_by(quiz_id=qid).all()
     
@@ -157,7 +156,7 @@ def get_student(qid):
         flash("You are done with this quiz.", "error")
         return redirect(url_for('pages.index'))
         
-    # Redirect to different pages depending on step; e.g., student1.html vs. student2.html
+    # Handle different steps
     if a: # step == 2
         # retrieve the peers' justifications for each question
         quiz_justifications = {}
@@ -165,7 +164,6 @@ def get_student(qid):
             question_justifications = {}
             for distractor in quiz_question.distractors:
                 # get all justifications for that alternative / question pair
-                # NOTE some empty justifications end up making it here, we need to remove them then make sure that we handle, in the template, the possibility of no justification available at all.\
                 question_justifications[str(distractor.id)] = models.Justification.query\
                     .filter_by(quiz_question_id=quiz_question.id)\
                     .filter_by(distractor_id=distractor.id)\
@@ -176,7 +174,6 @@ def get_student(qid):
                     .filter(not_(models.Justification.student_id==current_user.id))\
                     .all()
             # also handle the solution -1
-            # NOTE some empty justifications end up making it here, we need to remove them then make sure that we handle, in the template, the possibility of no justification available at all.\
             question_justifications["-1"] = models.Justification.query\
                 .filter_by(quiz_question_id=quiz_question.id)\
                 .filter_by(distractor_id="-1")\
@@ -189,8 +186,6 @@ def get_student(qid):
             
             # NOTE use filter instead of filter_by for != comparisons
             # https://stackoverflow.com/questions/16093475/flask-sqlalchemy-querying-a-column-with-not-equals/16093713
-
-
 
             # record this array of objects as corresponding to this question
             quiz_justifications[str(quiz_question.id)] = question_justifications
@@ -205,11 +200,8 @@ def get_student(qid):
                 number_to_select = min(3 , len(quiz_justifications[key_question][key_distractor]))
                 #TODO FFS remove the above ugly, hardcoded, magic, number
 
-                #FIXME prevent selection of our own justifications!!!
-
                 selected = []
-                for n in range(number_to_select): 
-                    
+                for n in range(number_to_select):                     
                     index = random.randint(0,len(quiz_justifications[key_question][key_distractor])-1)
                     neo = quiz_justifications[key_question][key_distractor].pop(index) #[index]
                     selected.append(neo)
