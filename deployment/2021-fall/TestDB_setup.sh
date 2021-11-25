@@ -15,8 +15,8 @@ curlit "signed up student #2"       "/signup"           '{ "email": "student2@us
 curlit "signed up student #3"       "/signup"           '{ "email": "student3@usf.edu", "password": "student3", "firstname": "Obi-Wan", "lastname": "Kenobi" }'
 curl_login                          "instructor"        '{ "email": "instructor@usf.edu", "password": "EvoPIE Actual" }'
 
-header 'CREATING QUIZ #1 from above questions'
-curlit  'Quiz Created'              "/quizzes"          '{ "title": "Test Quiz", "description": "This is just to make sure things are working", "questions_ids":[3, 2, 1]}'
+#header 'CREATING QUIZ #1 from above questions'
+#curlit  'Quiz Created'              "/quizzes"          '{ "title": "Test Quiz", "description": "This is just to make sure things are working", "questions_ids":[3, 2, 1]}'
 
 # new question template
 # curlit  'Added Question'            "/questions"        '{ "title": "", "stem": "", "answer": ""}'
