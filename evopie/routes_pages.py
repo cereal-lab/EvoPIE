@@ -170,6 +170,10 @@ def get_student(qid):
                     .filter_by(quiz_question_id=quiz_question.id)\
                     .filter_by(distractor_id=distractor.id)\
                     .filter(not_(models.Justification.justification==""))\
+                    .filter(not_(models.Justification.justification=="<br>"))\
+                    .filter(not_(models.Justification.justification=="<p><br></p>"))\
+                    .filter(not_(models.Justification.justification=="<p></p>"))\
+                    .filter(not_(models.Justification.student_id==current_user.id))\
                     .all()
             # also handle the solution -1
             # NOTE some empty justifications end up making it here, we need to remove them then make sure that we handle, in the template, the possibility of no justification available at all.\
