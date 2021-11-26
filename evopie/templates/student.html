@@ -305,7 +305,7 @@
                                 
                                 {% if quiz.status != 'SOLUTIONS' %}
                                 {% if attempt is defined %}
-                                    <p> Reason suggested by one of your peers for not selecting this one: </p>
+                                    <p> Reasons suggested by your peers for not selecting this one: </p>
                                     <p>
                                         <table class='table'>
                                         {% for question_key, question in justifications.items() %}
