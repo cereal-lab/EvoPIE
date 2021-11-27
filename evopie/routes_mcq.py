@@ -828,7 +828,7 @@ def all_quizzes_take(qid):
             # we also save the total score as we go
             attempt.revised_total_score = 0
             for key in revised_responses_dict:
-                if int(initial_responses_dict[key] == 0):
+                if int(revised_responses_dict[key] == 0):
                     response     = ({ "message" : "You must select an answer for each question" }, 400, {"Content-Type": "application/json"})
                     return make_response(response)
                 if int(revised_responses_dict[key]) < 0:
