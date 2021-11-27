@@ -127,7 +127,7 @@
         //.then(response => response.statusText)
         .then(data => {
             if(data.status==400){
-                alert("You must select a response for each question.");
+                alert("You must select a response for each question, and provide a justification for each available option.");
             } else {
                 alert("Result of your submission is: " + data.statusText);
                 window.location.href = what_is_next;
