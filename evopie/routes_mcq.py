@@ -793,13 +793,18 @@ def all_quizzes_take(qid):
             justifications_dict = request.json['justifications']
             attempt.justifications = str(justifications_dict)
             
+            # check that every alternative that was not selected has a justification
+            for key_quest in justifications_dict:
+                quest = justifications_dict[key_quest]
+                for key_just in quest:
+                    if quest[key_just] == "" and key_just != initial_responses_dict[key_quest]:
+                        response     = ({ "message" : "You must provide a justification for each option" }, 400, {"Content-Type": "application/json"})
+                        return make_response(response)
+
             # Record in DB the justification with quizquestion id + distractor id + student ID--> justifications
             for key_quest in justifications_dict:
                 quest = justifications_dict[key_quest]
                 for key_just in quest:
-                    if quest[key_just] == "":
-                        response     = ({ "message" : "You must provide a justification for each option" }, 400, {"Content-Type": "application/json"})
-                        return make_response(response)
                     just = models.Justification(quiz_question_id=key_quest, distractor_id=key_just, student_id=sid, justification=sanitize(quest[key_just]))
                     models.DB.session.add(just)
             models.DB.session.add(attempt)
