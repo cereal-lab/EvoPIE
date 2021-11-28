@@ -124,18 +124,18 @@
             body:           JSON.stringify(post_data),
             credentials:    'same-origin'
         })
-        //.then(response => response.statusText)
-        .then(data => {
-            if(data.status==400){
-                alert("You must select a response for each question, and provide a justification for each available option.");
-                // TODO replace the above by displaying the msg actually sent back in JSON by the server
-            } else {
-                alert("Result of your submission is: " + data.statusText);
-                window.location.href = what_is_next;
-            }  
-        })
+        .then(
+            response => {
+                if(response.ok){
+                    alert("Quiz submitted!");
+                    window.location.href = what_is_next;
+                }else{
+                    response.json().then(data => alert(data.message));
+                }
+            }
+        )
         .catch((error) => {
-            alert("Result of your submission is: " + error);
+            alert("There was a problem with your submission: " + error);
             window.location.href = what_is_next;
         })
     }
