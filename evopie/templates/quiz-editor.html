@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}EvoPIE{% endblock %}
+
+{% block head%}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.css">  
+<script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.js"></script>
+<script>
+    $(document).ready( function () {
+
+    } );
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="jumbotron jumbotron-fluid">
+    <div class="container">
+        <h1 class="display-4">Quiz Editor</h1>
+            <p class="lead">
+                Use this to create new questions to add to this quiz.
+                First pick a question (solution + answer) then add distractors to it.
+                You may also remove entire questions from the quiz.
+            </p>
+    </div>
+</div>
+
+
+
+
+
+<div class="card bg-light m-3 mx-auto" style="width: 75%">
+    <div class="card-body" bg-light>
+        <h5 class="card-title">Quiz ID#{{quiz.id}}</h5>
+        <div>
+        <p class="card-text">
+            <form id='QuizForm'>
+                <div class="form-group">
+                    <label for="quiz_title">Title</label>
+                    <input name="quiz_title" id="quiz_title" value="{{quiz.title}}" required>
+                </div>
+                <div class="form-group">
+                    <label for="quiz_description">Description</label>
+                    <textarea class="summernote form-control" name="quiz_description" id="quiz_description" required>
+                        {{quiz.description}}
+                    </textarea>
+                </div>
+                <p name="quiz_result" id="quiz_result">
+                </p>
+                <button onclick="submitQuizForm()" class="btn btn-primary">Submit Changes</button>
+            </form>
+        </p>
+        </div>
+    </div>
+</div>
+
+
+{% for question in quiz.questions %}
+<div class="card bg-light m-3 mx-auto" style="width: 75%">
+    <div class="card-body" bg-light>
+        <h5 class="card-title"> {{question.title}} [ID#{{question.id}}]</h5>
+        <div>
+            <p class="card-text">
+                {{question.stem}}
+            </p>
+            <ul>
+                <li> {{question.answer}} </li>
+            </ul>
+            <ul>
+            {% for distractor in question.alternatives %}
+                {%- if distractor[0] != -1 -%}
+                    <li>
+                        {{distractor[1]|safe}} [ID#{{distractor[0]}}]
+                    </li>
+                {% endif %}
+            {% endfor %}
+            </ul>
+        </div>
+        
+        <button onclick="location.href='/question-editor/{{question.id}}'" class="btn btn-primary">Edit Question</button>
+
+        <button onclick="" class="btn btn-danger">Remove Question</button>
+    </div>
+</div>
+{% endfor %}
+
+
+
+<script type="text/javascript">
+    function submitQuizForm(){
+        let result = document.querySelector('#quiz_result');
+        let title = document.querySelector('#quiz_title');
+        let description = document.querySelector('#quiz_description');
+        let qq1 = document.querySelector('#quiz_qq1');
+        let qq2 = document.querySelector('#quiz_qq2');
+        let qq3 = document.querySelector('#quiz_qq3');
+            
+        let xhr = new XMLHttpRequest();
+        let url = '/quizzes';
+    
+        xhr.open("POST", url, true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+
+        // Create a state change callback 
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+                result.innerHTML = this.responseText;
+                }
+        };
+
+        // Converting JSON data to string 
+        var data = JSON.stringify({ "title": title.value, "description": description.value, "questions_ids": [parseInt(qq1.value), parseInt(qq2.value), parseInt(qq3.value)] }); 
+        console.log("sending --> " + data)
+        // Sending data with the request 
+        xhr.send(data);
+    }
+</script>
+
+{% endblock %}

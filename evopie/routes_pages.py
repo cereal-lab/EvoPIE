@@ -103,6 +103,19 @@ def question_editor(question_id):
     ds = [d.dump_as_dict() for d in q.distractors]
     q = q.dump_as_dict()
     return render_template('question-editor.html', all_distractors = ds, question = q)
+
+
+
+@pages.route('/quiz-editor/<int:quiz_id>')
+@login_required
+def quiz_editor(quiz_id):
+    if not current_user.is_instructor():
+        flash("Restricted to contributors.", "error")
+        return redirect(url_for('pages.index'))
+    q = models.Quiz.query.get_or_404(quiz_id)
+    #ds = [d.dump_as_dict() for d in q.distractors]
+    q = q.dump_as_dict()
+    return render_template('quiz-editor.html', quiz = q)
     
 
 
