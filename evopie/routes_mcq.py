@@ -622,10 +622,12 @@ def put_quizzes(qid):
     quiz.title = sanitize(request.json['title'])
     quiz.description = sanitize(request.json['description'])
 
-    quiz.quiz_questions = []
-    for qid in request.json['questions_ids']:
-        question = models.QuizQuestion.query.get_or_404(qid)
-        quiz.quiz_questions.append(question)
+    # if no questions_ids are passed, we just update the above title and description
+    if request.json['questions_ids']:
+        quiz.quiz_questions = []
+        for qid in request.json['questions_ids']:
+            question = models.QuizQuestion.query.get_or_404(qid)
+            quiz.quiz_questions.append(question)
 
     models.DB.session.commit()
 

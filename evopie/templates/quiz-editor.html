@@ -46,7 +46,7 @@
                 </div>
                 <p name="quiz_result" id="quiz_result">
                 </p>
-                <button onclick="submitQuizForm()" class="btn btn-primary">Submit Changes</button>
+                <button onclick="submitQuizForm(event)" class="btn btn-primary">Submit Changes</button>
             </form>
         </p>
         </div>
@@ -86,18 +86,16 @@
 
 
 <script type="text/javascript">
-    function submitQuizForm(){
+    function submitQuizForm(event){
+        // This method only updates an existing quiz' title & description
         let result = document.querySelector('#quiz_result');
         let title = document.querySelector('#quiz_title');
         let description = document.querySelector('#quiz_description');
-        let qq1 = document.querySelector('#quiz_qq1');
-        let qq2 = document.querySelector('#quiz_qq2');
-        let qq3 = document.querySelector('#quiz_qq3');
             
         let xhr = new XMLHttpRequest();
-        let url = '/quizzes';
+        let url = '/quizzes/{{quiz.id}}';
     
-        xhr.open("POST", url, true);
+        xhr.open("PUT", url, true);
         xhr.setRequestHeader("Content-Type", "application/json");
 
         // Create a state change callback 
@@ -106,12 +104,25 @@
                 result.innerHTML = this.responseText;
                 }
         };
-
+        // FIXED 405 returned: that was the lack of quiz.id on the URL
         // Converting JSON data to string 
-        var data = JSON.stringify({ "title": title.value, "description": description.value, "questions_ids": [parseInt(qq1.value), parseInt(qq2.value), parseInt(qq3.value)] }); 
-        console.log("sending --> " + data)
+        // We pass an empty list as questions_ids since we only want to update the title / description in this page
+        var data = JSON.stringify({ "title": title.value, "description": description.value, "questions_ids": [] }); 
         // Sending data with the request 
         xhr.send(data);
+        //location.reload();
+
+        
+        // FIXED redirects to URL with arguments in ? format
+        // had to stop propagation of events in the DOM in the onclick handler
+        event.preventDefault();
+        event.stopPropagation();
+
+        return false;
+        // NOTE return false in onSubmit handlers in order to not reload the page
+        // see https://stackoverflow.com/questions/14224366/how-to-avoid-automatic-page-reload-after-xmlhttprequest-call/14224399
+        // NOPE... we are using onclick handler here not onsubmit...
+        // still looks like it's working...
     }
 </script>
 
