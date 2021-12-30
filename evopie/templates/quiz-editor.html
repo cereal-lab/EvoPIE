@@ -76,7 +76,7 @@
             </ul>
         </div>
         
-        <button onclick="location.href='/question-editor/{{question.id}}'" class="btn btn-primary">Edit Question</button>
+        <button onclick="editQuestion({{question.id}})" class="btn btn-primary">Edit Question</button>
 
         <button onclick="" class="btn btn-danger">Remove Question</button>
     </div>
@@ -86,6 +86,10 @@
 
 
 <script type="text/javascript">
+
+    function editQuestion(q){
+        window.open('/question-editor/' + q, '_blank');
+    }
     function submitQuizForm(event){
         // This method only updates an existing quiz' title & description
         let result = document.querySelector('#quiz_result');
