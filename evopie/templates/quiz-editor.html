@@ -78,7 +78,7 @@
         
         <button onclick="editQuestion({{question.id}})" class="btn btn-primary">Edit Question</button>
 
-        <button onclick="" class="btn btn-danger">Remove Question</button>
+        <button onclick="removeQuestion({{quiz.id}},{{question.id}})" class="btn btn-danger">Remove Question</button>
     </div>
 </div>
 {% endfor %}
@@ -86,6 +86,10 @@
 
 
 <script type="text/javascript">
+
+    function removeQuestion(pquiz,pquestion){
+
+    }
 
     function editQuestion(q){
         window.open('/question-editor/' + q, '_blank');
