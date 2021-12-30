@@ -623,7 +623,9 @@ def put_quizzes(qid):
     quiz.description = sanitize(request.json['description'])
 
     # if no questions_ids are passed, we just update the above title and description
-    if request.json['questions_ids']:
+    # please note that we may receive an empty list of questions_ids thus meaning we removed all questions
+    # from a given quiz
+    if 'questions_ids' in request.json.keys():
         quiz.quiz_questions = []
         for qid in request.json['questions_ids']:
             question = models.QuizQuestion.query.get_or_404(qid)

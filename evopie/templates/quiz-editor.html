@@ -78,7 +78,7 @@
         
         <button onclick="editQuestion({{question.id}})" class="btn btn-primary">Edit Question</button>
 
-        <button onclick="removeQuestion({{quiz.id}},{{question.id}})" class="btn btn-danger">Remove Question</button>
+        <button onclick="removeQuestion({{quiz}},{{question.id}})" class="btn btn-danger">Remove Question</button>
     </div>
 </div>
 {% endfor %}
@@ -87,13 +87,44 @@
 
 <script type="text/javascript">
 
-    function removeQuestion(pquiz,pquestion){
+    function removeQuestion(quiz,question_id){
+        let url = '/quizzes/' + quiz.id;
+        let result = document.querySelector('#quiz_result');
+        let data =  {   "title": quiz.title, 
+                        "description": quiz.description,
+                        "questions_ids": []
+                    };
+        for (q of quiz.questions){
+            if(q.id != question_id){
+                data.questions_ids.push(q.id);
+            }
+        }
+        let xhr = new XMLHttpRequest();
+        xhr.open("PUT", url, false); // false to make sure we reload the page after DB has been updated
+        xhr.setRequestHeader("Content-Type", "application/json");
 
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+                result.innerHTML = this.responseText;
+                }
+        };
+
+        var data_as_string = JSON.stringify(data);
+        xhr.send(data_as_string);
+        event.preventDefault();
+        event.stopPropagation();
+        location.reload();
+        return false;
     }
+
+
 
     function editQuestion(q){
         window.open('/question-editor/' + q, '_blank');
     }
+
+
+
     function submitQuizForm(event){
         // This method only updates an existing quiz' title & description
         let result = document.querySelector('#quiz_result');
@@ -103,7 +134,7 @@
         let xhr = new XMLHttpRequest();
         let url = '/quizzes/{{quiz.id}}';
     
-        xhr.open("PUT", url, true);
+        xhr.open("PUT", url, false);
         xhr.setRequestHeader("Content-Type", "application/json");
 
         // Create a state change callback 
@@ -114,8 +145,9 @@
         };
         // FIXED 405 returned: that was the lack of quiz.id on the URL
         // Converting JSON data to string 
-        // We pass an empty list as questions_ids since we only want to update the title / description in this page
-        var data = JSON.stringify({ "title": title.value, "description": description.value, "questions_ids": [] }); 
+        // We pass no questions_ids at all since we only want to update the title / description in this page
+        // passing an empty list for that field would result in removing all the questions from the quiz instead
+        var data = JSON.stringify({ "title": title.value, "description": description.value }); 
         // Sending data with the request 
         xhr.send(data);
         //location.reload();
