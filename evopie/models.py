@@ -30,7 +30,9 @@ class Question(DB.Model):
 
     # 1-to-many with Distractor
     distractors = DB.relationship('Distractor', backref='question', lazy=True)
-
+    # The above are ALL the distractors that are associated with this question
+    # We will later select a few and make them part of a QuizQuestion
+    
     # 1-to-many with QuizQuestion
     quiz_questions = DB.relationship('QuizQuestion', backref='question', lazy=True)
 
