@@ -92,17 +92,47 @@ def quizzes_browser():
     #return render_template('quizzes-browser.html', all_quizzes = all_quizzes, next_url=next_url, prev_url=prev_url)
 
 
-
-@pages.route('/question-editor/<int:question_id>')
+# NOTE signed=True because flask router won't accept a negative value (or floats for that matter)
+# don't need that anymore with the new route after this one
+@pages.route('/question-editor/<int(signed=True):question_id>')
 @login_required
 def question_editor(question_id):
     if not current_user.is_instructor():
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
+
     q = models.Question.query.get_or_404(question_id)
+    
     ds = [d.dump_as_dict() for d in q.distractors]
     q = q.dump_as_dict()
     return render_template('question-editor.html', all_distractors = ds, question = q)
+
+
+@pages.route('/question-editor-for-quiz/<int:quiz_id>')
+@login_required
+def question_editor_for_quiz(quiz_id):
+    # NOW - we need to add the new QuizQuestion to the Quiz
+    # use a different route instead of passing -1 for question_id
+    # so that this route also takes a quiz ID
+
+    if not current_user.is_instructor():
+        flash("Restricted to contributors.", "error")
+        return redirect(url_for('pages.index'))
+
+    # we need to create the new question
+    title = 'Add a title for your new question here.'
+    stem = 'Add the question here.'
+    answer = 'Add the correct answer to your question here.'
+    q = models.Question(title=title, stem=stem, answer=answer)
+    models.DB.session.add(q)
+    models.DB.session.commit()
+
+    # now link the Question to a new QuizQuestion
+
+    # now add the QuizQuestion to the quiz
+
+    # now edit the QuizQuestion
+    return redirect("/question-editor/" + str(q.id), code=302)
 
 
 

@@ -53,6 +53,21 @@
     </div>
 </div>
 
+<div class="card bg-light m-3 mx-auto" style="width: 75%">
+    <div class="card-body" bg-light>
+        <h5 class="card-title"> </h5>
+        
+        <button onclick="addNewQuestion()" class="btn btn-primary">Add a new question to the Quiz</button>
+        
+    </div>
+</div>
+
+<script>
+    function addNewQuestion(){
+        window.open('/question-editor-for-quiz/{{quiz.id}}', '_blank');
+        // the -1 means we want to also create the Question for this new QuizQuestion
+    }
+</script>
 
 {% for question in quiz.questions %}
 <div class="card bg-light m-3 mx-auto" style="width: 75%">
