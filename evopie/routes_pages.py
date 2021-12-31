@@ -128,9 +128,13 @@ def question_editor_for_quiz(quiz_id):
     models.DB.session.commit()
 
     # now link the Question to a new QuizQuestion
-
+    qq = models.QuizQuestion(question=q)
+    models.DB.session.add(qq)
+    
     # now add the QuizQuestion to the quiz
-
+    my_quiz = models.Quiz.query.get_or_404(quiz_id)
+    my_quiz.quiz_questions.append(qq)
+    
     # now edit the QuizQuestion
     return redirect("/question-editor/" + str(q.id), code=302)
 
