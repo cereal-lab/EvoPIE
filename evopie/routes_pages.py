@@ -108,37 +108,57 @@ def question_editor(question_id):
     return render_template('question-editor.html', all_distractors = ds, question = q)
 
 
-@pages.route('/question-editor-for-quiz/<int:quiz_id>')
+@pages.route('/quiz-question-editor/<int:quiz_id>/<int(signed=True):quiz_question_id>')
 @login_required
-def question_editor_for_quiz(quiz_id):
+def quiz_question_editor(quiz_id,quiz_question_id):
     # NOW - we need to add the new QuizQuestion to the Quiz
-    # use a different route instead of passing -1 for question_id
-    # so that this route also takes a quiz ID
-
+    # TODO - prepare another version that will allow to select an existing question instead
+    # of creating a new one from scratch, then select among its distractors instead of adding distractors
+    # to both the question & its QuizQuestion
+    
     if not current_user.is_instructor():
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
 
     # we need to create the new question
-    title = 'Add a title for your new question here.'
-    stem = 'Add the question here.'
-    answer = 'Add the correct answer to your question here.'
-    q = models.Question(title=title, stem=stem, answer=answer)
-    models.DB.session.add(q)
-    models.DB.session.commit()
+    if quiz_question_id == -1:
+        # create a new blank question
+        title = 'Add a title for your new question here.'
+        stem = 'Add the question here.'
+        answer = 'Add the correct answer to your question here.'
+        q = models.Question(title=title, stem=stem, answer=answer)
+        models.DB.session.add(q)
+        models.DB.session.commit()
 
-    # now link the Question to a new QuizQuestion
-    qq = models.QuizQuestion(question=q)
-    models.DB.session.add(qq)
+        # now link the Question to a new QuizQuestion
+        qq = models.QuizQuestion(question=q)
+        models.DB.session.add(qq)
+        models.DB.session.commit()
     
-    # now add the QuizQuestion to the quiz
-    my_quiz = models.Quiz.query.get_or_404(quiz_id)
-    my_quiz.quiz_questions.append(qq)
+        # now add the QuizQuestion to the quiz
+        my_quiz = models.Quiz.query.get_or_404(quiz_id)
+        my_quiz.quiz_questions.append(qq)
+        models.DB.session.commit()
     
+    else: 
+        #q = models.Question.query.get_or_404(question_id)
+        qq = models.QuizQuestion.query.get_or_404(quiz_question_id)
+        q = models.Question.query.get_or_404(qq.question_id)
+        # NOTE we assume that the QuizQuestion already belong to this quiz
+        # FIXME we should really ensure that it's the case
+
     # now edit the QuizQuestion
-    return redirect("/question-editor/" + str(q.id), code=302)
+    #return redirect("/question-editor/" + str(q.id), code=302)
+    return render_template('quiz-question-editor.html', quiz_id = quiz_id, quiz_question = qq, question = q)
 
 
+
+@pages.route('/quiz-question-selector/<int:quiz_id>')
+@login_required
+def quiz_question_selector(quiz_id):
+    questions = models.Question.query.all()
+    return render_template('quiz-question-selector1.html', quiz_id = quiz_id, available_questions = questions)
+    
 
 @pages.route('/quiz-editor/<int:quiz_id>')
 @login_required

@@ -225,7 +225,7 @@ class Quiz(DB.Model):
         return {    "id" : self.id,
                     "title" : self.title,
                     "description" : self.description,
-                    "questions" : questions,
+                    "questions" : questions, # FIXME this field should really be named quiz_questions instead of questions
                     "status" : self.status
                 }
 

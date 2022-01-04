@@ -171,7 +171,10 @@ def put_question(question_id):
         return make_response(response)
     else:
         flash("Question successfully updated in database.", "shiny")
-        return redirect(request.referrer)
+        return  redirect(url_for('pages.index'))
+        # removing the following in order to avoid reloading a quiz-question-editor.html 
+        # and thus adding an extra quizquestion to that quiz
+        # redirect(request.referrer)
 
 
 
@@ -616,7 +619,9 @@ def put_quizzes(qid):
         abort(406, "JSON format required for request") # not acceptable
 
     # validate that all required information was sent
-    if quiz.title is None or quiz.description is None or request.json['questions_ids'] is None:
+    if quiz.title is None or quiz.description is None:
+        #removing this one since we can POST just the title + description
+        #  or request.json['questions_ids'] is None:
         abort(400, "Unable to modify quiz due to missing data") # bad request
 
     quiz.title = sanitize(request.json['title'])
