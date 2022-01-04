@@ -8,7 +8,7 @@
 {% block content %}
 <div class="jumbotron jumbotron-fluid">
     <div class="container">
-        <h1 class="display-4">Adding a new Question to Quiz ID#{{quiz_id}}</h1>
+        <h1 class="display-4">Editing new Question for Quiz ID#{{quiz_id}}</h1>
             <p class="lead">
                 Use this page to create a new Quiz Question and add
                 distractors to it.
@@ -59,4 +59,35 @@
         </div>
     </div>
 </div>
+
+<!--
+    NOW TODO we need to enable adding distractors to this QuizQuestion
+    see code in question-editor.html
+    When we add a distractor here, we need to first add it to the Question, then to the QuizQuestion
+    should we allow to select distractors from the Question's distractors?
+-->
+    
+<div class="card bg-light m-3 mx-auto" style="width: 75%">
+    <div class="card-body" bg-light>
+        <h5 class="card-title" data-toggle = "collapse" data-target = "#newdistractor">
+            Click here to create a new distractor for this question
+        </h5>
+        <div  id = "newdistractor" class = "collapse">
+            <p class="card-text">
+                <form id="distractorForm" method="post" action='/questions/{{ question.id }}/distractors'>
+                    <div class="form-group">
+                        <input type="hidden" name="qid" id="qid" value="{{ question.id }}" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <textarea class="summernote form-control" name="answer" id="answer" required></textarea>
+                    </div>
+                    <input type="submit" value="Submit New Distractor" class="btn btn-primary">
+                </form>                        
+            </p>
+        </div>
+    </div>
+</div>
+
+
+<-- 
 {% endblock %}
