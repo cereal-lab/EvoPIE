@@ -156,8 +156,14 @@ def quiz_question_editor(quiz_id,quiz_question_id):
 @pages.route('/quiz-question-selector/<int:quiz_id>')
 @login_required
 def quiz_question_selector(quiz_id):
+    # NOW TODO 
+    # should be the same as the quiz-question-editor but we select a question instead of creating it
+    # once question has been selected, we should be able to call quiz-question-editor
+    # by having quiz-question-selector.html POST to quiz-question-editor/qz/qqid <-- need to modify this
+    # we need to be able to say qqid is -1 but here is a question_id already selected...
+    # maybe merge this in the above and accept 3 parameters?
     questions = models.Question.query.all()
-    return render_template('quiz-question-selector1.html', quiz_id = quiz_id, available_questions = questions)
+    return render_template('quiz-question-selector.html', quiz_id = quiz_id, available_questions = questions)
     
 
 @pages.route('/quiz-editor/<int:quiz_id>')
