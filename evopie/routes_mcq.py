@@ -522,8 +522,8 @@ def post_new_quiz():
     if title is None or description is None:
         abort(400, "Unable to create new quiz due to missing data") # bad request
 
-    if request.json['questions_ids'] is None:
-        abort(400, "Unable to create new quiz due to missing data") # bad request
+    #if request.json['questions_ids'] is None:
+    #    abort(400, "Unable to create new quiz due to missing data") # bad request
     
     bleached_title = sanitize(title)
     bleached_description = sanitize(description)
@@ -531,9 +531,10 @@ def post_new_quiz():
     q = models.Quiz(title=bleached_title, description=bleached_description)
     
     # Adding the questions, based on the questions_id that were submitted
-    for qid in request.json['questions_ids']:
-        question = models.QuizQuestion.query.get_or_404(qid)
-        q.quiz_questions.append(question)
+    if 'questions_ids' in request.json:
+        for qid in request.json['questions_ids']:
+            question = models.QuizQuestion.query.get_or_404(qid)
+            q.quiz_questions.append(question)
     
     models.DB.session.add(q)
     models.DB.session.commit()
