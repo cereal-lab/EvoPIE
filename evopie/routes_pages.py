@@ -106,15 +106,12 @@ def question_editor(question_id):
     ds = [d.dump_as_dict() for d in q.distractors]
     q = q.dump_as_dict()
     return render_template('question-editor.html', all_distractors = ds, question = q)
+    
 
 
 @pages.route('/quiz-question-editor/<int:quiz_id>/<int(signed=True):quiz_question_id>')
 @login_required
 def quiz_question_editor(quiz_id,quiz_question_id):
-    # NOW - we need to add the new QuizQuestion to the Quiz
-    # TODO - prepare another version that will allow to select an existing question instead
-    # of creating a new one from scratch, then select among its distractors instead of adding distractors
-    # to both the question & its QuizQuestion
     
     if not current_user.is_instructor():
         flash("Restricted to contributors.", "error")
@@ -158,6 +155,9 @@ def quiz_question_editor(quiz_id,quiz_question_id):
 def quiz_question_selector_1(quiz_id):
     # We selected a quiz by ID. This page will now present all available Question objects
     # and prompt the user to select one to add to the Quiz as a QuizQuestion later
+    if not current_user.is_instructor():
+        flash("Restricted to contributors.", "error")
+        return redirect(url_for('pages.index'))
     questions = models.Question.query.all()
     return render_template('quiz-question-selector-1.html', quiz_id = quiz_id, available_questions = questions)
 
@@ -169,6 +169,9 @@ def quiz_question_selector_2(quiz_id, question_id):
     # Quiz & Question have been selected by ID.
     # We now display all the available distractors for that question and let the user 
     # select a bunch of them.
+    if not current_user.is_instructor():
+        flash("Restricted to contributors.", "error")
+        return redirect(url_for('pages.index'))
     question = models.Question.query.get_or_404(question_id)
     return render_template('quiz-question-selector-2.html', quiz_id=quiz_id, question=question)
 
@@ -179,6 +182,9 @@ def quiz_question_selector_2(quiz_id, question_id):
 def quiz_question_selector_3(quiz_id, question_id, selected_distractors):
     # Quiz, Question & some of its distractors have been selected by ID.
     # We create the corresponding QuizQuestion object and add it to the Quiz
+    if not current_user.is_instructor():
+        flash("Restricted to contributors.", "error")
+        return redirect(url_for('pages.index'))
     qz = models.Quiz.query.get_or_404(quiz_id)
     q = models.Question.query.get_or_404(question_id)
     

@@ -60,13 +60,13 @@
     </div>
 </div>
 
+
+<!-- we do not allow to add a distractor on the fly. 
+    If we did though, instead of the below form, we would need to trigger a JS function that will POST the distractor to the 
+    Question list of all distractors but also add it to the list of distractors selected for this specific QuizQuestion.
+
+-->    
 <!--
-    NOW TODO we need to enable adding distractors to this QuizQuestion
-    see code in question-editor.html
-    When we add a distractor here, we need to first add it to the Question, then to the QuizQuestion
-    should we allow to select distractors from the Question's distractors?
--->
-    
 <div class="card bg-light m-3 mx-auto" style="width: 75%">
     <div class="card-body" bg-light>
         <h5 class="card-title" data-toggle = "collapse" data-target = "#newdistractor">
@@ -87,7 +87,27 @@
         </div>
     </div>
 </div>
+-->
 
 
-<-- 
+
+
+
+
+{% for single_distractor in quiz_question.distractors %}
+<div class="card bg-light m-3 mx-auto" style="width: 75%">
+    <div class="card-body" bg-light>
+
+        <h5 class="card-title" data-toggle = "collapse" data-target = "#distractor{{single_distractor.id}}">
+            Distractor D#{{ single_distractor.id }}
+        </h5>
+
+        <div>
+            <p class="card-text">
+                {{ single_distractor.answer | safe }}
+            </p>
+        </div>
+    </div>
+</div>
+{% endfor %}
 {% endblock %}
