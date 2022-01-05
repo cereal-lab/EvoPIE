@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block title %}EvoPIE{% endblock %}
+
+{% block head%}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.css">  
+<script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.js"></script>
+<script>
+    $(document).ready( function () {
+        $('#gradingtable').DataTable();
+    } );
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="jumbotron jumbotron-fluid">
+    <div class="container">
+        <h1 class="display-4">Question added to the quiz!</h1>
+            <p class="lead">
+                You may close this tab now. 
+            </p>
+    </div>
+</div>
+{% endblock %}

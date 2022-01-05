@@ -153,18 +153,58 @@ def quiz_question_editor(quiz_id,quiz_question_id):
 
 
 
-@pages.route('/quiz-question-selector/<int:quiz_id>')
+@pages.route('/quiz-question-selector-1/<int:quiz_id>')
 @login_required
-def quiz_question_selector(quiz_id):
-    # NOW TODO 
-    # should be the same as the quiz-question-editor but we select a question instead of creating it
-    # once question has been selected, we should be able to call quiz-question-editor
-    # by having quiz-question-selector.html POST to quiz-question-editor/qz/qqid <-- need to modify this
-    # we need to be able to say qqid is -1 but here is a question_id already selected...
-    # maybe merge this in the above and accept 3 parameters?
+def quiz_question_selector_1(quiz_id):
+    # We selected a quiz by ID. This page will now present all available Question objects
+    # and prompt the user to select one to add to the Quiz as a QuizQuestion later
     questions = models.Question.query.all()
-    return render_template('quiz-question-selector.html', quiz_id = quiz_id, available_questions = questions)
+    return render_template('quiz-question-selector-1.html', quiz_id = quiz_id, available_questions = questions)
+
+
+
+@pages.route('/quiz-question-selector-2/<int:quiz_id>/<int:question_id>')
+@login_required
+def quiz_question_selector_2(quiz_id, question_id):
+    # Quiz & Question have been selected by ID.
+    # We now display all the available distractors for that question and let the user 
+    # select a bunch of them.
+    question = models.Question.query.get_or_404(question_id)
+    return render_template('quiz-question-selector-2.html', quiz_id=quiz_id, question=question)
+
+
+
+@pages.route('/quiz-question-selector-3/<int:quiz_id>/<int:question_id>/<selected_distractors>')
+@login_required
+def quiz_question_selector_3(quiz_id, question_id, selected_distractors):
+    # Quiz, Question & some of its distractors have been selected by ID.
+    # We create the corresponding QuizQuestion object and add it to the Quiz
+    qz = models.Quiz.query.get_or_404(quiz_id)
+    q = models.Question.query.get_or_404(question_id)
     
+    #create new QuizQuestion based on the Question
+    qq = models.QuizQuestion(question=q)
+    
+    # distractor IDs are passed as a space-separated string of int values
+    # We convert this into a proper list (still of str elements though)
+    selected_distractors_list = list(selected_distractors.split(" "))
+    
+    # we iterate on the above and retrieve each Distractor by its ID
+    # before to add it to the QuizQuestion
+    for distractor_id_str in selected_distractors_list:
+        distractor_id = int(distractor_id_str)
+        distractor = models.Distractor.query.get_or_404(distractor_id)
+        qq.distractors.append(distractor) # TODO convert str into list
+    
+    models.DB.session.add(qq)
+    models.DB.session.commit()
+    # once the QuizQuestion has been committed to the DB, we add it to the Quiz
+    qz.quiz_questions.append(qq)
+    models.DB.session.commit()
+
+    return render_template("quiz-question-selector-3.html")
+
+
 
 @pages.route('/quiz-editor/<int:quiz_id>')
 @login_required

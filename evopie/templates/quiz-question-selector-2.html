@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+
+{% block title %}EvoPIE{% endblock %}
+
+{% block head%}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.css">  
+<script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.js"></script>
+<script>
+    $(document).ready( function () {
+        $('#gradingtable').DataTable();
+    } );
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="jumbotron jumbotron-fluid">
+    <div class="container">
+        <h1 class="display-4">Step #2 - Select the Distractors</h1>
+            <p class="lead">
+                Based on the Question that you previously selected, we show you below the list of all the distractors
+                that have been created for that questions. 
+                Choose the ones that you want your students to be presented when they have to answer this question.
+            </p>
+    </div>
+</div>
+
+
+
+<div class="card bg-light m-3 mx-auto" style="width: 75%">
+    <div class="card-body" bg-light>
+        <h5 class="card-title">
+            Previewing Question Q#{{question.id}}
+        </h5>
+        <div>
+            <p class="card-text">
+                <table style="border: 0;border-collapse: separate; border-spacing: 0px 3px 1rem 3px;" cellpadding="10">
+                    <tr>
+                        <td colspan="2"><b>{{question.title}}</b></td>
+                    </tr>
+                    <tr>
+                        <td style="vertical-align: top"><b>Q:</b></td>
+                        <td>
+                            {{ question.stem | safe }}
+                        </td>
+                    </tr>
+                    <tr>   
+                        <td style="vertical-align: top"><b>A:</b></td>
+                        <td>
+                            {{ question.answer | safe }}
+                        </td>
+                    </tr>
+                </table>
+            </p>
+        </div>
+    </div>
+</div>
+
+<div class="card bg-light m-3 mx-auto" style="width: 75%">
+    <div class="card-body" bg-light>
+        <a class="btn btn-primary my-2 btn-sm" onClick='submitQuizQuestion()' href="#">
+            Submit with all selected distractors below
+        </a>
+    </div>
+</div>
+<script>
+    function submitQuizQuestion(){
+        url="/quiz-question-selector-3/{{quiz_id}}/{{question.id}}/"
+        // collect all the checked distractors, get their IDs, put them in a list
+        const checkboxes = document.querySelectorAll('input[name="distractors_checkboxes"]:checked');
+        let checked_distractors = [];
+        checkboxes.forEach((checkbox) => {
+            checked_distractors.push(checkbox.value);
+        });
+        // then transform this list into a string of IDs separated by spaces that we can pass to the URL above
+        url += checked_distractors.join(" ");
+        location.href=url;
+    }
+</script>
+
+
+<div class="card bg-light m-3 mx-auto" style="width: 75%">
+    <div class="card-body" bg-light>
+        <h5 class="card-title">
+            List of all distractors that were created for this Question
+        </h5>
+        <table>
+            <tr>
+                <th>
+                    Distractor ID#
+                </th>
+                <th>
+                    Description
+                </th>
+            </tr>
+{% for distractor in question.distractors %}
+            <tr>
+                <td>
+                    <label for="D{{distractor.id}}">
+                        <INPUT TYPE="Checkbox" Name="distractors_checkboxes" ID="D{{distractor.id}}" Value="{{distractor.id}}">
+                        &nbsp;&nbsp;&nbsp;&nbsp;
+                        {{distractor.id}}
+                    </label>
+                </td>
+                <td>
+                    {{ distractor.answer | safe }}
+                </td>
+            </tr>
+        </div>
+{% endfor %}
+    </table>
+    </div>
+</div>
+
+{% endblock %}

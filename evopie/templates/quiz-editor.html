@@ -57,7 +57,9 @@
     <div class="card-body" bg-light>
         <h5 class="card-title"> </h5>
         
+        <!-- this one is not finished, we do not have the code to handle distractors in the editor yet
         <button onclick="addNewQuestion()" class="btn btn-primary">Create a new question for this Quiz</button>
+        -->
         <!--
             we might want, for now, to let the user create the Question separately, then add them to quiz here
             by selecting them, then selecting their distractors for the QuizQuestion
@@ -74,7 +76,7 @@
     }
 
     function addExistingQuestion(){
-        window.open('/quiz-question-selector/{{quiz.id}}', '_blank');
+        window.open('/quiz-question-selector-1/{{quiz.id}}', '_blank');
     }
 </script>
 

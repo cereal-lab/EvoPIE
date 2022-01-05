@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}EvoPIE{% endblock %}
+
+{% block head%}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.css">  
+<script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.js"></script>
+<script>
+    $(document).ready( function () {
+        $('#gradingtable').DataTable();
+    } );
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="jumbotron jumbotron-fluid">
+    <div class="container">
+        <h1 class="display-4">Step #1 - Select your question (and its solution)</h1>
+            <p class="lead">
+                Here is the list of available questions for you to add to your quiz.
+                The previews below show the question itself (stem), its title, as well as
+                its answer.
+            </p>
+    </div>
+</div>
+
+
+
+{% for question in available_questions %}
+<div class="card bg-light m-3 mx-auto" style="width: 75%">
+    <div class="card-body" bg-light>
+        <h5 class="card-title">
+            Previewing Question Q#{{question.id}}
+        </h5>
+        <div>
+            <p class="card-text">
+                <table style="border: 0;border-collapse: separate; border-spacing: 0px 3px 1rem 3px;" cellpadding="10">
+                    <tr>
+                        <td colspan="2"><b>{{question.title}}</b></td>
+                    </tr>
+                    <tr>
+                        <td style="vertical-align: top"><b>Q:</b></td>
+                        <td>
+                            {{ question.stem | safe }}
+                        </td>
+                    </tr>
+                    <tr>   
+                        <td style="vertical-align: top"><b>A:</b></td>
+                        <td>
+                            {{ question.answer | safe }}
+                        </td>
+                    </tr>
+                    <tr>
+
+                        <a class="btn btn-primary my-2 btn-sm" href="/quiz-question-selector-2/{{quiz_id}}/{{question.id}}">
+                            Select This Question
+                        </a>
+                    </tr>
+                </table>
+            </p>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{% endblock %}
