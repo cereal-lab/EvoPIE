@@ -133,11 +133,11 @@ class QuizQuestion(DB.Model):
         tmp2 = [] # list of alternatives, including the right answer
 
         tmp1.append(-1)
-        tmp2.append(self.question.answer)
+        tmp2.append(Markup(self.question.answer).unescape())
 
         for d in self.distractors:
-            tmp1.append(d.id)
-            tmp2.append(d.answer)
+            tmp1.append(Markup(d.id).unescape())
+            tmp2.append(Markup(d.answer).unescape())
 
         #result['alternatives'] = list(zip(tmp1,tmp2))
         # NOTE the above would cause the list to be made of tuples which are not well handled when we are trying to
