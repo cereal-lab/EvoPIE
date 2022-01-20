@@ -24,74 +24,7 @@
     </div>
 </div>
 
-<!div class="card-deck">
 
-
-
-
-<!--
-    
-<div class="card bg-light m-3 mx-auto" style="width: 75%">
-    <div class="card-body" bg-light>
-        <h5 class="card-title" data-toggle = "collapse" data-target = "#newquizquestion">Compose new QuizQuestion</h5>
-        <div  id = "newquizquestion" class = "collapse">
-        <p class="card-text">
-            <form id='QuizQuestionForm'>
-                <div class="form-group">
-                    <label for="qq_qid">Question ID</label>
-                    <input name="qq_qid" id="qq_qid" value="2" required>
-                </div>
-                <div class="form-group">
-                    <label for="qq_d1">Distractor #1</label>
-                    <input name="qq_d1" id="qq_d1" required>
-                </div>
-                <div class="form-group">
-                    <label for="qq_d2">Distractor #2</label>
-                    <input name="qq_d2" id="qq_d2" required>
-                </div>
-                <div class="form-group">
-                    <label for="qq_d3">Distractor #3</label>
-                    <input name="qq_d3" id="qq_d3" required>
-                </div>
-                <p name="result" id="result">
-                </p>
-                <button onclick="submitQuizQuestionForm()" class="btn btn-primary">Submit</button>
-            </form>
-        </p></div>
-    </div>
-</div>
-
-
-
-<script type="text/javascript">
-    function submitQuizQuestionForm(){
-        let result = document.querySelector('#result');
-        let qid = document.querySelector('#qq_qid');
-        let d1 = document.querySelector('#qq_d1');
-        let d2 = document.querySelector('#qq_d2');
-        let d3 = document.querySelector('#qq_d3');
-            
-        let xhr = new XMLHttpRequest();
-        let url = '/quizquestions';
-    
-        xhr.open("POST", url, true);
-        xhr.setRequestHeader("Content-Type", "application/json");
-
-        // Create a state change callback 
-        xhr.onreadystatechange = function () {
-            if (xhr.readyState === 4 && xhr.status === 200) {
-                result.innerHTML = this.responseText;
-                }
-        };
-
-        // Converting JSON data to string 
-        var data = JSON.stringify({ "qid": parseInt(qid.value), "distractors_ids": [parseInt(d1.value), parseInt(d2.value), parseInt(d3.value)] }); 
-        // Sending data with the request 
-        xhr.send(data);
-    }
-</script>
-
--->
 
 <div class="card bg-light m-3 mx-auto" style="width: 75%">
     <div class="card-body" bg-light>
@@ -107,20 +40,6 @@
                     <label for="quiz_description">Description</label>
                     <textarea class="summernote form-control" name="quiz_description" id="quiz_description" required></textarea>
                 </div>
-                <!--
-                <div class="form-group">
-                    <label for="quiz_qq1">QuizQuestion #1</label>
-                    <input name="iz_qq1" id="quiz_qq1" required>
-                </div>
-                <div class="form-group">
-                    <label for="quiz_qq2"></label>QuizQuestion #2</label>
-                    <input name="quiz_qq2" id="quiz_qq2" required>
-                </div>
-                <div class="form-group">
-                    <label for="quiz_qq3">QuizQuestion #3</label>
-                    <input name="quiz_qq3" id="quiz_qq3" required>
-                </div>
-                -->
                 <p name="quiz_result" id="quiz_result">
                 </p>
                 <button onclick="submitQuizForm()" class="btn btn-primary">Submit</button>
@@ -137,11 +56,7 @@
         let result = document.querySelector('#quiz_result');
         let title = document.querySelector('#quiz_title');
         let description = document.querySelector('#quiz_description');
-        /*
-        let qq1 = document.querySelector('#quiz_qq1');
-        let qq2 = document.querySelector('#quiz_qq2');
-        let qq3 = document.querySelector('#quiz_qq3');
-        */    
+        
         let xhr = new XMLHttpRequest();
         let url = '/quizzes';
     
@@ -169,80 +84,60 @@
 
 
 
-
-
-
-
-
-
-
-    <div class="card bg-light m-3 mx-auto" style="width: 75%">
-        
-        <div class="card-body" bg-light>
+<div class="card bg-light m-3 mx-auto" style="width: 75%">
     
-            <table class='compact stripe' width='100%' id="gradingtable">
-                <thead><tr>
-                    <th>ID</th>
-                    <th>Title</th>
-                    <th>Actions</th>
-                </tr></thead>
-                <tbody>
-                        
-                {% for single_quiz in all_quizzes %}
-                    <tr>
-                        <td>
-                            {{ single_quiz.id }}
-                        </td>
-                        <td>
-                            <p data-toggle = "modal" data-target = "#q{{single_quiz.id}}">
-                                {{ single_quiz.title }}
-                            </p>
-                            <div class="modal fade" id="q{{single_quiz.id}}" tabindex="-1" role="dialog"
-                                aria-labelledby="mySmallModalLabel" aria-hidden="true">
-                                <div class="modal-dialog modal-sm">
-                                    <div class="modal-content">
-                                    {{ single_quiz.description | safe }}
-                                </div></div>
-                            </div>
-                        </td>
-                        <td class='text-right'>
-                            <!a  href='{{url_for('pages.get_grades', qid=single_quiz.id)}}' type="button" class="btn btn-primary btn-sm">
-                            <a  href='{{url_for('pages.get_grades', qid=single_quiz.id)}}' type="button" class="">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-card-checklist" viewBox="0 0 16 16">
-                                    <path d="M14.5 3a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h13zm-13-1A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2h-13z"/>
-                                    <path d="M7 5.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm-1.496-.854a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 1 1 .708-.708l.146.147 1.146-1.147a.5.5 0 0 1 .708 0zM7 9.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm-1.496-.854a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 0 1 .708-.708l.146.147 1.146-1.147a.5.5 0 0 1 .708 0z"/>
-                                  </svg>
-    
-                                <!--
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
-                                    <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
-                                    <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/>
-                                    </svg>
-                                -->
-                            </a>
-                            <!a  href='#' type="button" class="btn btn-primary btn-sm">
-                            <a  href='{{url_for('pages.quiz_editor', quiz_id=single_quiz.id)}}' type="button" class="">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pen" viewBox="0 0 16 16">
-                                    <path d="m13.498.795.149-.149a1.207 1.207 0 1 1 1.707 1.708l-.149.148a1.5 1.5 0 0 1-.059 2.059L4.854 14.854a.5.5 0 0 1-.233.131l-4 1a.5.5 0 0 1-.606-.606l1-4a.5.5 0 0 1 .131-.232l9.642-9.642a.5.5 0 0 0-.642.056L6.854 4.854a.5.5 0 1 1-.708-.708L9.44.854A1.5 1.5 0 0 1 11.5.796a1.5 1.5 0 0 1 1.998-.001zm-.644.766a.5.5 0 0 0-.707 0L1.95 11.756l-.764 3.057 3.057-.764L14.44 3.854a.5.5 0 0 0 0-.708l-1.585-1.585z"/>
+    <div class="card-body" bg-light>
+
+        <table class='compact stripe' width='100%' id="gradingtable">
+            <thead><tr>
+                <th>ID</th>
+                <th>Title</th>
+                <th>Actions</th>
+            </tr></thead>
+            <tbody>
+                    
+            {% for single_quiz in all_quizzes %}
+                <tr>
+                    <td>
+                        {{ single_quiz.id }}
+                    </td>
+                    <td>
+                        <p data-toggle = "modal" data-target = "#q{{single_quiz.id}}">
+                            {{ single_quiz.title }}
+                        </p>
+                        <div class="modal fade" id="q{{single_quiz.id}}" tabindex="-1" role="dialog"
+                            aria-labelledby="mySmallModalLabel" aria-hidden="true">
+                            <div class="modal-dialog modal-sm">
+                                <div class="modal-content">
+                                {{ single_quiz.description | safe }}
+                            </div></div>
+                        </div>
+                    </td>
+                    <td class='text-right'>
+                        <a  href='{{url_for('pages.get_grades', qid=single_quiz.id)}}' type="button" class="">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-card-checklist" viewBox="0 0 16 16">
+                                <path d="M14.5 3a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h13zm-13-1A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2h-13z"/>
+                                <path d="M7 5.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm-1.496-.854a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 1 1 .708-.708l.146.147 1.146-1.147a.5.5 0 0 1 .708 0zM7 9.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm-1.496-.854a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 0 1 .708-.708l.146.147 1.146-1.147a.5.5 0 0 1 .708 0z"/>
                                 </svg>
-                                <!--
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pen-fill" viewBox="0 0 16 16">
-                                    <path d="m13.498.795.149-.149a1.207 1.207 0 1 1 1.707 1.708l-.149.148a1.5 1.5 0 0 1-.059 2.059L4.854 14.854a.5.5 0 0 1-.233.131l-4 1a.5.5 0 0 1-.606-.606l1-4a.5.5 0 0 1 .131-.232l9.642-9.642a.5.5 0 0 0-.642.056L6.854 4.854a.5.5 0 1 1-.708-.708L9.44.854A1.5 1.5 0 0 1 11.5.796a1.5 1.5 0 0 1 1.998-.001z"/>
-                                    </svg>
-                                -->
-                            </a>
-                            <a  href='#' onClick='deleteQuiz({{single_quiz.id}})' type="button" class="">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
-                                    <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
-                                    <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
-                                </svg>
-                            </a>
-                        </td>
-                    </tr>
-                {% endfor %}
-                </tbody>
-            </table>
-<!/div>
+                        </a>
+                        <a  href='{{url_for('pages.quiz_editor', quiz_id=single_quiz.id)}}' type="button" class="">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pen" viewBox="0 0 16 16">
+                                <path d="m13.498.795.149-.149a1.207 1.207 0 1 1 1.707 1.708l-.149.148a1.5 1.5 0 0 1-.059 2.059L4.854 14.854a.5.5 0 0 1-.233.131l-4 1a.5.5 0 0 1-.606-.606l1-4a.5.5 0 0 1 .131-.232l9.642-9.642a.5.5 0 0 0-.642.056L6.854 4.854a.5.5 0 1 1-.708-.708L9.44.854A1.5 1.5 0 0 1 11.5.796a1.5 1.5 0 0 1 1.998-.001zm-.644.766a.5.5 0 0 0-.707 0L1.95 11.756l-.764 3.057 3.057-.764L14.44 3.854a.5.5 0 0 0 0-.708l-1.585-1.585z"/>
+                            </svg>
+                        </a>
+                        <a  href='#' onClick='deleteQuiz({{single_quiz.id}})' type="button" class="">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
+                                <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/>
+                                <path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/>
+                            </svg>
+                        </a>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 
 <script>
     function deleteQuiz(quiz_id){
