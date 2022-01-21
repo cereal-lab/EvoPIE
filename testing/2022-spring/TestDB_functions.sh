@@ -18,8 +18,7 @@ function curlit {
         # right after instead of sending a GET to /login
     fi
 
-    curl $LOGIN $METHOD -d "$DATA" -H "Content-Type: application/json" "http://127.0.0.1:5000$TARGET_PATH" 
-    #&>/dev/null
+    curl $LOGIN $METHOD -d "$DATA" -H "Content-Type: application/json" "http://127.0.0.1:5000$TARGET_PATH" &>/dev/null
     if [[ $? == 0 ]]
     then
         echo -e "\t$MSG"
