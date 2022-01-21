@@ -13,7 +13,7 @@ curlit "signed up instructor"       "/signup"           '{ "email": "instructor@
 curlit "signed up student #1"       "/signup"           '{ "email": "student1@usf.edu", "password": "student1", "firstname": "Anakin", "lastname": "Skywalker" }'
 curlit "signed up student #2"       "/signup"           '{ "email": "student2@usf.edu", "password": "student2", "firstname": "Ahsoka", "lastname": "Tano" }'
 curlit "signed up student #3"       "/signup"           '{ "email": "student3@usf.edu", "password": "student3", "firstname": "Obi-Wan", "lastname": "Kenobi" }'
-curl_login                          "instructor"        '{ "email": "instructor@usf.edu", "password": "instructor" }'
+curl_login                          "instructor"        '{ "email": "alessio@usf.edu", "password": "student1" }'
 
 header 'ADDING QUESTION #1' #QID 1
 curlit  'Added Question'            "/questions"                    '{ "title": "Sir Lancelot and the bridge keeper, part 1", "stem": "What... is your name?", "answer": "Sir Lancelot of Camelot"}'
