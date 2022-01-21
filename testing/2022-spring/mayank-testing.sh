@@ -16,10 +16,10 @@ curl_login                          "instructor"        '{ "email": "instructor@
 
 ##header 'ADDING QUESTION #1' #QID 1
 curlit  'Added Question'            "/questions"                    '{ "title": "Sir Lancelot and the bridge keeper, part 1", "stem": "What... is your name?", "answer": "Sir Lancelot of Camelot"}'
-curlit  'Added distractor'          "/questions/1/distractors"      '{ "answer": "Sir Galahad of Camelot"}'         #D10
-curlit  'Added distractor'          "/questions/1/distractors"      '{ "answer": "Sir Arthur of Camelot"}'          #D11
-curlit  'Added distractor'          "/questions/1/distractors"      '{ "answer": "Sir Bevedere of Camelot"}'        #D12
-curlit  'Added distractor'          "/questions/1/distractors"      '{ "answer": "Sir Robin of Camelot"}'           #D13
+curlit  'Added distractor'          "/questions/1/distractors"      '{ "answer": "Sir Galahad of Camelot"}'         #D1
+curlit  'Added distractor'          "/questions/1/distractors"      '{ "answer": "Sir Arthur of Camelot"}'          #D2
+curlit  'Added distractor'          "/questions/1/distractors"      '{ "answer": "Sir Bevedere of Camelot"}'        #D3
+curlit  'Added distractor'          "/questions/1/distractors"      '{ "answer": "Sir Robin of Camelot"}'           #D4
 curlit  'QuizQuestion composed'     "/quizquestions"                '{ "qid": "1", "distractors_ids": [1, 2, 3, 4]}'
 
 header 'ADDING QUESTION #2' #QID 2
