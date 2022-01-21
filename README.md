@@ -18,7 +18,30 @@ nginx       |   Dockerfiles for nginx container
 testing     |   mix of scripts and other tools used to test the system
 
 ## How to build / deploy the server
-From this top level directory:
+Check out the main branch of our GitHub repository: 
+```bash
+git clone https://github.com/cereal-lab/EvoPIE.git
+```
+Install python packages: 
+```bash
+cd EvoPIE 
+pipenv install
+cd ..
+```
+Generate an empty data base:
+```bash
+cd EvoPIE
+pipenv shell
+flask DB-reboot
+cd ..
+```
+Move the empyt DB to where the docker container will expect it: 
+```bash
+mv EvoPIE/evopie/DB_quizlib.sqlite ./
+```
+Edit docker-compose.yml to make it point to the DB file that we will be using.
+
+Build the docker containers and run them:
 ```bash
 docker-compose up --build -d
 ```
