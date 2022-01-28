@@ -39,7 +39,15 @@ def questions_browser():
     if not current_user.is_instructor():
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
-    all_questions = [q.dump_as_dict() for q in models.Question.query.all()]
+    # working on getting rid of the dump_as_dict and instead using Markup(...).unescape when appropriate
+    # all_questions = [q.dump_as_dict() for q in models.Question.query.all()]
+    all_questions = models.Question.query.all()
+    # TODO this code will have to be refactored into the models; e.g., when adding to DB
+    # NOTE this particular one works without doing the following pass on the data, probably bc it's using only the titles in the list
+    for q in all_questions:
+        q.title = Markup(q.title).unescape()
+        q.stem = Markup(q.stem).unescape()
+        q.answer = Markup(q.answer).unescape()
     return render_template('questions-browser.html', all_questions = all_questions)
     # version with pagination below
     #page = request.args.get('page',1, type=int)
@@ -59,7 +67,9 @@ def quizzes_browser():
     if not current_user.is_instructor():
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
-    all_quizzes = [q.dump_as_dict() for q in models.Quiz.query.all()]
+    # working on getting rid of the dump_as_dict and instead using Markup(...).unescape when appropriate
+    # all_quizzes = [q.dump_as_dict() for q in models.Quiz.query.all()]
+    all_quizzes = models.Quiz.query.all()
     return render_template('quizzes-browser.html', all_quizzes = all_quizzes)
     # version with pagination below
     #page = request.args.get('page',1, type=int)
@@ -83,6 +93,7 @@ def question_editor(question_id):
 
     q = models.Question.query.get_or_404(question_id)
     
+    # TODO replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
     ds = [d.dump_as_dict() for d in q.distractors]
     q = q.dump_as_dict()
     return render_template('question-editor.html', all_distractors = ds, question = q)
@@ -208,7 +219,7 @@ def quiz_editor(quiz_id):
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
     q = models.Quiz.query.get_or_404(quiz_id)
-    #ds = [d.dump_as_dict() for d in q.distractors]
+    # TODO replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
     q = q.dump_as_dict()
     return render_template('quiz-editor.html', quiz = q)
     
@@ -230,7 +241,9 @@ def get_student(qid):
 
     u = models.User.query.get_or_404(current_user.id)
     q = models.Quiz.query.get_or_404(qid)
+    # TODO replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
     quiz_questions = [question.dump_as_dict() for question in q.quiz_questions]
+    # TODO FIXME we had to simplify the questions to avoid an escaping problem, fix it when fixing the above
     simplified_quiz_questions = [question.dump_as_simplified_dict() for question in q.quiz_questions]    
     # PBM - the alternatives for questions show unescaped when taking the quiz
     # SOL - need to unescape them before to pass them to the template
@@ -324,6 +337,7 @@ def get_student(qid):
                 quiz_justifications[key_question][key_distractor] = selected
 
         initial_responses = [] 
+        # FIXME TODO figure out how the JSON got messed up in the first place, then fix it instead of the ugly patch below
         asdict = json.loads(a[0].initial_responses.replace("'",'"'))
         for k in asdict:
             initial_responses.append(asdict[k])
