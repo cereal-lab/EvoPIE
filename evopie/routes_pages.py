@@ -33,18 +33,6 @@ def index():
 
 
 
-@pages.route('/contributor')
-@login_required
-def contributor():
-    if not current_user.is_instructor():
-        flash("Restricted to contributors.", "error")
-        return redirect(url_for('pages.index'))
-    all_questions = [q.dump_as_dict() for q in models.Question.query.all()]
-    #return jsonify(all_questions) 
-    return render_template('contributor.html', all_questions = all_questions)
-
-
-
 @pages.route('/questions-browser')
 @login_required
 def questions_browser():
