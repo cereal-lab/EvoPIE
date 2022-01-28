@@ -51,7 +51,7 @@ def questions_browser():
     return render_template('questions-browser.html', all_questions = all_questions)
     # version with pagination below
     #page = request.args.get('page',1, type=int)
-    #QUESTIONS_PER_PAGE = 10 # FIXME make this a field in a global config object
+    #QUESTIONS_PER_PAGE = 10 # FIX ME make this a field in a global config object
     #paginated = models.Question.query.paginate(page, QUESTIONS_PER_PAGE, False)
     #all_questions = [q.dump_as_dict() for q in paginated.items]
     #######return jsonify(all_questions)
@@ -73,7 +73,7 @@ def quizzes_browser():
     return render_template('quizzes-browser.html', all_quizzes = all_quizzes)
     # version with pagination below
     #page = request.args.get('page',1, type=int)
-    #QUESTIONS_PER_PAGE = 5 # FIXME make this a field in a global config object
+    #QUESTIONS_PER_PAGE = 5 # FIX ME make this a field in a global config object
     #paginated = models.Quiz.query.paginate(page, QUESTIONS_PER_PAGE, False)
     #all_quizzes = [q.dump_as_dict() for q in paginated.items]
     #########return jsonify(all_questions)
@@ -93,7 +93,7 @@ def question_editor(question_id):
 
     q = models.Question.query.get_or_404(question_id)
     
-    # TODO replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
+    # we replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
     #ds = [d.dump_as_dict() for d in q.distractors]
     #q = q.dump_as_dict()
     q.title = Markup(q.title).unescape()
