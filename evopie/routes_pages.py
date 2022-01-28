@@ -248,12 +248,14 @@ def get_student(qid):
 
     u = models.User.query.get_or_404(current_user.id)
     q = models.Quiz.query.get_or_404(qid)
+
     # TODO replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
     quiz_questions = [question.dump_as_dict() for question in q.quiz_questions]
     # TODO FIXME we had to simplify the questions to avoid an escaping problem, fix it when fixing the above
     simplified_quiz_questions = [question.dump_as_simplified_dict() for question in q.quiz_questions]    
     # PBM - the alternatives for questions show unescaped when taking the quiz
     # SOL - need to unescape them before to pass them to the template
+    
     for qq in quiz_questions:
         for altern in qq["alternatives"]:
             # experimenting, this works: tmp = jinja2.Markup(quiz_questions[0]["alternatives"][0][1]).unescape()
@@ -264,22 +266,17 @@ def get_student(qid):
     a = models.QuizAttempt.query.filter_by(student_id=current_user.id).filter_by(quiz_id=qid).all()
     
     if q.status == "HIDDEN":
-        #response     = ({ "message" : "Quiz not accessible at this time"}, 403, {"Content-Type": "application/json"})
         flash("Quiz not accessible at this time", "error")
         return redirect(url_for('pages.index'))
     if a and q.status == "STEP1":
-        #response     = ({ "message" : "You already submitted your initial answers for this quiz, wait for the instructor to re-release it."}, 403, {"Content-Type": "application/json"})
         flash("You already submitted your answers for step 1 of this quiz.", "error")
         flash("Wait for the instructor to open step 2 for everyone.", "error")
         return redirect(url_for('pages.index'))
     if not a and q.status == "STEP2":
-        #response     = ({ "message" : "You did not submit your initial answers for this quiz, you may not participate in the second step."}, 403, {"Content-Type": "application/json"})
         flash("You did not submit your answers for step 1 of this quiz.", "error")
         flash("Because of that, you may not participate in step 2.", "error")
         return redirect(url_for('pages.index'))
     if a and q.status == "STEP2" and a[0].revised_responses != "{}":
-        #TODO the above is ugly, add a boolean method instead
-        #response     = ({ "message" : "You already revised your initial answers, you are done with both steps of this quiz."}, 403, {"Content-Type": "application/json"})
         flash("You already submitted your answers for both step 1 and step 2.", "error")
         flash("You are done with this quiz.", "error")
         return redirect(url_for('pages.index'))
@@ -334,22 +331,20 @@ def get_student(qid):
                     neo = quiz_justifications[key_question][key_distractor].pop(index) #[index]
                     selected.append(neo)
 
-                # now replace the object by a dictionary so that the javascript may handle it easily
-                #quiz_justifications[key_question][key_distractor] = {
-                #    "id" : neo.id,
-                #    "justification": neo.justification
-                #}
-                #undo the above and keep a python object right there
-                #quiz_justifications[key_question][key_distractor] = neo
                 quiz_justifications[key_question][key_distractor] = selected
 
         initial_responses = [] 
+
         # FIXME TODO figure out how the JSON got messed up in the first place, then fix it instead of the ugly patch below
         asdict = json.loads(a[0].initial_responses.replace("'",'"'))
+
         for k in asdict:
             initial_responses.append(asdict[k])
+
         return render_template('student.html', quiz=q, simplified_questions=simplified_quiz_questions, questions=quiz_questions, student=u, attempt=a[0], initial_responses=initial_responses, justifications=quiz_justifications)
+
     else: # step == 1
+        
         return render_template('student.html', quiz=q, simplified_questions=simplified_quiz_questions, questions=quiz_questions, student=u)
 
 
