@@ -33,15 +33,6 @@ def index():
 
 
 
-@pages.route('/dashboard')
-@login_required
-def dashboard():
-    return render_template('dashboard.html', name=current_user.first_name)
-    # TODO based on the current_user.is_student & current_user.is_instructor we could
-    # redirect to different dashboards. This might come in handy for the data dashboard.
-
-
-
 @pages.route('/contributor')
 @login_required
 def contributor():
