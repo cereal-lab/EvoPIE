@@ -134,7 +134,8 @@ def quiz_question_editor(quiz_id,quiz_question_id):
         q = models.Question.query.get_or_404(qq.question_id)
         # NOTE we assume that the QuizQuestion already belong to this quiz
         # FIXME we should really ensure that it's the case
-
+        for d in qq.distractors:
+            d.answer = Markup(d.answer).unescape()
     # now edit the QuizQuestion
     #return redirect("/question-editor/" + str(q.id), code=302)
     return render_template('quiz-question-editor.html', quiz_id = quiz_id, quiz_question = qq, question = q)
