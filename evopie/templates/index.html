@@ -3,7 +3,7 @@
 {% block title %}EvoPIE{% endblock %}
 
 {% block head %}
-<style>
+  <style>
     .bd-placeholder-img {
       font-size: 1.125rem;
       text-anchor: middle;
@@ -19,45 +19,48 @@
       }
     }
     .jumbotron {
-  padding-top: 3rem;
-  padding-bottom: 3rem;
-  margin-bottom: 0;
-  background-color: #fff;
-}
-@media (min-width: 768px) {
-  .jumbotron {
-    padding-top: 6rem;
-    padding-bottom: 6rem;
-  }
-}
+      padding-top: 3rem;
+      padding-bottom: 3rem;
+      margin-bottom: 0;
+      background-color: #fff;
+    }
+    @media (min-width: 768px) {
+      .jumbotron {
+        padding-top: 6rem;
+        padding-bottom: 6rem;
+      }
+    }
 
-.jumbotron p:last-child {
-  margin-bottom: 0;
-}
+    .jumbotron p:last-child {
+      margin-bottom: 0;
+    }
 
-.jumbotron h1 {
-  font-weight: 300;
-}
+    .jumbotron h1 {
+      font-weight: 300;
+    }
 
-.jumbotron .container {
-  max-width: 40rem;
-}
+    .jumbotron .container {
+      max-width: 40rem;
+    }
 
-footer {
-  padding-top: 3rem;
-  padding-bottom: 3rem;
-}
+    footer {
+      padding-top: 3rem;
+      padding-bottom: 3rem;
+    }
 
-footer p {
-  margin-bottom: .25rem;
-}
-</style>
-  
-  {% endblock %}
+    footer p {
+      margin-bottom: .25rem;
+    }
+  </style>
+{% endblock %}
+
+
+
+
 
 {% block content %}
 
-<main role="main">
+  <main role="main">
 
     <section class="jumbotron text-center">
       <div class="container">
@@ -71,45 +74,120 @@ footer p {
               <br/>
               Here are available options for you on this server.
           </p>
-            {% if current_user.is_student() %}
-              Demo Quizzes:<br/>
-                <a href="/student/1" class="btn btn-primary my-2"> Debugging Quiz (step 1)</a>
-                <a href="/student/2" class="btn btn-primary my-2"> Debugging Quiz (step 2)</a>
-                <br/>
-              <!--
-              For COP2513 Students:<br/>
-                <a href="/student/3" class="btn btn-primary my-2"> PLQ1</a>
-                <a href="/student/4" class="btn btn-primary my-2"> PLQ2</a>
-                <a href="/student/1" class="btn btn-primary my-2"> PLQ3</a>
-              -->
-            {% endif %}
+          {% endif %}
+
+          {% if current_user.is_authenticated %}
+        
             {% if current_user.is_instructor() %}
               <a href="/questions-browser" class="btn btn-secondary my-2"> Questions Browser </a>
               <a href="/quizzes-browser" class="btn btn-secondary my-2"> Quizzes Browser </a>
             {% endif %}
+        
             {% if current_user.is_admin() %}
               <a href="/admin" class="btn btn-primary my-2"> Admin Dashboard </a>
             {% endif %}
+        
             <br/>
             <a href="/logout" class="btn btn-secondary my-2"> Logout </a>
+            
           {% else %}
+
             <a href="{{ url_for('auth.get_signup') }}" class="btn btn-secondary my-2">Signup for an Account</a>
             <a href="{{ url_for('auth.get_login') }}" class="btn btn-primary my-2">Login</a>
+            
           {% endif %}
         </p>
+        <div class="flashes-div">
+          {% with messages = get_flashed_messages(category_filter=["error", "postError"]) %}
+          {% if messages %}
+            <ul class="flashes">
+              {% for message in messages %}
+              <li style="text-align: left;" class="{{ category }}">{{ message }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+          {% endwith %}
+        </div>
       </div>
     </section>
-    
-    <div class="flashes-div">
-      {% with messages = get_flashed_messages(category_filter=["error", "postError"]) %}
-      {% if messages %}
-        <ul class="flashes">
-          {% for message in messages %}
-          <li class="{{ category }}">{{ message }}</li>
-          {% endfor %}
-        </ul>
+
+
+
+
+
+
+
+
+    {% if current_user.is_authenticated %}
+      {% if current_user.is_student() %}
+        <div class="card bg-light m-3 mx-auto" style="width: 75%">    
+          <div class="card-body" bg-light>
+            <h5 class="card-title" data-toggle = "collapse" data-target = "#instructions">Click here for general instructions</h5>
+            <div  id = "instructions" class = "collapse">
+              <p>
+                <ul>
+                  <li> Check deadlines with your instructor to know which one to take by a specific due date.</li>
+                  <li> Click on a quiz title to get an overview of its description.</li>
+                  <li> Quizzes marked as "HIDDEN" are not yet released or temporarily withdrawn.</li>
+                  <li> If you have not participated to a quiz released in STEP1 by its deadline, 
+                        you will not be able to participate to it when it transitions to STEP2.</li>
+                  <li> Click on "Take Quiz" to take a quiz. You may open a quiz multiple times but submit your answers only once.</li>
+                  <li> Once you submit your answers for a quiz in STEP1, you will have to wait for your instructor before to be able to retake it as STEP2.</li>
+                  <li> Once you submit your answers for a quiz in STEP2, you are done with the whole quiz.</li>
+                </ul>
+              </p>
+            </div>
+          </div>
+        </div>
+      
+      
+        
+        <div class="card bg-light m-3 mx-auto" style="width: 75%">    
+          <div class="card-body" bg-light>
+            <h5 class="card-title" data-toggle = "collapse" data-target = "#newquiz">Click here to see the list of quizzes for your course</h5>
+            <div  id = "newquiz" class = "collapse">
+              <table class='compact stripe' width='100%'>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for q in quizzes %}
+                    <tr>
+                      <td>
+                        {{ q.id }}
+                      </td>
+                      <td>
+                        <p data-toggle = "modal" data-target = "#q{{q.id}}">
+                          {{ q.title }}
+                        </p>
+                        <div class="modal fade" id="q{{q.id}}" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" aria-hidden="true">
+                            <div class="modal-dialog modal-sm">
+                                <div class="modal-content">
+                                  {{ q.description | safe }}
+                                </div>
+                            </div>
+                        </div>
+                      </td>
+                      <td>
+                        {{q.status }}
+                      </td>
+                      <td>
+                        <a href="/student/{{ q.id }}" class="btn btn-primary my-2"> Take Quiz </a>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>                
       {% endif %}
-      {% endwith %}
-    </div>
-</main>
+    {% endif %}
+
+  </main>
 {% endblock %}

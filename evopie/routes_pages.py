@@ -28,7 +28,7 @@ def index():
     '''
     Index page for the whole thing; used to test out a rudimentary user interface
     '''
-    all_quizzes =  [q.dump_as_dict() for q in models.Question.query.all()]
+    all_quizzes =  models.Quiz.query.all()
     return render_template('index.html', quizzes=all_quizzes)
 
 
