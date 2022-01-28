@@ -249,18 +249,27 @@ def get_student(qid):
     u = models.User.query.get_or_404(current_user.id)
     q = models.Quiz.query.get_or_404(qid)
 
-    # TODO replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
-    quiz_questions = [question.dump_as_dict() for question in q.quiz_questions]
+    # we replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
+    # see lines commented out a ## for originals
+    ##quiz_questions = [question.dump_as_dict() for question in q.quiz_questions]
+    quiz_questions = q.quiz_questions
+
     # TODO FIXME we had to simplify the questions to avoid an escaping problem, fix it when fixing the above
     simplified_quiz_questions = [question.dump_as_simplified_dict() for question in q.quiz_questions]    
     # PBM - the alternatives for questions show unescaped when taking the quiz
     # SOL - need to unescape them before to pass them to the template
     
+    ##for qq in quiz_questions:
+    ##    for altern in qq["alternatives"]:
+    ##        # experimenting, this works: tmp = jinja2.Markup(quiz_questions[0]["alternatives"][0][1]).unescape()
+    ##        altern[1] = jinja2.Markup(altern[1]).unescape()
+    ##        # nope... altern[1] = jinja2.Markup.escape(altern[1])
     for qq in quiz_questions:
-        for altern in qq["alternatives"]:
-            # experimenting, this works: tmp = jinja2.Markup(quiz_questions[0]["alternatives"][0][1]).unescape()
-            altern[1] = jinja2.Markup(altern[1]).unescape()
-            # nope... altern[1] = jinja2.Markup.escape(altern[1])
+        qq.question.title = Markup(qq.question.title).unescape()
+        qq.question.stem = Markup(qq.question.stem).unescape()
+        qq.question.answer = Markup(qq.question.title).unescape()
+        for d in qq.distractors:
+            d.answer = Markup(d.answer).unescape()
 
     # determine which step of the peer instruction the student is in
     a = models.QuizAttempt.query.filter_by(student_id=current_user.id).filter_by(quiz_id=qid).all()
@@ -268,14 +277,17 @@ def get_student(qid):
     if q.status == "HIDDEN":
         flash("Quiz not accessible at this time", "error")
         return redirect(url_for('pages.index'))
+
     if a and q.status == "STEP1":
         flash("You already submitted your answers for step 1 of this quiz.", "error")
         flash("Wait for the instructor to open step 2 for everyone.", "error")
         return redirect(url_for('pages.index'))
+
     if not a and q.status == "STEP2":
         flash("You did not submit your answers for step 1 of this quiz.", "error")
         flash("Because of that, you may not participate in step 2.", "error")
         return redirect(url_for('pages.index'))
+
     if a and q.status == "STEP2" and a[0].revised_responses != "{}":
         flash("You already submitted your answers for both step 1 and step 2.", "error")
         flash("You are done with this quiz.", "error")
@@ -337,14 +349,13 @@ def get_student(qid):
 
         # FIXME TODO figure out how the JSON got messed up in the first place, then fix it instead of the ugly patch below
         asdict = json.loads(a[0].initial_responses.replace("'",'"'))
-
         for k in asdict:
             initial_responses.append(asdict[k])
 
         return render_template('student.html', quiz=q, simplified_questions=simplified_quiz_questions, questions=quiz_questions, student=u, attempt=a[0], initial_responses=initial_responses, justifications=quiz_justifications)
 
     else: # step == 1
-        
+
         return render_template('student.html', quiz=q, simplified_questions=simplified_quiz_questions, questions=quiz_questions, student=u)
 
 

@@ -4,263 +4,262 @@
 
 {% block content %}
 
-{% if attempt is defined %}
-<script>var step = 2;</script>
-{% else %}
-<script>var step = 1;</script>
-{% endif %}
+    {% if attempt is defined %}
+        <script>var step = 2;</script>
+    {% else %}
+        <script>var step = 1;</script>
+    {% endif %}
 
-<script>
-    document.addEventListener(
-        "DOMContentLoaded",
-        function(){
-            var parser = new DOMParser;
-            var json_data_initial_responses;
-            var json_data_questions;
+    <script>
+        document.addEventListener(
+            "DOMContentLoaded",
+            function(){
+                var parser = new DOMParser;
+                var json_data_initial_responses;
+                var json_data_questions;
 
-            if(step == 2){
-                // extracting initial responses
-                var attempt_raw = "{% if attempt is defined %} {{ attempt.initial_responses }} {% endif %}"
-                var dom = parser.parseFromString('<!doctype html><body>' + attempt_raw, 'text/html');
-                var usable = dom.body.textContent;
-                // FIXME - this is one ugly hack to make sure we don't screw with data like {'1': 'let's roll'}
-                // BUG - counter example is "some stuff like:"hello" is inside the string"
-                usable = usable.replace(/ /g,'')
-                usable = usable.replace(/{\'/g,'{"')
-                usable = usable.replace(/\'}/g,'"}')
-                usable = usable.replace(/,\'/g,',"')
-                usable = usable.replace(/\',/g,'",')
-                usable = usable.replace(/:\'/g,':"')
-                usable = usable.replace(/\':/g,'":')
+                if(step == 2){
+                    // extracting initial responses
+                    var attempt_raw = "{% if attempt is defined %} {{ attempt.initial_responses }} {% endif %}"
+                    var dom = parser.parseFromString('<!doctype html><body>' + attempt_raw, 'text/html');
+                    var usable = dom.body.textContent;
+                    // FIXME - this is one ugly hack to make sure we don't screw with data like {'1': 'let's roll'}
+                    // BUG - counter example is "some stuff like:"hello" is inside the string"
+                    usable = usable.replace(/ /g,'')
+                    usable = usable.replace(/{\'/g,'{"')
+                    usable = usable.replace(/\'}/g,'"}')
+                    usable = usable.replace(/,\'/g,',"')
+                    usable = usable.replace(/\',/g,'",')
+                    usable = usable.replace(/:\'/g,':"')
+                    usable = usable.replace(/\':/g,'":')
+                    
+                    json_data_initial_responses = JSON.parse(usable);
+                }
+
+                // NOTE eliminating " inside a JSON string like "value" : "something with " in it"
+                // let's get the questions also in a usable format
+                var questions_raw = '{{ questions }}';
+                var dom_questions = parser.parseFromString('<!doctype html><body>' + questions_raw, 'text/html');
+                var usable_questions = dom_questions.body.textContent;
+                json_data_questions = JSON.parse(usable_questions);
+                /*
+                //BUG whodis? new bug!
+                // actually, old bug about failing the parsing of usable_questions makes the code
+                // stop here thus never reaching the loops below that pre-check the previously 
+                // selected answers.
                 
-                json_data_initial_responses = JSON.parse(usable);
+                //json_data_questions = JSON.parse(questions_raw);
+
+            // go thru all the initial responses
+            for(var key in json_data_initial_responses){
+                    var the_question = json_data_questions[key - 1];
+
+                    // Fetching original answer for this question
+                    for(const alt of the_question.alternatives)
+                        if(alt[0] == json_data_initial_responses[key]){
+                            // setting the corresponding radio button to "checked"
+                            var radio_id = 'alternative_' + the_question.id + '_' + alt[0] + '_check';
+                            document.getElementById(radio_id).checked = true;
+                        }
             }
+                */
+            }
+        );
+    </script>
 
+    <script>
+        function submitQuiz(){
+            var all_questions = '{{ simplified_questions|tojson }}';
+            // TODO BUG to avoid parse error in the JSON, modify this so as to not 
+            // pass the text of the questions since we are not using it and just using
+            // the questions / distractors IDs
+
+            // removing #&39;
+            var parser = new DOMParser;
             // NOTE eliminating " inside a JSON string like "value" : "something with " in it"
-            // let's get the questions also in a usable format
-            var questions_raw = '{{ questions }}';
-            var dom_questions = parser.parseFromString('<!doctype html><body>' + questions_raw, 'text/html');
-            var usable_questions = dom_questions.body.textContent;
-            json_data_questions = JSON.parse(usable_questions);
-            /*
-            //BUG whodis? new bug!
-            // actually, old bug about failing the parsing of usable_questions makes the code
-            // stop here thus never reaching the loops below that pre-check the previously 
-            // selected answers.
+            //var dom = parser.parseFromString('<!doctype html><body>' + all_questions, 'text/html');
+            //var usable = dom.body.textContent;
+            //var json_data = JSON.parse(usable);
+            var json_data = JSON.parse(all_questions);
             
-            //json_data_questions = JSON.parse(questions_raw);
-
-           // go thru all the initial responses
-           for(var key in json_data_initial_responses){
-                var the_question = json_data_questions[key - 1];
-
-                // Fetching original answer for this question
-                for(const alt of the_question.alternatives)
-                    if(alt[0] == json_data_initial_responses[key]){
-                        // setting the corresponding radio button to "checked"
-                        var radio_id = 'alternative_' + the_question.id + '_' + alt[0] + '_check';
-                        document.getElementById(radio_id).checked = true;
-                    }
-           }
-            */
-        }
-    );
-</script>
-
-<script>
-    function submitQuiz(){
-        var all_questions = '{{ simplified_questions|tojson }}';
-        // TODO BUG to avoid parse error in the JSON, modify this so as to not 
-        // pass the text of the questions since we are not using it and just using
-        // the questions / distractors IDs
-
-        // removing #&39;
-        var parser = new DOMParser;
-        // NOTE eliminating " inside a JSON string like "value" : "something with " in it"
-        //var dom = parser.parseFromString('<!doctype html><body>' + all_questions, 'text/html');
-        //var usable = dom.body.textContent;
-        //var json_data = JSON.parse(usable);
-        var json_data = JSON.parse(all_questions);
-        
-        var post_data;
-
-        if(step==2)
-            post_data = { "revised_responses" : {} };
-        else
-            post_data = { "initial_responses" : {}, "justifications" : {}};
-        
-
-        for (var i = 0 ; i < json_data.length ; i++){
-            var question = json_data[i];
-            var name = "question_" + question["id"]; // radio group has name based on question ID
-            var elements = document.getElementsByName(name);
-            
-            var distractor_id = 0; // distractor id of the selected alternative
-            
-            for(var j=0 ; j < elements.length ; j++)
-                if(elements[j].checked)
-                    distractor_id = elements[j].value;
+            var post_data;
 
             if(step==2)
-                post_data["revised_responses"][question["id"]] = distractor_id;
-            else{
-                var justifications = {};
-                for(var j = 0 ; j < question.alternatives.length; j++){
-                    var alternative = question.alternatives[j];
-                    var target_id = "alternative_" + question["id"] + "_" + alternative[0] + "_justify";
-                    justifications[alternative[0]] = document.getElementById(target_id).value;
-                    //TODO check that every non-selected alternative has a justification
+                post_data = { "revised_responses" : {} };
+            else
+                post_data = { "initial_responses" : {}, "justifications" : {}};
+            
+
+            for (var i = 0 ; i < json_data.length ; i++){
+                var question = json_data[i];
+                var name = "question_" + question["id"]; // radio group has name based on question ID
+                var elements = document.getElementsByName(name);
+                
+                var distractor_id = 0; // distractor id of the selected alternative
+                
+                for(var j=0 ; j < elements.length ; j++)
+                    if(elements[j].checked)
+                        distractor_id = elements[j].value;
+
+                if(step==2)
+                    post_data["revised_responses"][question["id"]] = distractor_id;
+                else{
+                    var justifications = {};
+                    for(var j = 0 ; j < question.alternatives.length; j++){
+                        var alternative = question.alternatives[j];
+                        var target_id = "alternative_" + question["id"] + "_" + alternative[0] + "_justify";
+                        justifications[alternative[0]] = document.getElementById(target_id).value;
+                        //TODO check that every non-selected alternative has a justification
+                    }
+                    post_data["initial_responses"][question["id"]] = distractor_id;
+                    post_data["justifications"][question["id"]] = justifications;
                 }
-                post_data["initial_responses"][question["id"]] = distractor_id;
-                post_data["justifications"][question["id"]] = justifications;
             }
+
+            var what_is_next = '{{ url_for("pages.index") }}';
+            let target_url = '/quizzes/' + "{{quiz.id}}" + "/take";
+            fetch(target_url,{
+                method:         'POST',
+                headers:        {'Content-Type' : 'application/json'},
+                body:           JSON.stringify(post_data),
+                credentials:    'same-origin'
+            })
+            .then(
+                response => {
+                    if(response.ok){
+                        alert("Quiz submitted!");
+                        window.location.href = what_is_next;
+                    }else{
+                        response.json().then(data => alert(data.message));
+                    }
+                }
+            )
+            .catch((error) => {
+                alert("There was a problem with your submission: " + error);
+                window.location.href = what_is_next;
+            })
         }
+    </script>
 
-        var what_is_next = '{{ url_for("pages.index") }}';
-        let target_url = '/quizzes/' + "{{quiz.id}}" + "/take";
-        fetch(target_url,{
-            method:         'POST',
-            headers:        {'Content-Type' : 'application/json'},
-            body:           JSON.stringify(post_data),
-            credentials:    'same-origin'
-        })
-        .then(
-            response => {
-                if(response.ok){
-                    alert("Quiz submitted!");
-                    window.location.href = what_is_next;
-                }else{
-                    response.json().then(data => alert(data.message));
+    <script>
+        function like(jid,actionLike){
+            let target_url="/justification/" +jid + '/' + ((actionLike)?'like':'unlike');
+            //console.log("GET " + target_url)
+            fetch(target_url,{
+                method:         'PUT',
+                headers:        {'Content-Type' : 'application/json'},
+                body:           JSON.stringify('{}'),
+                credentials:    'same-origin'
+            })
+            .then(response => response.statusText)
+            .then(data => {
+                //location.reload(); //TODO crude way to update the status of the like button, replace later
+                target = document.getElementById("like_element_" + jid );
+                if(actionLike){
+                    target.innerHTML = '<a href="#" id="like_button_' + jid + '" onclick="like( ' + jid + ', false); return false;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-hand-thumbs-up-fill" viewBox="0 0 16 16"><path d="M6.956 1.745C7.021.81 7.908.087 8.864.325l.261.066c.463.116.874.456 1.012.965.22.816.533 2.511.062 4.51a9.84 9.84 0 0 1 .443-.051c.713-.065 1.669-.072 2.516.21.518.173.994.681 1.2 1.273.184.532.16 1.162-.234 1.733.058.119.103.242.138.363.077.27.113.567.113.856 0 .289-.036.586-.113.856-.039.135-.09.273-.16.404.169.387.107.819-.003 1.148a3.163 3.163 0 0 1-.488.901c.054.152.076.312.076.465 0 .305-.089.625-.253.912C13.1 15.522 12.437 16 11.5 16H8c-.605 0-1.07-.081-1.466-.218a4.82 4.82 0 0 1-.97-.484l-.048-.03c-.504-.307-.999-.609-2.068-.722C2.682 14.464 2 13.846 2 13V9c0-.85.685-1.432 1.357-1.615.849-.232 1.574-.787 2.132-1.41.56-.627.914-1.28 1.039-1.639.199-.575.356-1.539.428-2.59z"/></svg></a>';
+                } else {
+                    target.innerHTML = '<a href="#" id="like_button_' + jid + '" onclick="like( ' + jid + ', true); return false;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-hand-thumbs-up" viewBox="0 0 16 16"><path d="M8.864.046C7.908-.193 7.02.53 6.956 1.466c-.072 1.051-.23 2.016-.428 2.59-.125.36-.479 1.013-1.04 1.639-.557.623-1.282 1.178-2.131 1.41C2.685 7.288 2 7.87 2 8.72v4.001c0 .845.682 1.464 1.448 1.545 1.07.114 1.564.415 2.068.723l.048.03c.272.165.578.348.97.484.397.136.861.217 1.466.217h3.5c.937 0 1.599-.477 1.934-1.064a1.86 1.86 0 0 0 .254-.912c0-.152-.023-.312-.077-.464.201-.263.38-.578.488-.901.11-.33.172-.762.004-1.149.069-.13.12-.269.159-.403.077-.27.113-.568.113-.857 0-.288-.036-.585-.113-.856a2.144 2.144 0 0 0-.138-.362 1.9 1.9 0 0 0 .234-1.734c-.206-.592-.682-1.1-1.2-1.272-.847-.282-1.803-.276-2.516-.211a9.84 9.84 0 0 0-.443.05 9.365 9.365 0 0 0-.062-4.509A1.38 1.38 0 0 0 9.125.111L8.864.046zM11.5 14.721H8c-.51 0-.863-.069-1.14-.164-.281-.097-.506-.228-.776-.393l-.04-.024c-.555-.339-1.198-.731-2.49-.868-.333-.036-.554-.29-.554-.55V8.72c0-.254.226-.543.62-.65 1.095-.3 1.977-.996 2.614-1.708.635-.71 1.064-1.475 1.238-1.978.243-.7.407-1.768.482-2.85.025-.362.36-.594.667-.518l.262.066c.16.04.258.143.288.255a8.34 8.34 0 0 1-.145 4.725.5.5 0 0 0 .595.644l.003-.001.014-.003.058-.014a8.908 8.908 0 0 1 1.036-.157c.663-.06 1.457-.054 2.11.164.175.058.45.3.57.65.107.308.087.67-.266 1.022l-.353.353.353.354c.043.043.105.141.154.315.048.167.075.37.075.581 0 .212-.027.414-.075.582-.05.174-.111.272-.154.315l-.353.353.353.354c.047.047.109.177.005.488a2.224 2.224 0 0 1-.505.805l-.353.353.353.354c.006.005.041.05.041.17a.866.866 0 0 1-.121.416c-.165.288-.503.56-1.066.56z"/></svg></a>';
                 }
-            }
-        )
-        .catch((error) => {
-            alert("There was a problem with your submission: " + error);
-            window.location.href = what_is_next;
-        })
-    }
-</script>
-
-<script>
-    function like(jid,actionLike){
-        let target_url="/justification/" +jid + '/' + ((actionLike)?'like':'unlike');
-        //console.log("GET " + target_url)
-        fetch(target_url,{
-            method:         'PUT',
-            headers:        {'Content-Type' : 'application/json'},
-            body:           JSON.stringify('{}'),
-            credentials:    'same-origin'
-        })
-        .then(response => response.statusText)
-        .then(data => {
-            //location.reload(); //TODO crude way to update the status of the like button, replace later
-            target = document.getElementById("like_element_" + jid );
-            if(actionLike){
-                target.innerHTML = '<a href="#" id="like_button_' + jid + '" onclick="like( ' + jid + ', false); return false;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-hand-thumbs-up-fill" viewBox="0 0 16 16"><path d="M6.956 1.745C7.021.81 7.908.087 8.864.325l.261.066c.463.116.874.456 1.012.965.22.816.533 2.511.062 4.51a9.84 9.84 0 0 1 .443-.051c.713-.065 1.669-.072 2.516.21.518.173.994.681 1.2 1.273.184.532.16 1.162-.234 1.733.058.119.103.242.138.363.077.27.113.567.113.856 0 .289-.036.586-.113.856-.039.135-.09.273-.16.404.169.387.107.819-.003 1.148a3.163 3.163 0 0 1-.488.901c.054.152.076.312.076.465 0 .305-.089.625-.253.912C13.1 15.522 12.437 16 11.5 16H8c-.605 0-1.07-.081-1.466-.218a4.82 4.82 0 0 1-.97-.484l-.048-.03c-.504-.307-.999-.609-2.068-.722C2.682 14.464 2 13.846 2 13V9c0-.85.685-1.432 1.357-1.615.849-.232 1.574-.787 2.132-1.41.56-.627.914-1.28 1.039-1.639.199-.575.356-1.539.428-2.59z"/></svg></a>';
-            } else {
-                target.innerHTML = '<a href="#" id="like_button_' + jid + '" onclick="like( ' + jid + ', true); return false;"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-hand-thumbs-up" viewBox="0 0 16 16"><path d="M8.864.046C7.908-.193 7.02.53 6.956 1.466c-.072 1.051-.23 2.016-.428 2.59-.125.36-.479 1.013-1.04 1.639-.557.623-1.282 1.178-2.131 1.41C2.685 7.288 2 7.87 2 8.72v4.001c0 .845.682 1.464 1.448 1.545 1.07.114 1.564.415 2.068.723l.048.03c.272.165.578.348.97.484.397.136.861.217 1.466.217h3.5c.937 0 1.599-.477 1.934-1.064a1.86 1.86 0 0 0 .254-.912c0-.152-.023-.312-.077-.464.201-.263.38-.578.488-.901.11-.33.172-.762.004-1.149.069-.13.12-.269.159-.403.077-.27.113-.568.113-.857 0-.288-.036-.585-.113-.856a2.144 2.144 0 0 0-.138-.362 1.9 1.9 0 0 0 .234-1.734c-.206-.592-.682-1.1-1.2-1.272-.847-.282-1.803-.276-2.516-.211a9.84 9.84 0 0 0-.443.05 9.365 9.365 0 0 0-.062-4.509A1.38 1.38 0 0 0 9.125.111L8.864.046zM11.5 14.721H8c-.51 0-.863-.069-1.14-.164-.281-.097-.506-.228-.776-.393l-.04-.024c-.555-.339-1.198-.731-2.49-.868-.333-.036-.554-.29-.554-.55V8.72c0-.254.226-.543.62-.65 1.095-.3 1.977-.996 2.614-1.708.635-.71 1.064-1.475 1.238-1.978.243-.7.407-1.768.482-2.85.025-.362.36-.594.667-.518l.262.066c.16.04.258.143.288.255a8.34 8.34 0 0 1-.145 4.725.5.5 0 0 0 .595.644l.003-.001.014-.003.058-.014a8.908 8.908 0 0 1 1.036-.157c.663-.06 1.457-.054 2.11.164.175.058.45.3.57.65.107.308.087.67-.266 1.022l-.353.353.353.354c.043.043.105.141.154.315.048.167.075.37.075.581 0 .212-.027.414-.075.582-.05.174-.111.272-.154.315l-.353.353.353.354c.047.047.109.177.005.488a2.224 2.224 0 0 1-.505.805l-.353.353.353.354c.006.005.041.05.041.17a.866.866 0 0 1-.121.416c-.165.288-.503.56-1.066.56z"/></svg></a>';
-            }
-        })
-        .catch((error) => {
-            alert("Unable to like / unlike this Justification [id is " + jid + "]. Try again later.");
-            console.log(error);
-            //location.reload();
-        })
-    }
-</script>
+            })
+            .catch((error) => {
+                alert("Unable to like / unlike this Justification [id is " + jid + "]. Try again later.");
+                console.log(error);
+                //location.reload();
+            })
+        }
+    </script>
 
 
-<div class="jumbotron jumbotron-fluid">
-    <div class="container">
-        {% if quiz.status == 'SOLUTIONS' %}
-            <h1 class="display-4">Solutions - {{quiz.title}}</h1>
-            <p class="lead">
-                Hello, {{student.first_name}} {{student.last_name}} ({{student.email}}). 
-                Here are the answers to this quiz.
-            </p>
-        {% else %}
-            {% if attempt is not defined %}
-                <h1 class="display-4">Step 1 - {{quiz.title}}</h1>
+    <div class="jumbotron jumbotron-fluid">
+        <div class="container">
+            {% if quiz.status == 'SOLUTIONS' %}
+                <h1 class="display-4">Solutions - {{quiz.title | safe }}</h1>
                 <p class="lead">
                     Hello, {{student.first_name}} {{student.last_name}} ({{student.email}}). 
-                    Welcome to STEP 1 of this quiz.
+                    Here are the answers to this quiz.
                 </p>
             {% else %}
-                <h1 class="display-4">Step 2 - {{quiz.title}}</h1>
-                <p class="lead">
-                    Hello, {{student.first_name}} {{student.last_name}} ({{student.email}}).
-                    Welcome to STEP 2 of this quiz.
-                </p>
+                {% if attempt is not defined %}
+                    <h1 class="display-4">Step 1 - {{quiz.title|safe}}</h1>
+                    <p class="lead">
+                        Hello, {{student.first_name}} {{student.last_name}} ({{student.email}}). 
+                        Welcome to STEP 1 of this quiz.
+                    </p>
+                {% else %}
+                    <h1 class="display-4">Step 2 - {{quiz.title|safe}}</h1>
+                    <p class="lead">
+                        Hello, {{student.first_name}} {{student.last_name}} ({{student.email}}).
+                        Welcome to STEP 2 of this quiz.
+                    </p>
+                {% endif %}
             {% endif %}
-        {% endif %}
-       
-        <p class="lead">
-            <h2>About this quiz:</h2>
-            {{quiz.description | safe}}
-        </p>
         
-        
-        {% if quiz.status != 'SOLUTIONS' %}
-        <p class="lead">
-            <p>
-            {% if attempt is defined %}
-                <h2>How to take Step 2 of the quiz:</h2>
-                <ul>
-                    <li> The questions below are the same that you previous answered. </li>
-                    <li>
-                        Justifications that other students provided for not chosing each of the available
-                        alternatives are also provided.
-                    </li>
-                    <li>
-                        Use them to determine what is your definitive answer to each question.
-                    </li>
-                </ul>
-            {% else %}
-                <h2>How to take Step 1 of the quiz:</h2>
-                In order to receive any credit at all for your quiz, make sure that you: 
-                <ul>
-                    <li>Select 1 solution for each question below.</li>
-                    <li>Provide a meaningful justification of <b>why</b> you think that <b>the alternatives
-                        that you did not select are incorrect</b>.</li>
-                </ul>
-            {% endif %}
+            <p class="lead">
+                <h2>About this quiz:</h2>
+                {{quiz.description | safe}}
             </p>
-        </p>
-        <p class="lead"><p>
-            Scroll down to the bottom of the page for instructions on how to submit this quiz once you are done.
-        </p></p>
-        {% endif %}
+            
+            
+            {% if quiz.status != 'SOLUTIONS' %}
+            <p class="lead">
+                <p>
+                {% if attempt is defined %}
+                    <h2>How to take Step 2 of the quiz:</h2>
+                    <ul>
+                        <li> The questions below are the same that you previous answered. </li>
+                        <li>
+                            Justifications that other students provided for not chosing each of the available
+                            alternatives are also provided.
+                        </li>
+                        <li>
+                            Use them to determine what is your definitive answer to each question.
+                        </li>
+                    </ul>
+                {% else %}
+                    <h2>How to take Step 1 of the quiz:</h2>
+                    In order to receive any credit at all for your quiz, make sure that you: 
+                    <ul>
+                        <li>Select 1 solution for each question below.</li>
+                        <li>Provide a meaningful justification of <b>why</b> you think that <b>the alternatives
+                            that you did not select are incorrect</b>.</li>
+                    </ul>
+                {% endif %}
+                </p>
+            </p>
+            <p class="lead"><p>
+                Scroll down to the bottom of the page for instructions on how to submit this quiz once you are done.
+            </p></p>
+            {% endif %}
+        </div>
     </div>
-</div>
 
-<!--
-    <div>
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-        <ul class=flashes>
-        {% for category, message in messages %}
-        <li class="{{ category }}">{{ message }}</li>
-        {% endfor %}
-        </ul>
-    {% endif %}
-    {% endwith %}
-</div>
+    <!--
+        <div>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <ul class=flashes>
+            {% for category, message in messages %}
+            <li class="{{ category }}">{{ message }}</li>
+            {% endfor %}
+            </ul>
+        {% endif %}
+        {% endwith %}
+    </div>
 
-<div class="alert alert-warning alert-dismissible fade show" role="alert">
-    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-      <span aria-hidden="true">&times;</span>
-    </button>
-</div>
--->
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    -->
 
-<!div class="card-deck">
     {% set nquestion = namespace(value = 0) %}
     {% for q in questions %}
         {% set nquestion.value = nquestion.value + 1 %}
         <div class="card bg-light m-3 mx-auto" style="width: 75%">
             <div class="card-body" bg-light>
-                <h5 class="card-title">Question #{{q.id}} - {{q.title|safe|unescapeDoubleQuotes}}</h5>
-                <p class="card-text">{{q.stem|safe|unescapeDoubleQuotes}}</p>
+                <h5 class="card-title">Question #{{q.id}} - {{q.question.title |safe|unescapeDoubleQuotes}}</h5>
+                <p class="card-text">{{q.question.stem|safe|unescapeDoubleQuotes}}</p>
                 
                 {% if attempt is defined %}
                     <dl>
@@ -270,39 +269,39 @@
                 
                 <ul class="list-group list-group-flush">
                 
-                {% for id,alt in q.alternatives %}
+                {% for d in q.distractors %}
                     <li class="list-group-item border border-primaryrounded">
                         <div class="form-group">
-                            <div id="alternative_{{q.id}}_{{id}}" class="form-check">
+                            <div id="alternative_{{q.id}}_{{d.id}}" class="form-check">
                                 
                                 {% if attempt is defined %}
-                                    {% if id|int == initial_responses[nquestion.value - 1]|int %}
+                                    {% if d.id|int == initial_responses[nquestion.value - 1]|int %}
                                     <input type="radio"
                                         checked="true"
                                         name="question_{{q.id}}"
-                                        id="alternative_{{q.id}}_{{id}}_check" value="{{id}}"
+                                        id="alternative_{{q.id}}_{{d.id}}_check" value="{{d.id}}"
                                         class="form-check-input"></input>
                                     {% else %}
                                     <input type="radio"
                                         name="question_{{q.id}}"
-                                        id="alternative_{{q.id}}_{{id}}_check" value="{{id}}"
+                                        id="alternative_{{q.id}}_{{d.id}}_check" value="{{d.id}}"
                                         class="form-check-input"></input>
                                     {% endif %}
                                 {% else %}
                                 <input type="radio"
                                     name="question_{{q.id}}"
-                                    id="alternative_{{q.id}}_{{id}}_check" value="{{id}}"
+                                    id="alternative_{{q.id}}_{{d.id}}_check" value="{{d.id}}"
                                     class="form-check-input"></input>
                                 {% endif %}
                                 
                                 {% if quiz.status != 'SOLUTIONS' %}
-                                    <label for="alternative_{{q.id}}_{{id}}_check"
-                                    class="form-check-label">{{ alt | safe | unescapeDoubleQuotes }}</label>
+                                    <label for="alternative_{{q.id}}_{{d.id}}_check"
+                                    class="form-check-label">{{ d.answer | safe | unescapeDoubleQuotes }}</label>
                                 {% else %}
-                                    {% if id == -1 %}
-                                        <label for="alternative_{{q.id}}_{{id}}_check" class="form-check-label bg-warning">{{ alt | safe | unescapeDoubleQuotes }}</label>
+                                    {% if d.id == -1 %}
+                                        <label for="alternative_{{q.id}}_{{d.id}}_check" class="form-check-label bg-warning">{{ d.answer | safe | unescapeDoubleQuotes }}</label>
                                     {% else %}
-                                        <label for="alternative_{{q.id}}_{{id}}_check" class="form-check-label">{{ alt | safe | unescapeDoubleQuotes }}</label>
+                                        <label for="alternative_{{q.id}}_{{d.id}}_check" class="form-check-label">{{ d.answer | safe | unescapeDoubleQuotes }}</label>
                                     {% endif %}
                                 {% endif %}
                                 
@@ -337,16 +336,6 @@
                                                             <td class='text-left'>
                                                                 <p> {{ justification["justification"] | safe }} </p>
                                                             </td>
-                                                            <!--
-                                                            <td width="200px">
-                                                                <p class='text-right'> {{ justification.likes.count() }}x 
-                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-bookmark-heart" viewBox="0 0 16 16">
-                                                                        <path fill-rule="evenodd" d="M8 4.41c1.387-1.425 4.854 1.07 0 4.277C3.146 5.48 6.613 2.986 8 4.412z"/>
-                                                                        <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2zm2-1a1 1 0 0 0-1 1v12.566l4.723-2.482a.5.5 0 0 1 .554 0L13 14.566V2a1 1 0 0 0-1-1H4z"/>
-                                                                      </svg>
-                                                                </p>
-                                                            </td>
-                                                            -->
                                                         </tr>
                                                         {% endfor %}
                                                     {% endif %}
@@ -357,26 +346,13 @@
                                     </p>
 
                                 {% else %}
-
-                                    <!--
-                                        <textarea
-                                        id="alternative_{{q.id}}_{{id}}_justify" name="alternative_{{q.id}}_{{id}}_justify"
-                                        class="form-control reveal-if-not-selected"
-                                        rows="3"
-                                        placeholder="Explain here why you did not select this alternative."></textarea>
-                                    -->
-                                    <!-- 
-                                        NOTE with summernote, the reveal-if-not-selected does not work anymore
-                                        I was unable to find a fix besides bypassing that class from bootstrap
-                                        UPDATE - fixed, just needed a surrounding div that would have the reveal-if-not-selected class
-                                    -->
                                     <br/>
                                     <p>
                                         Explain below why you did not select this alternative, leave blank if you did.
                                     </p>
                                     <div class="reveal-if-not-selected"><textarea
                                         class="summernote form-control"
-                                        name="alternative_{{q.id}}_{{id}}_justify" id="alternative_{{q.id}}_{{id}}_justify"
+                                        name="alternative_{{q.id}}_{{id}}_justify" id="alternative_{{q.id}}_{{d.id}}_justify"
                                         rows="3"
                                         placeholder=""></textarea>                                   
                                     </div>
@@ -391,29 +367,27 @@
             </div>
         </div>
     {% endfor %}
-<!/div>
 
 
 
-{% if quiz.status != 'SOLUTIONS' %}
-<!div class='container'>
-    <div class="card bg-light m-3 mx-auto" style="width: 75%">
-        <div class="card-body" bg-light>   <p class="lead"><p>
-        <table>
-            <tr>
-                <td>
-                    <button class="btn btn-danger" onclick="submitQuiz()">Submit Quiz</button>
-                </td>
-                <td>
-                    When you are done taking the quiz, press this button. 
-                    A crude popup will let you know whether it was accepted ("OK"), or if you just tried to resubmit ("FORBIDDEN").
-                    If you were trying to resubmit, no worries, your first submission is enough.
-                </td>
-            </tr>
-        </table>
-    </p></p>
-    </div>
-    </div>
-<!/div>
-{% endif %}
+    {% if quiz.status != 'SOLUTIONS' %}
+        <div class="card bg-light m-3 mx-auto" style="width: 75%">
+            <div class="card-body" bg-light>   <p class="lead"><p>
+                <table>
+                    <tr>
+                        <td>
+                            <button class="btn btn-danger" onclick="submitQuiz()">Submit Quiz</button>
+                        </td>
+                        <td>
+                            When you are done taking the quiz, press this button. 
+                            A crude popup will let you know whether it was accepted ("OK"), or if you just tried to resubmit ("FORBIDDEN").
+                            If you were trying to resubmit, no worries, your first submission is enough.
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+
+
 {% endblock %}
