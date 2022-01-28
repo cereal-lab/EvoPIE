@@ -269,7 +269,7 @@
                 
                 <ul class="list-group list-group-flush">
                 
-                {% for d in q.distractors|list + q.question.answer|list %}
+                {% for d in q.distractors + q.question.answer|list %}
                     <li class="list-group-item border border-primaryrounded">
                         <div class="form-group">
                             <div id="alternative_{{q.id}}_{{d.id}}" class="form-check">
