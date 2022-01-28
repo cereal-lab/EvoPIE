@@ -10,6 +10,7 @@ from flask_login import login_required, current_user
 from flask import flash
 from sqlalchemy import not_
 from sqlalchemy.sql import collate
+from flask import Markup
 
 import json, random
 
@@ -159,6 +160,10 @@ def quiz_question_selector_1(quiz_id):
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
     questions = models.Question.query.all()
+    # unescaping so that the stem and answer are rendered in jinja2 template with | safe
+    for q in questions:
+        q.stem = Markup(q.stem).unescape()
+        q.answer = Markup(q.answer).unescape()
     return render_template('quiz-question-selector-1.html', quiz_id = quiz_id, available_questions = questions)
 
 
@@ -173,6 +178,11 @@ def quiz_question_selector_2(quiz_id, question_id):
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
     question = models.Question.query.get_or_404(question_id)
+    # unescaping so that the stem and answer are rendered in jinja2 template with | safe
+    question.stem = Markup(question.stem).unescape()
+    question.answer = Markup(question.answer).unescape()
+    for d in question.distractors:
+        d.answer = Markup(d.answer).unescape()
     return render_template('quiz-question-selector-2.html', quiz_id=quiz_id, question=question)
 
 
