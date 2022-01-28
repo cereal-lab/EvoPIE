@@ -94,9 +94,15 @@ def question_editor(question_id):
     q = models.Question.query.get_or_404(question_id)
     
     # TODO replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
-    ds = [d.dump_as_dict() for d in q.distractors]
-    q = q.dump_as_dict()
-    return render_template('question-editor.html', all_distractors = ds, question = q)
+    #ds = [d.dump_as_dict() for d in q.distractors]
+    #q = q.dump_as_dict()
+    q.title = Markup(q.title).unescape()
+    q.stem = Markup(q.stem).unescape()
+    q.answer = Markup(q.answer).unescape()
+    for d in q.distractors:
+        d.answer = Markup(d.answer).unescape()
+    #return render_template('question-editor.html', all_distractors = ds, question = q)
+    return render_template('question-editor.html', all_distractors = q.distractors, question = q)
     
 
 
