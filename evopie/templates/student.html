@@ -269,39 +269,39 @@
                 
                 <ul class="list-group list-group-flush">
                 
-                {% for d in q.distractors + q.question.answer|list %}
+                {% for id,answer in q.alternatives %}
                     <li class="list-group-item border border-primaryrounded">
                         <div class="form-group">
-                            <div id="alternative_{{q.id}}_{{d.id}}" class="form-check">
+                            <div id="alternative_{{q.id}}_{{id}}" class="form-check">
                                 
                                 {% if attempt is defined %}
-                                    {% if d.id|int == initial_responses[nquestion.value - 1]|int %}
+                                    {% if id|int == initial_responses[nquestion.value - 1]|int %}
                                     <input type="radio"
                                         checked="true"
                                         name="question_{{q.id}}"
-                                        id="alternative_{{q.id}}_{{d.id}}_check" value="{{d.id}}"
+                                        id="alternative_{{q.id}}_{{id}}_check" value="{{id}}"
                                         class="form-check-input"></input>
                                     {% else %}
                                     <input type="radio"
                                         name="question_{{q.id}}"
-                                        id="alternative_{{q.id}}_{{d.id}}_check" value="{{d.id}}"
+                                        id="alternative_{{q.id}}_{{id}}_check" value="{{id}}"
                                         class="form-check-input"></input>
                                     {% endif %}
                                 {% else %}
                                 <input type="radio"
                                     name="question_{{q.id}}"
-                                    id="alternative_{{q.id}}_{{d.id}}_check" value="{{d.id}}"
+                                    id="alternative_{{q.id}}_{{id}}_check" value="{{id}}"
                                     class="form-check-input"></input>
                                 {% endif %}
                                 
                                 {% if quiz.status != 'SOLUTIONS' %}
-                                    <label for="alternative_{{q.id}}_{{d.id}}_check"
-                                    class="form-check-label">{{ d.answer | safe | unescapeDoubleQuotes }}</label>
+                                    <label for="alternative_{{q.id}}_{{id}}_check"
+                                    class="form-check-label">{{ answer | safe | unescapeDoubleQuotes }}</label>
                                 {% else %}
-                                    {% if d.id == -1 %}
-                                        <label for="alternative_{{q.id}}_{{d.id}}_check" class="form-check-label bg-warning">{{ d.answer | safe | unescapeDoubleQuotes }}</label>
+                                    {% if id == -1 %}
+                                        <label for="alternative_{{q.id}}_{{id}}_check" class="form-check-label bg-warning">{{ answer | safe | unescapeDoubleQuotes }}</label>
                                     {% else %}
-                                        <label for="alternative_{{q.id}}_{{d.id}}_check" class="form-check-label">{{ d.answer | safe | unescapeDoubleQuotes }}</label>
+                                        <label for="alternative_{{q.id}}_{{id}}_check" class="form-check-label">{{ answer | safe | unescapeDoubleQuotes }}</label>
                                     {% endif %}
                                 {% endif %}
                                 
@@ -352,7 +352,7 @@
                                     </p>
                                     <div class="reveal-if-not-selected"><textarea
                                         class="summernote form-control"
-                                        name="alternative_{{q.id}}_{{id}}_justify" id="alternative_{{q.id}}_{{d.id}}_justify"
+                                        name="alternative_{{q.id}}_{{id}}_justify" id="alternative_{{q.id}}_{{id}}_justify"
                                         rows="3"
                                         placeholder=""></textarea>                                   
                                     </div>

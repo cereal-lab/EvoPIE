@@ -11,6 +11,7 @@ from flask import flash
 from sqlalchemy import not_
 from sqlalchemy.sql import collate
 from flask import Markup
+from random import shuffle
 
 import json, random
 
@@ -270,6 +271,18 @@ def get_student(qid):
         qq.question.answer = Markup(qq.question.title).unescape()
         for d in qq.distractors:
             d.answer = Markup(d.answer).unescape()
+        # Preparing the list of alternatives for this question (these are the distractors + answer being displayed in the template)
+        # This comes straight from models.py dump_as_dict for QuizQuestion
+        tmp1 = [] # list of distractors IDs, -1 for right answer
+        tmp2 = [] # list of alternatives, including the right answer
+        tmp1.append(-1)
+        tmp2.append(Markup(qq.question.answer).unescape())
+        for d in qq.distractors:
+            tmp1.append(Markup(d.id).unescape()) # FIXME not necessary
+            tmp2.append(Markup(d.answer).unescape())
+        qq.alternatives = [list(tup) for tup in zip(tmp1,tmp2)]
+        shuffle(qq.alternatives)
+        # now, each QuizQuestion has an additional field "alternatives"
 
     # determine which step of the peer instruction the student is in
     a = models.QuizAttempt.query.filter_by(student_id=current_user.id).filter_by(quiz_id=qid).all()
