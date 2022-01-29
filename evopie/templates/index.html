@@ -3,6 +3,16 @@
 {% block title %}EvoPIE{% endblock %}
 
 {% block head %}
+  <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.css">  
+  <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.js"></script>
+
+
+  <script>
+    $(document).ready( function () {
+        $('#quiztable').DataTable();
+    } );
+  </script>
+  
   <style>
     .bd-placeholder-img {
       font-size: 1.125rem;
@@ -144,9 +154,9 @@
         
         <div class="card bg-light m-3 mx-auto" style="width: 75%">    
           <div class="card-body" bg-light>
-            <h5 class="card-title" data-toggle = "collapse" data-target = "#newquiz">Click here to see the list of quizzes for your course</h5>
-            <div  id = "newquiz" class = "collapse">
-              <table class='compact stripe' width='100%'>
+            <h5 class="card-title">List of quizzes available on this server</h5>
+            <div  id = "newquiz">
+              <table class='compact stripe' width='100%' id='quiztable'>
                 <thead>
                   <tr>
                     <th>ID</th>
@@ -157,6 +167,7 @@
                 </thead>
                 <tbody>
                   {% for q in quizzes %}
+                    {% if q.status != 'HIDDEN' %}
                     <tr>
                       <td>
                         {{ q.id }}
@@ -180,6 +191,7 @@
                         <a href="/student/{{ q.id }}" class="btn btn-primary my-2"> Take Quiz </a>
                       </td>
                     </tr>
+                    {% endif %}
                   {% endfor %}
                 </tbody>
               </table>
