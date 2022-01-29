@@ -60,7 +60,7 @@
         let xhr = new XMLHttpRequest();
         let url = '/quizzes';
     
-        xhr.open("POST", url, true);
+        xhr.open("POST", url, false);
         xhr.setRequestHeader("Content-Type", "application/json");
 
         // Create a state change callback 
@@ -79,6 +79,10 @@
         
         // Sending data with the request 
         xhr.send(data);
+        event.preventDefault();
+        //event.stopPropagation();
+        location.reload();
+        //return false;
     }
 </script>
 
