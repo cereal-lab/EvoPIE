@@ -42,16 +42,15 @@ class Question(DB.Model):
     def dump_as_dict(self):
         q = {
             "id" : self.id,
-            "title" : self.title,
+            "title" : Markup(self.title).unescape(),
             "stem" : Markup(self.stem).unescape(),
             "answer" : Markup(self.answer).unescape(),
             "alternatives" : []
         }
-        #NOTE we have to do the above unescapes so that the html code sent by summernote to the server
+        # NOTE we have to do the above unescapes so that the html code sent by summernote to the server
         # is then rendered as HTML instead of being displayed as an escape string, or rendered
         # with the unescaped symbols but not interpreted as HTML
 
-        #TODO NOW start tracing the path of the strings here 
         q['alternatives'] = [Markup(d.answer).unescape() for d in self.distractors]
         q['alternatives'].append(Markup(self.answer).unescape())
         shuffle(q['alternatives'])
@@ -65,7 +64,7 @@ class Question(DB.Model):
             "title" : self.title,
             "alternatives" : []
         }
-        #NOTE trying to skip the distractors, eventually we want just their IDs
+        # NOTE trying to skip the distractors, eventually we want just their IDs
         # q['alternatives'] = [Markup(d.answer).unescape() for d in self.distractors]
         #q['alternatives'].append(Markup(self.answer).unescape())
         #shuffle(q['alternatives'])

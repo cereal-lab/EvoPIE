@@ -235,8 +235,11 @@ def post_new_distractor_for_question(question_id):
             return redirect(request.referrer)
 
 
-    #TODO validation - All of the quizzes containing question_id must be HIDDEN to be able to add distractor
-
+    # validation - All of the quizzes containing question_id must be HIDDEN to be able to add distractor
+    # FIXED - not true, the quizzes refer to QuizQuestions which, when added to a Quiz, are characterised
+    # by a selection of the available Distractors for their corresponding Question. 
+    # As such, if we add a Distractor to a Question later, this does not affect the QuizQuestions already created
+    # and thus neither the Quizzes that make use of them.
     if request.json:
         answer = request.json['answer']
     else:
