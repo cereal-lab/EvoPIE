@@ -208,7 +208,7 @@ def quiz_question_selector_3(quiz_id, question_id, selected_distractors):
     for distractor_id_str in selected_distractors_list:
         distractor_id = int(distractor_id_str)
         distractor = models.Distractor.query.get_or_404(distractor_id)
-        qq.distractors.append(distractor) # TODO convert str into list
+        qq.distractors.append(distractor)
     
     models.DB.session.add(qq)
     models.DB.session.commit()
@@ -228,7 +228,7 @@ def quiz_editor(quiz_id):
         return redirect(url_for('pages.index'))
     q = models.Quiz.query.get_or_404(quiz_id)
     # TODO replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
-    q = q.dump_as_dict()
+    #q = q.dump_as_dict()
     return render_template('quiz-editor.html', quiz = q)
     
 
