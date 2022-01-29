@@ -246,7 +246,7 @@ def post_new_distractor_for_question(question_id):
         #FIXME do we want to continue handling both formats?
         answer = request.form['answer']
     
-    #TODO detect if did was passed too; if so, then it's an update
+    # detect if did was passed too; if so, then it's an update
     if 'did' in request.form:
         return put_distractor(request.form['did'])
 
@@ -686,7 +686,8 @@ def post_quizzes_status(qid):
     if not request.json:
         abort(406, "JSON format required for request") # not acceptable
     new_status = sanitize(request.json['status'])
-    #FIXME how about check that the status is actually valid, eh? :)
+    # FIXED how about check that the status is actually valid, eh? :)'
+    # done in set_status below
     if(quiz.set_status(new_status)):
         response     = ({ "message" : "OK" }, 200, {"Content-Type": "application/json"})
         models.DB.session.commit()
@@ -713,7 +714,7 @@ def all_quizzes_take(qid):
 
     quiz = models.Quiz.query.get_or_404(qid)
     
-    sid = current_user.id #FIXME need to use student ID too
+    sid = current_user.id
     
     # TODO implement logic for deadlines
     # IF date <= DL1 THEN step #1 ELSE IF DL1 < date <= DL2 && previous attempt exists THEN step #2
@@ -758,7 +759,7 @@ def all_quizzes_take(qid):
             return jsonify(quiz.dump_as_dict())
 
     else: #request.method == 'POST'
-        #TODO sanity check
+        # NOTE sanity check
         # if len(responses) == len(justifications) == len(quiz.quiz_questions)
 
         if not request.json:
@@ -793,7 +794,6 @@ def all_quizzes_take(qid):
                 if int(initial_responses_dict[key] == 0):
                     response     = ({ "message" : "You must select an answer for each question" }, 400, {"Content-Type": "application/json"})
                     return make_response(response)
-                #TODONOW
                 if int(initial_responses_dict[key]) < 0:
                     result = 1
                 else:

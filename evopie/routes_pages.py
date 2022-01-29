@@ -255,7 +255,7 @@ def get_student(qid):
     ##quiz_questions = [question.dump_as_dict() for question in q.quiz_questions]
     quiz_questions = q.quiz_questions
 
-    # TODO FIXME we had to simplify the questions to avoid an escaping problem, fix it when fixing the above
+    # BUG we had to simplify the questions to avoid an escaping problem
     simplified_quiz_questions = [question.dump_as_simplified_dict() for question in q.quiz_questions]    
     # PBM - the alternatives for questions show unescaped when taking the quiz
     # SOL - need to unescape them before to pass them to the template

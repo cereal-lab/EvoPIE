@@ -143,13 +143,8 @@ class QuizQuestion(DB.Model):
         # use the |tojson template in Jinja. We want a list of lists instead.
         result['alternatives'] = [list(tup) for tup in zip(tmp1,tmp2)]
 
-
         shuffle(result['alternatives'])
-        # DO NOT USE if we append tuples above
-        # shuffle both arrays but keep them in same order relatively speaking
-        #both = list(zip(result['alternatives'], result['alternatives_ids']))
-        #shuffle(both)
-        #result['alternatives'] , result['alternatives_ids'] = zip(*both)
+        
         return result
 
     def dump_as_simplified_dict(self):
@@ -221,7 +216,7 @@ class Quiz(DB.Model):
     def dump_as_dict(self):
         questions = [q.dump_as_dict() for q in self.quiz_questions]
         shuffle(questions)
-        return {    "id" : self.id,
+        return  {   "id" : self.id,
                     "title" : self.title,
                     "description" : self.description,
                     "questions" : questions, # FIXME this field should really be named quiz_questions instead of questions
@@ -249,11 +244,8 @@ class QuizAttempt(DB.Model):
     # revised --> start / end
 
     # store students answers to all questions
-    initial_responses = DB.Column(DB.String, default="{}") # as json list of distractor_ID or none for answer
-    revised_responses = DB.Column(DB.String, default="{}") # as json list of distractor_ID or none for answer
-    #NOTE alternatively, we could store just an int representing the index of the response.
-    # If we do so, then order of alternatives matters and must be fixed by instructors instead
-    # of being shuffled as we do right now
+    initial_responses = DB.Column(DB.String, default="{}") # as json list of distractor_ID or -1 for answer
+    revised_responses = DB.Column(DB.String, default="{}") # as json list of distractor_ID or -1 for answer
 
     initial_total_score = DB.Column(DB.Integer, default=0)
     revised_total_score = DB.Column(DB.Integer, default=0)
@@ -262,8 +254,8 @@ class QuizAttempt(DB.Model):
     justifications = DB.Column(DB.String, default="{}") # json list of text entries
 
     # score
-    initial_scores = DB.Column(DB.String, default="") # as json list of None / distractor ID
-    revised_scores = DB.Column(DB.String, default="") # as json list of None / distractor ID
+    initial_scores = DB.Column(DB.String, default="") # as json list of -1 / distractor ID
+    revised_scores = DB.Column(DB.String, default="") # as json list of -1 / distractor ID
 
     def dump_as_dict(self):
         return {    "id" : self.id,
