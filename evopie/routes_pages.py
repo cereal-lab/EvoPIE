@@ -227,7 +227,7 @@ def quiz_editor(quiz_id):
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
     q = models.Quiz.query.get_or_404(quiz_id)
-    # TODO replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
+    # we replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
     #q = q.dump_as_dict()
     return render_template('quiz-editor.html', quiz = q)
     
