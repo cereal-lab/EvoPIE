@@ -268,7 +268,7 @@ def get_student(qid):
     for qq in quiz_questions:
         qq.question.title = Markup(qq.question.title).unescape()
         qq.question.stem = Markup(qq.question.stem).unescape()
-        qq.question.answer = Markup(qq.question.title).unescape()
+        qq.question.answer = Markup(qq.question.answer).unescape()
         for d in qq.distractors:
             d.answer = Markup(d.answer).unescape()
         # Preparing the list of alternatives for this question (these are the distractors + answer being displayed in the template)
