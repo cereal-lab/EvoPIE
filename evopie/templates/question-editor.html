@@ -6,108 +6,65 @@
 {% endblock %}
 
 {% block content %}
-<div class="jumbotron jumbotron-fluid">
-    <div class="container">
-        <h1 class="display-4">Question Editor</h1>
-            <p class="lead">
-                Use this page to modify the stem of this question,
-                its answer, as well as review available distractors or
-                add a new one.
-            </p>
-        {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            <div class="notification">
-                {{ messages[0] }}
-            </div>
-        {% endif %}
-        {% endwith %}
+    <div class="jumbotron jumbotron-fluid">
+        <div class="container">
+            <h1 class="display-4">Question Editor</h1>
+                <p class="lead">
+                    Use this page to modify the stem of this question,
+                    its answer, as well as review available distractors or
+                    add a new one.
+                </p>
+            {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="notification">
+                    {{ messages[0] }}
+                </div>
+            {% endif %}
+            {% endwith %}
+        </div>
     </div>
-</div>
 
-
-<div class="card bg-light m-3 mx-auto" style="width: 75%">
-    <div class="card-body" bg-light>
-        <h5 class="card-title">
-            Previewing Question Q#{{question.id}}
-        </h5>
-        <div>
+    <div class="card bg-light m-3 mx-auto" style="width: 75%">
+        <div class="card-body" bg-light>
+            <form id="questionForm" method="post" action='/questions'>
+                <div class="form-group">
+                    <label for="title">Title</label>
+                    <input name="title" id="title" class="form-control" value="{{ question.title }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="stem">Question</label>
+                    <textarea class="summernote form-control" name="stem" id="question" required>
+                        {{ question.stem | safe }}
+                    </textarea>
+                </div>
+                <div class="form-group">
+                    <label for="answer">Answer</label>
+                    <textarea class="summernote form-control" name="answer" id="answer" required>
+                        {{ question.answer | safe }}
+                    </textarea>
+                </div>
+                <input type="hidden" id="qid" name="qid" value="{{ question.id }}">
+                <input type="submit" value="Submit Changes" class="btn btn-primary">
+            </form>
+        </div>
+    </div>
+    
+    <div class="card bg-light m-3 mx-auto" style="width: 75%">
+        <div class="card-body" bg-light>
+            <h5 class="card-title">
+                Create a new distractor for this question
+            </h5>
             <p class="card-text">
-                <table style="border: 0;border-collapse: separate; border-spacing: 0px 3px 1rem 3px;" cellpadding="10">
-                    <tr>
-                        <td colspan="2"><b>{{question.title}}</b></td>
-                    </tr>
-                    <tr>
-                        <td style="vertical-align: top"><b>Q:</b></td>
-                        <td>
-                            {{ question.stem | safe }}
-                        </td>
-                    </tr>
-                    <tr>   
-                        <td style="vertical-align: top"><b>A:</b></td>
-                        <td>
-                            {{ question.answer | safe }}
-                        </td>
-                    </tr>
-                </table>
+                <form id="distractorForm" method="post" action='/questions/{{ question.id }}/distractors'>
+                    <div class="form-group">
+                        <input type="hidden" name="qid" id="qid" value="{{ question.id }}" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <textarea class="summernote form-control" name="answer" id="answer" required></textarea>
+                    </div>
+                    <input type="submit" value="Submit New Distractor" class="btn btn-primary">
+                </form>                        
             </p>
-        </div>
-    </div>
-</div>
-
-
-<!div class="card-deck">
-    <div class="card bg-light m-3 mx-auto" style="width: 75%">
-        <div class="card-body" bg-light>
-    
-            <h5 class="card-title" data-toggle = "collapse" data-target = "#questioneditor">
-                Click here to edit this question &amp; its answer
-            </h5>
-
-            <div id = "questioneditor" class = "collapse">
-                <p class="card-text">
-                </p>
-                <form id="questionForm" method="post" action='/questions'>
-                    <div class="form-group">
-                        <label for="title">Title</label>
-                        <input name="title" id="title" class="form-control" value="{{ question.title }}" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="stem">Question</label>
-                        <textarea class="summernote form-control" name="stem" id="question" required>
-                            {{ question.stem | safe }}
-                        </textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="answer">Answer</label>
-                        <textarea class="summernote form-control" name="answer" id="answer" required>
-                            {{ question.answer | safe }}
-                        </textarea>
-                    </div>
-                    <input type="hidden" id="qid" name="qid" value="{{ question.id }}">
-                    <input type="submit" value="Submit Changes" class="btn btn-primary">
-                </form>
-            </div>
-        </div>
-    </div>
-    
-    <div class="card bg-light m-3 mx-auto" style="width: 75%">
-        <div class="card-body" bg-light>
-            <h5 class="card-title" data-toggle = "collapse" data-target = "#newdistractor">
-                Click here to create a new distractor for this question
-            </h5>
-            <div  id = "newdistractor" class = "collapse">
-                <p class="card-text">
-                    <form id="distractorForm" method="post" action='/questions/{{ question.id }}/distractors'>
-                        <div class="form-group">
-                            <input type="hidden" name="qid" id="qid" value="{{ question.id }}" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <textarea class="summernote form-control" name="answer" id="answer" required></textarea>
-                        </div>
-                        <input type="submit" value="Submit New Distractor" class="btn btn-primary">
-                    </form>                        
-                </p>
-            </div>
         </div>
     </div>
     
@@ -128,25 +85,13 @@
     {% for single_distractor in all_distractors %}
         <div class="card bg-light m-3 mx-auto" style="width: 75%">
             <div class="card-body" bg-light>
-    
-                <h5 class="card-title" data-toggle = "collapse" data-target = "#distractor{{single_distractor.id}}">
-                    Distractor D#{{ single_distractor.id }}
-                </h5>
         
-                <div>
+                <div data-toggle = "collapse" data-target = "#distractor{{single_distractor.id}}">
                     <p class="card-text">
                         {{ single_distractor.answer | safe }}
                     </p>
                 </div>
-                <!--
-                    <div class="col-9">
-                        {{ single_distractor.answer | safe }}
-                    </div>
-                    <div class="col-3">
-                        <a class="btn btn-primary my-2" href="">Submit Changes</a>
-                        <a class="btn btn-danger my-2" href="">Delete</a>
-                    </div>
-                -->
+
                 <div id = "distractor{{single_distractor.id}}" class = "collapse">
                     <form method="post" action='/distractors/{{ single_distractor.id }}'>
                         <div class="form-group">
