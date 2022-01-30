@@ -230,9 +230,9 @@ def quiz_editor(quiz_id):
     # we replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
     #q = q.dump_as_dict()
     for qq in q.quiz_questions:
-        qq.title = Markup(qq.title).unescape()
-        qq.stem = Markup(qq.stem).unescape()
-        qq.answer = Markup(qq.answer).unescape()
+        qq.question.title = Markup(qq.question.title).unescape()
+        qq.question.stem = Markup(qq.question.stem).unescape()
+        qq.question.answer = Markup(qq.question.answer).unescape()
         # NOTE we do not have to worry about unescaping the distractors because the quiz-editor 
         # does not render them. However, if we had to do so, remember that we need to add to 
         # each QuizQuestion a field named alternatives that has the answer + distractors unescaped.
