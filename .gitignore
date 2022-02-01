@@ -3,3 +3,4 @@ __pycache__/
 evopie/DB_quizlib.sqlite*
 mycookies
 evopie/routes_pages.py
+venv/

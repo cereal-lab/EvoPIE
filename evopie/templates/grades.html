@@ -19,7 +19,7 @@
                     Scores for both step 1 and step 2 are computed below, click them to see 
                     the details of the student's responses.
                     Click the justifications button to review the student's contributions
-                    to peer instruction.
+                    to peer instructions.
                 </p>
         </div>
     </div>
@@ -35,49 +35,115 @@
             <th>Justifications</th>
         </tr></thead>
         <tbody>
-    {% for grade in all_grades %}
+    {% for i in range(all_grades | length) %}
         <tr>
-            <td>{{grade.student.last_name}}</td>
-            <td>{{grade.student.first_name}}</td>
-            <td>{{grade.student.email}}</td>
+            <td>{{all_grades[i].student.last_name}}</td>
+            <td>{{all_grades[i].student.first_name}}</td>
+            <td>{{all_grades[i].student.email}}</td>
             <td>
                 <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
-                        data-target=".TG-INI-{{grade.student.id}}">
-                    {{grade.initial_total_score}}
+                        data-target=".TG-INI-{{all_grades[i].student.id}}">
+                    {{all_grades[i].initial_total_score}}
                 </button>
-                <div class="modal fade TG-INI-{{grade.student.id}}" tabindex="-1" role="dialog"
+                <div class="modal fade TG-INI-{{all_grades[i].student.id}}" tabindex="-1" role="dialog"
                         aria-labelledby="mySmallModalLabel" aria-hidden="true">
                     <div class="modal-dialog modal-sm">
                       <div class="modal-content">
-                        {{grade.initial_responses}}
+                        <table>
+                            <tr>
+                                <th>Question No.</th>
+                                <th>Response No.</th>
+                            </tr>
+                            {% for item in initial_responses[i] %}
+                                {% set item_index = item | int %}
+                                {% set j = initial_responses[i][item] | int %}
+                                <tr>
+                                    <td>#{{ item }} - {{ all_questions[item_index - 1].stem }}</td>
+                                    <td>#{{ initial_responses[i][item] }} - {{ distractors[item_index][j] }}</td>
+                                </tr>
+                            {% endfor %}
+                        </table>
                       </div>
                     </div>
                 </div>
             </td>
             <td>
                 <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
-                        data-target=".TG-REV-{{grade.student.id}}">
-                    {{grade.revised_total_score}}
+                        data-target=".TG-REV-{{all_grades[i].student.id}}">
+                    {{all_grades[i].revised_total_score}}
                 </button>
-                <div class="modal fade TG-REV-{{grade.student.id}}" tabindex="-1" role="dialog"
+                <div class="modal fade TG-REV-{{all_grades[i].student.id}}" tabindex="-1" role="dialog"
                         aria-labelledby="mySmallModalLabel" aria-hidden="true">
                     <div class="modal-dialog modal-sm">
                       <div class="modal-content">
-                        {{grade.revised_responses}}
+                        <table>
+                            <tr>
+                                <th>Question No.</th>
+                                <th>Revised Response No.</th>
+                            </tr>
+                            {% for item in revised_responses[i] %}
+                                {% set item_index = item | int %}
+                                {% set j = revised_responses[i][item] | int %}
+                                <tr>
+                                    <td>#{{ item }} - {{ all_questions[item_index - 1].stem }}</td>
+                                    {% if j == -1 %}
+                                    <td>#{{ revised_responses[i][item] }} - {{ all_questions[item_index - 1].answer }}</td>
+                                    {% else %}
+                                    <td>#{{ revised_responses[i][item] }} - {{ distractors[item_index][j] }}</td>
+                                    {% endif %}
+                                </tr>
+                            {% endfor %}
+                        </table>
                       </div>
                     </div>
                 </div>
             </td>
             <td>
                 <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
-                        data-target=".TG-JUS-{{grade.student.id}}">
+                        data-target=".TG-JUS-{{all_grades[i].student.id}}">
                     Justifications
                 </button>
-                <div class="modal fade TG-JUS-{{grade.student.id}}" tabindex="-1" role="dialog"
+                <div class="modal fade TG-JUS-{{all_grades[i].student.id}}" tabindex="-1" role="dialog"
                         aria-labelledby="mySmallModalLabel" aria-hidden="true">
                     <div class="modal-dialog modal-content">
                       <div class="modal-content">
-                        {{grade.justifications}}
+                        <div class="accordion" id="accordionExample">
+                            {% for item in justifications[i] %}
+                                {% for question in item %}
+                                    {% set q = question | int %}
+                                    <div class="accordion-item" >
+                                    <h2 class="accordion-header" id="Heading{{question}}">
+                                        <button class="accordion-button collapsed" type="button" data-toggle="collapse" data-parent="#accordionExample" href="#collapse{{question}}" aria-expanded="false" aria-controls="collapse{{question}}"">
+                                            Question #{{ question }} - {{ all_questions[q - 1].stem }}
+                                        </button>
+                                    </h2>
+                                    <div id="collapse{{question}}"" class="accordion-collapse collapse" aria-labelledby="Heading{{question}}" ">
+                                        <div class="accordion-body">
+                                            <table>
+                                                <tr>
+                                                    <th>Distractor</th>
+                                                    <th>Justification</th>
+                                                </tr>
+                                                {% for distractor in justifications[i][question] %}
+                                                    <tr>
+                                                        {% set d = distractor | int %}
+                                                        {% if d == -1 %}
+                                                            <td>#{{ distractor }} - {{ all_questions[q - 1].answer }}</td>
+                                                            <td>{{ justifications[i][question][distractor] }}</td>
+                                                        {% else %}
+                                                            <td>#{{ distractor }} - {{ distractors[q][d] }}</td>
+                                                            <td>{{ justifications[i][question][distractor] }}</td>
+                                                        {% endif %}
+                                                    </tr>
+                                                {% endfor %}
+                                            </table>
+                                        </div>
+                                    </div>
+                                    </div>
+                                {% endfor %}
+                            {% endfor %}
+                            </div>
+                          </div>
                       </div>
                     </div>
                 </div>

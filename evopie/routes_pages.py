@@ -401,4 +401,23 @@ def get_grades(qid):
         .filter(models.QuizAttempt.student_id == models.User.id)\
         .order_by(collate(models.User.last_name, 'NOCASE'))\
         .all()
-    return render_template('grades.html', quiz=q, all_grades=grades)
+    all_distractors = models.Distractor.query.all()
+    all_questions = models.Question.query.all()
+    distractors = {}
+    answers = {}
+    # for question in all_questions:
+    #     answers[question.id] = 
+
+    for distractor in all_distractors:
+        if distractor.question_id not in distractors:
+            distractors[distractor.question_id] = {}
+        distractors[distractor.question_id][distractor.id] = distractor.answer
+    initial_responses = []
+    revised_responses = []
+    justifications = []
+    print(distractors)
+    for i in range(len(grades)):
+        initial_responses.append(json.loads(grades[i].initial_responses.replace("'",'"')))
+        revised_responses.append(json.loads(grades[i].revised_responses.replace("'", '"')))
+        justifications.append(json.loads(grades[i].justifications.replace("'", '"')))
+    return render_template('grades.html', quiz=q, all_grades=grades, initial_responses = initial_responses, revised_responses = revised_responses, justifications = justifications, distractors = distractors, all_questions = all_questions)
