@@ -9,9 +9,12 @@ services:
       - 5000
     env_file:
       - ./evopie/.env.dev
+    restart: always
   nginx:
     build: ./nginx
     ports:
       - "5000:80"
     depends_on:
       - web
+    restart: always
+    
