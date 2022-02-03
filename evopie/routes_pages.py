@@ -27,6 +27,23 @@ def cleanhtml(raw_html):
   cleantext = re.sub(CLEANR, '', raw_html)
   return cleantext
 
+def removeHTMLTags(string):
+    return Markup(cleanhtml(string)).unescape()
+
+def convertToDict(dict):
+    new_dict = {}
+    for question_id, justifications_eachQuestion in dict.items():
+            for distractor_id, justification in justifications_eachQuestion.items():
+                if str(question_id) not in new_dict:
+                    new_dict[str(question_id)] = {}
+                new_dict[str(question_id)][str(distractor_id)] = removeHTMLTags(justification)
+    return new_dict
+
+class Grade:
+    justifications = {}
+    initial_responses = []
+    revised_responses = []
+
 @pages.route('/')
 def index():
     '''
@@ -404,28 +421,21 @@ def get_grades(qid):
         .filter(models.QuizAttempt.student_id == models.User.id)\
         .order_by(collate(models.User.last_name, 'NOCASE'))\
         .all()
-    all_distractors = models.Distractor.query.all()
-    all_questions = {}
-    for question in models.Quiz.query.get_or_404(qid).quiz_questions:
-        all_questions[str(question.id)] = models.Question.query.filter(question.id == models.Question.id).all()[0]
+    questions = {}
     distractors = {}
-    for distractor in all_distractors:
-        if str(distractor.question_id) not in distractors:
-            distractors[str(distractor.question_id)] = {}
-        distractors[str(distractor.question_id)][str(distractor.id)] = Markup(distractor.answer).unescape()
-    initial_responses = []
-    revised_responses = []
-    all_justifications = []
-    justifications = {}
+    grading_details = []
+
+    for question in models.Quiz.query.get_or_404(qid).quiz_questions:
+        questions[str(question.id)] = models.Question.query.filter(question.id == models.Question.id).all()[0]
+        for distractor in question.distractors:
+            if str(distractor.question_id) not in distractors:
+                distractors[str(distractor.question_id)] = {}
+            distractors[str(distractor.question_id)][str(distractor.id)] = Markup(distractor.answer).unescape()
+
     for i in range(len(grades)):
-        initial_responses.append(json.loads(grades[i].initial_responses.replace("'",'"')))
-        revised_responses.append(json.loads(grades[i].revised_responses.replace("'", '"')))
-        # justifications.append(ast.literal_eval(grades[i].justifications)
-        for question_id, justifications_eachQuestion in ast.literal_eval(grades[i].justifications).items():
-            for distractor_id, justification in justifications_eachQuestion.items():
-                if str(question_id) not in justifications:
-                    justifications[str(question_id)] = {}
-                justifications[str(question_id)][str(distractor_id)] = cleanhtml(justification)
-        all_justifications.append(justifications)
-        justifications = {}
-    return render_template('grades.html', quiz=q, all_grades=grades, initial_responses = initial_responses, revised_responses = revised_responses, all_justifications = all_justifications, distractors = distractors, all_questions = all_questions)
+        grading_details.append(Grade())
+        grading_details[i].initial_responses = json.loads(grades[i].initial_responses.replace("'", '"'))
+        grading_details[i].revised_responses = json.loads(grades[i].revised_responses.replace("'", '"'))
+        grading_details[i].justifications = convertToDict(ast.literal_eval(grades[i].justifications)) ## ask about how we can make this part work with json.loads
+
+    return render_template('grades.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions)
