@@ -13,7 +13,8 @@ from sqlalchemy.sql import collate
 from flask import Markup
 from random import shuffle
 
-import json, random
+import json, random, ast, re
+CLEANR = re.compile('<.*?>') 
 
 from . import DB, models
 
@@ -22,7 +23,9 @@ import jinja2
 
 pages = Blueprint('pages', __name__)
 
-
+def cleanhtml(raw_html):
+  cleantext = re.sub(CLEANR, '', raw_html)
+  return cleantext
 
 @pages.route('/')
 def index():
@@ -402,22 +405,27 @@ def get_grades(qid):
         .order_by(collate(models.User.last_name, 'NOCASE'))\
         .all()
     all_distractors = models.Distractor.query.all()
-    all_questions = models.Question.query.all()
+    all_questions = {}
+    for question in models.Quiz.query.get_or_404(qid).quiz_questions:
+        all_questions[str(question.id)] = models.Question.query.filter(question.id == models.Question.id).all()[0]
     distractors = {}
-    answers = {}
-    # for question in all_questions:
-    #     answers[question.id] = 
-
     for distractor in all_distractors:
-        if distractor.question_id not in distractors:
-            distractors[distractor.question_id] = {}
-        distractors[distractor.question_id][distractor.id] = distractor.answer
+        if str(distractor.question_id) not in distractors:
+            distractors[str(distractor.question_id)] = {}
+        distractors[str(distractor.question_id)][str(distractor.id)] = Markup(distractor.answer).unescape()
     initial_responses = []
     revised_responses = []
-    justifications = []
-    print(distractors)
+    all_justifications = []
+    justifications = {}
     for i in range(len(grades)):
         initial_responses.append(json.loads(grades[i].initial_responses.replace("'",'"')))
         revised_responses.append(json.loads(grades[i].revised_responses.replace("'", '"')))
-        justifications.append(json.loads(grades[i].justifications.replace("'", '"')))
-    return render_template('grades.html', quiz=q, all_grades=grades, initial_responses = initial_responses, revised_responses = revised_responses, justifications = justifications, distractors = distractors, all_questions = all_questions)
+        # justifications.append(ast.literal_eval(grades[i].justifications)
+        for question_id, justifications_eachQuestion in ast.literal_eval(grades[i].justifications).items():
+            for distractor_id, justification in justifications_eachQuestion.items():
+                if str(question_id) not in justifications:
+                    justifications[str(question_id)] = {}
+                justifications[str(question_id)][str(distractor_id)] = cleanhtml(justification)
+        all_justifications.append(justifications)
+        justifications = {}
+    return render_template('grades.html', quiz=q, all_grades=grades, initial_responses = initial_responses, revised_responses = revised_responses, all_justifications = all_justifications, distractors = distractors, all_questions = all_questions)

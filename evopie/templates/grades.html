@@ -56,10 +56,14 @@
                             </tr>
                             {% for item in initial_responses[i] %}
                                 {% set item_index = item | int %}
-                                {% set j = initial_responses[i][item] | int %}
+                                {% set j = initial_responses[i][item] %}
                                 <tr>
-                                    <td>#{{ item }} - {{ all_questions[item_index - 1].stem }}</td>
-                                    <td>#{{ initial_responses[i][item] }} - {{ distractors[item_index][j] }}</td>
+                                    <td>#{{ item }} - {{ all_questions[item].stem }}</td>
+                                    {% if j == -1 %}
+                                    <td>#{{ initial_responses[i][item] }} - {{ all_questions[item].answer }}</td>
+                                    {% else %}
+                                    <td>#{{ initial_responses[i][item] }} - {{ distractors[item][j] }}</td>
+                                    {% endif %}
                                 </tr>
                             {% endfor %}
                         </table>
@@ -83,13 +87,13 @@
                             </tr>
                             {% for item in revised_responses[i] %}
                                 {% set item_index = item | int %}
-                                {% set j = revised_responses[i][item] | int %}
+                                {% set j = revised_responses[i][item] %}
                                 <tr>
-                                    <td>#{{ item }} - {{ all_questions[item_index - 1].stem }}</td>
+                                    <td>#{{ item }} - {{ all_questions[item].stem }}</td>
                                     {% if j == -1 %}
-                                    <td>#{{ revised_responses[i][item] }} - {{ all_questions[item_index - 1].answer }}</td>
+                                    <td>#{{ revised_responses[i][item] }} - {{ all_questions[item].answer }}</td>
                                     {% else %}
-                                    <td>#{{ revised_responses[i][item] }} - {{ distractors[item_index][j] }}</td>
+                                    <td>#{{ revised_responses[i][item] }} - {{ distractors[item][j] }}</td>
                                     {% endif %}
                                 </tr>
                             {% endfor %}
@@ -108,31 +112,28 @@
                     <div class="modal-dialog modal-content">
                       <div class="modal-content">
                         <div class="accordion" id="accordionExample">
-                            {% for item in justifications[i] %}
-                                {% for question in item %}
-                                    {% set q = question | int %}
+                            {% for question_id, justifications_eachQuestion in all_justifications[i].items() %}
                                     <div class="accordion-item" >
-                                    <h2 class="accordion-header" id="Heading{{question}}">
-                                        <button class="accordion-button collapsed" type="button" data-toggle="collapse" data-parent="#accordionExample" href="#collapse{{question}}" aria-expanded="false" aria-controls="collapse{{question}}"">
-                                            Question #{{ question }} - {{ all_questions[q - 1].stem }}
+                                    <h2 class="accordion-header" id="Heading{{question_id}}">
+                                        <button class="accordion-button collapsed" type="button" data-toggle="collapse" data-parent="#accordionExample" href="#collapse{{question_id}}" aria-expanded="false" aria-controls="collapse{{question_id}}"">
+                                            Question #{{ question_id }} - {{ all_questions[question_id].stem }}
                                         </button>
                                     </h2>
-                                    <div id="collapse{{question}}"" class="accordion-collapse collapse" aria-labelledby="Heading{{question}}" ">
+                                    <div id="collapse{{question_id}}"" class="accordion-collapse collapse" aria-labelledby="Heading{{question_id}}" ">
                                         <div class="accordion-body">
                                             <table>
                                                 <tr>
                                                     <th>Distractor</th>
                                                     <th>Justification</th>
                                                 </tr>
-                                                {% for distractor in justifications[i][question] %}
+                                                {% for distractor_id, justification in justifications_eachQuestion.items() %}
                                                     <tr>
-                                                        {% set d = distractor | int %}
-                                                        {% if d == -1 %}
-                                                            <td>#{{ distractor }} - {{ all_questions[q - 1].answer }}</td>
-                                                            <td>{{ justifications[i][question][distractor] }}</td>
+                                                        {% if distractor_id == '-1' %}
+                                                            <td>#{{ distractor_id }} - {{ all_questions[question_id].answer }}</td>
+                                                            <td>{{ justification }}</td>
                                                         {% else %}
-                                                            <td>#{{ distractor }} - {{ distractors[q][d] }}</td>
-                                                            <td>{{ justifications[i][question][distractor] }}</td>
+                                                            <td>#{{ distractor_id }} - {{ distractors[question_id][distractor_id] }}</td>
+                                                            <td>{{ justification }}</td>
                                                         {% endif %}
                                                     </tr>
                                                 {% endfor %}
@@ -140,7 +141,6 @@
                                         </div>
                                     </div>
                                     </div>
-                                {% endfor %}
                             {% endfor %}
                             </div>
                           </div>
