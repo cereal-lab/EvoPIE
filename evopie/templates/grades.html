@@ -59,7 +59,7 @@
                                 {% set j = initial_responses[i][item] %}
                                 <tr>
                                     <td>#{{ item }} - {{ all_questions[item].stem }}</td>
-                                    {% if j == -1 %}
+                                    {% if j == '-1' %}
                                     <td>#{{ initial_responses[i][item] }} - {{ all_questions[item].answer }}</td>
                                     {% else %}
                                     <td>#{{ initial_responses[i][item] }} - {{ distractors[item][j] }}</td>
@@ -90,7 +90,7 @@
                                 {% set j = revised_responses[i][item] %}
                                 <tr>
                                     <td>#{{ item }} - {{ all_questions[item].stem }}</td>
-                                    {% if j == -1 %}
+                                    {% if j == '-1' %}
                                     <td>#{{ revised_responses[i][item] }} - {{ all_questions[item].answer }}</td>
                                     {% else %}
                                     <td>#{{ revised_responses[i][item] }} - {{ distractors[item][j] }}</td>
