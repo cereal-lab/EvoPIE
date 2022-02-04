@@ -5,6 +5,9 @@
 
 source ./TestDB_functions.sh
 
+# NOTE we keep these quizzes / questions / justifications simple by not putting code or special characters in them that would need to be escaped
+# this makes these scripts to test the functionalities of most of the UI but not detect any problems related to bad JSON formatting, 
+# presence of non-rendered HTML tags in the outputs, and things of this nature.
 
 header 'SIGNING UP INSTRUCTOR & STUDENT ACCOUNTS, THEN LOGIN AS INSTRUCTOR'
 #FIXME for now, we hardcode that user id 1 is an instructor; so we must sign him up first.

@@ -28,6 +28,21 @@ function curlit {
     fi
 }
 
+function like {
+    LOGIN="-L -b ./mycookies"
+    MSG="Liking Justification --> $1"
+    TARGET=$2
+    METHOD='-X PUT'
+
+    curl $LOGIN $METHOD -d "$DATA" -H "Content-Type: application/json" "http://127.0.0.1:5000/justification/${TARGET}/like" &>/dev/null
+    if [[ $? == 0 ]]
+    then
+        echo -e "\t$MSG"
+    else
+        echo -e "\t$MSG --> Status returned is $?"
+        exit
+    fi
+}
 
 function curl_login {
     MSG=$1
