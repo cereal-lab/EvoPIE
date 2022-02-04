@@ -15,26 +15,28 @@ curlit "signed up student #3"       "/signup"           '{ "email": "student3@us
 curl_login                          "instructor"        '{ "email": "instructor@usf.edu", "password": "pwd" }'
 
 ##header 'ADDING QUESTION #1' #QID 1
-curlit  'Added Question'            "/questions"                    '{ "title": "Sir Lancelot and the bridge keeper, part 1", "stem": "What... is your name?", "answer": "Sir Lancelot of Camelot"}'
-curlit  'Added distractor'          "/questions/1/distractors"      '{ "answer": "Sir Galahad of Camelot"}'         #D1
-curlit  'Added distractor'          "/questions/1/distractors"      '{ "answer": "Sir Arthur of Camelot"}'          #D2
-curlit  'Added distractor'          "/questions/1/distractors"      '{ "answer": "Sir Bevedere of Camelot"}'        #D3
-curlit  'Added distractor'          "/questions/1/distractors"      '{ "answer": "Sir Robin of Camelot"}'           #D4
+curlit  'Added Question'            "/questions"                    '{ "title": "Question 1 Title", "stem": "Question 1 Stem?", "answer": "Question 1 answer"}'
+curlit  'Added distractor'          "/questions/1/distractors"      '{ "answer": "Question 1 distractor 1"}'        #D1
+curlit  'Added distractor'          "/questions/1/distractors"      '{ "answer": "Question 1 distractor 2"}'        #D2
+curlit  'Added distractor'          "/questions/1/distractors"      '{ "answer": "Question 1 distractor 3"}'        #D3
+curlit  'Added distractor'          "/questions/1/distractors"      '{ "answer": "Question 1 distractor 4"}'        #D4
 curlit  'QuizQuestion composed'     "/quizquestions"                '{ "qid": "1", "distractors_ids": [1, 2, 3, 4]}'
 
 header 'ADDING QUESTION #2' #QID 2
-curlit  'Added Question'            "/questions"                    '{ "title": "Sir Lancelot and the bridge keeper, part 2", "stem": "What... is your quest?", "answer": "To seek the holy grail"}'
-curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "To bravely run away"}'            #D5
-curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "To spank Zoot"}'                  #D6
-curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "To find a shrubbery"}'            #D7
+curlit  'Added Question'            "/questions"                    '{ "title": "Question 2 Title", "stem": "Question 2 Stem?", "answer": "Question 2 answer"}'
+curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "Question 2 distractor 1"}'        #D5
+curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "Question 2 distractor 2"}'        #D6
+curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "Question 2 distractor 3"}'        #D7
+curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "Question 2 distractor 4"}'        #D8
 curlit  'QuizQuestion composed'     "/quizquestions"                '{ "qid": "2", "distractors_ids": [5, 6, 7]}'
 
 #header 'ADDING QUESTION #3' #QID 3
-curlit  'Added Question'            "/questions"                    '{ "title": "Sir Lancelot and the bridge keeper, part 3", "stem": "What... is your favorite colour?", "answer": "Blue"}'
-curlit  'Added distractor'          "/questions/3/distractors"      '{ "answer": "Green"}'                          #D8
-curlit  'Added distractor'          "/questions/3/distractors"      '{ "answer": "Red"}'                            #D9
-curlit  'Added distractor'          "/questions/3/distractors"      '{ "answer": "Yellow"}'                         #D10
-curlit  'QuizQuestion composed'     "/quizquestions"                '{ "qid": "3", "distractors_ids": [8, 9, 10]}'
+curlit  'Added Question'            "/questions"                    '{ "title": "Question 3 Title", "stem": "Question 3 stem?", "answer": "Question 3 answer"}'
+curlit  'Added distractor'          "/questions/3/distractors"      '{ "answer": "Question 3 distractor 1"}'        #D9
+curlit  'Added distractor'          "/questions/3/distractors"      '{ "answer": "Question 3 distractor 2"}'        #D10
+curlit  'Added distractor'          "/questions/3/distractors"      '{ "answer": "Question 3 distractor 3"}'        #D11
+curlit  'Added distractor'          "/questions/3/distractors"      '{ "answer": "Question 3 distractor 4"}'        #D12
+curlit  'QuizQuestion composed'     "/quizquestions"                '{ "qid": "3", "distractors_ids": [9, 10, 11]}'
 
 header 'CREATING QUIZ #1 from above questions'
 curlit  'Quiz Created'              "/quizzes"          '{ "title": "Test Quiz", "description": "This is just to make sure things are working", "questions_ids":[1,2,3]}'
