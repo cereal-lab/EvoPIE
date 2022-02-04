@@ -1,0 +1,50 @@
+{
+	"info": {
+		"_postman_id": "076e59b1-4110-4ca7-8c2c-8168dc35fbec",
+		"name": "EvoPIE",
+		"description": "Mark I API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "quizquestions",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:5000/quizquestions",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"quizquestions"
+					]
+				},
+				"description": "get all quizquestions"
+			},
+			"response": []
+		},
+		{
+			"name": "quizzes/1",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:5000/quizzes/1",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"quizzes",
+						"1"
+					]
+				},
+				"description": "get first quiz"
+			},
+			"response": []
+		}
+	],
+	"protocolProfileBehavior": {}
+}
