@@ -108,7 +108,7 @@
                     for(var j = 0 ; j < question.alternatives.length; j++){
                         var alternative = question.alternatives[j];
                         var target_id = "alternative_" + question["id"] + "_" + alternative[0] + "_justify";
-                        justifications[alternative[0]] = document.getElementById(target_id).value;
+                        justifications[alternative[0]] = JSON.stringify(document.getElementById(target_id).value);
                         //TODO check that every non-selected alternative has a justification
                     }
                     post_data["initial_responses"][question["id"]] = distractor_id;
