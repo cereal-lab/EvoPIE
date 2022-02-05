@@ -52,6 +52,13 @@
                     codeviewFilter: true,
                     codeviewIframeFilter: true
                 });
+                // NOTE - the following Ugly Hacks are meant to allow the div around summernote 
+                // to resize when JS is done resizing the text-area
+                // Ugly Hack #1 
+                // $('.updateSize').css("transform: translateZ(0)")
+                // Ugly Hack #2 
+                // document.body.style.display = 'flex';
+                // setTimeout(() => (document.body.style.display= ''),0);
             });
         </script>
         {% block head %}
