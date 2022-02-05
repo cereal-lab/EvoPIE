@@ -108,7 +108,13 @@
                     for(var j = 0 ; j < question.alternatives.length; j++){
                         var alternative = question.alternatives[j];
                         var target_id = "alternative_" + question["id"] + "_" + alternative[0] + "_justify";
-                        justifications[alternative[0]] = JSON.stringify(document.getElementById(target_id).value);
+                        var tmpstr = document.getElementById(target_id).value;
+                        if(tmpstr.length > 0){
+                            tmpstr = JSON.stringify(tmpstr);
+                            justifications[alternative[0]] = tmpstr.substring(1,tmpstr.length-1);
+                        }
+                        // NOTE the above JSON.stringify returns a string in a string ""....."" so we remove the outer "s
+                        // TODO BUG this probably needs to be done for all WYSIWIG fields; e.g., title / stem / answer
                         //TODO check that every non-selected alternative has a justification
                     }
                     post_data["initial_responses"][question["id"]] = distractor_id;
