@@ -263,7 +263,7 @@
         {% set nquestion.value = nquestion.value + 1 %}
         <div class="card bg-light m-3 mx-auto" style="width: 75%">
             <div class="card-body" bg-light>
-                <h5 class="card-title">Question #{{q.id}} - {{q.question.title |safe|unescapeDoubleQuotes}}</h5>
+                <h1 class="card-title">Question #{{q.id}} - {{q.question.title |safe|unescapeDoubleQuotes}}</h1>
                 <p class="card-text">{{q.question.stem|safe|unescapeDoubleQuotes}}</p>
                 
                 {% if attempt is defined %}
@@ -272,10 +272,12 @@
                     </dl>
                 {% endif %}
                 
-                <ul class="list-group list-group-flush">
+                <!ul class="list-group list-group-flush">
+                <div class="list-group list-group-flush">
                 
                 {% for id,answer in q.alternatives %}
-                    <li class="list-group-item border border-primaryrounded">
+                    <!li class="list-group-item border border-primaryrounded">
+                    <div class="list-group-item border border-primaryrounded">
                         <div class="form-group">
                             <div id="alternative_{{q.id}}_{{id}}" class="form-check">
                                 
@@ -293,10 +295,10 @@
                                         class="form-check-input"></input>
                                     {% endif %}
                                 {% else %}
-                                <input type="radio"
-                                    name="question_{{q.id}}"
-                                    id="alternative_{{q.id}}_{{id}}_check" value="{{id}}"
-                                    class="form-check-input"></input>
+                                    <input type="radio"
+                                        name="question_{{q.id}}"
+                                        id="alternative_{{q.id}}_{{id}}_check" value="{{id}}"
+                                        class="form-check-input"></input>
                                 {% endif %}
                                 
                                 {% if quiz.status != 'SOLUTIONS' %}
@@ -352,23 +354,26 @@
 
                                 {% else %}
                                     <br/>
-                                    <p>
-                                        Explain below why you did not select this alternative, leave blank if you did.
-                                    </p>
-                                    <div class="reveal-if-not-selected"><textarea
-                                        class="summernote form-control"
-                                        name="alternative_{{q.id}}_{{id}}_justify" id="alternative_{{q.id}}_{{id}}_justify"
-                                        rows="3"
-                                        placeholder=""></textarea>                                   
+                                    <div class="reveal-if-not-selected">
+                                        <p>
+                                            Explain below why you did not select this alternative, leave blank if you did.
+                                        </p>
+                                        <textarea
+                                            class="summernote form-control"
+                                            name="alternative_{{q.id}}_{{id}}_justify" id="alternative_{{q.id}}_{{id}}_justify"
+                                            rows="3"
+                                            placeholder=""></textarea>                                   
                                     </div>
 
                                 {% endif %}
                                 {% endif %}
                             </div>
                         </div>
-                    </li>
+                    <!/li>
+                    </div>
                 {% endfor %}
-                </ul>
+                <!/ul>
+                </div>
             </div>
         </div>
     {% endfor %}
