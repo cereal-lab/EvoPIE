@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'base-auth.html' %}
 
 {% block title %}EvoPIE{% endblock %}
 
@@ -7,45 +7,45 @@
 {% endblock %}
 
 {% block content %}
-{% with messages = get_flashed_messages() %}
-{% if messages %}
-{% endif %}
-{% endwith %}
-
-<form class="form-signin" method="POST" action="/signup">
-
     {% with messages = get_flashed_messages() %}
     {% if messages %}
-        <div class="notification">
-            {{ messages[0] }}. Go to <a href="{{ url_for('auth.get_login') }}">login page</a>.
-        </div>
     {% endif %}
     {% endwith %}
 
-    <h1 class="h1 mb-1 font-weight-bold">EvoPIE</h1>
-    <h1 class="h3 mb-3 font-weight-normal">Please sign up for an account</h1>
+    <form class="form-signin" method="POST" action="/signup">
 
-    <label for="email" class="sr-only">Email address</label>
-    <input type="email" name="email" class="form-control" placeholder="Your USF Email address" required autofocus>
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="notification">
+                {{ messages[0] }}. Go to <a href="{{ url_for('auth.get_login') }}">login page</a>.
+            </div>
+        {% endif %}
+        {% endwith %}
 
-    <label for="firstname" class="sr-only">Email address</label>
-    <input type="text" name="firstname" class="form-control" placeholder="Your First Name" required>
+        <h1 class="h1 mb-1 font-weight-bold">EvoPIE</h1>
+        <h1 class="h3 mb-3 font-weight-normal">Please sign up for an account</h1>
 
-    <label for="lastname" class="sr-only">Email address</label>
-    <input type="text" name="lastname" class="form-control" placeholder="Your Last Name" required>
+        <label for="email" class="sr-only">Email address</label>
+        <input type="email" name="email" class="form-control" placeholder="Your USF Email address" required autofocus>
 
-    <label for="password" class="sr-only">Password</label>
-    <input type="password" name="password" class="form-control" placeholder="Make up a password" required>
-    
-    <label for="retype" class="sr-only">Password</label>
-    <input type="password" name="retype" class="form-control" placeholder="Retype your password" required>
-    
-    <div class="checkbox mb-3">
-        <label>
-            <input type="checkbox" value="remember-me"> Remember me
-        </label>
-    </div>
-    <button class="btn btn-lg btn-primary btn-block" type="submit">Signup for an account</button>
-    <p class="mt-5 mb-3 text-muted text-center">Make sure that you use your official USF email address (e.g., smith@usf.edu)</p>
-</form>
+        <label for="firstname" class="sr-only">Email address</label>
+        <input type="text" name="firstname" class="form-control" placeholder="Your First Name" required>
+
+        <label for="lastname" class="sr-only">Email address</label>
+        <input type="text" name="lastname" class="form-control" placeholder="Your Last Name" required>
+
+        <label for="password" class="sr-only">Password</label>
+        <input type="password" name="password" class="form-control" placeholder="Make up a password" required>
+        
+        <label for="retype" class="sr-only">Password</label>
+        <input type="password" name="retype" class="form-control" placeholder="Retype your password" required>
+        
+        <div class="checkbox mb-3">
+            <label>
+                <input type="checkbox" value="remember-me"> Remember me
+            </label>
+        </div>
+        <button class="btn btn-lg btn-primary btn-block" type="submit">Signup for an account</button>
+        <p class="mt-5 mb-3 text-muted text-center">Make sure that you use your official USF email address (e.g., smith@usf.edu)</p>
+    </form>
 {% endblock %}

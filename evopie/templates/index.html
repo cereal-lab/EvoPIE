@@ -72,54 +72,34 @@
 
   <main role="main">
 
-    <section class="jumbotron text-center">
-      <div class="container">
-        <h1>EvoPIE</h1>
-        <p class="lead text-muted">Evolutionary Peer Instruction Environment</p>
-        
-        <p>
-          {% if current_user.is_authenticated %}
+    {% if current_user.is_authenticated %}
+      <section class="jumbotron text-center">
+        <div class="container">
           <p>
-              Hello, {{current_user.first_name}} {{current_user.last_name}} ({{current_user.email}}). 
-              <br/>
-              Here are available options for you on this server.
+            Hello, {{current_user.first_name}} {{current_user.last_name}} ({{current_user.email}}). 
           </p>
-          {% endif %}
-
-          {% if current_user.is_authenticated %}
-        
-            {% if current_user.is_instructor() %}
-              <a href="/questions-browser" class="btn btn-secondary my-2"> Questions Browser </a>
-              <a href="/quizzes-browser" class="btn btn-secondary my-2"> Quizzes Browser </a>
-            {% endif %}
-        
-            {% if current_user.is_admin() %}
-              <a href="/admin" class="btn btn-primary my-2"> Admin Dashboard </a>
-            {% endif %}
-        
-            <br/>
-            <a href="/logout" class="btn btn-secondary my-2"> Logout </a>
-            
-          {% else %}
-
-            <a href="{{ url_for('auth.get_signup') }}" class="btn btn-secondary my-2">Signup for an Account</a>
-            <a href="{{ url_for('auth.get_login') }}" class="btn btn-primary my-2">Login</a>
-            
-          {% endif %}
-        </p>
-        <div class="flashes-div">
-          {% with messages = get_flashed_messages(category_filter=["error", "postError"]) %}
-          {% if messages %}
-            <ul class="flashes">
-              {% for message in messages %}
-              <li style="text-align: left;" class="{{ category }}">{{ message }}</li>
-              {% endfor %}
-            </ul>
-          {% endif %}
-          {% endwith %}
         </div>
-      </div>
-    </section>
+      </section>
+    {% else %}
+      <section class="jumbotron text-center">
+        <div class="container">
+          <h1>EvoPIE</h1>
+          <p class="lead text-muted">Evolutionary Peer Instruction Environment</p>
+        </div>
+      </section>
+    {% endif %}
+
+    <div class="flashes-div">
+      {% with messages = get_flashed_messages(category_filter=["error", "postError"]) %}
+        {% if messages %}
+          <ul class="flashes">
+            {% for message in messages %}
+            <li style="text-align: left;" class="{{ category }}">{{ message }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      {% endwith %}
+    </div>
 
 
 
