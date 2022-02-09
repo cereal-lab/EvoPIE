@@ -3,6 +3,7 @@
 # Dynamic classes like scoped_session are caught by pylint as not having any
 # of the members they end up featuring at runtime. This is a way to tell pylint to let it be
 
+from dataclasses import replace
 from operator import not_
 from flask import jsonify, abort, request, Response, render_template, redirect, url_for, make_response
 from flask import Blueprint
@@ -39,7 +40,31 @@ def convertToDict(dict):
                 new_dict[str(question_id)][str(distractor_id)] = removeHTMLTags(justification)
     return new_dict
 
-class Grade:
+def replaceModified(str):
+    str1 = list(str)
+    openTags = [m.start() for m in re.finditer('<p>', str)]
+    closeTags = [m.start() for m in re.finditer('</p>', str)]
+    singleQuotes = [m.start() for m in re.finditer('\'', str)]
+    i = 0
+    start = openTags[i]
+    end = closeTags[i]
+    for j in range(len(singleQuotes)):
+        curr = singleQuotes[j]
+        if curr > end:
+            i += 1
+            if i >= len(openTags):
+                break
+            start = openTags[i]
+            end = closeTags[i]
+        if not (curr > start and curr < end):
+            str1[curr] = '\"'
+    for j in range(closeTags[len(closeTags) - 1] + 4, len(str)):
+        if str1[j] == "\'":
+            str1[j] = "\""
+    str = ''.join(str1)
+    return str
+
+class QuizAttempt:
     justifications = {}
     initial_responses = []
     revised_responses = []
@@ -431,11 +456,10 @@ def get_grades(qid):
             if str(distractor.question_id) not in distractors:
                 distractors[str(distractor.question_id)] = {}
             distractors[str(distractor.question_id)][str(distractor.id)] = Markup(distractor.answer).unescape()
-
     for i in range(len(grades)):
-        grading_details.append(Grade())
+        grading_details.append(QuizAttempt())
         grading_details[i].initial_responses = json.loads(grades[i].initial_responses.replace("'", '"'))
         grading_details[i].revised_responses = json.loads(grades[i].revised_responses.replace("'", '"'))
-        grading_details[i].justifications = convertToDict(ast.literal_eval(grades[i].justifications)) ## ask about how we can make this part work with json.loads
+        grading_details[i].justifications = json.loads(replaceModified(grades[i].justifications.replace('"', "'")).replace("\\'", "'"))
 
     return render_template('grades.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions)

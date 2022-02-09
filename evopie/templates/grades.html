@@ -116,7 +116,7 @@
                                     <div class="accordion-item" >
                                     <h2 class="accordion-header" id="Heading{{question_id}}">
                                         <button class="accordion-button collapsed" type="button" data-toggle="collapse" data-parent="#accordionExample" href="#collapse{{question_id}}" aria-expanded="false" aria-controls="collapse{{question_id}}"">
-                                            Question #{{ question_id }} - {{ questions[question_id].stem }}
+                                            Question #{{ question_id }} - {{ questions[question_id].stem | safe }}
                                         </button>
                                     </h2>
                                     <div id="collapse{{question_id}}"" class="accordion-collapse collapse" aria-labelledby="Heading{{question_id}}" ">
@@ -129,11 +129,11 @@
                                                 {% for distractor_id, justification in justifications_eachQuestion.items() %}
                                                     <tr>
                                                         {% if distractor_id == '-1' %}
-                                                            <td>#{{ distractor_id }} - {{ questions[question_id].answer }}</td>
-                                                            <td>{{ justification }}</td>
+                                                            <td>#{{ distractor_id }} - {{ questions[question_id].answer | safe }}</td>
+                                                            <td>{{ justification | safe }}</td>
                                                         {% else %}
                                                             <td>#{{ distractor_id }} - {{ distractors[question_id][distractor_id] }}</td>
-                                                            <td>{{ justification }}</td>
+                                                            <td>{{ justification | safe }}</td>
                                                         {% endif %}
                                                     </tr>
                                                 {% endfor %}
