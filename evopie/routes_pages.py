@@ -24,22 +24,6 @@ import jinja2
 
 pages = Blueprint('pages', __name__)
 
-def cleanhtml(raw_html):
-  cleantext = re.sub(CLEANR, '', raw_html)
-  return cleantext
-
-def removeHTMLTags(string):
-    return Markup(cleanhtml(string)).unescape()
-
-def convertToDict(dict):
-    new_dict = {}
-    for question_id, justifications_eachQuestion in dict.items():
-            for distractor_id, justification in justifications_eachQuestion.items():
-                if str(question_id) not in new_dict:
-                    new_dict[str(question_id)] = {}
-                new_dict[str(question_id)][str(distractor_id)] = removeHTMLTags(justification)
-    return new_dict
-
 def replaceModified(str):
     str1 = list(str)
     openTags = [m.start() for m in re.finditer('<p>', str)]
@@ -424,14 +408,7 @@ def get_student(qid):
         return render_template('student.html', quiz=q, simplified_questions=simplified_quiz_questions, questions=quiz_questions, student=u)
 
 
-
-
-@pages.route('/grades/<int:qid>', methods=['GET'])
-@login_required
-def get_grades(qid):
-    '''
-    This page allows to get all stats on a given quiz.
-    '''
+def get_data(qid):
     if not current_user.is_instructor():
         flash("Restricted to instructors.", "error")
         return redirect(url_for('pages.index'))
@@ -449,7 +426,29 @@ def get_grades(qid):
     questions = {}
     distractors = {}
     grading_details = []
-
+    all_likes = models.Likes4Justifications.query.join(models.User)\
+        .filter(models.QuizAttempt.quiz_id == qid)\
+        .filter(models.QuizAttempt.student_id == models.User.id)\
+        .order_by(collate(models.User.last_name, 'NOCASE'))\
+        .all()
+    subquery = models.DB.session.query(models.Likes4Justifications.justification_id).subquery()
+    likes_received = models.Justification.query.join(models.User)\
+        .filter(models.QuizAttempt.quiz_id == qid)\
+        .filter(models.QuizAttempt.student_id == models.User.id)\
+        .filter(models.Justification.id.in_(subquery))\
+        .order_by(collate(models.User.last_name, 'NOCASE'))\
+        .all()
+    respective_student_likes_received = {}
+    for justification in likes_received:
+        if justification.student_id not in respective_student_likes_received:
+            respective_student_likes_received[justification.student_id] = []
+        respective_student_likes_received[justification.student_id].append(justification)
+    # SELECT * from models.Justification, models.Likes4Justifications where models.models.Justification.id in (Select models.Likes4Justification.justication_id from models.models.Likes4Justifications);
+    respective_student_likes = {}
+    for like in all_likes:
+        if like.student_id not in respective_student_likes:
+            respective_student_likes[like.student_id] = []
+        respective_student_likes[like.student_id].append(like)
     for question in models.Quiz.query.get_or_404(qid).quiz_questions:
         questions[str(question.id)] = models.Question.query.filter(question.id == models.Question.id).all()[0]
         for distractor in question.distractors:
@@ -461,5 +460,27 @@ def get_grades(qid):
         grading_details[i].initial_responses = json.loads(grades[i].initial_responses.replace("'", '"'))
         grading_details[i].revised_responses = json.loads(grades[i].revised_responses.replace("'", '"'))
         grading_details[i].justifications = json.loads(replaceModified(grades[i].justifications.replace('"', "'")).replace("\\'", "'"))
+    return q, grades, grading_details, distractors, questions, respective_student_likes, respective_student_likes_received
 
-    return render_template('grades.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions)
+@pages.route('/grades/<int:qid>', methods=['GET'])
+@login_required
+def get_grades(qid):
+    '''
+    This page allows to get all stats on a given quiz.
+    '''
+    q, grades, grading_details, distractors, questions, respective_student_likes, respective_student_likes_received = get_data(qid)
+
+    return render_template('grades.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = respective_student_likes, likes_received = respective_student_likes_received)
+
+@pages.route("/getDataCSV/<int:qid>", methods=['GET'])
+@login_required
+def getDataCSV(qid):
+    q, grades, grading_details, distractors, questions, respective_student_likes, respective_student_likes_received = get_data(qid)
+    csv = 'Last Name,First Name,Email,Initial Score,Likes Given,Likes Received\n'
+    for i in range(len(grades)):
+        csv += grades[i].student.last_name + "," + grades[i].student.first_name + "," + grades[i].student.email + "," + str(grades[i].initial_total_score) + "," + str(len(respective_student_likes[grades[i].student.id])) + "," + str(len(respective_student_likes_received[grades[i].student.id])) + "\n"
+    return Response(
+        csv,
+        mimetype="text/csv",
+        headers={"Content-disposition":
+                 "attachment; filename=grading_page.csv"})
