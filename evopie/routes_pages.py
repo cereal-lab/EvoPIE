@@ -485,7 +485,7 @@ def get_grades(qid):
 @pages.route("/getDataCSV/<int:qid>", methods=['GET'])
 @login_required
 def getDataCSV(qid):
-    q, grades, grading_details, distractors, questions, respective_student_likes, respective_student_likes_received = get_data(qid)
+    q, grades, grading_details, distractors, questions, respective_student_likes, respective_student_likes_received, count_receiving_likes = get_data(qid)
     csv = 'Last Name,First Name,Email,Initial Score,Likes Given,Likes Received\n'
     for i in range(len(grades)):
         csv += grades[i].student.last_name + "," + grades[i].student.first_name + "," + grades[i].student.email + "," + str(grades[i].initial_total_score) + "," + str(len(respective_student_likes[grades[i].student.id])) + "," + str(len(respective_student_likes_received[grades[i].student.id])) + "\n"
