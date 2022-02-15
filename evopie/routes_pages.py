@@ -448,7 +448,7 @@ def get_data(qid):
     for like in all_likes:
         if like.student_id not in respective_student_likes:
             respective_student_likes[like.student_id] = []
-        respective_student_likes[like.student_id].append(like)
+        respective_student_likes[like.student_id].append(models.Justification.query.filter(like.justification_id == models.Justification.id).all()[0])
     for question in models.Quiz.query.get_or_404(qid).quiz_questions:
         questions[str(question.id)] = models.Question.query.filter(question.id == models.Question.id).all()[0]
         for distractor in question.distractors:
