@@ -442,7 +442,6 @@ def get_data(qid):
     # Not getting 2 likes per justification
     respective_student_likes_received = {}
     for justification in likes_received:
-        print(justification.id, justification.likes.all())
         if justification.student_id not in respective_student_likes_received:
             respective_student_likes_received[justification.student_id] = []
         respective_student_likes_received[justification.student_id].append(justification)
