@@ -442,6 +442,7 @@ def get_data(qid):
     # Not getting 2 likes per justification
     respective_student_likes_received = {}
     for justification in likes_received:
+        print(justification.id, justification.likes.all())
         if justification.student_id not in respective_student_likes_received:
             respective_student_likes_received[justification.student_id] = []
         respective_student_likes_received[justification.student_id].append(justification)
@@ -487,8 +488,10 @@ def get_grades(qid):
 def getDataCSV(qid):
     q, grades, grading_details, distractors, questions, respective_student_likes, respective_student_likes_received, count_receiving_likes = get_data(qid)
     csv = 'Last Name,First Name,Email,Initial Score,Likes Given,Likes Received\n'
-    for i in range(len(grades)):
-        csv += grades[i].student.last_name + "," + grades[i].student.first_name + "," + grades[i].student.email + "," + str(grades[i].initial_total_score) + "," + str(len(respective_student_likes[grades[i].student.id])) + "," + str(len(respective_student_likes_received[grades[i].student.id])) + "\n"
+    for grade in grades:
+        likes_given_length = len(respective_student_likes[grade.student.id]) if grade.student.id in respective_student_likes else 0
+        likes_received_length = len(respective_student_likes_received[grade.student.id]) if grade.student.id in respective_student_likes_received else 0
+        csv += grade.student.last_name + "," + grade.student.first_name + "," + grade.student.email + "," + str(grade.initial_total_score) + "," + str(likes_given_length) + "," + str(likes_received_length) + "\n"
     return Response(
         csv,
         mimetype="text/csv",
