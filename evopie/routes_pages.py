@@ -469,7 +469,7 @@ def get_data(qid):
         grading_details[i].initial_responses = json.loads(grades[i].initial_responses.replace("'", '"'))
         grading_details[i].revised_responses = json.loads(grades[i].revised_responses.replace("'", '"'))
         # grading_details[i].justifications = json.loads(replaceModified(grades[i].justifications.replace('"', "'")).replace("\\'", "'"))
-        grading_details[i].justifications = json.loads(grades[i].justifications.replace("'", '"'))
+        grading_details[i].justifications = ast.literal_eval(grades[i].justifications)
     return q, grades, grading_details, distractors, questions, respective_student_likes, respective_student_likes_received, count_receiving_likes
 
 @pages.route('/grades/<int:qid>', methods=['GET'])

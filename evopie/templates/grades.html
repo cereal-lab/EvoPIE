@@ -14,7 +14,7 @@
 
     <div class="jumbotron jumbotron-fluid">
         <div class="container">
-            <h1 class="display-4">Grades for Quiz {{quiz.title}} [{{quiz.id}}] </h1>
+            <h1 class="display-4">Grades for Quiz {{quiz.title | safe}} [{{quiz.id | safe}}] </h1>
                 <p class="lead">
                     Scores for both step 1 and step 2 are computed below, click them to see 
                     the details of the student's responses.
@@ -39,9 +39,9 @@
         <tbody>
     {% for i in range(all_grades | length) %}
         <tr>
-            <td>{{all_grades[i].student.last_name}}</td>
-            <td>{{all_grades[i].student.first_name}}</td>
-            <td>{{all_grades[i].student.email}}</td>
+            <td>{{all_grades[i].student.last_name | safe}}</td>
+            <td>{{all_grades[i].student.first_name | safe}}</td>
+            <td>{{all_grades[i].student.email | safe}}</td>
             <td>
                 <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
                         data-target=".TG-INI-{{all_grades[i].student.id}}">
@@ -60,11 +60,11 @@
                                 {% set item_index = item | int %}
                                 {% set j = grading_details[i].initial_responses[item] %}
                                 <tr>
-                                    <td>#{{ item }} - {{ questions[item].stem }}</td>
+                                    <td>#{{ item | safe }} - {{ questions[item].stem | safe }}</td>
                                     {% if j == '-1' %}
-                                    <td>#{{ grading_details[i].initial_responses[item] }} - {{ questions[item].answer }}</td>
+                                    <td>#{{ grading_details[i].initial_responses[item] | safe }} - {{ questions[item].answer | safe }}</td>
                                     {% else %}
-                                    <td>#{{ grading_details[i].initial_responses[item] }} - {{ distractors[item][j] }}</td>
+                                    <td>#{{ grading_details[i].initial_responses[item] | safe }} - {{ distractors[item][j] | safe }}</td>
                                     {% endif %}
                                 </tr>
                             {% endfor %}
@@ -91,11 +91,11 @@
                                 {% set item_index = item | int %}
                                 {% set j = grading_details[i].revised_responses[item] %}
                                 <tr>
-                                    <td>#{{ item }} - {{ questions[item].stem }}</td>
+                                    <td>#{{ item | safe }} - {{ questions[item].stem | safe }}</td>
                                     {% if j == '-1' %}
-                                    <td>#{{ grading_details[i].revised_responses[item] }} - {{ questions[item].answer }}</td>
+                                    <td>#{{ grading_details[i].revised_responses[item] | safe }} - {{ questions[item].answer | safe }}</td>
                                     {% else %}
-                                    <td>#{{ grading_details[i].revised_responses[item] }} - {{ distractors[item][j] }}</td>
+                                    <td>#{{ grading_details[i].revised_responses[item] | safe }} - {{ distractors[item][j] | safe }}</td>
                                     {% endif %}
                                 </tr>
                             {% endfor %}
@@ -118,7 +118,7 @@
                                     <div class="accordion-item" >
                                     <h2 class="accordion-header" id="Heading{{question_id}}">
                                         <button class="accordion-button collapsed" type="button" data-toggle="collapse" data-parent="#accordionExample" href="#collapse{{question_id}}" aria-expanded="false" aria-controls="collapse{{question_id}}"">
-                                            Question #{{ question_id }} - {{ questions[question_id].stem | safe }}
+                                            Question #{{ question_id | safe }} - {{ questions[question_id].stem | safe }}
                                         </button>
                                     </h2>
                                     <div id="collapse{{question_id}}"" class="accordion-collapse collapse" aria-labelledby="Heading{{question_id}}" ">
@@ -131,10 +131,10 @@
                                                 {% for distractor_id, justification in justifications_eachQuestion.items() %}
                                                     <tr>
                                                         {% if distractor_id == '-1' %}
-                                                            <td>#{{ distractor_id }} - {{ questions[question_id].answer | safe }}</td>
+                                                            <td>#{{ distractor_id | safe }} - {{ questions[question_id].answer | safe }}</td>
                                                             <td>{{ justification | safe }}</td>
                                                         {% else %}
-                                                            <td>#{{ distractor_id }} - {{ distractors[question_id][distractor_id] }}</td>
+                                                            <td>#{{ distractor_id | safe }} - {{ distractors[question_id][distractor_id] | safe }}</td>
                                                             <td>{{ justification | safe }}</td>
                                                         {% endif %}
                                                     </tr>
@@ -164,7 +164,7 @@
                                     <div class="accordion-item" >
                                     <h2 class="accordion-header" id="Heading{{question_id}}">
                                         <button class="accordion-button collapsed" type="button" data-toggle="collapse" data-parent="#accordionExample" href="#collapse{{question_id}}" aria-expanded="false" aria-controls="collapse{{question_id}}"">
-                                            Question #{{ question_id }} - {{ questions[question_id].stem | safe }}
+                                            Question #{{ question_id | safe }} - {{ questions[question_id].stem | safe }}
                                         </button>
                                     </h2>
                                     <div id="collapse{{question_id}}"" class="accordion-collapse collapse" aria-labelledby="Heading{{question_id}}" ">
@@ -174,6 +174,7 @@
                                                 {% set q = question_id | int %}
                                                 {% if justification.quiz_question_id == q %}
                                                     <p>{{ justification.justification | safe }}</p>
+                                                    <br>
                                                 {% endif %}
                                             {% endfor %}
                                         </div>
@@ -200,7 +201,7 @@
                                     <div class="accordion-item" >
                                     <h2 class="accordion-header" id="Heading{{question_id}}">
                                         <button class="accordion-button collapsed" type="button" data-toggle="collapse" data-parent="#accordionExample" href="#collapse{{question_id}}" aria-expanded="false" aria-controls="collapse{{question_id}}"">
-                                            Question #{{ question_id }} - {{ questions[question_id].stem | safe }}
+                                            Question #{{ question_id | safe }} - {{ questions[question_id].stem | safe }}
                                         </button>
                                     </h2>
                                     <div id="collapse{{question_id}}"" class="accordion-collapse collapse" aria-labelledby="Heading{{question_id}}" ">
