@@ -280,7 +280,16 @@
                     <div    class="list-group-item border border-primaryrounded updateSize" 
                             style="height:fit-content">
                         <div class="form-group">
-                            <div id="alternative_{{q.id}}_{{id}}" class="form-check">
+                            {% if quiz.status != 'SOLUTIONS' %}
+                                <div id="alternative_{{q.id}}_{{id}}" class="form-check">
+                            {% else %}
+                                {% if id == -1 %}
+                                <div id="alternative_{{q.id}}_{{id}}" class="form-check bg-warning">
+                                {% else %}
+                                <div id="alternative_{{q.id}}_{{id}}" class="form-check">
+                                {% endif %}
+                            {% endif %}
+                            
                                 
                                 {% if attempt is defined %}
                                     {% if id|int == initial_responses[nquestion.value - 1]|int %}
@@ -302,16 +311,8 @@
                                         class="form-check-input"></input>
                                 {% endif %}
                                 
-                                {% if quiz.status != 'SOLUTIONS' %}
-                                    <label      for="alternative_{{q.id}}_{{id}}_check"
-                                            class="form-check-label">{{ answer | safe | unescapeDoubleQuotes }}</label>
-                                {% else %}
-                                    {% if id == -1 %}
-                                        <label for="alternative_{{q.id}}_{{id}}_check" class="form-check-label bg-warning">{{ answer | safe | unescapeDoubleQuotes }}</label>
-                                    {% else %}
-                                        <label for="alternative_{{q.id}}_{{id}}_check" class="form-check-label">{{ answer | safe | unescapeDoubleQuotes }}</label>
-                                    {% endif %}
-                                {% endif %}
+                                <label  for="alternative_{{q.id}}_{{id}}_check"
+                                        class="form-check-label">{{ answer | safe | unescapeDoubleQuotes }}</label>
                                 
                                 {% if quiz.status != 'SOLUTIONS' %}
                                 {% if attempt is defined %}
