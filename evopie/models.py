@@ -205,7 +205,7 @@ class Quiz(DB.Model):
 
     def set_status(self, stat):
         ustat = stat.upper()
-        if ustat != "HIDDEN" and ustat != "STEP1" and ustat != "STEP2":
+        if ustat != "HIDDEN" and ustat != "STEP1" and ustat != "STEP2" and ustat != "SOLUTIONS":
             return False
         else:
             self.status = ustat
