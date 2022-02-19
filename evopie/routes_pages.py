@@ -381,6 +381,21 @@ def get_student(qid):
 
 
 
+@pages.route('/users/', methods=['GET'])
+@login_required
+def users_browser():
+    '''
+    This page allows to manage all user accounts on the system.
+    '''
+    if not current_user.is_admin():
+        flash("Restricted to admins.", "error")
+        return redirect(url_for('pages.index'))
+    all_users = models.User.query.all()
+    return render_template('users-browser.html', all_users=all_users)
+
+
+
+
 @pages.route('/grades/<int:qid>', methods=['GET'])
 @login_required
 def get_grades(qid):

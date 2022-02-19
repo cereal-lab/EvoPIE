@@ -93,6 +93,9 @@
             
                     {% if current_user.is_admin() %}
                         <li class="nav-item">
+                            <a href="/users/" class="nav-link">User Accounts</a>
+                        </li>
+                        <li class="nav-item">
                             <a href="/admin" class="nav-link"> Admin Dashboard </a>
                         </li>
                     {% endif %}

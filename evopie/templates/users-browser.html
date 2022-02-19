@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block title %}EvoPIE{% endblock %}
+{% block head %}
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.css">  
+    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.js"></script>
+    <script>
+        $(document).ready( function () {
+            $('#userstable').DataTable();
+        } );
+    </script>
+{% endblock %}
+{% block content %}
+
+    <div class="jumbotron jumbotron-fluid">
+        <div class="container">
+            <h1 class="display-4">Managing User Accounts</h1>
+                <p class="lead">
+                    Self Explanatory :)
+                </p>
+        </div>
+    </div>
+    <div class="card bg-light m-3 mx-auto" style="width: 75%">
+        <div class="card-body text-center" bg-light>
+    <table class='compact stripe' width='100%' id="userstable">
+        <thead><tr>
+            <th>Last Name</th>
+            <th>First Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>New Password</th>
+        </tr></thead>
+        <tbody>
+    {% for user in all_users %}
+        <tr>
+            <td>{{user.last_name}}</td>
+            <td>{{user.first_name}}</td>
+            <td>{{user.email}}</td>
+            <td>
+                <select id="role{{user.id}}">
+                    <option value="STUDENT"     {% if user.role == 'STUDENT' %} selected {% endif %}>      Student</option>
+                    <option value="INSTRUCTOR"  {% if user.role == 'INSTRUCTOR' %} selected {% endif %}>   Instructor</option>
+                    <option value="ADMIN"       {% if user.role == 'ADMIN' %} selected {% endif %}>        Admin</option>
+                </select>
+                <script>
+                    document.querySelector('#role{{user.id}}').addEventListener('change',function(){
+                        let target_url = '/users/{{user.id}}/role';
+                        let e = document.querySelector('#role{{user.id}}');
+                        let selectedValue = e.options[e.selectedIndex].value;
+                        fetch(target_url,{
+                            method:         'POST',
+                            headers:        {'Content-Type' : 'application/json'},
+                            body:           JSON.stringify({"role" :  selectedValue}),
+                            credentials:    'same-origin'
+                        })
+                        .then(
+                            response => {
+                                if(response.ok){
+                                    //alert("USer Role Updated");
+                                    window.location.reload();
+                                }else{
+                                    alert("User Role NOT Updated");
+                                    window.location.reload();
+                                }
+                            }
+                        )
+                        .catch((error) => {
+                            alert("There was a problem updating the user's role: " + error);
+                        })
+                    });
+                </script>
+            </td>
+            <td>
+            </td>
+        </tr>
+    {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    </div>
+{% endblock %}

@@ -896,3 +896,30 @@ def like_justification(justification_id, action):
     response     = ({ "message" : "ok with no contents to send back" }, 204, {"Content-Type": "application/json"})
     return make_response(response)
     #redirect(request.referrer)
+
+
+
+@mcq.route('/users/<int:uid>/role', methods=['POST'])
+@login_required
+def post_users_role(uid):
+    '''
+    Modifies the role of given user
+    '''
+    if not current_user.is_admin():
+        if request.json:
+            response     = ({ "message" : "You are not allowed to change user roles" }, 403, {"Content-Type": "application/json"})
+            return make_response(response)
+        else:
+            flash("You are not allowed to change user roles", "postError")
+
+    user = models.User.query.get_or_404(uid)
+
+    if not request.json:
+        abort(406, "JSON format required for request") # not acceptable
+    new_role = sanitize(request.json['role'])
+    if(user.set_role(new_role)):
+        response     = ({ "message" : "OK" }, 200, {"Content-Type": "application/json"})
+        models.DB.session.commit()
+    else:
+        response     = ({ "message" : "Unable to switch to new role" }, 400, {"Content-Type": "application/json"})
+    return make_response(response)

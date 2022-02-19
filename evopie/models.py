@@ -318,6 +318,14 @@ class User(UserMixin, DB.Model):
     def is_admin(self):
         return self.id == 1
         #FIXME self.role == "ADMIN"
+    
+    def set_role(self, role):
+        urole = role.upper()
+        if urole != "STUDENT" and urole != "INSTRUCTOR" and urole != "ADMIN":
+            return False
+        else:
+            self.role = urole
+            return True
 
     def __repr__(self):
         return f'<{self.last_name}, {self.first_name}, {self.id}>'
