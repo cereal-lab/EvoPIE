@@ -12,6 +12,7 @@ from random import shuffle
 import json
 import bleach
 from bleach_allowlist import generally_xss_safe, print_attrs, standard_styles
+from werkzeug.security import generate_password_hash
 
 from . import models
 
@@ -923,3 +924,20 @@ def post_users_role(uid):
     else:
         response     = ({ "message" : "Unable to switch to new role" }, 400, {"Content-Type": "application/json"})
     return make_response(response)
+
+
+
+@mcq.route('/users/<int:uid>/password', methods=['POST'])
+def post_user_password(uid):
+    if request.json:
+        abort(406, "HTML FORM format required for request") # not acceptable
+        # FIXME for now we only accept forms but there is no reason to not accept JSON
+    else:
+        password = request.form.get('password')
+        
+    password = generate_password_hash(password, method='sha256')
+    user = models.User.query.get_or_404(uid)
+    user.password = password
+    models.DB.session.commit()
+
+    return redirect(url_for('pages.users_browser'))

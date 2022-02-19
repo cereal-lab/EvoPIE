@@ -71,6 +71,10 @@
                 </script>
             </td>
             <td>
+                <form class="form-signin" method="POST" action="/users/{{user.id}}/password">
+                    <input type="password" name="password" class="form-control" placeholder="New password" required>
+                    <button class="btn btn-sm btn-primary btn-block" type="submit">Change Password</button>
+                </form>
             </td>
         </tr>
     {% endfor %}
