@@ -71,10 +71,35 @@
                 </script>
             </td>
             <td>
-                <form class="form-signin" method="POST" action="/users/{{user.id}}/password">
-                    <input type="password" name="password" class="form-control" placeholder="New password" required>
-                    <button class="btn btn-sm btn-primary btn-block" type="submit">Change Password</button>
-                </form>
+                <input id="pwd{{user.id}}" type="text" name="password" class="form-control" placeholder="New password" required>
+                <script>
+                    document.querySelector('#pwd{{user.id}}').addEventListener('change',function(e){
+                        let target_url = '/users/{{user.id}}/password';
+                        //let e = document.querySelector('#pwd{{user.id}}');
+                        let selectedValue = e.target.value;
+                        fetch(target_url,{
+                            method:         'POST',
+                            headers:        {'Content-Type' : 'application/json'},
+                            body:           JSON.stringify({"password" :  selectedValue}),
+                            credentials:    'same-origin'
+                        })
+                        .then(
+                            response => {
+                                if(response.ok){
+                                    e.target.value='';
+                                    alert("User Password Updated");
+                                    //window.location.reload();
+                                }else{
+                                    alert("User Password NOT Updated");
+                                    //window.location.reload();
+                                }
+                            }
+                        )
+                        .catch((error) => {
+                            alert("There was a problem updating the user's Password: " + error);
+                        })
+                    });
+                </script>
             </td>
         </tr>
     {% endfor %}
