@@ -317,7 +317,6 @@ class User(UserMixin, DB.Model):
 
     def is_admin(self):
         return self.id == 1 or self.role == "ADMIN"
-        #FIXME self.role == "ADMIN"
     
     def set_role(self, role):
         urole = role.upper()
