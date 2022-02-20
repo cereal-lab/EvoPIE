@@ -398,7 +398,7 @@ def users_browser():
 
 @pages.route('/grades/<int:qid>', methods=['GET'])
 @login_required
-def get_grades(qid):
+def quiz_grader(qid):
     '''
     This page allows to get all stats on a given quiz.
     '''
@@ -416,4 +416,4 @@ def get_grades(qid):
         .filter(models.QuizAttempt.student_id == models.User.id)\
         .order_by(collate(models.User.last_name, 'NOCASE'))\
         .all()
-    return render_template('grades.html', quiz=q, all_grades=grades)
+    return render_template('quiz-grader.html', quiz=q, all_grades=grades)

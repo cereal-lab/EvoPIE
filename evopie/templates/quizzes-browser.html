@@ -17,9 +17,8 @@
     <div class="container">
         <h1 class="display-4">Quizzes Browser</h1>
             <p class="lead">
-                Use this to find quizzes that are of interest to you. 
-                Take note of their quiz ID so that you may then select to
-                deploy them to your students or even edit them.
+                These are the quizzes that you created. 
+                You may edit them, grade them, or create new ones.
             </p>
     </div>
 </div>
@@ -118,7 +117,7 @@
                         </div>
                     </td>
                     <td class='text-right'>
-                        <a  href='{{url_for('pages.get_grades', qid=single_quiz.id)}}' type="button" class="">
+                        <a  href='{{url_for('pages.quiz_grader', qid=single_quiz.id)}}' type="button" class="">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-card-checklist" viewBox="0 0 16 16">
                                 <path d="M14.5 3a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h13zm-13-1A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2h-13z"/>
                                 <path d="M7 5.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm-1.496-.854a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 1 1 .708-.708l.146.147 1.146-1.147a.5.5 0 0 1 .708 0zM7 9.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm-1.496-.854a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 0 1 .708-.708l.146.147 1.146-1.147a.5.5 0 0 1 .708 0z"/>
