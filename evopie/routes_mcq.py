@@ -930,8 +930,7 @@ def post_users_role(uid):
 @mcq.route('/users/<int:uid>/password', methods=['POST'])
 def post_user_password(uid):
     if request.json:
-        abort(406, "HTML FORM format required for request") # not acceptable
-        # FIXME for now we only accept forms but there is no reason to not accept JSON
+        password = request.json['password']
     else:
         password = request.form.get('password')
         
