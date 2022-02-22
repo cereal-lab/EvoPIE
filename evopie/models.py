@@ -343,6 +343,9 @@ class User(UserMixin, DB.Model):
         return Likes4Justifications.query.filter(
             Likes4Justifications.student_id == self.id,
             Likes4Justifications.justification_id == justification.id).count() > 0
+    
+    def get_email(self):
+        return self.email
 
 
 
