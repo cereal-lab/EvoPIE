@@ -22,7 +22,7 @@ like "s2q1d1"    "14"
 like "s3q1d1"    "27" 
 like "s3q1d4"    "30" 
 like "s2q2sol"   "22"
-like "s3q2d6"    "33"
+like "s3q2d6"    "33" 
 like "s2q3d10"   "24"
 like "s3q3d10"   "37"
 
@@ -45,3 +45,11 @@ like "s1q1sol"   "5"
 like "s2q1d4"    "17" 
 like "s2q2sol"   "22"
 like "s2q3d10"   "24"
+
+# These are the expected results in the grading page for quiz #1 http://127.0.0.1:5000/grades/1
+# They have been verified by hand by looking up the information in the popups from the likes given,
+# likes received buttons 
+# student   initial score   revised score   likes given     likes received      scores
+# 1         0               3               5               6                   6 (n/a, no maxlikes yet)
+# 2         0               1               5               6                   6
+# 3         0               1               5               7                   7
