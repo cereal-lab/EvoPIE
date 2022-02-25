@@ -172,10 +172,10 @@
                                     <div id="collapse{{question_id}}"" class="accordion-collapse collapse" aria-labelledby="Heading{{question_id}}" ">
                                         <div class="accordion-body">
                                             <h5>Answer - {{ questions[question_id].answer | safe }}</h5>
-                                            {% for justification in likes_given[all_grades[i].student.id] %}
+                                            {% for data in likes_given[all_grades[i].student.id] %}
                                                 {% set q = question_id | int %}
-                                                {% if justification.quiz_question_id == q %}
-                                                    <p>{{ justification.justification | safe }}</p>
+                                                {% if data[3] == q %}
+                                                    <p>{{ data[0].justification | safe }}</p>
                                                     <br>
                                                 {% endif %}
                                             {% endfor %}
@@ -192,7 +192,7 @@
             <td>
                 <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
                 data-target=".TG-REC-{{all_grades[i].student.id}}">
-                    {{likes_received_count[all_grades[i].student.id]}}
+                    {{likes_received[all_grades[i].student.id] | length }}
                 </button>
                 <div class="modal fade TG-REC-{{all_grades[i].student.id}}" tabindex="-1" role="dialog"
                         aria-labelledby="mySmallModalLabel" aria-hidden="true">
@@ -209,10 +209,10 @@
                                     <div id="collapse{{question_id}}"" class="accordion-collapse collapse" aria-labelledby="Heading{{question_id}}" ">
                                         <div class="accordion-body">
                                             <h5>Answer - {{ questions[question_id].answer | safe }}</h5>
-                                            {% for justification in likes_received[all_grades[i].student.id] %}
+                                            {% for data in likes_received[all_grades[i].student.id] %}
                                                 {% set q = question_id | int %}
-                                                {% if justification.quiz_question_id == q %}
-                                                    <p>{{ justification.justification | safe }}</p>
+                                                {% if data[3] == q %}
+                                                    <p>{{ data[1].justification | safe }}</p>
                                                 {% endif %}
                                             {% endfor %}
                                         </div>
@@ -228,7 +228,7 @@
             <td>
                 <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
                 data-target=".TG-SCORE-{{all_grades[i].student.id}}">
-                    {{likes_received_count[all_grades[i].student.id]}}
+                    {{like_scores[all_grades[i].student.id]}}
                 </button>
             </td>
         </tr>

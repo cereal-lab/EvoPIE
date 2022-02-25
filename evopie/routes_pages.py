@@ -425,72 +425,79 @@ def get_data(qid):
         .all()
     questions = {}
     distractors = {}
+    like_scores = {}
     grading_details = []
-    quiz_questions = q.quiz_questions
-    all_likes = models.Likes4Justifications.query.join(models.User)\
-        .filter(models.QuizAttempt.quiz_id == qid)\
-        .filter(models.QuizAttempt.student_id == models.User.id)\
-        .order_by(collate(models.User.last_name, 'NOCASE'))\
-        .all()
-
     likes_given = {}
-    count_receiving_likes = {}
-    for like in all_likes:
-        justification = models.Justification.query.filter(like.justification_id == models.Justification.id).first()
-        print(justification)
-        for question in quiz_questions:
-            if justification.quiz_question_id == question.id:
-                if like.student_id not in likes_given:
-                    likes_given[like.student_id] = []
-                likes_given[like.student_id].append(justification)
-                receiving_student_id = justification.student_id
-                if receiving_student_id not in count_receiving_likes:
-                    count_receiving_likes[receiving_student_id] = 0
-                count_receiving_likes[receiving_student_id] += 1
-    print(likes_given)
-    subquery = models.DB.session.query(models.Likes4Justifications.justification_id).subquery()
-    likes_received = models.Justification.query.join(models.User)\
-        .filter(models.QuizAttempt.quiz_id == qid)\
-        .filter(models.QuizAttempt.student_id == models.User.id)\
-        .filter(models.Justification.id.in_(subquery))\
-        .order_by(collate(models.User.last_name, 'NOCASE'))\
-        .all()
+    likes_received = {}
+    quiz_questions = q.quiz_questions
 
-    # Not getting 2 likes per justification
-    respective_student_likes_received = {}
-    for justification in likes_received:
-        justification.justification = Markup(justification.justification).unescape()
-        for question in quiz_questions:
-            if justification.quiz_question_id == question.id:
-                if justification.student_id not in respective_student_likes_received:
-                    respective_student_likes_received[justification.student_id] = []
-                respective_student_likes_received[justification.student_id].append(justification)
-        
-    # SELECT * from models.Justification, models.Likes4Justifications where models.models.Justification.id in (Select models.Likes4Justification.justication_id from models.models.Likes4Justifications);
-    respective_student_likes = {}
-    
-    for like in all_likes:
-        if like.student_id not in respective_student_likes:
-            respective_student_likes[like.student_id] = []
-        justification = models.Justification.query.filter(like.justification_id == models.Justification.id).all()[0]
-        justification.justification = Markup(justification.justification).unescape()
-        respective_student_likes[like.student_id].append(justification)
+    # LikesGiven format: (Justification object, Likes4Justifcations object, quiz_id, quiz_question_id)
+    # LikesReceived format: (Likes4Justification object, Justification object, quiz_id, quiz_question_id)
+    for grade in grades:
+        likes_given[grade.student_id] = LikesGiven(grade)
+        likes_received[grade.student_id] = LikesReceived(grade)
 
-    for question in models.Quiz.query.get_or_404(qid).quiz_questions:
-        questions[str(question.id)] = models.Question.query.filter(question.id == models.Question.id).all()[0]
+    for question in quiz_questions:
+        with models.DB.session.no_autoflush:
+            questions[str(question.id)] = models.Question.query.filter(question.id == models.Question.id).all()[0]
         questions[str(question.id)].stem = Markup(questions[str(question.id)].stem).unescape()
         questions[str(question.id)].answer = Markup(questions[str(question.id)].answer).unescape()
         for distractor in question.distractors:
             if str(distractor.question_id) not in distractors:
                 distractors[str(distractor.question_id)] = {}
             distractors[str(distractor.question_id)][str(distractor.id)] = Markup(distractor.answer).unescape()
+
+    MaxLikes = len(grades) * ( (len(quiz_questions) * 3) / 2 )
     for i in range(len(grades)):
         grading_details.append(QuizAttempt())
         grading_details[i].initial_responses = json.loads(grades[i].initial_responses.replace("'", '"'))
         grading_details[i].revised_responses = json.loads(grades[i].revised_responses.replace("'", '"'))
         # grading_details[i].justifications = json.loads(replaceModified(grades[i].justifications.replace('"', "'")).replace("\\'", "'"))
         grading_details[i].justifications = ast.literal_eval(grades[i].justifications)
-    return q, grades, grading_details, distractors, questions, likes_given, respective_student_likes_received, count_receiving_likes
+        # for j in range(len(grades)):
+        #     if j != i:
+        #         if grades[i].student_id not in like_scores:
+        #             like_scores[grades[i].student_id] = 0
+        #         likes_by_g = LikesGiven(grades[j]) if LikesGiven(grades[j]) != 0 else MaxLikes
+        #         # Likes(grades[j], grades[i])
+        #         like_scores[grades[i].student_id] += ( Likes(grades[j], grades[i]) * min( ( MaxLikes / likes_by_g ), 1 ) )
+    return q, grades, grading_details, distractors, questions, likes_given, likes_received, like_scores
+
+def Likes(g, s):
+    '''
+    Gives us the amount of likes given by g to s for a quiz
+    '''
+    return len(models.DB.session.query(models.Likes4Justifications, models.Justification, DB.Model.metadata.tables['relation_questions_vs_quizzes'])\
+        .filter(models.Justification.id == models.Likes4Justifications.justification_id)\
+        .filter(models.Likes4Justifications.student_id == g.student_id)\
+        .filter(models.Justification.student_id == s.student_id)\
+        .filter(DB.Model.metadata.tables['relation_questions_vs_quizzes'].c.quiz_id == g.quiz_id)\
+        .filter(DB.Model.metadata.tables['relation_questions_vs_quizzes'].c.quiz_question_id == models.Justification.quiz_question_id)\
+        .all())
+
+
+def LikesGiven(g):
+    '''
+    All likes given by g for a particular quiz
+    '''
+    return (models.DB.session.query(models.Justification, models.Likes4Justifications, DB.Model.metadata.tables['relation_questions_vs_quizzes'])
+        .filter(models.Likes4Justifications.student_id == g.student_id)\
+        .filter(models.Likes4Justifications.justification_id == models.Justification.id)\
+        .filter(DB.Model.metadata.tables['relation_questions_vs_quizzes'].c.quiz_id == g.quiz_id)\
+        .filter(DB.Model.metadata.tables['relation_questions_vs_quizzes'].c.quiz_question_id == models.Justification.quiz_question_id)\
+        .all())
+
+def LikesReceived(g):
+    '''
+    Likes received by student for a quiz
+    '''
+    return (models.DB.session.query(models.Likes4Justifications, models.Justification, DB.Model.metadata.tables['relation_questions_vs_quizzes'])\
+        .filter(models.Justification.student_id == g.student_id)\
+        .filter(models.Likes4Justifications.justification_id == models.Justification.id)\
+        .filter(DB.Model.metadata.tables['relation_questions_vs_quizzes'].c.quiz_id == g.quiz_id)\
+        .filter(DB.Model.metadata.tables['relation_questions_vs_quizzes'].c.quiz_question_id == models.Justification.quiz_question_id)\
+        .all()
+    )
 
 @pages.route('/grades/<int:qid>', methods=['GET'])
 @login_required
@@ -498,18 +505,18 @@ def get_grades(qid):
     '''
     This page allows to get all stats on a given quiz.
     '''
-    q, grades, grading_details, distractors, questions, likes_given, respective_student_likes_received, count_receiving_likes = get_data(qid)
+    q, grades, grading_details, distractors, questions, likes_given, likes_received, like_scores = get_data(qid)
 
-    return render_template('grades.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = respective_student_likes_received, likes_received_count = count_receiving_likes)
+    return render_template('grades.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, like_scores = like_scores)
 
 @pages.route("/getDataCSV/<int:qid>", methods=['GET'])
 @login_required
 def getDataCSV(qid):
-    q, grades, grading_details, distractors, questions, respective_student_likes, respective_student_likes_received, count_receiving_likes = get_data(qid)
+    q, grades, grading_details, distractors, questions, likes_given, likes_received, like_scores = get_data(qid)
     csv = 'Last Name,First Name,Email,Initial Score,Likes Given,Likes Received\n'
     for grade in grades:
-        likes_given_length = len(respective_student_likes[grade.student.id]) if grade.student.id in respective_student_likes else 0
-        likes_received_length = len(respective_student_likes_received[grade.student.id]) if grade.student.id in respective_student_likes_received else 0
+        likes_given_length = len(likes_given[grade.student.id]) if grade.student.id in likes_given else 0
+        likes_received_length = len(likes_received[grade.student.id]) if grade.student.id in likes_received else 0
         csv += grade.student.last_name + "," + grade.student.first_name + "," + grade.student.email + "," + str(grade.initial_total_score) + "," + str(likes_given_length) + "," + str(likes_received_length) + "\n"
     filename = (current_user.email + "-" + q.title).replace(" ", "_")
     return Response(
