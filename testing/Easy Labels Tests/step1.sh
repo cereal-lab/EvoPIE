@@ -3,7 +3,7 @@
 # PRE-REQUISITES
 #   ./scripts/TestDB_setup.sh
 
-source ./TestDB_functions.sh
+source ./TestLib.sh
 
 #login as INSTRUCTOR to release quiz in step #1
 # --> you can do that in the DB itself by hand if you prefer
