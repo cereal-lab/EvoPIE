@@ -46,6 +46,26 @@ like "s2q1d4"    "17"
 like "s2q2sol"   "22"
 like "s2q3d10"   "24"
 
+# for now, all remaining students like the same justifications and provide the same revised responses
+for s in {4..10}
+do
+    header "Step #2 for Student #${s}"
+    curl_login            "student #${s}"        '{ "email": "student'${s}'@usf.edu", "password": "pwd"}'
+    curlit "GET quiz"     "/quizzes/1/take"   ''
+    curlit "POST quiz"    "/quizzes/1/take"   '{ "revised_responses": {"1":"4" , "2":"7", "3":"-1"} }'
+    like "s1q1d1"    "1"
+    like "s1q1d4"    "4"
+    like "s1q1sol"   "5"
+
+    like "s2q1d4"    "17" 
+    like "s2q2sol"   "22"
+    like "s2q3d10"   "24"
+
+    like "s3q1d4"    "30"
+    like "s3q2d6"    "33"
+    like "s3q3d10"   "37"
+done
+
 # These are the expected results in the grading page for quiz #1 http://127.0.0.1:5000/grades/1
 # They have been verified by hand by looking up the information in the popups from the likes given,
 # likes received buttons 

@@ -25,3 +25,13 @@ header "Step #1 for Student #3"
 curl_login              "student #3"        '{ "email": "student3@usf.edu", "password": "pwd"}'
 curlit "GET quiz"       "/quizzes/1/take"   ''
 curlit "POST quiz"      "/quizzes/1/take"   '{"initial_responses" : {"1":"3" , "2":"7", "3":"11"}, "justifications": {"1": {"1": "s3q1d1", "2": "s3q1d2", "3":"s3q1d3", "4":"s3q1d4", "-1":"s3q1sol"}, "2":{"5": "s3q2d5", "6": "s3q2d6", "7":"s3q2d7", "-1":"s3q2sol"}, "3":{"9": "s3q3d9", "10": "s3q3d10", "11":"s3q3d11", "-1":"s3q3sol"} } }'
+
+# for now, all students below submit the same initial and revised responses
+for s in {4..10}
+do
+    header "Step #1 for Student #${s}"
+    curl_login              "student #${s}"     '{ "email": "student'${s}'@usf.edu", "password": "pwd"}'
+    curlit "GET quiz"       "/quizzes/1/take"   ''
+    curlit "POST quiz"      "/quizzes/1/take"   '{"initial_responses" : {"1":"3" , "2":"7", "3":"11"}, "justifications": {"1": {"1": "s'${s}'q1d1", "2": "s'${s}'q1d2", "3":"s'${s}'q1d3", "4":"s'${s}'q1d4", "-1":"s'${s}'q1sol"}, "2":{"5": "s'${s}'q2d5", "6": "s'${s}'q2d6", "7":"s'${s}'q2d7", "-1":"s'${s}'q2sol"}, "3":{"9": "s'${s}'q3d9", "10": "s'${s}'q3d10", "11":"s'${s}'q3d11", "-1":"s'${s}'q3sol"} } }'
+done
+

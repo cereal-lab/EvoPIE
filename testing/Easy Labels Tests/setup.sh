@@ -11,10 +11,18 @@ source ./TestLib.sh
 
 header 'SIGNING UP INSTRUCTOR & STUDENT ACCOUNTS, THEN LOGIN AS INSTRUCTOR'
 #FIXME for now, we hardcode that user id 1 is an instructor; so we must sign him up first.
-curlit "signed up instructor"       "/signup"           '{ "email": "instructor@usf.edu", "password": "pwd", "retype": "pwd","firstname": "John", "lastname": "Keating" }'
-curlit "signed up student #1"       "/signup"           '{ "email": "student1@usf.edu", "password": "pwd", "retype": "pwd","firstname": "Anakin", "lastname": "Skywalker" }'
-curlit "signed up student #2"       "/signup"           '{ "email": "student2@usf.edu", "password": "pwd", "retype": "pwd", "firstname": "Ahsoka", "lastname": "Tano" }'
-curlit "signed up student #3"       "/signup"           '{ "email": "student3@usf.edu", "password": "pwd", "retype": "pwd","firstname": "Obi-Wan", "lastname": "Kenobi" }'
+curlit "signed up instructor"       "/signup"           '{ "email": "instructor@usf.edu",   "password": "pwd", "retype": "pwd","firstname": "John",     "lastname": "Keating" }'
+curlit "signed up student #1"       "/signup"           '{ "email": "student1@usf.edu",     "password": "pwd", "retype": "pwd","firstname": "Anakin",   "lastname": "Skywalker" }'
+curlit "signed up student #2"       "/signup"           '{ "email": "student2@usf.edu",     "password": "pwd", "retype": "pwd","firstname": "Ahsoka",   "lastname": "Tano" }'
+curlit "signed up student #3"       "/signup"           '{ "email": "student3@usf.edu",     "password": "pwd", "retype": "pwd","firstname": "Obi-Wan",  "lastname": "Kenobi" }'
+curlit "signed up student #4"       "/signup"           '{ "email": "student4@usf.edu",     "password": "pwd", "retype": "pwd","firstname": "Rey",      "lastname": "Skywalker" }'
+curlit "signed up student #5"       "/signup"           '{ "email": "student5@usf.edu",     "password": "pwd", "retype": "pwd","firstname": "Mace",     "lastname": "Windu" }'
+curlit "signed up student #6"       "/signup"           '{ "email": "student6@usf.edu",     "password": "pwd", "retype": "pwd","firstname": "Luke",     "lastname": "Skywalker" }'
+curlit "signed up student #7"       "/signup"           '{ "email": "student7@usf.edu",     "password": "pwd", "retype": "pwd","firstname": "BB",       "lastname": "8" }'
+curlit "signed up student #8"       "/signup"           '{ "email": "student8@usf.edu",     "password": "pwd", "retype": "pwd","firstname": "R2",       "lastname": "D2" }'
+curlit "signed up student #9"       "/signup"           '{ "email": "student9@usf.edu",     "password": "pwd", "retype": "pwd","firstname": "C3",       "lastname": "PO" }'
+curlit "signed up student #10"      "/signup"           '{ "email": "student10@usf.edu",    "password": "pwd", "retype": "pwd","firstname": "Jar-Jar",  "lastname": "Binks" }'
+
 curl_login                          "instructor"        '{ "email": "instructor@usf.edu", "password": "pwd" }'
 
 ##header 'ADDING QUESTION #1' #QID 1
