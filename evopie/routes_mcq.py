@@ -78,6 +78,7 @@ def post_new_question():
     # might be why Paul reported seeing double quotes in the JSON still
     # UPDATE - Not a bug actually...
     # escaped_answer = json.dumps(answer) # escapes "" used in code
+    #TODO #3 ok so are we already properly escaping before to commit to the DB?!!
     escaped_answer = Markup.escape(answer) # escapes HTML characters
     escaped_answer = sanitize(escaped_answer)
 
@@ -260,6 +261,7 @@ def post_new_distractor_for_question(question_id):
     
     #NOTE same potential bug here than above, still a feature
     # escaped_answer = json.dumps(answer) # escapes "" used in code
+    #TODO #3 same issue here: are we already properly escaping before to commit to DB and, if so, then why do we have to redo it in routes_pages.py when sending the data to the jinja2 templates?!!
     escaped_answer = Markup.escape(answer) # escapes HTML characters
     escaped_answer = sanitize(escaped_answer)
 

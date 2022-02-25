@@ -43,7 +43,7 @@ def questions_browser():
     # working on getting rid of the dump_as_dict and instead using Markup(...).unescape when appropriate
     # all_questions = [q.dump_as_dict() for q in models.Question.query.all()]
     all_questions = models.Question.query.all()
-    # TODO this code will have to be refactored into the models; e.g., when adding to DB
+    #TODO #3 Refactor Markup(...).unescape()
     # NOTE this particular one works without doing the following pass on the data, probably bc it's using only the titles in the list
     for q in all_questions:
         q.title = Markup(q.title).unescape()
@@ -68,7 +68,7 @@ def quizzes_browser():
     if not current_user.is_instructor():
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
-    # working on getting rid of the dump_as_dict and instead using Markup(...).unescape when appropriate
+    # TODO #3 working on getting rid of the dump_as_dict and instead using Markup(...).unescape when appropriate
     # all_quizzes = [q.dump_as_dict() for q in models.Quiz.query.all()]
     all_quizzes = models.Quiz.query.all()
     return render_template('quizzes-browser.html', all_quizzes = all_quizzes)
@@ -94,7 +94,7 @@ def question_editor(question_id):
 
     q = models.Question.query.get_or_404(question_id)
     
-    # we replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
+    # TODO #3 we replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
     #ds = [d.dump_as_dict() for d in q.distractors]
     #q = q.dump_as_dict()
     q.title = Markup(q.title).unescape()
@@ -141,6 +141,7 @@ def quiz_question_editor(quiz_id,quiz_question_id):
         q = models.Question.query.get_or_404(qq.question_id)
         # NOTE we assume that the QuizQuestion already belong to this quiz
         # FIXME we should really ensure that it's the case
+        # TODO #3 Refactor Markup(...).unescape()
         for d in qq.distractors:
             d.answer = Markup(d.answer).unescape()
     # now edit the QuizQuestion
@@ -158,7 +159,7 @@ def quiz_question_selector_1(quiz_id):
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
     questions = models.Question.query.all()
-    # unescaping so that the stem and answer are rendered in jinja2 template with | safe
+    # TODO #3 unescaping so that the stem and answer are rendered in jinja2 template with | safe
     for q in questions:
         q.stem = Markup(q.stem).unescape()
         q.answer = Markup(q.answer).unescape()
@@ -176,7 +177,7 @@ def quiz_question_selector_2(quiz_id, question_id):
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
     question = models.Question.query.get_or_404(question_id)
-    # unescaping so that the stem and answer are rendered in jinja2 template with | safe
+    # TODO #3 unescaping so that the stem and answer are rendered in jinja2 template with | safe
     question.stem = Markup(question.stem).unescape()
     question.answer = Markup(question.answer).unescape()
     for d in question.distractors:
@@ -227,7 +228,7 @@ def quiz_editor(quiz_id):
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
     q = models.Quiz.query.get_or_404(quiz_id)
-    # we replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
+    # TODO #3 we replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
     #q = q.dump_as_dict()
     for qq in q.quiz_questions:
         qq.question.title = Markup(qq.question.title).unescape()
@@ -272,6 +273,7 @@ def get_student(qid):
     ##        # experimenting, this works: tmp = jinja2.Markup(quiz_questions[0]["alternatives"][0][1]).unescape()
     ##        altern[1] = jinja2.Markup(altern[1]).unescape()
     ##        # nope... altern[1] = jinja2.Markup.escape(altern[1])
+    # TODO #3 
     for qq in quiz_questions:
         qq.question.title = Markup(qq.question.title).unescape()
         qq.question.stem = Markup(qq.question.stem).unescape()

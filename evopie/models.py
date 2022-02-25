@@ -39,7 +39,7 @@ class Question(DB.Model):
     def __repr__(self):
         return "Question(id='%d',title='%s',question='%s',solution='%s')" % (self.id, self.title, self.stem, self.answer)
 
-    def dump_as_dict(self):
+    def dump_as_dict(self): # TODO #3 get rid of dump_as_dict as part of this issue
         q = {
             "id" : self.id,
             "title" : Markup(self.title).unescape(),
@@ -94,7 +94,7 @@ class Distractor(DB.Model):
     def __repr__(self):
         return "<Distractor: id='%d',question_id=%d>" % (self.id, self.question_id)
 
-    def dump_as_dict(self):
+    def dump_as_dict(self): # TODO #3
         return {"id" : self.id, "answer": Markup(self.answer).unescape()}
 
     def dump_as_simplified_dict(self):
@@ -121,7 +121,7 @@ class QuizQuestion(DB.Model):
     # these are the distractors that have been selected, among all available distractors
     # for a given question, to be features in this particular question to appear in a quiz
 
-    def dump_as_dict(self):
+    def dump_as_dict(self): # TODO #3
         result = {  "id" : self.id,
                     "title": self.question.title,
                     "stem": Markup(self.question.stem).unescape(),
