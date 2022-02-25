@@ -53,3 +53,21 @@ like "s2q3d10"   "24"
 # 1         0               3               5               6                   6 (n/a, no maxlikes yet)
 # 2         0               1               5               6                   6
 # 3         0               1               5               7                   7
+
+
+# Each student has been exposed to 5 + 4 + 4 = 13 alternatives for the quiz.
+
+# At max, any student can therefore give 26 likes to all other students (2 in this scripted test).
+# The MaxLikes value in the formula is used to determine how many likes a student should be able to 
+# give. For instance, here we could say 50% of 13 = 7 rounded up.
+# Once we have this number, we determine the score value for each like that this student has given. 
+# If they gave 7 or less likes, each like is worth 1 point. If they go above 7, their likes should 
+# be progressively worth less and less. Their likes should reach a score value of 0 as soon as they
+# gave out at least 1 like to each justification they saw in the step 2 page. That is 26 in our example.
+
+# At max, any student can therefore receive 13 * (# of other students) likes.
+# This is assuming that ALL their justifications were shown to ALL other students AND were liked :)
+
+# In this specific test, because we have 3 students total, each of them can only receive justifications
+# from two other students. In the code, we try to show, maximum, 3 justification per alternative but
+# here we end up with less due to lack of enough participants.
