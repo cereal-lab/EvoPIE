@@ -333,13 +333,13 @@ class User(UserMixin, DB.Model):
     liked_justifications =DB.relationship('Likes4Justifications', foreign_keys='Likes4Justifications.student_id',
         backref='student', lazy='dynamic')
 
-    def like_justification(self, justification):
+    def like_justification(self, justification): # TODO #16 Prevent user from liking one of their own justifications
         if not self.has_liked_justification(justification):
             like = Likes4Justifications(student_id=self.id, justification_id=justification.id)
             DB.session.add(like)
             DB.session.commit()
 
-    def unlike_justification(self, justification):
+    def unlike_justification(self, justification): # TODO #16
         if self.has_liked_justification(justification):
             Likes4Justifications.query.filter_by(
                 student_id=self.id,
