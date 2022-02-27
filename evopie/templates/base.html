@@ -143,6 +143,23 @@
                 </form>
             </div>
         </nav>
+
+
+        <div class="flashes-div">
+            {% with messages = get_flashed_messages(category_filter=["error", "postError"]) %}
+            {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-error alert-dismissible fade show" role="alert">
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    {{ message }}
+                </div>
+                {% endfor %}
+            {% endif %}
+            {% endwith %}
+        </div>
+    
         {% block content %}
         {% endblock %}
     </body>
