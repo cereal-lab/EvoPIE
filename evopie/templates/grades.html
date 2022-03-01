@@ -110,7 +110,7 @@
                         data-target=".TG-JUS-{{all_grades[i].student.id}}">
                     Justifications
                 </button>
-                <div class="modal fade TG-JUS-{{all_grades[i].student.id}}" tabindex="-1" role="dialog"
+                <div class="modal fade TG-JUS-{{all_grades[i].student.id}} text-start" tabindex="-1" role="dialog"
                         aria-labelledby="mySmallModalLabel" aria-hidden="true">
                     <div class="modal-dialog modal-lg">
                       <div class="modal-content">
@@ -157,7 +157,7 @@
                 data-target=".TG-GIVEN-{{all_grades[i].student.id}}">
                     {{likes_given[all_grades[i].student.id] | length}}
                 </button>
-                <div class="modal fade TG-GIVEN-{{all_grades[i].student.id}}" tabindex="-1" role="dialog"
+                <div class="modal fade TG-GIVEN-{{all_grades[i].student.id}} text-start" tabindex="-1" role="dialog"
                         aria-labelledby="mySmallModalLabel" aria-hidden="true">
                     <div class="modal-dialog modal-content">
                       <div class="modal-content">
@@ -192,7 +192,7 @@
             <td>
                 <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
                 data-target=".TG-REC-{{all_grades[i].student.id}}">
-                    {{likes_received[all_grades[i].student.id] | length }}
+                    {{count_likes_received[all_grades[i].student.id] | length }}
                 </button>
                 <div class="modal fade TG-REC-{{all_grades[i].student.id}}" tabindex="-1" role="dialog"
                         aria-labelledby="mySmallModalLabel" aria-hidden="true">
