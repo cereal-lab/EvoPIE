@@ -529,11 +529,11 @@ def get_grades(qid):
 @login_required
 def getDataCSV(qid):
     q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores = get_data(qid)
-    csv = 'Last Name,First Name,Email,Initial Score,Likes Given,Likes Received\n'
+    csv = 'Last Name,First Name,Email,Initial Score,Revised Score,Likes Given,Likes Received\n'
     for grade in grades:
         likes_given_length = len(likes_given[grade.student.id]) if grade.student.id in likes_given else 0
         likes_received_length = len(count_likes_received[grade.student.id]) if grade.student.id in likes_received else 0
-        csv += grade.student.last_name + "," + grade.student.first_name + "," + grade.student.email + "," + str(grade.initial_total_score) + "," + str(likes_given_length) + "," + str(likes_received_length) + "\n"
+        csv += grade.student.last_name + "," + grade.student.first_name + "," + grade.student.email + "," + str(grade.initial_total_score) + "," + str(grade.revised_total_score) + "," + str(likes_given_length) + "," + str(likes_received_length) + "\n"
     filename = (current_user.email + "-" + q.title).replace(" ", "_")
     return Response(
         csv,
