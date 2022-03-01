@@ -59,4 +59,3 @@ function curl_login {
         exit
     fi
 }
-
