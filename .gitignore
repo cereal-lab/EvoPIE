@@ -3,3 +3,4 @@ __pycache__/
 evopie/DB_quizlib.sqlite*
 mycookies
 venv/
+evopie/DB_quizlib-easy.sqlite

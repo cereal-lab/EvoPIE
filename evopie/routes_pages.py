@@ -210,6 +210,8 @@ def quiz_question_selector_2(quiz_id, question_id):
     question.answer = Markup(question.answer).unescape()
     for d in question.distractors:
         d.answer = Markup(d.answer).unescape()
+    
+
     return render_template('quiz-question-selector-2.html', quiz_id=quiz_id, question=question)
 
 
@@ -456,16 +458,18 @@ def get_data(qid):
 
     for i in range(len(grades)):
         grading_details.append(QuizAttempt())
+        grades[i].justifications = Markup(grades[i].justifications).unescape()
         grading_details[i].initial_responses = json.loads(grades[i].initial_responses.replace("'", '"'))
         grading_details[i].revised_responses = json.loads(grades[i].revised_responses.replace("'", '"'))
+        # grading_details[i].justifications = json.loads(grades[i].justifications.replace("'", '"'))
         # grading_details[i].justifications = json.loads(replaceModified(grades[i].justifications.replace('"', "'")).replace("\\'", "'"))
-        grading_details[i].justifications = ast.literal_eval(grades[i].justifications)
-        for j in range(len(grades)):
-            if j != i:
-                if grades[i].student_id not in like_scores:
-                    like_scores[grades[i].student_id] = 0
-                likes_by_g = len(LikesGiven(grades[j])) if len(LikesGiven(grades[j])) != 0 else 1
-                like_scores[grades[i].student_id] += ( Likes(grades[j], grades[i]) * min( ( MaxLikes / likes_by_g ), 1 ) )
+        grading_details[i].justifications = ast.literal_eval(grades[i].justifications.replace('\\n', '\n').replace('\\"', '\"'))
+        # for j in range(len(grades)):
+        #     if j != i:
+        #         if grades[i].student_id not in like_scores:
+        #             like_scores[grades[i].student_id] = 0
+        #         likes_by_g = len(LikesGiven(grades[j])) if len(LikesGiven(grades[j])) != 0 else 1
+        #         like_scores[grades[i].student_id] += ( Likes(grades[j], grades[i]) * min( ( MaxLikes / likes_by_g ), 1 ) )
     return q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores
 
 def Likes(g, s):
