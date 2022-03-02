@@ -301,18 +301,15 @@ def get_student(qid):
         return redirect(url_for('pages.index'))
 
     if a and q.status == "STEP1":
-        flash("You already submitted your answers for step 1 of this quiz.", "error")
-        flash("Wait for the instructor to open step 2 for everyone.", "error")
+        flash("You already submitted your answers for step 1 of this quiz. Wait for the instructor to open step 2 for everyone.", "error")
         return redirect(url_for('pages.index'))
 
     if not a and q.status == "STEP2":
-        flash("You did not submit your answers for step 1 of this quiz.", "error")
-        flash("Because of that, you may not participate in step 2.", "error")
+        flash("You did not submit your answers for step 1 of this quiz. Because of that, you may not participate in step 2.", "error")
         return redirect(url_for('pages.index'))
 
     if a and q.status == "STEP2" and a[0].revised_responses != "{}":
-        flash("You already submitted your answers for both step 1 and step 2.", "error")
-        flash("You are done with this quiz.", "error")
+        flash("You already submitted your answers for both step 1 and step 2. You are done with this quiz.", "error")
         return redirect(url_for('pages.index'))
         
     # Handle different steps

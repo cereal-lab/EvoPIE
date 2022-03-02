@@ -14,9 +14,9 @@
 
     <div class="jumbotron jumbotron-fluid">
         <div class="container">
-            <h1 class="display-4">Managing User Accounts</h1>
+            <h1 class="display-4">User Accounts Browser</h1>
                 <p class="lead">
-                    Self Explanatory :)
+                    Change role or password for system users.
                 </p>
         </div>
     </div>
@@ -57,16 +57,16 @@
                         .then(
                             response => {
                                 if(response.ok){
-                                    //alert("USer Role Updated");
+                                    sendToFlashLand("User Role Updated","success");
                                     //window.location.reload();
                                 }else{
-                                    alert("User Role NOT Updated");
+                                    sendToFlashLand("User Role NOT Updated","danger");
                                     window.location.reload();
                                 }
                             }
                         )
                         .catch((error) => {
-                            alert("There was a problem updating the user's role: " + error);
+                            sendToFlashLand("There was a problem updating the user's role: " + error,"danger");
                         })
                     });
                 </script>
@@ -102,16 +102,16 @@
                             response => {
                                 if(response.ok){
                                     e.target.value='';
-                                    alert("User Password Updated");
+                                    sendToFlashLand("User Password Updated","success");
                                     //window.location.reload();
                                 }else{
-                                    alert("User Password NOT Updated");
+                                    sendToFlashLand("User Password NOT Updated","danger");
                                     //window.location.reload();
                                 }
                             }
                         )
                         .catch((error) => {
-                            alert("There was a problem updating the user's Password: " + error);
+                            sendToFlashLand("There was a problem updating the user's Password: " + error,"danger");
                         })
                     });
                 </script>

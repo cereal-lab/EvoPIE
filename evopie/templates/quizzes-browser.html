@@ -39,8 +39,6 @@
                     <label for="quiz_description">Description</label>
                     <textarea class="summernote form-control" name="quiz_description" id="quiz_description" required></textarea>
                 </div>
-                <p name="quiz_result" id="quiz_result">
-                </p>
                 <button onclick="submitQuizForm()" class="btn btn-primary">Submit</button>
             </form>
         </p>
@@ -52,7 +50,6 @@
 
 <script type="text/javascript">
     function submitQuizForm(){
-        let result = document.querySelector('#quiz_result');
         let title = document.querySelector('#quiz_title');
         let description = document.querySelector('#quiz_description');
         
@@ -65,7 +62,7 @@
         // Create a state change callback 
         xhr.onreadystatechange = function () {
             if (xhr.readyState === 4 && xhr.status === 200) {
-                result.innerHTML = this.responseText;
+               sendToFlashLand(this.responseText,"primary");
             }
         };
 
@@ -148,16 +145,16 @@
                                 .then(
                                     response => {
                                         if(response.ok){
-                                            //alert("Quiz Status Updated");
+                                            sendToFlashLand("Quiz Status Updated","success");
                                             window.location.reload();
                                         }else{
-                                            alert("Quiz Status NOT Updated");
+                                            sendToFlashLand("Quiz Status NOT Updated","danger");
                                             window.location.reload();
                                         }
                                     }
                                 )
                                 .catch((error) => {
-                                    alert("There was a problem updating the quiz status: " + error);
+                                    sendToFlashLand("There was a problem updating the quiz status: " + error,"danger");
                                 })
                             });
                         </script>
@@ -171,8 +168,6 @@
 
 <script>
     function deleteQuiz(quiz_id){
-        let result = document.querySelector('#quiz_result');
-            
         let xhr = new XMLHttpRequest();
         let url = "/quizzes/" + quiz_id;
         
@@ -182,7 +177,7 @@
         // Create a state change callback 
         xhr.onreadystatechange = function () {
             if (xhr.readyState === 4 && xhr.status === 200) {
-                result.innerHTML = this.responseText;
+                sendToFlashLand(this.responseText,"primary");
             }
         };
 

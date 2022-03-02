@@ -133,15 +133,15 @@
             .then(
                 response => {
                     if(response.ok){
-                        alert("Quiz submitted!");
+                        sendToFlashLand("Quiz submitted!","success");
                         window.location.href = what_is_next;
                     }else{
-                        response.json().then(data => alert(data.message));
+                        response.json().then(data => sendToFlashLand(data.message,"danger"));
                     }
                 }
             )
             .catch((error) => {
-                alert("There was a problem with your submission: " + error);
+                sendToFlashLand("There was a problem with your submission: " + error,"danger");
                 window.location.href = what_is_next;
             })
         }
@@ -167,7 +167,7 @@
                 }
             })
             .catch((error) => {
-                alert("Unable to like / unlike this Justification [id is " + jid + "]. Try again later.");
+                sendToFlashLand("Unable to like / unlike this Justification [id is " + jid + "]. Try again later.","danger");
                 console.log(error);
                 //location.reload();
             })
@@ -237,26 +237,6 @@
             {% endif %}
         </div>
     </div>
-
-    <!--
-        <div>
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <ul class=flashes>
-            {% for category, message in messages %}
-            <li class="{{ category }}">{{ message }}</li>
-            {% endfor %}
-            </ul>
-        {% endif %}
-        {% endwith %}
-    </div>
-
-    <div class="alert alert-warning alert-dismissible fade show" role="alert">
-        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-        <span aria-hidden="true">&times;</span>
-        </button>
-    </div>
-    -->
 
     {% set nquestion = namespace(value = 0) %}
     {% for q in questions %}
