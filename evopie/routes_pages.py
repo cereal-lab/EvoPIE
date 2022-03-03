@@ -427,11 +427,8 @@ def users_browser():
     return render_template('users-browser.html', all_users=all_users)
 
 
-
-
-@pages.route('/grades/<int:qid>', methods=['GET'])
 @login_required
-def quiz_grader(qid):
+def get_data(qid):
     '''
     This page allows to get all stats on a given quiz.
     '''
@@ -545,18 +542,18 @@ def LikesReceived(g):
 
 @pages.route('/grades/<int:qid>', methods=['GET'])
 @login_required
-def get_grades(qid):
+def quiz_grader(qid):
     '''
     This page allows to get all stats on a given quiz.
     '''
-    q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores = quiz_grader(qid)
+    q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores = get_data(qid)
 
-    return render_template('grades.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, count_likes_received = count_likes_received, like_scores = like_scores)
+    return render_template('quiz-grader.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, count_likes_received = count_likes_received, like_scores = like_scores)
 
 @pages.route("/getDataCSV/<int:qid>", methods=['GET'])
 @login_required
 def getDataCSV(qid):
-    q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores = quiz_grader(qid)
+    q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores = get_data(qid)
     csv = 'Last Name,First Name,Email,Initial Score,Revised Score,Likes Given,Likes Received\n'
     for grade in grades:
         likes_given_length = len(likes_given[grade.student.id]) if grade.student.id in likes_given else 0
