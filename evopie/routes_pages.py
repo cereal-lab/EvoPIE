@@ -484,7 +484,7 @@ def get_data(qid):
         grading_details[i].revised_responses = json.loads(grades[i].revised_responses.replace("'", '"'))
         # grading_details[i].justifications = json.loads(grades[i].justifications.replace("'", '"'))
         # grading_details[i].justifications = json.loads(replaceModified(grades[i].justifications.replace('"', "'")).replace("\\'", "'"))
-        grading_details[i].justifications = ast.literal_eval(grades[i].justifications.replace('\\n', '\n').replace('\\"', '\"'))
+        grading_details[i].justifications = ast.literal_eval(grades[i].justifications)
         # for j in range(len(grades)):
         #     if j != i:
         #         if grades[i].student_id not in like_scores:
