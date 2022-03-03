@@ -268,6 +268,9 @@ def quiz_editor(quiz_id):
         # NOTE we do not have to worry about unescaping the distractors because the quiz-editor 
         # does not render them. However, if we had to do so, remember that we need to add to 
         # each QuizQuestion a field named alternatives that has the answer + distractors unescaped.
+    if q.status != "HIDDEN":
+        flash("Quiz not editable at this time", "error")
+        return redirect(url_for('pages.index'))
     return render_template('quiz-editor.html', quiz = q)
     
 
