@@ -95,12 +95,14 @@
                                         <tr>
                                             <td style="vertical-align: top"><b>Q:</b></td>
                                             <td>
-                                                    {{ single_question.stem | safe }}
+                                                {{ single_question.stem | safe }}
                                             </td>
                                         </tr>
                                         <tr>   
                                             <td style="vertical-align: top"><b>A:</b></td>
-                                            <td>{{ single_question.answer | safe }}</td>
+                                            <td>
+                                                {{ single_question.answer | safe }}
+                                            </td>
                                         </tr>
                                     </table>
                                 </div>
