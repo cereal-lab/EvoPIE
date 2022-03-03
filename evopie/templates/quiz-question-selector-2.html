@@ -69,7 +69,7 @@
         // then transform this list into a string of IDs separated by spaces that we can pass to the URL above
         url += checked_distractors.join(" ");
         if (url[url.length - 1] === "/") {
-            window.alert("Select atleast one distractor to continue!");
+            sendToFlashLand("Select atleast one distractor to continue!", "danger");
         } else {
             location.href=url;
         }
