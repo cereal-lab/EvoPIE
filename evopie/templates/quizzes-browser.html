@@ -17,9 +17,8 @@
     <div class="container">
         <h1 class="display-4">Quizzes Browser</h1>
             <p class="lead">
-                Use this to find quizzes that are of interest to you. 
-                Take note of their quiz ID so that you may then select to
-                deploy them to your students or even edit them.
+                These are the quizzes that you created. 
+                You may edit them, grade them, or create new ones.
             </p>
     </div>
 </div>
@@ -40,8 +39,6 @@
                     <label for="quiz_description">Description</label>
                     <textarea class="summernote form-control" name="quiz_description" id="quiz_description" required></textarea>
                 </div>
-                <p name="quiz_result" id="quiz_result">
-                </p>
                 <button onclick="submitQuizForm()" class="btn btn-primary">Submit</button>
             </form>
         </p>
@@ -53,7 +50,6 @@
 
 <script type="text/javascript">
     function submitQuizForm(){
-        let result = document.querySelector('#quiz_result');
         let title = document.querySelector('#quiz_title');
         let description = document.querySelector('#quiz_description');
         
@@ -66,7 +62,7 @@
         // Create a state change callback 
         xhr.onreadystatechange = function () {
             if (xhr.readyState === 4 && xhr.status === 200) {
-                result.innerHTML = this.responseText;
+               sendToFlashLand(this.responseText,"primary");
             }
         };
 
@@ -118,7 +114,7 @@
                         </div>
                     </td>
                     <td class='text-right'>
-                        <a  href='{{url_for('pages.get_grades', qid=single_quiz.id)}}' type="button" class="">
+                        <a  href='{{url_for('pages.quiz_grader', qid=single_quiz.id)}}' type="button" class="">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-card-checklist" viewBox="0 0 16 16">
                                 <path d="M14.5 3a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h13zm-13-1A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2h-13z"/>
                                 <path d="M7 5.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm-1.496-.854a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 1 1 .708-.708l.146.147 1.146-1.147a.5.5 0 0 1 .708 0zM7 9.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm-1.496-.854a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 0 1 .708-.708l.146.147 1.146-1.147a.5.5 0 0 1 .708 0z"/>
@@ -129,6 +125,39 @@
                                 <path d="m13.498.795.149-.149a1.207 1.207 0 1 1 1.707 1.708l-.149.148a1.5 1.5 0 0 1-.059 2.059L4.854 14.854a.5.5 0 0 1-.233.131l-4 1a.5.5 0 0 1-.606-.606l1-4a.5.5 0 0 1 .131-.232l9.642-9.642a.5.5 0 0 0-.642.056L6.854 4.854a.5.5 0 1 1-.708-.708L9.44.854A1.5 1.5 0 0 1 11.5.796a1.5 1.5 0 0 1 1.998-.001zm-.644.766a.5.5 0 0 0-.707 0L1.95 11.756l-.764 3.057 3.057-.764L14.44 3.854a.5.5 0 0 0 0-.708l-1.585-1.585z"/>
                             </svg>
                         </a>
+                        <select id="status{{single_quiz.id}}">
+                            <option value="HIDDEN"      {% if single_quiz.status == 'HIDDEN' %} selected {% endif %}>       Hidden</option>
+                            <option value="STEP1"       {% if single_quiz.status == 'STEP1' %} selected {% endif %}>        Step #1</option>
+                            <option value="STEP2"       {% if single_quiz.status == 'STEP2' %} selected {% endif %}>        Step #2</option>
+                            <option value="SOLUTIONS"   {% if single_quiz.status == 'SOLUTIONS' %} selected {% endif %}>    Show Answers</option>
+                        </select>
+                        <script>
+                            document.querySelector('#status{{single_quiz.id}}').addEventListener('change',function(){
+                                let target_url = '/quizzes/{{single_quiz.id}}/status';
+                                let e = document.querySelector('#status{{single_quiz.id}}');
+                                let selectedValue = e.options[e.selectedIndex].value;
+                                fetch(target_url,{
+                                    method:         'POST',
+                                    headers:        {'Content-Type' : 'application/json'},
+                                    body:           JSON.stringify({"status" :  selectedValue}),
+                                    credentials:    'same-origin'
+                                })
+                                .then(
+                                    response => {
+                                        if(response.ok){
+                                            sendToFlashLand("Quiz Status Updated","success");
+                                            //window.location.reload();
+                                        }else{
+                                            sendToFlashLand("Quiz Status NOT Updated","danger");
+                                            //window.location.reload();
+                                        }
+                                    }
+                                )
+                                .catch((error) => {
+                                    sendToFlashLand("There was a problem updating the quiz status: " + error,"danger");
+                                })
+                            });
+                        </script>
                     </td>
                 </tr>
             {% endfor %}
@@ -139,8 +168,6 @@
 
 <script>
     function deleteQuiz(quiz_id){
-        let result = document.querySelector('#quiz_result');
-            
         let xhr = new XMLHttpRequest();
         let url = "/quizzes/" + quiz_id;
         
@@ -150,7 +177,7 @@
         // Create a state change callback 
         xhr.onreadystatechange = function () {
             if (xhr.readyState === 4 && xhr.status === 200) {
-                result.innerHTML = this.responseText;
+                sendToFlashLand(this.responseText,"primary");
             }
         };
 

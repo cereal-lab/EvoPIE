@@ -39,7 +39,7 @@ class Question(DB.Model):
     def __repr__(self):
         return "Question(id='%d',title='%s',question='%s',solution='%s')" % (self.id, self.title, self.stem, self.answer)
 
-    def dump_as_dict(self):
+    def dump_as_dict(self): # TODO #3 get rid of dump_as_dict as part of this issue
         q = {
             "id" : self.id,
             "title" : Markup(self.title).unescape(),
@@ -94,7 +94,7 @@ class Distractor(DB.Model):
     def __repr__(self):
         return "<Distractor: id='%d',question_id=%d>" % (self.id, self.question_id)
 
-    def dump_as_dict(self):
+    def dump_as_dict(self): # TODO #3
         return {"id" : self.id, "answer": Markup(self.answer).unescape()}
 
     def dump_as_simplified_dict(self):
@@ -121,7 +121,7 @@ class QuizQuestion(DB.Model):
     # these are the distractors that have been selected, among all available distractors
     # for a given question, to be features in this particular question to appear in a quiz
 
-    def dump_as_dict(self):
+    def dump_as_dict(self): # TODO #3
         result = {  "id" : self.id,
                     "title": self.question.title,
                     "stem": Markup(self.question.stem).unescape(),
@@ -205,7 +205,7 @@ class Quiz(DB.Model):
 
     def set_status(self, stat):
         ustat = stat.upper()
-        if ustat != "HIDDEN" and ustat != "STEP1" and ustat != "STEP2":
+        if ustat != "HIDDEN" and ustat != "STEP1" and ustat != "STEP2" and ustat != "SOLUTIONS":
             return False
         else:
             self.status = ustat
@@ -316,8 +316,15 @@ class User(UserMixin, DB.Model):
         return self.role == "STUDENT"
 
     def is_admin(self):
-        return self.id == 1
-        #FIXME self.role == "ADMIN"
+        return self.id == 1 or self.role == "ADMIN"
+    
+    def set_role(self, role):
+        urole = role.upper()
+        if urole != "STUDENT" and urole != "INSTRUCTOR" and urole != "ADMIN":
+            return False
+        else:
+            self.role = urole
+            return True
 
     def __repr__(self):
         return f'<{self.last_name}, {self.first_name}, {self.id}>'
@@ -326,13 +333,13 @@ class User(UserMixin, DB.Model):
     liked_justifications =DB.relationship('Likes4Justifications', foreign_keys='Likes4Justifications.student_id',
         backref='student', lazy='dynamic')
 
-    def like_justification(self, justification):
+    def like_justification(self, justification): # TODO #16 Prevent user from liking one of their own justifications
         if not self.has_liked_justification(justification):
             like = Likes4Justifications(student_id=self.id, justification_id=justification.id)
             DB.session.add(like)
             DB.session.commit()
 
-    def unlike_justification(self, justification):
+    def unlike_justification(self, justification): # TODO #16
         if self.has_liked_justification(justification):
             Likes4Justifications.query.filter_by(
                 student_id=self.id,

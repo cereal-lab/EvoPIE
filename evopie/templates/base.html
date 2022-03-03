@@ -88,6 +88,9 @@
             
                     {% if current_user.is_admin() %}
                         <li class="nav-item">
+                            <a href="/users/" class="nav-link">User Accounts</a>
+                        </li>
+                        <li class="nav-item">
                             <a href="/admin" class="nav-link"> Admin Dashboard </a>
                         </li>
                     {% endif %}
@@ -135,6 +138,33 @@
                 </form>
             </div>
         </nav>
+
+
+        <div id="flashland" class="" style="margin-left: 20%; margin-right: 20%"><!--</div>flashes-div">-->
+            {% with messages = get_flashed_messages(category_filter=["error", "postError"]) %}
+            {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    {{ message }}
+                </div>
+                {% endfor %}
+            {% endif %}
+            {% endwith %}
+        </div>
+        <script>
+            function sendToFlashLand(message, type) {
+                var target = document.getElementById('flashland')
+                var data = document.createElement('div')
+                data.innerHTML = '<div class="alert alert-' + type + ' alert-dismissible fade show" role="alert">' 
+                    + message 
+                    + '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>'
+                target.append(data)
+            }
+        </script>
+    
         {% block content %}
         {% endblock %}
     </body>

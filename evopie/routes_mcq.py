@@ -12,6 +12,7 @@ from random import shuffle
 import json
 import bleach
 from bleach_allowlist import generally_xss_safe, print_attrs, standard_styles
+from werkzeug.security import generate_password_hash
 
 from . import models
 
@@ -77,6 +78,7 @@ def post_new_question():
     # might be why Paul reported seeing double quotes in the JSON still
     # UPDATE - Not a bug actually...
     # escaped_answer = json.dumps(answer) # escapes "" used in code
+    #TODO #3 ok so are we already properly escaping before to commit to the DB?!!
     escaped_answer = Markup.escape(answer) # escapes HTML characters
     escaped_answer = sanitize(escaped_answer)
 
@@ -259,6 +261,7 @@ def post_new_distractor_for_question(question_id):
     
     #NOTE same potential bug here than above, still a feature
     # escaped_answer = json.dumps(answer) # escapes "" used in code
+    #TODO #3 same issue here: are we already properly escaping before to commit to DB and, if so, then why do we have to redo it in routes_pages.py when sending the data to the jinja2 templates?!!
     escaped_answer = Markup.escape(answer) # escapes HTML characters
     escaped_answer = sanitize(escaped_answer)
 
@@ -896,3 +899,46 @@ def like_justification(justification_id, action):
     response     = ({ "message" : "ok with no contents to send back" }, 204, {"Content-Type": "application/json"})
     return make_response(response)
     #redirect(request.referrer)
+
+
+
+@mcq.route('/users/<int:uid>/role', methods=['POST'])
+@login_required
+def post_users_role(uid):
+    '''
+    Modifies the role of given user
+    '''
+    if not current_user.is_admin():
+        if request.json:
+            response     = ({ "message" : "You are not allowed to change user roles" }, 403, {"Content-Type": "application/json"})
+            return make_response(response)
+        else:
+            flash("You are not allowed to change user roles", "postError")
+
+    user = models.User.query.get_or_404(uid)
+
+    if not request.json:
+        abort(406, "JSON format required for request") # not acceptable
+    new_role = sanitize(request.json['role'])
+    if(user.set_role(new_role)):
+        response     = ({ "message" : "OK" }, 200, {"Content-Type": "application/json"})
+        models.DB.session.commit()
+    else:
+        response     = ({ "message" : "Unable to switch to new role" }, 400, {"Content-Type": "application/json"})
+    return make_response(response)
+
+
+
+@mcq.route('/users/<int:uid>/password', methods=['POST'])
+def post_user_password(uid):
+    if request.json:
+        password = request.json['password']
+    else:
+        password = request.form.get('password')
+        
+    password = generate_password_hash(password, method='sha256')
+    user = models.User.query.get_or_404(uid)
+    user.password = password
+    models.DB.session.commit()
+
+    return redirect(url_for('pages.users_browser'))

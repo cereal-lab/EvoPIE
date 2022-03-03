@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+
+{% block title %}EvoPIE{% endblock %}
+{% block head %}
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.css">  
+    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.js"></script>
+    <script>
+        $(document).ready( function () {
+            $('#userstable').DataTable();
+        } );
+    </script>
+{% endblock %}
+{% block content %}
+
+    <div class="jumbotron jumbotron-fluid">
+        <div class="container">
+            <h1 class="display-4">User Accounts Browser</h1>
+                <p class="lead">
+                    Change role or password for system users.
+                </p>
+        </div>
+    </div>
+    <div class="card bg-light m-3 mx-auto" style="width: 75%">
+        <div class="card-body text-center" bg-light>
+    <table class='compact stripe' width='100%' id="userstable">
+        <thead><tr>
+            <th>Last Name</th>
+            <th>First Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Actions</th>
+        </tr></thead>
+        <tbody>
+    {% for user in all_users %}
+        <tr>
+            <td class="text-left">{{user.last_name}}</td>
+            <td class="text-left">{{user.first_name}}</td>
+            <td class="text-left">{{user.email}}</td>
+            <td class="">
+                <!-- role selector -->
+                <select id="role{{user.id}}">
+                    <option value="STUDENT"     {% if user.role == 'STUDENT' %} selected {% endif %}>      Student</option>
+                    <option value="INSTRUCTOR"  {% if user.role == 'INSTRUCTOR' %} selected {% endif %}>   Instructor</option>
+                    <option value="ADMIN"       {% if user.role == 'ADMIN' %} selected {% endif %}>        Admin</option>
+                </select>
+                <script>
+                    document.querySelector('#role{{user.id}}').addEventListener('change',function(){
+                        let target_url = '/users/{{user.id}}/role';
+                        let e = document.querySelector('#role{{user.id}}');
+                        let selectedValue = e.options[e.selectedIndex].value;
+                        fetch(target_url,{
+                            method:         'POST',
+                            headers:        {'Content-Type' : 'application/json'},
+                            body:           JSON.stringify({"role" :  selectedValue}),
+                            credentials:    'same-origin'
+                        })
+                        .then(
+                            response => {
+                                if(response.ok){
+                                    sendToFlashLand("User Role Updated","success");
+                                    //window.location.reload();
+                                }else{
+                                    sendToFlashLand("User Role NOT Updated","danger");
+                                    window.location.reload();
+                                }
+                            }
+                        )
+                        .catch((error) => {
+                            sendToFlashLand("There was a problem updating the user's role: " + error,"danger");
+                        })
+                    });
+                </script>
+            </td>
+            <td class="text-right">
+                <!-- password switcher -->
+                <a  data-toggle="modal" data-target=".TG-INI-{{user.id}}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-key" viewBox="0 0 16 16">
+                            <path d="M0 8a4 4 0 0 1 7.465-2H14a.5.5 0 0 1 .354.146l1.5 1.5a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0L13 9.207l-.646.647a.5.5 0 0 1-.708 0L11 9.207l-.646.647a.5.5 0 0 1-.708 0L9 9.207l-.646.647A.5.5 0 0 1 8 10h-.535A4 4 0 0 1 0 8zm4-3a3 3 0 1 0 2.712 4.285A.5.5 0 0 1 7.163 9h.63l.853-.854a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.793-.793-1-1h-6.63a.5.5 0 0 1-.451-.285A3 3 0 0 0 4 5z"/>
+                            <path d="M4 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                          </svg>
+                </a>
+                <div    class="modal fade TG-INI-{{user.id}}" tabindex="-1" role="dialog"
+                        aria-labelledby="mySmallModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-sm">
+                        <div class="modal-content">
+                            <input id="pwd{{user.id}}" type="text" name="password" class="form-control" placeholder="New password" required>
+                        </div>
+                    </div>
+                </div>
+                <script>
+                    document.querySelector('#pwd{{user.id}}').addEventListener('change',function(e){
+                        let target_url = '/users/{{user.id}}/password';
+                        //let e = document.querySelector('#pwd{{user.id}}');
+                        let selectedValue = e.target.value;
+                        fetch(target_url,{
+                            method:         'POST',
+                            headers:        {'Content-Type' : 'application/json'},
+                            body:           JSON.stringify({"password" :  selectedValue}),
+                            credentials:    'same-origin'
+                        })
+                        .then(
+                            response => {
+                                if(response.ok){
+                                    e.target.value='';
+                                    sendToFlashLand("User Password Updated","success");
+                                    //window.location.reload();
+                                }else{
+                                    sendToFlashLand("User Password NOT Updated","danger");
+                                    //window.location.reload();
+                                }
+                            }
+                        )
+                        .catch((error) => {
+                            sendToFlashLand("There was a problem updating the user's Password: " + error,"danger");
+                        })
+                    });
+                </script>
+            </td>
+        </tr>
+    {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    </div>
+{% endblock %}

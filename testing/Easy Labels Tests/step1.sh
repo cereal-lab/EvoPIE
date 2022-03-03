@@ -34,3 +34,4 @@ do
     curlit "GET quiz"       "/quizzes/1/take"   ''
     curlit "POST quiz"      "/quizzes/1/take"   '{"initial_responses" : {"1":"3" , "2":"7", "3":"11"}, "justifications": {"1": {"1": "s'${s}'q1d1", "2": "s'${s}'q1d2", "3":"s'${s}'q1d3", "4":"s'${s}'q1d4", "-1":"s'${s}'q1sol"}, "2":{"5": "s'${s}'q2d5", "6": "s'${s}'q2d6", "7":"s'${s}'q2d7", "-1":"s'${s}'q2sol"}, "3":{"9": "s'${s}'q3d9", "10": "s'${s}'q3d10", "11":"s'${s}'q3d11", "-1":"s'${s}'q3sol"} } }'
 done
+

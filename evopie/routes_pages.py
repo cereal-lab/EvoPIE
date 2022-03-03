@@ -72,7 +72,7 @@ def questions_browser():
     # working on getting rid of the dump_as_dict and instead using Markup(...).unescape when appropriate
     # all_questions = [q.dump_as_dict() for q in models.Question.query.all()]
     all_questions = models.Question.query.all()
-    # TODO this code will have to be refactored into the models; e.g., when adding to DB
+    #TODO #3 Refactor Markup(...).unescape()
     # NOTE this particular one works without doing the following pass on the data, probably bc it's using only the titles in the list
     for q in all_questions:
         q.title = Markup(q.title).unescape()
@@ -97,7 +97,7 @@ def quizzes_browser():
     if not current_user.is_instructor():
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
-    # working on getting rid of the dump_as_dict and instead using Markup(...).unescape when appropriate
+    # TODO #3 working on getting rid of the dump_as_dict and instead using Markup(...).unescape when appropriate
     # all_quizzes = [q.dump_as_dict() for q in models.Quiz.query.all()]
     all_quizzes = models.Quiz.query.all()
     return render_template('quizzes-browser.html', all_quizzes = all_quizzes)
@@ -123,7 +123,7 @@ def question_editor(question_id):
 
     q = models.Question.query.get_or_404(question_id)
     
-    # we replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
+    # TODO #3 we replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
     #ds = [d.dump_as_dict() for d in q.distractors]
     #q = q.dump_as_dict()
     q.title = Markup(q.title).unescape()
@@ -170,6 +170,7 @@ def quiz_question_editor(quiz_id,quiz_question_id):
         q = models.Question.query.get_or_404(qq.question_id)
         # NOTE we assume that the QuizQuestion already belong to this quiz
         # FIXME we should really ensure that it's the case
+        # TODO #3 Refactor Markup(...).unescape()
         for d in qq.distractors:
             d.answer = Markup(d.answer).unescape()
     # now edit the QuizQuestion
@@ -187,7 +188,7 @@ def quiz_question_selector_1(quiz_id):
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
     questions = models.Question.query.all()
-    # unescaping so that the stem and answer are rendered in jinja2 template with | safe
+    # TODO #3 unescaping so that the stem and answer are rendered in jinja2 template with | safe
     for q in questions:
         q.stem = Markup(q.stem).unescape()
         q.answer = Markup(q.answer).unescape()
@@ -205,7 +206,7 @@ def quiz_question_selector_2(quiz_id, question_id):
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
     question = models.Question.query.get_or_404(question_id)
-    # unescaping so that the stem and answer are rendered in jinja2 template with | safe
+    # TODO #3 unescaping so that the stem and answer are rendered in jinja2 template with | safe
     question.stem = Markup(question.stem).unescape()
     question.answer = Markup(question.answer).unescape()
     for d in question.distractors:
@@ -258,7 +259,7 @@ def quiz_editor(quiz_id):
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
     q = models.Quiz.query.get_or_404(quiz_id)
-    # we replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
+    # TODO #3 we replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
     #q = q.dump_as_dict()
     for qq in q.quiz_questions:
         qq.question.title = Markup(qq.question.title).unescape()
@@ -303,6 +304,7 @@ def get_student(qid):
     ##        # experimenting, this works: tmp = jinja2.Markup(quiz_questions[0]["alternatives"][0][1]).unescape()
     ##        altern[1] = jinja2.Markup(altern[1]).unescape()
     ##        # nope... altern[1] = jinja2.Markup.escape(altern[1])
+    # TODO #3 
     for qq in quiz_questions:
         qq.question.title = Markup(qq.question.title).unescape()
         qq.question.stem = Markup(qq.question.stem).unescape()
@@ -330,18 +332,15 @@ def get_student(qid):
         return redirect(url_for('pages.index'))
 
     if a and q.status == "STEP1":
-        flash("You already submitted your answers for step 1 of this quiz.", "error")
-        flash("Wait for the instructor to open step 2 for everyone.", "error")
+        flash("You already submitted your answers for step 1 of this quiz. Wait for the instructor to open step 2 for everyone.", "error")
         return redirect(url_for('pages.index'))
 
     if not a and q.status == "STEP2":
-        flash("You did not submit your answers for step 1 of this quiz.", "error")
-        flash("Because of that, you may not participate in step 2.", "error")
+        flash("You did not submit your answers for step 1 of this quiz. Because of that, you may not participate in step 2.", "error")
         return redirect(url_for('pages.index'))
 
     if a and q.status == "STEP2" and a[0].revised_responses != "{}":
-        flash("You already submitted your answers for both step 1 and step 2.", "error")
-        flash("You are done with this quiz.", "error")
+        flash("You already submitted your answers for both step 1 and step 2. You are done with this quiz.", "error")
         return redirect(url_for('pages.index'))
         
     # Handle different steps
@@ -410,7 +409,29 @@ def get_student(qid):
         return render_template('student.html', quiz=q, simplified_questions=simplified_quiz_questions, questions=quiz_questions, student=u)
 
 
-def get_data(qid):
+
+
+@pages.route('/users/', methods=['GET'])
+@login_required
+def users_browser():
+    '''
+    This page allows to manage all user accounts on the system.
+    '''
+    if not current_user.is_admin():
+        flash("Restricted to admins.", "error")
+        return redirect(url_for('pages.index'))
+    all_users = models.User.query.all()
+    return render_template('users-browser.html', all_users=all_users)
+
+
+
+
+@pages.route('/grades/<int:qid>', methods=['GET'])
+@login_required
+def quiz_grader(qid):
+    '''
+    This page allows to get all stats on a given quiz.
+    '''
     if not current_user.is_instructor():
         flash("Restricted to instructors.", "error")
         return redirect(url_for('pages.index'))
@@ -525,14 +546,14 @@ def get_grades(qid):
     '''
     This page allows to get all stats on a given quiz.
     '''
-    q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores = get_data(qid)
+    q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores = quiz_grader(qid)
 
     return render_template('grades.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, count_likes_received = count_likes_received, like_scores = like_scores)
 
 @pages.route("/getDataCSV/<int:qid>", methods=['GET'])
 @login_required
 def getDataCSV(qid):
-    q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores = get_data(qid)
+    q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores = quiz_grader(qid)
     csv = 'Last Name,First Name,Email,Initial Score,Revised Score,Likes Given,Likes Received\n'
     for grade in grades:
         likes_given_length = len(likes_given[grade.student.id]) if grade.student.id in likes_given else 0

@@ -89,24 +89,8 @@
       </section>
     {% endif %}
 
-    <div class="flashes-div">
-      {% with messages = get_flashed_messages(category_filter=["error", "postError"]) %}
-        {% if messages %}
-          <ul class="flashes">
-            {% for message in messages %}
-            <li style="text-align: left;" class="{{ category }}">{{ message }}</li>
-            {% endfor %}
-          </ul>
-        {% endif %}
-      {% endwith %}
-    </div>
 
-
-
-
-
-
-
+    
 
     {% if current_user.is_authenticated %}
       {% if current_user.is_student() %}

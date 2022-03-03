@@ -17,9 +17,24 @@
     <div class="container">
         <h1 class="display-4">Questions Browser</h1>
             <p class="lead">
-                Use this to find questions that are of interest to you. 
-                Take note of their question ID so that you may then integrate
-                them into your quizzes or contribute new distractors to them.
+                Use this page to create new questions, add distractors to existing questions,
+                or simply browse to find questions that are relevant to the next
+                quiz you plan on implementing.
+            </p>
+            <p class="lead">
+                In this software, a Question is composed of
+                <ul class="lead">
+                    <li>The "stem": the instructions given to the students (aka the question itself).</li>
+                    <li>The "answer": the actual solution to the question.</li>
+                    <li>One or more "distractors": wrong but plausible solutions to the question meant 
+                        to illustrate typical misconception about the knowledge you are testing.
+                    </li>
+                </ul>
+                </p>
+            <p class="lead">
+                You may later use the <a href="/quizzes-browser"> Quizzes browser page</a> to create quizzes
+                by selecting questions that you want to include and, for each question, selecting the distrators
+                that you want your students to be presented.
             </p>
     </div>
 </div>
@@ -28,7 +43,7 @@
 
 <div class="card bg-light m-3 mx-auto" style="width: 75%">
     <div class="card-body" bg-light>
-        <h5 class="card-title" data-toggle = "collapse" data-target = "#newquestion">Create New Question</h5>
+        <h5 class="card-title" data-toggle = "collapse" data-target = "#newquestion">Click here to Create New Question</h5>
         <div id = "newquestion" class = "collapse">
             <p class="card-text">
                 <form id="questionForm" method="post" action='/questions'>
@@ -80,12 +95,14 @@
                                         <tr>
                                             <td style="vertical-align: top"><b>Q:</b></td>
                                             <td>
-                                                    {{ single_question.stem | safe }}
+                                                {{ single_question.stem | safe }}
                                             </td>
                                         </tr>
                                         <tr>   
                                             <td style="vertical-align: top"><b>A:</b></td>
-                                            <td>{{ single_question.answer | safe }}</td>
+                                            <td>
+                                                {{ single_question.answer | safe }}
+                                            </td>
                                         </tr>
                                     </table>
                                 </div>
@@ -94,8 +111,8 @@
                     </td>
                     <td class='text-right'>
                         <a class="" href="/question-editor/{{ single_question.id }}">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pen-fill" viewBox="0 0 16 16">
-                                <path d="m13.498.795.149-.149a1.207 1.207 0 1 1 1.707 1.708l-.149.148a1.5 1.5 0 0 1-.059 2.059L4.854 14.854a.5.5 0 0 1-.233.131l-4 1a.5.5 0 0 1-.606-.606l1-4a.5.5 0 0 1 .131-.232l9.642-9.642a.5.5 0 0 0-.642.056L6.854 4.854a.5.5 0 1 1-.708-.708L9.44.854A1.5 1.5 0 0 1 11.5.796a1.5 1.5 0 0 1 1.998-.001z"/>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pen" viewBox="0 0 16 16">
+                                <path d="m13.498.795.149-.149a1.207 1.207 0 1 1 1.707 1.708l-.149.148a1.5 1.5 0 0 1-.059 2.059L4.854 14.854a.5.5 0 0 1-.233.131l-4 1a.5.5 0 0 1-.606-.606l1-4a.5.5 0 0 1 .131-.232l9.642-9.642a.5.5 0 0 0-.642.056L6.854 4.854a.5.5 0 1 1-.708-.708L9.44.854A1.5 1.5 0 0 1 11.5.796a1.5 1.5 0 0 1 1.998-.001zm-.644.766a.5.5 0 0 0-.707 0L1.95 11.756l-.764 3.057 3.057-.764L14.44 3.854a.5.5 0 0 0 0-.708l-1.585-1.585z"/>
                             </svg>
                         </a>
                     </td>

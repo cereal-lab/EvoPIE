@@ -140,7 +140,7 @@
 
         xhr.onreadystatechange = function () {
             if (xhr.readyState === 4 && xhr.status === 200) {
-                result.innerHTML = this.responseText;
+                sendToFlashLand(this.responseText,"primary");
                 }
         };
 
@@ -175,7 +175,7 @@
         // Create a state change callback 
         xhr.onreadystatechange = function () {
             if (xhr.readyState === 4 && xhr.status === 200) {
-                result.innerHTML = this.responseText;
+                sendToFlashLand(this.responseText,"primary");
                 }
         };
         // FIXED 405 returned: that was the lack of quiz.id on the URL
