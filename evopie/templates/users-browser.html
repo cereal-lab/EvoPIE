@@ -33,9 +33,9 @@
         <tbody>
     {% for user in all_users %}
         <tr>
-            <td class="text-left">{{user.last_name}}</td>
-            <td class="text-left">{{user.first_name}}</td>
-            <td class="text-left">{{user.email}}</td>
+            <td class="text-start">{{user.last_name}}</td>
+            <td class="text-start">{{user.first_name}}</td>
+            <td class="text-start">{{user.email}}</td>
             <td class="">
                 <!-- role selector -->
                 <select id="role{{user.id}}">
