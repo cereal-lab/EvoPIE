@@ -40,9 +40,9 @@
         <tbody>
     {% for i in range(all_grades | length) %}
         <tr>
-            <td>{{all_grades[i].student.last_name | safe}}</td>
-            <td>{{all_grades[i].student.first_name | safe}}</td>
-            <td>{{all_grades[i].student.email | safe}}</td>
+            <td class='text-start'>{{all_grades[i].student.last_name | safe}}</td>
+            <td class='text-start'>{{all_grades[i].student.first_name | safe}}</td>
+            <td class='text-start'>{{all_grades[i].student.email | safe}}</td>
             <td>
                 <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
                         data-target=".TG-INI-{{all_grades[i].student.id}}">
