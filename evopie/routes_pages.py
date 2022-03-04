@@ -24,12 +24,20 @@ import jinja2
 
 pages = Blueprint('pages', __name__)
 
+def checkToContinue(str1, index):
+
+    if str1[index + 1] == ' ' and str1[index + 2] == '"' and str1[index - 1] == '"' and str1[index - 2].isdigit():
+        return True
+    return False
+
 def replaceModified(str):
     str1 = list(str)
     openTags = [m.start() for m in re.finditer('<p>', str)]
     closeTags = [m.start() for m in re.finditer('</p>', str)]
     singleQuotes = [m.start() for m in re.finditer('\'', str)]
     i = 0
+    if len(openTags) == 0:
+        return str.replace("'", '"')
     start = openTags[i]
     end = closeTags[i]
     for j in range(len(singleQuotes)):
@@ -47,6 +55,15 @@ def replaceModified(str):
             str1[j] = "\""
     str = ''.join(str1)
     return str
+    # openColons = [m.start() for m in re.finditer(':', str)]
+    # for i in range(len(openColons)):
+    #     index = openColons[i]
+    #     if checkToContinue(str1, index):
+    #         j = index + 3
+    #         while j < openColons[i + 1] - 7:
+    #             if str1[j] == '"':
+    #                 str1[j] = "'"
+    # return ''.join(str1)
 
 class QuizAttempt:
     justifications = {}
@@ -483,14 +500,17 @@ def get_data(qid):
         grading_details[i].initial_responses = json.loads(grades[i].initial_responses.replace("'", '"'))
         grading_details[i].revised_responses = json.loads(grades[i].revised_responses.replace("'", '"'))
         # grading_details[i].justifications = json.loads(grades[i].justifications.replace("'", '"'))
-        # grading_details[i].justifications = json.loads(replaceModified(grades[i].justifications.replace('"', "'")).replace("\\'", "'"))
-        grading_details[i].justifications = ast.literal_eval(grades[i].justifications)
-        # for j in range(len(grades)):
-        #     if j != i:
-        #         if grades[i].student_id not in like_scores:
-        #             like_scores[grades[i].student_id] = 0
-        #         likes_by_g = len(LikesGiven(grades[j])) if len(LikesGiven(grades[j])) != 0 else 1
-        #         like_scores[grades[i].student_id] += ( Likes(grades[j], grades[i]) * min( ( MaxLikes / likes_by_g ), 1 ) )
+        # print("The student is ", grades[i].student_id)
+        # print(replaceModified(grades[i].justifications).replace('\\n', '\n').replace("\\'", "'"))
+        # grading_details[i].justifications = json.loads(replaceModified(grades[i].justifications.replace('"', "'")).replace('\\n', '\n').replace("\\'", "'"))
+        grading_details[i].justifications = ast.literal_eval(grades[i].justifications.replace("\\n", "a").replace('\\"', '\"'))
+        # grading_details[i].justifications = ast.literal_eval(grades[i].justifications.replace('\\"', '\"').replace('\\n', '\n'))
+        for j in range(len(grades)):
+            if j != i:
+                if grades[i].student_id not in like_scores:
+                    like_scores[grades[i].student_id] = 0
+                likes_by_g = len(LikesGiven(grades[j])) if len(LikesGiven(grades[j])) != 0 else 1
+                like_scores[grades[i].student_id] += ( Likes(grades[j], grades[i]) * min( ( MaxLikes / likes_by_g ), 1 ) )
     return q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores
 
 def Likes(g, s):
