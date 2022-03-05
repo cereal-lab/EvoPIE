@@ -210,19 +210,27 @@
                                     <div class="accordion-item" >
                                     <h2 class="accordion-header" id="Heading{{question_id}}">
                                         <button class="accordion-button collapsed" type="button" data-toggle="collapse" data-parent="#accordionExample" href="#collapse{{question_id}}" aria-expanded="false" aria-controls="collapse{{question_id}}"">
-                                            Question #{{ question_id | safe }} - {{ questions[question_id].stem | safe }}
+                                            <!--Question #{{ question_id | safe }} - -->
+                                            {{ questions[question_id].stem | safe }}
                                         </button>
                                     </h2>
                                     <div id="collapse{{question_id}}"" class="accordion-collapse collapse" aria-labelledby="Heading{{question_id}}" ">
                                         <div class="accordion-body">
-                                            <h5>Answer - {{ questions[question_id].answer | safe }}</h5>
+                                            <table class="align-top text-start">
+                                                <tr>
+                                                    <th class="align-top text-start">Correct Answer</th>
+                                                    <th class="align-top text-start">{{ questions[question_id].answer | safe }}</th>
+                                                </tr>
                                             {% for data in likes_given[all_grades[i].student.id] %}
                                                 {% set q = question_id | int %}
                                                 {% if data[3] == q %}
-                                                    <p>{{ data[0].justification | safe }}</p>
-                                                    <br>
+                                                    <tr style="border: 1px solid;">
+                                                        <td class="align-top text-start"></td>
+                                                        <td class="align-top text-start">{{ data[0].justification | safe }}</td>
+                                                    </tr>
                                                 {% endif %}
                                             {% endfor %}
+                                            </table>
                                         </div>
                                     </div>
                                     </div>
@@ -247,18 +255,29 @@
                                     <div class="accordion-item" >
                                     <h2 class="accordion-header" id="Heading{{question_id}}">
                                         <button class="accordion-button collapsed" type="button" data-toggle="collapse" data-parent="#accordionExample" href="#collapse{{question_id}}" aria-expanded="false" aria-controls="collapse{{question_id}}"">
-                                            Question #{{ question_id | safe }} - {{ questions[question_id].stem | safe }}
+                                            <!-- Question #{{ question_id | safe }} - -->
+                                            {{ questions[question_id].stem | safe }}
                                         </button>
                                     </h2>
                                     <div id="collapse{{question_id}}"" class="accordion-collapse collapse" aria-labelledby="Heading{{question_id}}" ">
                                         <div class="accordion-body">
-                                            <h5>Answer - {{ questions[question_id].answer | safe }}</h5>
+                                            <table class="align-top text-start">
+                                                <tr>
+                                                    <th class="align-top text-start">Correct Answer</th>
+                                                    <th class="align-top text-start">{{ questions[question_id].answer | safe }}</th>
+                                                </tr>
                                             {% for data in likes_received[all_grades[i].student.id] %}
                                                 {% set q = question_id | int %}
                                                 {% if data[3] == q %}
-                                                    <p>{{ data[1].justification | safe }}</p>
+                                                <tr style="border: 1px solid;">
+                                                    <td class="align-top text-start"></td>
+                                                    <td class="align-top text-start">
+                                                        {{ data[1].justification | safe }}
+                                                    </td>
+                                                </tr>
                                                 {% endif %}
                                             {% endfor %}
+                                            </table>
                                         </div>
                                     </div>
                                     </div>
