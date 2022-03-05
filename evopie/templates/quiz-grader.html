@@ -16,10 +16,21 @@
         <div class="container">
             <h1 class="display-4">Grades for Quiz {{quiz.title | safe}} [{{quiz.id | safe}}] </h1>
                 <p class="lead">
-                    Scores for both step 1 and step 2 are computed below, click them to see 
-                    the details of the student's responses.
-                    Click the justifications button to review the student's contributions
-                    to peer instructions.
+                    The following are computed below;
+                    <ul>
+                        <li>
+                            Scores for initial responses provided by the student (step1) and their revised responses (step2)
+                            One point per question answered correctly.
+                        </li>
+                        <li>
+                            Grade for the justifications that the student provided when not selecting an alternative.
+                        </li>
+                        <li>
+                            Number of likes that the student's justifications received from other students, and number of likes
+                            that the student gave other students.
+                        </li>
+                    </ul>
+                    Click any score or grade to inspect the details.
                 </p>
         </div>
     </div>
@@ -32,10 +43,9 @@
             <th>Email</th>
             <th>Initial Score</th>
             <th>Revised Score</th>
-            <th>Justifications</th>
+            <th>Grade for Justifications Given</th>
             <th>Likes Given</th>
             <th>Likes Received</th>
-            <th>Justification Grade</th>
         </tr></thead>
         <tbody>
     {% for i in range(all_grades | length) %}
@@ -140,7 +150,7 @@
             <td>
                 <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
                         data-target=".TG-JUS-{{all_grades[i].student.id}}">
-                    Justifications
+                    {{justification_grade[all_grades[i].student.id]}}
                 </button>
                 <div class="modal fade TG-JUS-{{all_grades[i].student.id}} text-start" tabindex="-1" role="dialog"
                         aria-labelledby="mySmallModalLabel" aria-hidden="true">
@@ -287,12 +297,6 @@
                       </div>
                     </div>
                 </div>
-            </td>
-            <td>
-                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
-                data-target=".TG-SCORE-{{all_grades[i].student.id}}">
-                    {{justification_grade[all_grades[i].student.id]}}
-                </button>
             </td>
         </tr>
     {% endfor %}
