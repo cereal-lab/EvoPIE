@@ -35,7 +35,7 @@
             <th>Justifications</th>
             <th>Likes Given</th>
             <th>Likes Received</th>
-            <th>Scores Via Likes</th>
+            <th>Justification Grade</th>
         </tr></thead>
         <tbody>
     {% for i in range(all_grades | length) %}
@@ -239,7 +239,7 @@
             <td>
                 <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
                 data-target=".TG-SCORE-{{all_grades[i].student.id}}">
-                    {{like_scores[all_grades[i].student.id]}}
+                    {{justification_grade[all_grades[i].student.id]}}
                 </button>
             </td>
         </tr>

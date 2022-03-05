@@ -15,6 +15,7 @@ from flask import Markup
 from random import shuffle
 
 import json, random, ast, re
+import numpy as np
 CLEANR = re.compile('<.*?>') 
 
 from . import DB, models
@@ -471,6 +472,7 @@ def get_data(qid):
     likes_given = {}
     likes_received = {}
     count_likes_received = {}
+    justification_grade = {}
     quiz_questions = q.quiz_questions
 
     # LikesGiven format: (Justification object, Likes4Justifcations object, quiz_id, quiz_question_id)
@@ -490,10 +492,10 @@ def get_data(qid):
             distractors[str(distractor.question_id)][str(distractor.id)] = Markup(distractor.answer).unescape()
             count_distractor += 1
 
-    
-
-    MaxLikes = (len(grades) - 1) * (count_distractor + len(quiz_questions))
-
+    numJustificationsShown = getNumJustificationsShown(qid)
+    MaxLikes = numJustificationsShown * (count_distractor + len(quiz_questions))
+    print(MaxLikes, count_distractor, numJustificationsShown)
+    LimitingFactor = 0.2
     for i in range(len(grades)):
         grading_details.append(QuizAttempt())
         grades[i].justifications = Markup(grades[i].justifications).unescape()
@@ -505,13 +507,113 @@ def get_data(qid):
         # grading_details[i].justifications = json.loads(replaceModified(grades[i].justifications.replace('"', "'")).replace('\\n', '\n').replace("\\'", "'"))
         grading_details[i].justifications = ast.literal_eval(grades[i].justifications.replace("\\n", "a").replace('\\"', '\"'))
         # grading_details[i].justifications = ast.literal_eval(grades[i].justifications.replace('\\"', '\"').replace('\\n', '\n'))
-        # for j in range(len(grades)):
-        #     if j != i:
-        #         if grades[i].student_id not in like_scores:
-        #             like_scores[grades[i].student_id] = 0
-        #         likes_by_g = len(LikesGiven(grades[j])) if len(LikesGiven(grades[j])) != 0 else 1
-        #         like_scores[grades[i].student_id] += ( Likes(grades[j], grades[i]) * min( ( MaxLikes / likes_by_g ), 1 ) )
-    return q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores
+        for j in range(len(grades)):
+            if j != i:
+                if grades[i].student_id not in like_scores:
+                    like_scores[grades[i].student_id] = 0
+                likes_by_g = len(LikesGiven(grades[j])) if len(LikesGiven(grades[j])) != 0 else 1
+                like_scores[grades[i].student_id] += ( Likes(grades[j], grades[i]) * min( ( (MaxLikes * LimitingFactor) / likes_by_g ), 1 ) )
+                # print (grades[i].student.email, Likes(grades[j], grades[i]), grades[j].student.email, likes_by_g, like_scores[grades[i].student_id])
+    sorted_scores = list(like_scores.values())
+    sorted_scores.sort()
+    median, median_indices = find_median(sorted_scores)
+    Q1, Q1_indices = find_median(sorted_scores[:median_indices[0]])
+    Q3, Q3_indices = find_median(sorted_scores[median_indices[-1] + 1:])
+
+    quartiles = [Q1, median, Q3]
+    for grade in grades:
+        justification_grade[grade.student_id] = decideGrades(like_scores[grade.student_id], quartiles)
+    
+    return q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade
+
+def decideGrades(score, ranges):
+    grade = 0
+    if score <= ranges[0]:
+        grade = 1
+    elif score > ranges[0]:
+        if score < ranges[1]:
+            grade = 3
+        elif score > ranges[1]:
+            if score < ranges[2]:
+                grade = 5
+            elif score > ranges[2]:
+                grade = 10
+    return grade
+
+
+def find_median(sorted_list):
+    indices = []
+
+    list_size = len(sorted_list)
+    median = 0
+
+    if list_size % 2 == 0:
+        indices.append(int(list_size / 2) - 1)  # -1 because index starts from 0
+        indices.append(int(list_size / 2))
+
+        median = (sorted_list[indices[0]] + sorted_list[indices[1]]) / 2
+        pass
+    else:
+        indices.append(int(list_size / 2))
+
+        median = sorted_list[indices[0]]
+        pass
+
+    return median, indices
+
+def getNumJustificationsShown(qid):
+    q = models.Quiz.query.get_or_404(qid)
+    # retrieve the peers' justifications for each question
+    quiz_justifications = {}
+    for quiz_question in q.quiz_questions:
+        question_justifications = {}
+        for distractor in quiz_question.distractors:
+            # get all justifications for that alternative / question pair
+            question_justifications[str(distractor.id)] = models.Justification.query\
+                .filter_by(quiz_question_id=quiz_question.id)\
+                .filter_by(distractor_id=distractor.id)\
+                .filter(not_(models.Justification.justification==""))\
+                .filter(not_(models.Justification.justification=="<br>"))\
+                .filter(not_(models.Justification.justification=="<p><br></p>"))\
+                .filter(not_(models.Justification.justification=="<p></p>"))\
+                .filter(not_(models.Justification.student_id==current_user.id))\
+                .all()
+        # also handle the solution -1
+        question_justifications["-1"] = models.Justification.query\
+            .filter_by(quiz_question_id=quiz_question.id)\
+            .filter_by(distractor_id="-1")\
+            .filter(not_(models.Justification.justification==""))\
+            .filter(not_(models.Justification.justification=="<br>"))\
+            .filter(not_(models.Justification.justification=="<p><br></p>"))\
+            .filter(not_(models.Justification.justification=="<p></p>"))\
+            .filter(not_(models.Justification.student_id==current_user.id))\
+            .all()
+        
+        # NOTE use filter instead of filter_by for != comparisons
+        # https://stackoverflow.com/questions/16093475/flask-sqlalchemy-querying-a-column-with-not-equals/16093713
+
+        # record this array of objects as corresponding to this question
+        quiz_justifications[str(quiz_question.id)] = question_justifications
+        
+    # This is where we apply the peer selection policy
+    # We now revisit the data we collected and pick one justification in each array of Justification objects
+    for key_question in quiz_justifications:
+        for key_distractor in quiz_justifications[key_question]:
+            #pick multiple of the justification objects at random
+            
+            #NOTE make sure we check that the len of the array is big enough first
+            number_to_select = min(3 , len(quiz_justifications[key_question][key_distractor]))
+            #TODO FFS remove the above ugly, hardcoded, magic, number
+
+            selected = []
+            for n in range(number_to_select):                     
+                index = random.randint(0,len(quiz_justifications[key_question][key_distractor])-1)
+                neo = quiz_justifications[key_question][key_distractor].pop(index) #[index]
+                selected.append(neo)
+
+            quiz_justifications[key_question][key_distractor] = selected
+    
+    return number_to_select
 
 def Likes(g, s):
     '''
@@ -566,14 +668,14 @@ def quiz_grader(qid):
     '''
     This page allows to get all stats on a given quiz.
     '''
-    q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores = get_data(qid)
+    q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade = get_data(qid)
 
-    return render_template('quiz-grader.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, count_likes_received = count_likes_received, like_scores = like_scores)
+    return render_template('quiz-grader.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, count_likes_received = count_likes_received, like_scores = like_scores, justification_grade = justification_grade)
 
 @pages.route("/getDataCSV/<int:qid>", methods=['GET'])
 @login_required
 def getDataCSV(qid):
-    q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores = get_data(qid)
+    q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade = get_data(qid)
     csv = 'Last Name,First Name,Email,Initial Score,Revised Score,Likes Given,Likes Received\n'
     for grade in grades:
         likes_given_length = len(likes_given[grade.student.id]) if grade.student.id in likes_given else 0
