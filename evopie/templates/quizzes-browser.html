@@ -19,6 +19,7 @@
             <p class="lead">
                 These are the quizzes that you created. 
                 You may edit them, grade them, or create new ones.
+                You may also click on the title of any of the quizzes listed below to preview its description.
             </p>
     </div>
 </div>
@@ -107,7 +108,7 @@
                         </p>
                         <div class="modal fade" id="q{{single_quiz.id}}" tabindex="-1" role="dialog"
                             aria-labelledby="mySmallModalLabel" aria-hidden="true">
-                            <div class="modal-dialog modal-sm">
+                            <div class="modal-dialog modal-lg">
                                 <div class="modal-content">
                                 {{ single_quiz.description | safe }}
                             </div></div>
