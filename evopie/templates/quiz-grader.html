@@ -16,10 +16,21 @@
         <div class="container">
             <h1 class="display-4">Grades for Quiz {{quiz.title | safe}} [{{quiz.id | safe}}] </h1>
                 <p class="lead">
-                    Scores for both step 1 and step 2 are computed below, click them to see 
-                    the details of the student's responses.
-                    Click the justifications button to review the student's contributions
-                    to peer instructions.
+                    The following are computed below;
+                    <ul>
+                        <li>
+                            Scores for initial responses provided by the student (step1) and their revised responses (step2)
+                            One point per question answered correctly.
+                        </li>
+                        <li>
+                            Grade for the justifications that the student provided when not selecting an alternative.
+                        </li>
+                        <li>
+                            Number of likes that the student's justifications received from other students, and number of likes
+                            that the student gave other students.
+                        </li>
+                    </ul>
+                    Click any score or grade to inspect the details.
                 </p>
         </div>
     </div>
@@ -32,17 +43,16 @@
             <th>Email</th>
             <th>Initial Score</th>
             <th>Revised Score</th>
-            <th>Justifications</th>
+            <th>Grade for Justifications Given</th>
             <th>Likes Given</th>
             <th>Likes Received</th>
-            <th>Justification Grade</th>
         </tr></thead>
         <tbody>
     {% for i in range(all_grades | length) %}
         <tr>
-            <td class='text-start'>{{all_grades[i].student.last_name | safe}}</td>
-            <td class='text-start'>{{all_grades[i].student.first_name | safe}}</td>
-            <td class='text-start'>{{all_grades[i].student.email | safe}}</td>
+            <td class='text-start align-top'>{{all_grades[i].student.last_name | safe}}</td>
+            <td class='text-start align-top'>{{all_grades[i].student.first_name | safe}}</td>
+            <td class='text-start align-top'>{{all_grades[i].student.email | safe}}</td>
             <td>
                 <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
                         data-target=".TG-INI-{{all_grades[i].student.id}}">
@@ -54,29 +64,34 @@
                       <div class="modal-content">
                         <table>
                             <tr>
-                                <th>Question No.</th>
-                                <th>Answer</th>
-                                <th>Check Mark</th>
-                                <th>Response No.</th>
+                                <th>QID</th>
+                                <th>Question</th>
+                                <th>Correct Answer</th>
+                                <th></th>
+                                <th>RID</th>
+                                <th>Student's Response</th>
                             </tr>
                             {% for item in grading_details[i].initial_responses %}
                                 {% set item_index = item | int %}
                                 {% set j = grading_details[i].initial_responses[item] %}
-                                <tr>
-                                    <td>#{{ item | safe }} - {{ questions[item].stem | safe }}</td>
-                                    <td>{{ questions[item].answer | safe }}</td>
+                                <tr style="border: 1px solid;">
+                                    <td class="align-top">{{ item | safe }}</td>
+                                    <td class="text-start align-top">{{ questions[item].stem | safe }}</td>
+                                    <td class="text-start align-top">{{ questions[item].answer | safe }}</td>
                                     {% if j == '-1' %}
-                                    <td><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="green" class="bi bi-check-square" viewBox="0 0 16 16">
+                                    <td class="align-top"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="green" class="bi bi-check-square" viewBox="0 0 16 16">
                                         <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
                                         <path d="M10.97 4.97a.75.75 0 0 1 1.071 1.05l-3.992 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.235.235 0 0 1 .02-.022z"/>
                                       </svg></td>
-                                    <td>#{{ grading_details[i].initial_responses[item] | safe }} - {{ questions[item].answer | safe }}</td>
+                                    <td class="align-top">{{ grading_details[i].initial_responses[item] | safe }}</td>
+                                    <td class="text-start align-top">{{ questions[item].answer | safe }}</td>
                                     {% else %}
-                                    <td><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="red" class="bi bi-x-square" viewBox="0 0 16 16">
+                                    <td class="align-top"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="red" class="bi bi-x-square" viewBox="0 0 16 16">
                                         <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
                                         <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
                                       </svg></td>
-                                    <td>#{{ grading_details[i].initial_responses[item] | safe }} - {{ distractors[item][j] | safe }}</td>
+                                    <td class="align-top">{{ grading_details[i].initial_responses[item] | safe }}</td>
+                                    <td class="text-start align-top">{{ distractors[item][j] | safe }}</td>
                                     {% endif %}
                                 </tr>
                             {% endfor %}
@@ -96,18 +111,34 @@
                       <div class="modal-content">
                         <table>
                             <tr>
-                                <th>Question No.</th>
-                                <th>Revised Response No.</th>
+                                <th>QID</th>
+                                <th>Question</th>
+                                <th>Correct Answer</th>
+                                <th></th>
+                                <th>RID</th>
+                                <th>Student's Revised Response</th>
                             </tr>
                             {% for item in grading_details[i].revised_responses %}
                                 {% set item_index = item | int %}
                                 {% set j = grading_details[i].revised_responses[item] %}
-                                <tr>
-                                    <td>#{{ item | safe }} - {{ questions[item].stem | safe }}</td>
+                                <tr style="border: 1px solid;">
+                                    <td class="text-start align-top">{{ item | safe }}</td>
+                                    <td class="text-start align-top">{{ questions[item].stem | safe }}</td>
+                                    <td class="text-start align-top">{{ questions[item].answer | safe }}</td>
                                     {% if j == '-1' %}
-                                    <td>#{{ grading_details[i].revised_responses[item] | safe }} - {{ questions[item].answer | safe }}</td>
+                                    <td class="align-top"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="green" class="bi bi-check-square" viewBox="0 0 16 16">
+                                        <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+                                        <path d="M10.97 4.97a.75.75 0 0 1 1.071 1.05l-3.992 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.235.235 0 0 1 .02-.022z"/>
+                                        </svg></td>
+                                    <td class="text-start align-top">{{ grading_details[i].revised_responses[item] | safe }}</td>
+                                    <td class="text-start align-top">{{ questions[item].answer | safe }}</td>
                                     {% else %}
-                                    <td>#{{ grading_details[i].revised_responses[item] | safe }} - {{ distractors[item][j] | safe }}</td>
+                                    <td class="align-top"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="red" class="bi bi-x-square" viewBox="0 0 16 16">
+                                        <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+                                        <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                                        </svg></td>
+                                    <td class="text-start align-top">{{ grading_details[i].revised_responses[item] | safe }}</td>
+                                    <td class="text-start align-top">{{ distractors[item][j] | safe }}</td>
                                     {% endif %}
                                 </tr>
                             {% endfor %}
@@ -119,7 +150,7 @@
             <td>
                 <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
                         data-target=".TG-JUS-{{all_grades[i].student.id}}">
-                    Justifications
+                    {{justification_grade[all_grades[i].student.id]}}
                 </button>
                 <div class="modal fade TG-JUS-{{all_grades[i].student.id}} text-start" tabindex="-1" role="dialog"
                         aria-labelledby="mySmallModalLabel" aria-hidden="true">
@@ -129,26 +160,38 @@
                             {% for question_id, justifications_eachQuestion in grading_details[i].justifications.items() %}
                                     <div class="accordion-item" >
                                     <h2 class="accordion-header" id="Heading{{question_id}}">
-                                        <button class="accordion-button collapsed text-start" type="button" data-toggle="collapse" data-parent="#accordionExample" href="#collapse{{question_id}}" aria-expanded="false" aria-controls="collapse{{question_id}}"">
+                                        <button class="accordion-button collapsed text-start align-top" type="button" data-toggle="collapse" data-parent="#accordionExample" href="#collapse{{question_id}}" aria-expanded="false" aria-controls="collapse{{question_id}}">
                                             <!-- FIX ME : the safe filter renders the text by applying the p and br tags -->
-                                            Question #{{ question_id | safe }} - {{ questions[question_id].stem | safe }}
+                                             {{ questions[question_id].stem | safe }} <!--(<b>QID#{{ question_id | safe }}</b>)-->
                                         </button>
                                     </h2>
-                                    <div id="collapse{{question_id}}"" class="accordion-collapse collapse" aria-labelledby="Heading{{question_id}}" ">
+                                    <div id="collapse{{question_id}}" class="accordion-collapse collapse" aria-labelledby="Heading{{question_id}}">
                                         <div class="accordion-body">
                                             <table>
                                                 <tr>
-                                                    <th>Distractor</th>
-                                                    <th>Justification</th>
+                                                    <th></th>
+                                                    <th>ID</th>
+                                                    <th>Alternative</th>
+                                                    <th>Justification provided by student</th>
                                                 </tr>
                                                 {% for distractor_id, justification in justifications_eachQuestion.items() %}
-                                                    <tr>
+                                                    <tr style="border: 1px solid;">
                                                         {% if distractor_id == '-1' %}
-                                                            <td>#{{ distractor_id | safe }} - {{ questions[question_id].answer | safe }}</td>
-                                                            <td>{{ justification | safe }}</td>
+                                                            <td class="align-top"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="green" class="bi bi-check-square" viewBox="0 0 16 16">
+                                                                <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+                                                                <path d="M10.97 4.97a.75.75 0 0 1 1.071 1.05l-3.992 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.235.235 0 0 1 .02-.022z"/>
+                                                                </svg></td>
+                                                            <td class="align-top">{{ distractor_id | safe }}</td>
+                                                            <td class="align-top">{{ questions[question_id].answer | safe }}</td>
+                                                            <td class="align-top">{{ justification | safe }}</td>
                                                         {% else %}
-                                                            <td>#{{ distractor_id | safe }} - {{ distractors[question_id][distractor_id] | safe }}</td>
-                                                            <td>{{ justification | safe }}</td>
+                                                            <td class="align-top"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="red" class="bi bi-x-square" viewBox="0 0 16 16">
+                                                                <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+                                                                <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                                                                </svg></td>
+                                                            <td class="align-top">{{ distractor_id | safe }}</td>
+                                                            <td class="align-top">{{ distractors[question_id][distractor_id] | safe }}</td>
+                                                            <td class="align-top">{{ justification | safe }}</td>
                                                         {% endif %}
                                                     </tr>
                                                 {% endfor %}
@@ -177,19 +220,27 @@
                                     <div class="accordion-item" >
                                     <h2 class="accordion-header" id="Heading{{question_id}}">
                                         <button class="accordion-button collapsed" type="button" data-toggle="collapse" data-parent="#accordionExample" href="#collapse{{question_id}}" aria-expanded="false" aria-controls="collapse{{question_id}}"">
-                                            Question #{{ question_id | safe }} - {{ questions[question_id].stem | safe }}
+                                            <!--Question #{{ question_id | safe }} - -->
+                                            {{ questions[question_id].stem | safe }}
                                         </button>
                                     </h2>
                                     <div id="collapse{{question_id}}"" class="accordion-collapse collapse" aria-labelledby="Heading{{question_id}}" ">
                                         <div class="accordion-body">
-                                            <h5>Answer - {{ questions[question_id].answer | safe }}</h5>
+                                            <table class="align-top text-start">
+                                                <tr>
+                                                    <th class="align-top text-start">Correct Answer</th>
+                                                    <th class="align-top text-start">{{ questions[question_id].answer | safe }}</th>
+                                                </tr>
                                             {% for data in likes_given[all_grades[i].student.id] %}
                                                 {% set q = question_id | int %}
                                                 {% if data[3] == q %}
-                                                    <p>{{ data[0].justification | safe }}</p>
-                                                    <br>
+                                                    <tr style="border: 1px solid;">
+                                                        <td class="align-top text-start"></td>
+                                                        <td class="align-top text-start">{{ data[0].justification | safe }}</td>
+                                                    </tr>
                                                 {% endif %}
                                             {% endfor %}
+                                            </table>
                                         </div>
                                     </div>
                                     </div>
@@ -214,18 +265,29 @@
                                     <div class="accordion-item" >
                                     <h2 class="accordion-header" id="Heading{{question_id}}">
                                         <button class="accordion-button collapsed" type="button" data-toggle="collapse" data-parent="#accordionExample" href="#collapse{{question_id}}" aria-expanded="false" aria-controls="collapse{{question_id}}"">
-                                            Question #{{ question_id | safe }} - {{ questions[question_id].stem | safe }}
+                                            <!-- Question #{{ question_id | safe }} - -->
+                                            {{ questions[question_id].stem | safe }}
                                         </button>
                                     </h2>
                                     <div id="collapse{{question_id}}"" class="accordion-collapse collapse" aria-labelledby="Heading{{question_id}}" ">
                                         <div class="accordion-body">
-                                            <h5>Answer - {{ questions[question_id].answer | safe }}</h5>
+                                            <table class="align-top text-start">
+                                                <tr>
+                                                    <th class="align-top text-start">Correct Answer</th>
+                                                    <th class="align-top text-start">{{ questions[question_id].answer | safe }}</th>
+                                                </tr>
                                             {% for data in likes_received[all_grades[i].student.id] %}
                                                 {% set q = question_id | int %}
                                                 {% if data[3] == q %}
-                                                    <p>{{ data[1].justification | safe }}</p>
+                                                <tr style="border: 1px solid;">
+                                                    <td class="align-top text-start"></td>
+                                                    <td class="align-top text-start">
+                                                        {{ data[1].justification | safe }}
+                                                    </td>
+                                                </tr>
                                                 {% endif %}
                                             {% endfor %}
+                                            </table>
                                         </div>
                                     </div>
                                     </div>
@@ -235,12 +297,6 @@
                       </div>
                     </div>
                 </div>
-            </td>
-            <td>
-                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
-                data-target=".TG-SCORE-{{all_grades[i].student.id}}">
-                    {{justification_grade[all_grades[i].student.id]}}
-                </button>
             </td>
         </tr>
     {% endfor %}

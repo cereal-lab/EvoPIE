@@ -243,7 +243,7 @@
         {% set nquestion.value = nquestion.value + 1 %}
         <div class="card bg-light m-3 mx-auto" style="width: 75%">
             <div class="card-body" bg-light>
-                <h1 class="card-title">Question #{{q.id}} - {{q.question.title |safe|unescapeDoubleQuotes}}</h1>
+                <h1 class="card-title">Question #{{nquestion.value}} - {{q.question.title |safe|unescapeDoubleQuotes}}</h1>
                 <p class="card-text">{{q.question.stem|safe|unescapeDoubleQuotes}}</p>
                 
                 {% if attempt is defined %}
@@ -296,7 +296,25 @@
                                 
                                 {% if quiz.status != 'SOLUTIONS' %}
                                 {% if attempt is defined %}
-                                    <p> Reasons suggested by your peers for not selecting this one: </p>
+                                    <!-- let us count how many we have -->
+                                    {% set nResults = namespace(value=0) %}
+                                    {% for question_key, question in justifications.items() %}
+                                    {% if question_key|int == q.id|int %}
+                                        {% for distractor_key,selected_justifications in question.items() %}
+                                            {% if distractor_key|int == id|int %}
+                                                {% for justification in selected_justifications %}
+                                                    {% set nResults.value = nResults.value + 1 %}
+                                                {% endfor %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
+                                    {% endfor %}
+
+                                    {% if nResults.value > 0 %}
+                                        <p> Reasons suggested by your peers for not selecting this possible answer.</p>
+                                    {% else %}
+                                        <p> None of your classmates provided a justification for not chosing this possible answer.</p>
+                                    {% endif %}
                                     <p>
                                         <table class='table'>
                                         {% for question_key, question in justifications.items() %}
@@ -371,9 +389,9 @@
                             <button class="btn btn-danger" onclick="submitQuiz()">Submit Quiz</button>
                         </td>
                         <td style="padding:1em;">
-                            When you are done taking the quiz, press this button. 
-                            A crude popup will let you know whether it was accepted ("OK"), or if you just tried to resubmit ("FORBIDDEN").
-                            If you were trying to resubmit, no worries, your first submission is enough.
+                            When you are done taking the quiz, press this button. Remember: you may close this page
+                            then come back later to re-open the quiz, however, once you submit, you will not be available
+                            to reopen this quiz.
                         </td>
                     </tr>
                 </table>
