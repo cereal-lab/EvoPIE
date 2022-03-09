@@ -494,7 +494,6 @@ def get_data(qid):
 
     numJustificationsShown = getNumJustificationsShown(qid)
     MaxLikes = numJustificationsShown * (count_distractor + len(quiz_questions))
-    print(MaxLikes, count_distractor, numJustificationsShown)
     LimitingFactor = 0.2
     for i in range(len(grades)):
         grading_details.append(QuizAttempt())
@@ -515,14 +514,15 @@ def get_data(qid):
                 like_scores[grades[i].student_id] += ( Likes(grades[j], grades[i]) * min( ( (MaxLikes * LimitingFactor) / likes_by_g ), 1 ) )
                 # print (grades[i].student.email, Likes(grades[j], grades[i]), grades[j].student.email, likes_by_g, like_scores[grades[i].student_id])
     sorted_scores = list(like_scores.values())
-    sorted_scores.sort()
-    median, median_indices = find_median(sorted_scores)
-    Q1, Q1_indices = find_median(sorted_scores[:median_indices[0]])
-    Q3, Q3_indices = find_median(sorted_scores[median_indices[-1] + 1:])
+    sorted_scores.sort()    
+    if len(sorted_scores) > 0:
+        median, median_indices = find_median(sorted_scores)
+        Q1, Q1_indices = find_median(sorted_scores[:median_indices[0]])
+        Q3, Q3_indices = find_median(sorted_scores[median_indices[-1] + 1:])
 
-    quartiles = [Q1, median, Q3]
-    for grade in grades:
-        justification_grade[grade.student_id] = decideGrades(like_scores[grade.student_id], quartiles)
+        quartiles = [Q1, median, Q3]
+        for grade in grades:
+            justification_grade[grade.student_id] = decideGrades(like_scores[grade.student_id], quartiles)
     
     return q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade
 
@@ -564,6 +564,7 @@ def find_median(sorted_list):
 def getNumJustificationsShown(qid):
     q = models.Quiz.query.get_or_404(qid)
     # retrieve the peers' justifications for each question
+    number_to_select = 0
     quiz_justifications = {}
     for quiz_question in q.quiz_questions:
         question_justifications = {}
@@ -668,7 +669,10 @@ def quiz_grader(qid):
     '''
     This page allows to get all stats on a given quiz.
     '''
+
     q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade = get_data(qid)
+
+    print("hi")
 
     return render_template('quiz-grader.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, count_likes_received = count_likes_received, like_scores = like_scores, justification_grade = justification_grade)
 
