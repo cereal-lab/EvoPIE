@@ -464,6 +464,7 @@ def get_data(qid):
         .filter(models.QuizAttempt.student_id == models.User.id)\
         .order_by(collate(models.User.last_name, 'NOCASE'))\
         .all()
+
     questions = {}
     distractors = {}
     count_distractor = 0
@@ -475,6 +476,9 @@ def get_data(qid):
     justification_grade = {}
     quiz_questions = q.quiz_questions
 
+    if len(grades) == 0:
+        return q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade
+
     # LikesGiven format: (Justification object, Likes4Justifcations object, quiz_id, quiz_question_id)
     # LikesReceived format: (Likes4Justification object, Justification object, quiz_id, quiz_question_id)
     for grade in grades:
@@ -483,18 +487,18 @@ def get_data(qid):
 
     for question in quiz_questions:
         with models.DB.session.no_autoflush:
-            questions[str(question.id)] = models.Question.query.filter(question.id == models.Question.id).all()[0]
+            questions[str(question.id)] = models.Question.query.filter(question.question_id == models.Question.id).first()
         questions[str(question.id)].stem = Markup(questions[str(question.id)].stem).unescape()
         questions[str(question.id)].answer = Markup(questions[str(question.id)].answer).unescape()
         for distractor in question.distractors:
-            if str(distractor.question_id) not in distractors:
-                distractors[str(distractor.question_id)] = {}
-            distractors[str(distractor.question_id)][str(distractor.id)] = Markup(distractor.answer).unescape()
+            if str(question.id) not in distractors:
+                distractors[str(question.id)] = {}
+            distractors[str(question.id)][str(distractor.id)] = Markup(distractor.answer).unescape()
             count_distractor += 1
 
     numJustificationsShown = getNumJustificationsShown(qid)
     MaxLikes = numJustificationsShown * (count_distractor + len(quiz_questions))
-    LimitingFactor = 0.2
+    LimitingFactor = q.limiting_factor
     for i in range(len(grades)):
         grading_details.append(QuizAttempt())
         grades[i].justifications = Markup(grades[i].justifications).unescape()
@@ -523,6 +527,7 @@ def get_data(qid):
         quartiles = [Q1, median, Q3]
         for grade in grades:
             justification_grade[grade.student_id] = decideGrades(like_scores[grade.student_id], quartiles)
+
     
     return q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade
 
@@ -672,9 +677,13 @@ def quiz_grader(qid):
 
     q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade = get_data(qid)
 
-    print("hi")
+    participation_upper_bound = 20
+    participation_lower_bound = 0.8 * participation_upper_bound
+    maxLikesOptions = [25, 50, 75]
 
-    return render_template('quiz-grader.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, count_likes_received = count_likes_received, like_scores = like_scores, justification_grade = justification_grade)
+    LimitingFactor = q.limiting_factor
+
+    return render_template('quiz-grader.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, count_likes_received = count_likes_received, like_scores = like_scores, justification_grade = justification_grade, participation_upper_bound = participation_upper_bound, participation_lower_bound = participation_lower_bound, maxLikesOptions = maxLikesOptions, LimitingFactor = LimitingFactor)
 
 @pages.route("/getDataCSV/<int:qid>", methods=['GET'])
 @login_required
@@ -691,3 +700,14 @@ def getDataCSV(qid):
         mimetype="text/csv",
         headers={"Content-disposition":
                  "attachment; filename={}.csv".format(filename)})
+
+@pages.route("/add/<int:qid>", methods=['POST'])
+@login_required
+def add(qid):
+    data = request.form.get('maxLikesOptions')
+        
+    print(type(data))
+    q = models.Quiz.query.get_or_404(qid)
+    q.limiting_factor = int(data) / 100
+    models.DB.session.commit()
+    return redirect(url_for('pages.quiz_grader', qid = qid))

@@ -200,6 +200,7 @@ class Quiz(DB.Model):
     # later, we might add some global tags
     author_tags = DB.Column(DB.String)
     status = DB.Column(DB.String, default="HIDDEN")
+    limiting_factor = DB.Column(DB.Integer, default=0.5)
     # NOTE for now the statuses that are handled are "HIDDEN", "STEP1", "STEP2"
     # TODO might want to make this a foreign key to a table of statuses
 
