@@ -528,7 +528,7 @@ def get_data(qid):
         for grade in grades:
             justification_grade[grade.student_id] = decideGrades(like_scores[grade.student_id], quartiles)
 
-    
+        print(MaxLikes, sorted_scores, quartiles)
     return q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade
 
 def decideGrades(score, ranges):
