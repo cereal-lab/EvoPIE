@@ -31,11 +31,11 @@
                         </li>
                         <li>
                             {% set q = quiz.id | int %}
-                            <form action="{{ url_for('pages.add', qid = q) }}" method="POST">
+                            <form action="{{ url_for('pages.changeLimitingFactor', qid = q) }}" method="POST">
                                 You can only like maximum
                                 <select name="maxLikesOptions">
-                                    <option value="" selected></option>
-                                    {% for option in maxLikesOptions %}
+                                    <option value="not applied" selected></option>
+                                    {% for option in limitingFactorOptions %}
                                       <option value="{{option}}">{{option}}%</option>
                                     {% endfor %}
                                 </select> 
@@ -44,7 +44,7 @@
                             </form>
                         </li>
                         <li>
-                            Max Likes : {{ LimitingFactor * 100 }}%
+                            Limiting Factor : {{ LimitingFactor * 100 }}%
                         </li>
                     </ul>             
                     Click any score or grade to inspect the details.

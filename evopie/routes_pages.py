@@ -679,11 +679,11 @@ def quiz_grader(qid):
 
     participation_upper_bound = 20
     participation_lower_bound = 0.8 * participation_upper_bound
-    maxLikesOptions = [25, 50, 75]
+    limitingFactorOptions = [25, 50, 75]
 
     LimitingFactor = q.limiting_factor
 
-    return render_template('quiz-grader.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, count_likes_received = count_likes_received, like_scores = like_scores, justification_grade = justification_grade, participation_upper_bound = participation_upper_bound, participation_lower_bound = participation_lower_bound, maxLikesOptions = maxLikesOptions, LimitingFactor = LimitingFactor)
+    return render_template('quiz-grader.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, count_likes_received = count_likes_received, like_scores = like_scores, justification_grade = justification_grade, participation_upper_bound = participation_upper_bound, participation_lower_bound = participation_lower_bound, limitingFactorOptions = limitingFactorOptions, LimitingFactor = LimitingFactor)
 
 @pages.route("/getDataCSV/<int:qid>", methods=['GET'])
 @login_required
@@ -701,12 +701,14 @@ def getDataCSV(qid):
         headers={"Content-disposition":
                  "attachment; filename={}.csv".format(filename)})
 
-@pages.route("/add/<int:qid>", methods=['POST'])
+@pages.route("/edit/LimitingFactor/<int:qid>", methods=['POST'])
 @login_required
-def add(qid):
+def changeLimitingFactor(qid):
     data = request.form.get('maxLikesOptions')
         
-    print(type(data))
+    print(data)
+    if data == "not applied":
+        return redirect(url_for('pages.quiz_grader', qid = qid))
     q = models.Quiz.query.get_or_404(qid)
     q.limiting_factor = int(data) / 100
     models.DB.session.commit()
