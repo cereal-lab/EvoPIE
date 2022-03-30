@@ -33,7 +33,7 @@
                             {% set q = quiz.id | int %}
                             <form action="{{ url_for('pages.changeLimitingFactor', qid = q) }}" method="POST">
                                 You can only like maximum
-                                <select name="maxLikesOptions">
+                                <select name="limitingFactorOptions">
                                     <option value="not applied" selected></option>
                                     {% for option in limitingFactorOptions %}
                                       <option value="{{option}}">{{option}}%</option>
@@ -44,7 +44,37 @@
                             </form>
                         </li>
                         <li>
+                            <form action="{{ url_for('pages.changeInitialScoreFactor', qid = q) }}" method="POST">
+                                Choose Initial Score Factor: 
+                                <select name="initialScoreFactorOptions">
+                                    <option value="not applied" selected></option>
+                                    {% for option in initialScoreFactorOptions %}
+                                      <option value="{{option}}">{{option}}</option>
+                                    {% endfor %}
+                                </select> 
+                                <button class="btn btn-primary btn-sm" name="submit" value="submit">Submit</button>
+                            </form>
+                        </li>
+                        <li>
+                            <form action="{{ url_for('pages.changeRevisedScoreFactor', qid = q) }}" method="POST">
+                                Choose Revised Score Factor: 
+                                <select name="revisedScoreFactorOptions">
+                                    <option value="not applied" selected></option>
+                                    {% for option in revisedScoreFactorOptions %}
+                                      <option value="{{option}}">{{option}}</option>
+                                    {% endfor %}
+                                </select> 
+                                <button class="btn btn-primary btn-sm" name="submit" value="submit">Submit</button>
+                            </form>
+                        </li>
+                        <li>
                             Limiting Factor : {{ LimitingFactor * 100 }}%
+                        </li>
+                        <li>
+                            Initial Score Factor : {{ quiz.initial_score_factor }}
+                        </li>
+                        <li>
+                            Revised Score Factor : {{ quiz.revised_score_factor }}
                         </li>
                     </ul>             
                     Click any score or grade to inspect the details.

@@ -793,6 +793,7 @@ def all_quizzes_take(qid):
             initial_scores_dict = {}
             # we also save the total score as we go
             attempt.initial_total_score = 0
+            attempt.initial_total_score_raw = 0
             for key in initial_responses_dict:
                 if int(initial_responses_dict[key] == 0):
                     response     = ({ "message" : "You must select an answer for each question" }, 400, {"Content-Type": "application/json"})
@@ -802,7 +803,8 @@ def all_quizzes_take(qid):
                 else:
                     result = 0
                 initial_scores_dict[key] = result
-                attempt.initial_total_score += result
+                attempt.initial_total_score_raw += result
+                attempt.initial_total_score += result * quiz.initial_score_factor
             attempt.initial_scores = str(initial_scores_dict)
 
             # extract same structure here; question_id : justification string
@@ -851,6 +853,7 @@ def all_quizzes_take(qid):
             attempt.revised_responses = str(revised_responses_dict)
             # we also save the total score as we go
             attempt.revised_total_score = 0
+            attempt.revised_total_score_raw = 0
             for key in revised_responses_dict:
                 if int(revised_responses_dict[key] == 0):
                     response     = ({ "message" : "You must select an answer for each question" }, 400, {"Content-Type": "application/json"})
@@ -860,7 +863,8 @@ def all_quizzes_take(qid):
                 else:
                     result = 0
                 revised_scores_dict[key] = result
-                attempt.revised_total_score += result
+                attempt.revised_total_score_raw += result
+                attempt.revised_total_score += result * quiz.revised_score_factor
             attempt.revised_scores = str(revised_scores_dict)
             
             models.DB.session.commit()

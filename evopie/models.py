@@ -201,6 +201,9 @@ class Quiz(DB.Model):
     author_tags = DB.Column(DB.String)
     status = DB.Column(DB.String, default="HIDDEN")
     limiting_factor = DB.Column(DB.Integer, default=0.5)
+    initial_score_factor = DB.Column(DB.Integer, default=1)
+    revised_score_factor = DB.Column(DB.Integer, default=1)
+
     # NOTE for now the statuses that are handled are "HIDDEN", "STEP1", "STEP2"
     # TODO might want to make this a foreign key to a table of statuses
 
@@ -248,7 +251,9 @@ class QuizAttempt(DB.Model):
     initial_responses = DB.Column(DB.String, default="{}") # as json list of distractor_ID or -1 for answer
     revised_responses = DB.Column(DB.String, default="{}") # as json list of distractor_ID or -1 for answer
 
+    initial_total_score_raw = DB.Column(DB.Integer, default=0)
     initial_total_score = DB.Column(DB.Integer, default=0)
+    revised_total_score_raw = DB.Column(DB.Integer, default=0)
     revised_total_score = DB.Column(DB.Integer, default=0)
 
     # justifications to each possible answer
