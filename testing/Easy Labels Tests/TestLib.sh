@@ -62,13 +62,14 @@ function curl_login {
 
 
 
-function curldownload {
+function curl_download {
     LOGIN="-L -b ./mycookies"
     MSG=$1
     TARGET_PATH=$2
+    LOCAL_FILE=$3
     METHOD='-X GET'
     
-    curl $LOGIN $METHOD -d "$DATA" --output gradebook.csv -H "Content-Type: application/json" "http://127.0.0.1:5000$TARGET_PATH"
+    curl --silent $LOGIN $METHOD -d "$DATA" --output "$LOCAL_FILE" -H "Content-Type: application/json" "http://127.0.0.1:5000$TARGET_PATH"
     if [[ $? == 0 ]]
     then
         echo -e "\t$MSG"
