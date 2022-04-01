@@ -4,6 +4,7 @@
 # of the members they end up featuring at runtime. This is a way to tell pylint to let it be
 
 from dataclasses import replace
+from mimetypes import init
 from operator import not_
 from flask import jsonify, abort, request, Response, render_template, redirect, url_for, make_response
 from flask import Blueprint
@@ -686,11 +687,13 @@ def quiz_grader(qid):
     participation_lower_bound = 0.8 * participation_upper_bound
     limitingFactorOptions = [25, 50, 75]
     initialScoreFactorOptions = [1, 3, 5]
-    revisedScoreFactorOptions = [1, 3, 5]
+    revisedScoreFactorOptions = initialScoreFactorOptions
+    justificationsGradeOptions = initialScoreFactorOptions
+    participationGradeOptions = initialScoreFactorOptions
 
     LimitingFactor = q.limiting_factor
 
-    return render_template('quiz-grader.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, count_likes_received = count_likes_received, like_scores = like_scores, justification_grade = justification_grade, participation_upper_bound = participation_upper_bound, participation_lower_bound = participation_lower_bound, limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, LimitingFactor = LimitingFactor)
+    return render_template('quiz-grader.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, count_likes_received = count_likes_received, like_scores = like_scores, justification_grade = justification_grade, participation_upper_bound = participation_upper_bound, participation_lower_bound = participation_lower_bound, limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, LimitingFactor = LimitingFactor)
 
 @pages.route("/getDataCSV/<int:qid>", methods=['GET'])
 @login_required
@@ -747,6 +750,34 @@ def changeRevisedScoreFactor(qid):
     q = models.Quiz.query.get_or_404(qid)
     # resetTotalScores(qid)
     q.revised_score_factor = int(data)
+    models.DB.session.commit()
+    return redirect(url_for('pages.quiz_grader', qid = qid))
+
+@pages.route("/edit/JustificationsGrade/<int:qid>", methods=['POST'])
+@login_required
+def changeJustificationsGrade(qid):
+    data = request.form.get('justificationsGradeOptions')
+        
+    print(data)
+    if data == "not applied":
+        return redirect(url_for('pages.quiz_grader', qid = qid))
+    q = models.Quiz.query.get_or_404(qid)
+    # resetTotalScores(qid)
+    q.justifications_grade = int(data)
+    models.DB.session.commit()
+    return redirect(url_for('pages.quiz_grader', qid = qid))
+
+@pages.route("/edit/ParticipationGrade/<int:qid>", methods=['POST'])
+@login_required
+def changeParticipationGrade(qid):
+    data = request.form.get('participationGradeOptions')
+        
+    print(data)
+    if data == "not applied":
+        return redirect(url_for('pages.quiz_grader', qid = qid))
+    q = models.Quiz.query.get_or_404(qid)
+    # resetTotalScores(qid)
+    q.participation_grade = int(data)
     models.DB.session.commit()
     return redirect(url_for('pages.quiz_grader', qid = qid))
 

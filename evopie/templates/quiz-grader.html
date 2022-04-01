@@ -68,6 +68,30 @@
                             </form>
                         </li>
                         <li>
+                            <form action="{{ url_for('pages.changeJustificationsGrade', qid = q) }}" method="POST">
+                                Choose Justifications Grade
+                                <select name="justificationsGradeOptions">
+                                    <option value="not applied" selected></option>
+                                    {% for option in justificationsGradeOptions %}
+                                      <option value="{{option}}">{{option}}</option>
+                                    {% endfor %}
+                                </select> 
+                                <button class="btn btn-primary btn-sm" name="submit" value="submit">Submit</button>
+                            </form>
+                        </li>
+                        <li>
+                            <form action="{{ url_for('pages.changeParticipationGrade', qid = q) }}" method="POST">
+                                Choose Participation Grade
+                                <select name="participationGradeOptions">
+                                    <option value="not applied" selected></option>
+                                    {% for option in participationGradeOptions %}
+                                      <option value="{{option}}">{{option}}</option>
+                                    {% endfor %}
+                                </select> 
+                                <button class="btn btn-primary btn-sm" name="submit" value="submit">Submit</button>
+                            </form>
+                        </li>
+                        <li>
                             Limiting Factor : {{ LimitingFactor * 100 }}%
                         </li>
                         <li>
@@ -75,6 +99,12 @@
                         </li>
                         <li>
                             Revised Score Factor : {{ quiz.revised_score_factor }}
+                        </li>
+                        <li>
+                            Justifications Grade : {{ quiz.justifications_grade }}
+                        </li>
+                        <li>
+                            Participation Grade : {{ quiz.participation_grade }}
                         </li>
                     </ul>             
                     Click any score or grade to inspect the details.

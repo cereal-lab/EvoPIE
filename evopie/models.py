@@ -203,6 +203,8 @@ class Quiz(DB.Model):
     limiting_factor = DB.Column(DB.Integer, default=0.5)
     initial_score_factor = DB.Column(DB.Integer, default=1)
     revised_score_factor = DB.Column(DB.Integer, default=1)
+    justifications_grade = DB.Column(DB.Integer, default=1)
+    participation_grade = DB.Column(DB.Integer, default=1)
 
     # NOTE for now the statuses that are handled are "HIDDEN", "STEP1", "STEP2"
     # TODO might want to make this a foreign key to a table of statuses
