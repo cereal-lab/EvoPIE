@@ -893,6 +893,7 @@ def changeInitialScoreWeight(qid):
         if request.json:
             q.initial_score_weight = int(request.json['initial_score']) / 100
             models.DB.session.commit()
+
         return make_response(response)
 
 @mcq.route('/grades/<int:qid>/revisedScoreWeight', methods=['POST'])
@@ -988,3 +989,10 @@ def post_user_password(uid):
     models.DB.session.commit()
 
     return redirect(url_for('pages.users_browser'))
+
+def check(qid):
+    q = models.Quiz.query.get_or_404(qid)
+    total = q.initial_score_weight + q.revised_score_weight + q.justification_grade_weight + q.participation_grade_weight
+    if total > 1:
+        return False
+    return True
