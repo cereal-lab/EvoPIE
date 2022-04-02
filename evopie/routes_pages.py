@@ -466,11 +466,6 @@ def get_data(qid):
         .order_by(collate(models.User.last_name, 'NOCASE'))\
         .all()
 
-    for grade in grades:
-        grade.initial_total_score = grade.initial_total_score_raw * q.initial_score_factor
-        grade.revised_total_score = grade.revised_total_score_raw * q.revised_score_factor
-        models.DB.session.commit()
-
     questions = {}
     distractors = {}
     count_distractor = 0
@@ -536,6 +531,15 @@ def get_data(qid):
 
         print(MaxLikes, sorted_scores, quartiles)
     return q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade
+
+def getTotalScore(q, grades, justification_grade, likes_given):
+    total_scores = {}
+    for grade in grades:
+        likes_given_length = len(likes_given[grade.student.id]) if grade.student.id in likes_given else 0
+        participation_grade = 1 if likes_given_length >= 8 and likes_given_length <= 10 else 0
+        total_scores[grade.student.id] = grade.initial_total_score * q.initial_score_weight + grade.revised_total_score * q.revised_score_weight + justification_grade[grade.student.id] * q.justification_grade_weight + participation_grade * q.participation_grade_weight
+    return total_scores
+
 
 def decideGrades(score, ranges):
     grade = 0
@@ -683,28 +687,32 @@ def quiz_grader(qid):
 
     q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade = get_data(qid)
 
-    participation_upper_bound = 20
+    participation_upper_bound = 10
     participation_lower_bound = 0.8 * participation_upper_bound
     limitingFactorOptions = [25, 50, 75]
-    initialScoreFactorOptions = [1, 3, 5]
+    initialScoreFactorOptions = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
     revisedScoreFactorOptions = initialScoreFactorOptions
     justificationsGradeOptions = initialScoreFactorOptions
     participationGradeOptions = initialScoreFactorOptions
 
     LimitingFactor = q.limiting_factor
 
-    return render_template('quiz-grader.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, count_likes_received = count_likes_received, like_scores = like_scores, justification_grade = justification_grade, participation_upper_bound = participation_upper_bound, participation_lower_bound = participation_lower_bound, limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, LimitingFactor = LimitingFactor)
+    total_scores = getTotalScore(q, grades, justification_grade, likes_given)
+    
+
+    return render_template('quiz-grader.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, count_likes_received = count_likes_received, like_scores = like_scores, justification_grade = justification_grade, participation_upper_bound = participation_upper_bound, participation_lower_bound = participation_lower_bound, limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, LimitingFactor = LimitingFactor, total_scores = total_scores)
 
 @pages.route("/getDataCSV/<int:qid>", methods=['GET'])
 @login_required
 def getDataCSV(qid):
     # resetTotalScores(qid)
     q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade = get_data(qid)
-    csv = 'Last Name,First Name,Email,Initial Score,Revised Score,Likes Given,Likes Received\n'
+    csv = 'Last Name,First Name,Email,Initial Score,Revised Score,Grade for Justifications,Grade for Participation,Likes Given,Likes Received\n'
     for grade in grades:
         likes_given_length = len(likes_given[grade.student.id]) if grade.student.id in likes_given else 0
         likes_received_length = len(count_likes_received[grade.student.id]) if grade.student.id in likes_received else 0
-        csv += grade.student.last_name + "," + grade.student.first_name + "," + grade.student.email + "," + str(grade.initial_total_score) + "," + str(grade.revised_total_score) + "," + str(likes_given_length) + "," + str(likes_received_length) + "\n"
+        participation_grade = q.participation_grade if likes_given_length >= 8 and likes_given_length <= 10 else 0
+        csv += grade.student.last_name + "," + grade.student.first_name + "," + grade.student.email + "," + str(grade.initial_total_score) + "," + str(grade.revised_total_score) + "," + str(justification_grade[grade.student.id]) + "," + str(participation_grade) + "," + str(likes_given_length) + "," + str(likes_received_length) + "\n"
     filename = (current_user.email + "-" + q.title).replace(" ", "_")
     return Response(
         csv,
@@ -715,7 +723,7 @@ def getDataCSV(qid):
 @pages.route("/edit/LimitingFactor/<int:qid>", methods=['POST'])
 @login_required
 def changeLimitingFactor(qid):
-    data = request.form.get('maxLikesOptions')
+    data = request.form.get('limitingFactorOptions')
         
     print(data)
     if data == "not applied":

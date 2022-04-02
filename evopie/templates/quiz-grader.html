@@ -7,7 +7,96 @@
     <script>
         $(document).ready( function () {
             $('#gradingtable').DataTable();
-        } );
+
+            document.querySelector('#initial_score').addEventListener('change',function(){
+                let target_url = '/grades/{{quiz.id}}/initialScoreWeight';
+                let e = document.querySelector('#initial_score');
+                let selectedValue = e.options[e.selectedIndex].value;
+                fetch(target_url,{
+                    method:         'POST',
+                    headers:        {'Content-Type' : 'application/json'},
+                    body:           JSON.stringify({"initial_score" :  selectedValue}),
+                    credentials:    'same-origin'
+                })
+                .then(
+                    response => {
+                        if(response.ok){
+                            $('#initial_score_weight')[0].innerHTML = "Initial Score Weight : " + selectedValue + "%";
+                            //window.location.reload();
+                        }
+                    }
+                )
+                .catch((error) => {
+                })
+            });
+
+            document.querySelector('#revised_score').addEventListener('change',function(){
+                let target_url = '/grades/{{quiz.id}}/revisedScoreWeight';
+                let e = document.querySelector('#revised_score');
+                let selectedValue = e.options[e.selectedIndex].value;
+                fetch(target_url,{
+                    method:         'POST',
+                    headers:        {'Content-Type' : 'application/json'},
+                    body:           JSON.stringify({"revised_score" :  selectedValue}),
+                    credentials:    'same-origin'
+                })
+                .then(
+                    response => {
+                        if(response.ok){
+                            $('#revised_score_weight')[0].innerHTML = "Revised Score Weight : " + selectedValue + "%";
+                            //window.location.reload();
+                        }
+                    }
+                )
+                .catch((error) => {
+                })
+            });
+
+            document.querySelector('#justification_grade').addEventListener('change',function(){
+                let target_url = '/grades/{{quiz.id}}/justificationGradeWeight';
+                let e = document.querySelector('#justification_grade');
+                let selectedValue = e.options[e.selectedIndex].value;
+                fetch(target_url,{
+                    method:         'POST',
+                    headers:        {'Content-Type' : 'application/json'},
+                    body:           JSON.stringify({"justification_grade" :  selectedValue}),
+                    credentials:    'same-origin'
+                })
+                .then(
+                    response => {
+                        if(response.ok){
+                            $('#justification_grade_weight')[0].innerHTML = "Justification Grade Weight : " + selectedValue + "%";
+                            //window.location.reload();
+                        }
+                    }
+                )
+                .catch((error) => {
+                })
+            });
+
+            document.querySelector('#participation_grade').addEventListener('change',function(){
+                let target_url = '/grades/{{quiz.id}}/participationGradeWeight';
+                let e = document.querySelector('#participation_grade');
+                let selectedValue = e.options[e.selectedIndex].value;
+                fetch(target_url,{
+                    method:         'POST',
+                    headers:        {'Content-Type' : 'application/json'},
+                    body:           JSON.stringify({"participation_grade" :  selectedValue}),
+                    credentials:    'same-origin'
+                })
+                .then(
+                    response => {
+                        if(response.ok){
+                            $('#participation_grade_weight')[0].innerHTML = "Participation Grade Weight : " + selectedValue + "%";
+                            //window.location.reload();
+                        }
+                    }
+                )
+                .catch((error) => {
+                })
+            });
+    } );
+
     </script>
 {% endblock %}
 {% block content %}
@@ -44,67 +133,56 @@
                             </form>
                         </li>
                         <li>
-                            <form action="{{ url_for('pages.changeInitialScoreFactor', qid = q) }}" method="POST">
-                                Choose Initial Score Factor: 
-                                <select name="initialScoreFactorOptions">
-                                    <option value="not applied" selected></option>
-                                    {% for option in initialScoreFactorOptions %}
-                                      <option value="{{option}}">{{option}}</option>
-                                    {% endfor %}
-                                </select> 
-                                <button class="btn btn-primary btn-sm" name="submit" value="submit">Submit</button>
-                            </form>
+                            Choose Initial Score Weight: 
+                            <select id="initial_score" name="initialScoreFactorOptions">
+                                <option value="not applied" selected></option>
+                                {% for option in initialScoreFactorOptions %}
+                                    <option value="{{option}}">{{option}}%</option>
+                                {% endfor %}
+                            </select> 
+                            <!-- <button onclick=test() class="btn btn-primary btn-sm" name="submit" value="submit">Submit</button> -->
                         </li>
                         <li>
-                            <form action="{{ url_for('pages.changeRevisedScoreFactor', qid = q) }}" method="POST">
-                                Choose Revised Score Factor: 
-                                <select name="revisedScoreFactorOptions">
-                                    <option value="not applied" selected></option>
-                                    {% for option in revisedScoreFactorOptions %}
-                                      <option value="{{option}}">{{option}}</option>
-                                    {% endfor %}
-                                </select> 
-                                <button class="btn btn-primary btn-sm" name="submit" value="submit">Submit</button>
-                            </form>
+                            Choose Revised Score Weight: 
+                            <select id="revised_score" name="revisedScoreFactorOptions">
+                                <option value="not applied" selected></option>
+                                {% for option in revisedScoreFactorOptions %}
+                                    <option value="{{option}}">{{option}}%</option>
+                                {% endfor %}
+                            </select>
                         </li>
                         <li>
-                            <form action="{{ url_for('pages.changeJustificationsGrade', qid = q) }}" method="POST">
-                                Choose Justifications Grade
-                                <select name="justificationsGradeOptions">
-                                    <option value="not applied" selected></option>
-                                    {% for option in justificationsGradeOptions %}
-                                      <option value="{{option}}">{{option}}</option>
-                                    {% endfor %}
-                                </select> 
-                                <button class="btn btn-primary btn-sm" name="submit" value="submit">Submit</button>
-                            </form>
+                            Choose Justifications Grade Weight
+                            <select id="justification_grade" name="justificationsGradeOptions">
+                                <option value="not applied" selected></option>
+                                {% for option in justificationsGradeOptions %}
+                                    <option value="{{option}}">{{option}}%</option>
+                                {% endfor %}
+                            </select> 
                         </li>
                         <li>
-                            <form action="{{ url_for('pages.changeParticipationGrade', qid = q) }}" method="POST">
-                                Choose Participation Grade
-                                <select name="participationGradeOptions">
-                                    <option value="not applied" selected></option>
-                                    {% for option in participationGradeOptions %}
-                                      <option value="{{option}}">{{option}}</option>
-                                    {% endfor %}
-                                </select> 
-                                <button class="btn btn-primary btn-sm" name="submit" value="submit">Submit</button>
-                            </form>
+                            Choose Participation Grade Weight
+                            <select id="participation_grade" name="participationGradeOptions">
+                                <option value="not applied" selected></option>
+                                {% for option in participationGradeOptions %}
+                                    <option value="{{option}}">{{option}}%</option>
+                                {% endfor %}
+                            </select> 
                         </li>
                         <li>
                             Limiting Factor : {{ LimitingFactor * 100 }}%
                         </li>
-                        <li>
-                            Initial Score Factor : {{ quiz.initial_score_factor }}
+                        <li id="initial_score_weight">
+                            Initial Score Weight : {{ quiz.initial_score_weight * 100 }}%
                         </li>
-                        <li>
-                            Revised Score Factor : {{ quiz.revised_score_factor }}
+                        <li id="revised_score_weight">
+                            Revised Score Weight : {{ quiz.revised_score_weight * 100 }}%
                         </li>
-                        <li>
-                            Justifications Grade : {{ quiz.justifications_grade }}
+                        <li id="justification_grade_weight">
+                            Justification Grade Weight : {{ quiz.justification_grade_weight * 100 }}%
                         </li>
-                        <li>
-                            Participation Grade : {{ quiz.participation_grade }}
+                        <li id="participation_grade_weight">
+                            Participation Grade Weight : {{ quiz.participation_grade_weight * 100 }}%
                         </li>
                     </ul>             
                     Click any score or grade to inspect the details.
@@ -124,6 +202,7 @@
             <th>Grade for Participation</th>
             <th>Likes Given</th>
             <th>Likes Received</th>
+            <th>Total Score</th>
         </tr></thead>
         <tbody>
     {% for i in range(all_grades | length) %}
@@ -390,6 +469,12 @@
                     </div>
                 </div>
             </td>
+            <td>
+                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
+                data-target=".TG-TOTAL-{{all_grades[i].student.id}}">
+                {{total_scores[all_grades[i].student.id]}}
+                </button>
+    </td>
         </tr>
     {% endfor %}
         </tbody>

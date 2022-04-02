@@ -793,7 +793,6 @@ def all_quizzes_take(qid):
             initial_scores_dict = {}
             # we also save the total score as we go
             attempt.initial_total_score = 0
-            attempt.initial_total_score_raw = 0
             for key in initial_responses_dict:
                 if int(initial_responses_dict[key] == 0):
                     response     = ({ "message" : "You must select an answer for each question" }, 400, {"Content-Type": "application/json"})
@@ -803,8 +802,7 @@ def all_quizzes_take(qid):
                 else:
                     result = 0
                 initial_scores_dict[key] = result
-                attempt.initial_total_score_raw += result
-                attempt.initial_total_score += result * quiz.initial_score_factor
+                attempt.initial_total_score += result
             attempt.initial_scores = str(initial_scores_dict)
 
             # extract same structure here; question_id : justification string
@@ -853,7 +851,6 @@ def all_quizzes_take(qid):
             attempt.revised_responses = str(revised_responses_dict)
             # we also save the total score as we go
             attempt.revised_total_score = 0
-            attempt.revised_total_score_raw = 0
             for key in revised_responses_dict:
                 if int(revised_responses_dict[key] == 0):
                     response     = ({ "message" : "You must select an answer for each question" }, 400, {"Content-Type": "application/json"})
@@ -863,8 +860,7 @@ def all_quizzes_take(qid):
                 else:
                     result = 0
                 revised_scores_dict[key] = result
-                attempt.revised_total_score_raw += result
-                attempt.revised_total_score += result * quiz.revised_score_factor
+                attempt.revised_total_score += result
             attempt.revised_scores = str(revised_scores_dict)
             
             models.DB.session.commit()
@@ -887,6 +883,52 @@ def get_quizzes_responses(qid):
 
     attempts = models.QuizAttempt.query.filter_by(quiz_id=qid).all()
     return jsonify([a.dump_as_dict() for a in attempts])
+
+@mcq.route('/grades/<int:qid>/initialScoreWeight', methods=['POST'])
+@login_required
+def changeInitialScoreWeight(qid):
+    if current_user.is_instructor():
+        q = models.Quiz.query.get_or_404(qid)
+        response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
+        if request.json:
+            q.initial_score_weight = int(request.json['initial_score']) / 100
+            models.DB.session.commit()
+        return make_response(response)
+
+@mcq.route('/grades/<int:qid>/revisedScoreWeight', methods=['POST'])
+@login_required
+def changeRevisedScoreWeight(qid):
+    if current_user.is_instructor():
+        q = models.Quiz.query.get_or_404(qid)
+        response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
+        if request.json:
+            q.revised_score_weight = int(request.json['revised_score']) / 100
+            models.DB.session.commit()
+        return make_response(response)
+  
+    
+@mcq.route('/grades/<int:qid>/justificationGradeWeight', methods=['POST'])
+@login_required
+def changeJustificationGradeWeight(qid):
+    if current_user.is_instructor():
+        q = models.Quiz.query.get_or_404(qid)
+        response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
+        if request.json:
+            q.justification_grade_weight = int(request.json['justification_grade']) / 100
+            models.DB.session.commit()
+        return make_response(response)
+
+
+@mcq.route('/grades/<int:qid>/participationGradeWeight', methods=['POST'])
+@login_required
+def changeParticipationGradeWeight(qid):
+    if current_user.is_instructor():
+        q = models.Quiz.query.get_or_404(qid)
+        response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
+        if request.json:
+            q.participation_grade_weight = int(request.json['participation_grade']) / 100
+            models.DB.session.commit()
+        return make_response(response)
 
 
 
