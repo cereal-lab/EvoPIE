@@ -290,7 +290,13 @@ def quiz_editor(quiz_id):
     if q.status != "HIDDEN":
         flash("Quiz not editable at this time", "error")
         return redirect(url_for('pages.index'))
-    return render_template('quiz-editor.html', quiz = q)
+    limitingFactorOptions = [25, 50, 75]
+    initialScoreFactorOptions = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+    revisedScoreFactorOptions = initialScoreFactorOptions
+    justificationsGradeOptions = initialScoreFactorOptions
+    participationGradeOptions = initialScoreFactorOptions
+    participationThresholdOptions = [num for num in range(1, 100)]
+    return render_template('quiz-editor.html', quiz = q, limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, participationThresholdOptions = participationThresholdOptions)
     
 
 

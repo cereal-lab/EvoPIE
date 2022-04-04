@@ -175,26 +175,17 @@
         }
     }
 
-    async function doIt() {
-        
-    }
-
     function checkSum() {
         let initialElement = document.querySelector('#initial_score');
         let revisedElement = document.querySelector('#revised_score');
         let justificationElement = document.querySelector('#justification_grade');
         let participationElement = document.querySelector('#participation_grade');
         let arr = [initialElement, revisedElement, justificationElement, participationElement];
-        let actualWeights = [{{quiz.initial_score_weight}}, {{quiz.revised_score_weight}}, {{quiz.justification_grade_weight}}, {{quiz.participation_grade_weight}}];
-        console.log(actualWeights);
+        // let actualWeights = [{{quiz.initial_score_weight}}, {{quiz.revised_score_weight}}, {{quiz.justification_grade_weight}}, {{quiz.participation_grade_weight}}];
+        // console.log(actualWeights);
         let sum = 0;
         for(let i = 0; i < arr.length; i++) {
-            console.log(arr[i].options[arr[i].selectedIndex].value, actualWeights[i])
-            if (arr[i].options[arr[i].selectedIndex].value === "not applied") {
-                sum += actualWeights[i] * 100;
-            } else {
-                sum += parseInt(arr[i].options[arr[i].selectedIndex].value);
-            }            
+            sum += parseInt(arr[i].options[arr[i].selectedIndex].value);       
         }
         console.log(sum);
         if (sum !== 100) {
@@ -227,23 +218,18 @@
                         <li>
                             You can only like maximum
                             <select id="limiting_factor" name="limitingFactorOptions">
-                                <option value="not applied" selected></option>
                                 {% for option in limitingFactorOptions %}
-                                    <option value="{{option}}">{{option}}%</option>
+                                    <option value="{{option}}" {% if quiz.limiting_factor * 100 == option %} selected {% endif %} >{{option}}%</option>
                                 {% endfor %}
                             </select> 
                             of the justifications you see
                             <!-- <button class="btn btn-primary btn-sm" name="submit" value="submit">Submit</button> -->
                         </li>
                         <li>
-                            Limiting Factor : {{ LimitingFactor * 100 }}%
-                        </li>
-                        <li>
                             Choose Initial Score Weight: 
                             <select id="initial_score" name="initialScoreFactorOptions">
-                                <option value="not applied" selected></option>
                                 {% for option in initialScoreFactorOptions %}
-                                    <option value="{{option}}">{{option}}%</option>
+                                    <option value="{{option}}" {% if quiz.initial_score_weight * 100 == option %} selected {% endif %} >{{option}}%</option>
                                 {% endfor %}
                             </select> 
                             <!-- <button onclick=test() class="btn btn-primary btn-sm" name="submit" value="submit">Submit</button> -->
@@ -251,40 +237,36 @@
                         <li>
                             Choose Revised Score Weight: 
                             <select id="revised_score" name="revisedScoreFactorOptions">
-                                <option value="not applied" selected></option>
                                 {% for option in revisedScoreFactorOptions %}
-                                    <option value="{{option}}">{{option}}%</option>
+                                    <option value="{{option}}" {% if quiz.revised_score_weight * 100 == option %} selected {% endif %} >{{option}}%</option>
                                 {% endfor %}
                             </select>
                         </li>
                         <li>
                             Choose Justifications Grade Weight
                             <select id="justification_grade" name="justificationsGradeOptions">
-                                <option value="not applied" selected></option>
                                 {% for option in justificationsGradeOptions %}
-                                    <option value="{{option}}">{{option}}%</option>
+                                    <option value="{{option}}" {% if quiz.justification_grade_weight * 100 == option %} selected {% endif %} >{{option}}%</option>
                                 {% endfor %}
                             </select> 
                         </li>
                         <li>
                             Choose Participation Grade Weight
                             <select id="participation_grade" name="participationGradeOptions">
-                                <option value="not applied" selected></option>
                                 {% for option in participationGradeOptions %}
-                                    <option value="{{option}}">{{option}}%</option>
+                                    <option value="{{option}}" {% if quiz.participation_grade_weight * 100 == option %} selected {% endif %} >{{option}}%</option>
                                 {% endfor %}
                             </select> 
                         </li>
                         <li>
                             Choose Participation Threshold
                             <select id="participation_grade_threshold" name="participationThresholdOptions">
-                                <option value="not applied" selected></option>
                                 {% for option in participationThresholdOptions %}
-                                    <option value="{{option}}">{{option}} likes</option>
+                                    <option value="{{option}}" {% if quiz.participation_grade_threshold == option %} selected {% endif %} >{{option}} likes</option>
                                 {% endfor %}
                             </select> 
                         </li>
-                        <li id="initial_score_weight">
+                        <!-- <li id="initial_score_weight">
                             Initial Score Weight : {{ (quiz.initial_score_weight * 100) | int }}%
                         </li>
                         <li id="revised_score_weight">
@@ -295,7 +277,7 @@
                         </li>
                         <li id="participation_grade_weight">
                             Participation Grade Weight : {{ (quiz.participation_grade_weight * 100) | int }}%
-                        </li>
+                        </li> -->
                         <li id="participation_grade_threshold_display">
                             Participation Grade Threshold : {{ (quiz.participation_grade_threshold * 0.8) | round | int }} likes to {{ quiz.participation_grade_threshold }} likes
                         </li>
