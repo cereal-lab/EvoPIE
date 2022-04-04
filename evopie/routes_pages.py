@@ -536,8 +536,8 @@ def getTotalScore(q, grades, justification_grade, likes_given):
     total_scores = {}
     for grade in grades:
         likes_given_length = len(likes_given[grade.student.id]) if grade.student.id in likes_given else 0
-        participation_grade = 1 if likes_given_length >= 8 and likes_given_length <= 10 else 0
-        total_scores[grade.student.id] = grade.initial_total_score * q.initial_score_weight + grade.revised_total_score * q.revised_score_weight + justification_grade[grade.student.id] * q.justification_grade_weight + participation_grade * q.participation_grade_weight
+        participation_grade = 1 if likes_given_length >= 0.8 * q.limiting_factor and likes_given_length <= q.limiting_factor else 0
+        total_scores[grade.student.id] = round(grade.initial_total_score * q.initial_score_weight + grade.revised_total_score * q.revised_score_weight + justification_grade[grade.student.id] * q.justification_grade_weight + participation_grade * q.participation_grade_weight)
     return total_scores
 
 
@@ -687,20 +687,19 @@ def quiz_grader(qid):
 
     q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade = get_data(qid)
 
-    participation_upper_bound = 10
-    participation_lower_bound = 0.8 * participation_upper_bound
     limitingFactorOptions = [25, 50, 75]
     initialScoreFactorOptions = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
     revisedScoreFactorOptions = initialScoreFactorOptions
     justificationsGradeOptions = initialScoreFactorOptions
     participationGradeOptions = initialScoreFactorOptions
+    participationThresholdOptions = [num for num in range(1, 100)]
 
     LimitingFactor = q.limiting_factor
 
     total_scores = getTotalScore(q, grades, justification_grade, likes_given)
     
 
-    return render_template('quiz-grader.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, count_likes_received = count_likes_received, like_scores = like_scores, justification_grade = justification_grade, participation_upper_bound = participation_upper_bound, participation_lower_bound = participation_lower_bound, limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, LimitingFactor = LimitingFactor, total_scores = total_scores)
+    return render_template('quiz-grader.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, count_likes_received = count_likes_received, like_scores = like_scores, justification_grade = justification_grade, limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, participationThresholdOptions = participationThresholdOptions, LimitingFactor = LimitingFactor, total_scores = total_scores)
 
 @pages.route("/getDataCSV/<int:qid>", methods=['GET'])
 @login_required
@@ -711,7 +710,7 @@ def getDataCSV(qid):
     for grade in grades:
         likes_given_length = len(likes_given[grade.student.id]) if grade.student.id in likes_given else 0
         likes_received_length = len(count_likes_received[grade.student.id]) if grade.student.id in likes_received else 0
-        participation_grade = q.participation_grade if likes_given_length >= 8 and likes_given_length <= 10 else 0
+        participation_grade = q.participation_grade if likes_given_length >=  0.8 * q.limiting_factor and likes_given_length <= q.limiting_factor else 0
         csv += grade.student.last_name + "," + grade.student.first_name + "," + grade.student.email + "," + str(grade.initial_total_score) + "," + str(grade.revised_total_score) + "," + str(justification_grade[grade.student.id]) + "," + str(participation_grade) + "," + str(likes_given_length) + "," + str(likes_received_length) + "\n"
     filename = (current_user.email + "-" + q.title).replace(" ", "_")
     return Response(
@@ -789,13 +788,13 @@ def changeParticipationGrade(qid):
     models.DB.session.commit()
     return redirect(url_for('pages.quiz_grader', qid = qid))
 
-def resetTotalScores(qid):
-    q = models.Quiz.query.get_or_404(qid)
-    attempts=models.QuizAttempt.query.join(models.User)\
-        .filter(models.QuizAttempt.quiz_id == qid)\
-        .filter(models.QuizAttempt.student_id == models.User.id)\
-        .order_by(collate(models.User.last_name, 'NOCASE'))\
-        .all()
-    for attempt in attempts:
-        attempt.initial_total_score = attempt.initial_total_score / q.initial_score_factor
-        attempt.revised_total_score = attempt.revised_total_score / q.revised_score_factor
+# def resetTotalScores(qid):
+#     q = models.Quiz.query.get_or_404(qid)
+#     attempts=models.QuizAttempt.query.join(models.User)\
+#         .filter(models.QuizAttempt.quiz_id == qid)\
+#         .filter(models.QuizAttempt.student_id == models.User.id)\
+#         .order_by(collate(models.User.last_name, 'NOCASE'))\
+#         .all()
+#     for attempt in attempts:
+#         attempt.initial_total_score = attempt.initial_total_score / q.initial_score_factor
+#         attempt.revised_total_score = attempt.revised_total_score / q.revised_score_factor
