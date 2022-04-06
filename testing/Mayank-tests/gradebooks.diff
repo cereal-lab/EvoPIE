@@ -1,0 +1,25 @@
+1,11c1,11
+< Last Name,First Name,Email,Initial Score,Revised Score,Grade for Justifications,Grade for Participation,Likes Given,Likes Received,Total Score
+< 8,BB,student7@usf.edu,0,1,1,1,10,0,0.6
+< Binks,Jar-Jar,student10@usf.edu,0,1,1,1,10,0,0.6
+< D2,R2,student8@usf.edu,0,1,1,1,10,0,0.6
+< Kenobi,Obi-Wan,student3@usf.edu,0,1,10,0,5,39,2.3
+< PO,C3,student9@usf.edu,0,1,1,1,10,0,0.6
+< Skywalker,Anakin,student1@usf.edu,0,3,5,1,8,25,2.0
+< Skywalker,Rey,student4@usf.edu,0,1,1,0,11,0,0.5
+< Skywalker,Luke,student6@usf.edu,0,1,1,1,10,0,0.6
+< Tano,Ahsoka,student2@usf.edu,0,1,10,0,7,27,2.3
+< Windu,Mace,student5@usf.edu,0,1,1,1,10,0,0.6
+---
+> Last Name,First Name,Email,Initial Score,Revised Score,Grade for Justifications,Grade for Participation,Likes Given,Likes Received,Total Score
+> 8,BB,student7@usf.edu,0,1,1,1,10,0,0.6
+> Binks,Jar-Jar,student10@usf.edu,0,1,1,1,10,0,0.6
+> D2,R2,student8@usf.edu,0,1,1,1,10,0,0.6
+> Kenobi,Obi-Wan,student3@usf.edu,0,1,10,0,5,39,2.3
+> PO,C3,student9@usf.edu,0,1,1,1,10,0,0.6
+> Skywalker,Anakin,student1@usf.edu,0,3,5,1,8,25,2
+> Skywalker,Rey,student4@usf.edu,0,1,1,0,11,0,0.5
+> Skywalker,Luke,student6@usf.edu,0,1,1,1,10,0,0.6
+> Tano,Ahsoka,student2@usf.edu,0,1,10,0,7,27,2.3
+> Windu,Mace,student5@usf.edu,0,1,1,1,10,0,0.6
+\ No newline at end of file
