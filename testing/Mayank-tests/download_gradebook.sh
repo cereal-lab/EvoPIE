@@ -19,7 +19,7 @@ curl_download    "Downloading gradebook" "/getDataCSV/1"         "gradebook-down
 
 header "Comparing downloaded gradebook to reference one for these tests"
 
-diff ./gradebook-downloaded.csv ./Verified-Gradebook-justification-max-likes-40,30,20,10-8-10-likes.csv > ./gradebooks.diff
+diff ./Downloaded-Gradebook-justification-max-likes-60,20,10,10-6-7-likes.csv ./Verified-Gradebook-justification-max-likes-60,20,10,10-6-7-likes.csv > ./gradebooks.diff
 if [[ $? -eq 0 ]]
 then
     echo "Test SUCCESSFUL - the CSV files are identical"
