@@ -543,6 +543,9 @@ def getTotalScore(q, grades, justification_grade, likes_given):
     for grade in grades:
         likes_given_length = len(likes_given[grade.student.id]) if grade.student.id in likes_given else 0
         participation_grade = 1 if likes_given_length >= 0.8 * q.participation_grade_threshold and likes_given_length <= q.participation_grade_threshold else 0
+        if (grade.student.id == 13):
+            print("The participation grade is", participation_grade)
+            print(justification_grade[grade.student.id] * q.justification_grade_weight)
         total_scores[grade.student.id] = round(grade.initial_total_score * q.initial_score_weight + grade.revised_total_score * q.revised_score_weight + justification_grade[grade.student.id] * q.justification_grade_weight + participation_grade * q.participation_grade_weight, 2)
     return total_scores
 
