@@ -533,7 +533,7 @@ def get_data(qid):
 
         quartiles = [Q1, median, Q3]
         for grade in grades:
-            justification_grade[grade.student_id] = decideGrades(like_scores[grade.student_id], quartiles)
+            justification_grade[grade.student_id] = decideGrades(like_scores[grade.student_id], quartiles) if q.status == "STEP2" else 0
 
         print(MaxLikes, sorted_scores, quartiles)
     return q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade
