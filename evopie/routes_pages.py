@@ -375,6 +375,7 @@ def get_student(qid):
     if a: # step == 2
         # retrieve the peers' justifications for each question
         quiz_justifications = {}
+        count_distractor = 0
         for quiz_question in q.quiz_questions:
             question_justifications = {}
             for distractor in quiz_question.distractors:
@@ -388,6 +389,7 @@ def get_student(qid):
                     .filter(not_(models.Justification.justification=="<p></p>"))\
                     .filter(not_(models.Justification.student_id==current_user.id))\
                     .all()
+                count_distractor += 1
             # also handle the solution -1
             question_justifications["-1"] = models.Justification.query\
                 .filter_by(quiz_question_id=quiz_question.id)\
@@ -422,6 +424,10 @@ def get_student(qid):
                     selected.append(neo)
 
                 quiz_justifications[key_question][key_distractor] = selected
+
+        if q.max_likes == -99:
+            q.max_likes = number_to_select * (count_distractor + len(quiz_questions))
+            models.DB.session.commit()
 
         initial_responses = [] 
 
@@ -503,8 +509,7 @@ def get_data(qid):
             distractors[str(question.id)][str(distractor.id)] = Markup(distractor.answer).unescape()
             count_distractor += 1
 
-    numJustificationsShown = getNumJustificationsShown(qid)
-    MaxLikes = numJustificationsShown * (count_distractor + len(quiz_questions))
+    MaxLikes = q.max_likes
     LimitingFactor = q.limiting_factor
     for i in range(len(grades)):
         grading_details.append(QuizAttempt())
