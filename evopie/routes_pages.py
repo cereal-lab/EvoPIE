@@ -487,6 +487,7 @@ def get_data(qid):
     likes_received = {}
     count_likes_received = {}
     justification_grade = {}
+    justificationLikesCount = {}
     quiz_questions = q.quiz_questions
 
     if len(grades) == 0:
@@ -496,7 +497,7 @@ def get_data(qid):
     # LikesReceived format: (Likes4Justification object, Justification object, quiz_id, quiz_question_id)
     for grade in grades:
         likes_given[grade.student_id] = LikesGiven(grade)
-        likes_received[grade.student_id], count_likes_received[grade.student_id]  = LikesReceived(grade)
+        likes_received[grade.student_id], count_likes_received[grade.student_id], justificationLikesCount[grade.student_id]  = LikesReceived(grade)
 
     for question in quiz_questions:
         with models.DB.session.no_autoflush:
@@ -541,7 +542,7 @@ def get_data(qid):
             justification_grade[grade.student_id] = decideGrades(like_scores[grade.student_id], quartiles) if q.status == "STEP2" else 0
 
         print(MaxLikes, sorted_scores, quartiles)
-    return q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade
+    return q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade, justificationLikesCount
 
 def getTotalScore(q, grades, justification_grade, likes_given):
     total_scores = {}
@@ -690,7 +691,14 @@ def LikesReceived(g):
         .all()
     )
 
-    return actual_justifications, count_likes
+    justificationLikesCount = {}
+
+    for data in count_likes:
+        if data[1].justification not in justificationLikesCount:
+            justificationLikesCount[data[1].justification] = 0
+        justificationLikesCount[data[1].justification] += 1
+
+    return actual_justifications, count_likes, justificationLikesCount
 
 @pages.route('/grades/<int:qid>', methods=['GET'])
 @login_required
@@ -699,7 +707,7 @@ def quiz_grader(qid):
     This page allows to get all stats on a given quiz.
     '''
 
-    q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade = get_data(qid)
+    q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade, justificationLikesCount = get_data(qid)
 
     limitingFactorOptions = [25, 50, 75]
     initialScoreFactorOptions = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
@@ -713,13 +721,13 @@ def quiz_grader(qid):
     total_scores = getTotalScore(q, grades, justification_grade, likes_given)
     
 
-    return render_template('quiz-grader.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, count_likes_received = count_likes_received, like_scores = like_scores, justification_grade = justification_grade, limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, participationThresholdOptions = participationThresholdOptions, LimitingFactor = LimitingFactor, total_scores = total_scores)
+    return render_template('quiz-grader.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, count_likes_received = count_likes_received, like_scores = like_scores, justification_grade = justification_grade, limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, participationThresholdOptions = participationThresholdOptions, LimitingFactor = LimitingFactor, total_scores = total_scores, justificationLikesCount = justificationLikesCount)
 
 @pages.route("/getDataCSV/<int:qid>", methods=['GET'])
 @login_required
 def getDataCSV(qid):
     # resetTotalScores(qid)
-    q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade = get_data(qid)
+    q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade, justificationLikesCount = get_data(qid)
     total_scores = getTotalScore(q, grades, justification_grade, likes_given)
     csv = 'Last Name,First Name,Email,Initial Score,Revised Score,Grade for Justifications,Grade for Participation,Likes Given,Likes Received,Total Score\n'
     for grade in grades:

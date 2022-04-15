@@ -29,11 +29,11 @@
     transition: all .3s;
   }
 
-  *, *::before, *::after {
+  /* *, *::before, *::after {
     margin: 0;
     padding: 0;
     box-sizing: inherit;
-  }
+  } */
 
   .progress-container {
     display: flex;
