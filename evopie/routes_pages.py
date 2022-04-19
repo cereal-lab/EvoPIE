@@ -545,7 +545,10 @@ def get_data(qid):
     return q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade, justificationLikesCount
 
 def getTotalScore(q, grades, justification_grade, likes_given):
+    max_justfication_grade = 10
+    max_score = len(q.quiz_questions) * q.initial_score_weight + len(q.quiz_questions) * q.revised_score_weight + max_justfication_grade * q.justification_grade_weight + 1 * q.participation_grade_weight
     total_scores = {}
+    total_scores[-1] = max_score
     for grade in grades:
         likes_given_length = len(likes_given[grade.student.id]) if grade.student.id in likes_given else 0
         participation_grade = 1 if likes_given_length >= 0.8 * q.participation_grade_threshold and likes_given_length <= q.participation_grade_threshold else 0
