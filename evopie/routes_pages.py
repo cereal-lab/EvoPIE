@@ -732,12 +732,12 @@ def getDataCSV(qid):
     # resetTotalScores(qid)
     q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade, justificationLikesCount = get_data(qid)
     total_scores = getTotalScore(q, grades, justification_grade, likes_given)
-    csv = 'Last Name,First Name,Email,Initial Score,Revised Score,Grade for Justifications,Grade for Participation,Likes Given,Likes Received,Total Score\n'
+    csv = 'Last Name,First Name,Email,Initial Score,Revised Score,Grade for Justifications,Grade for Participation,Likes Given,Likes Received,Total Score,Final Percentage\n'
     for grade in grades:
         likes_given_length = len(likes_given[grade.student.id]) if grade.student.id in likes_given else 0
         likes_received_length = len(count_likes_received[grade.student.id]) if grade.student.id in likes_received else 0
         participation_grade = 1 if likes_given_length >=  0.8 * q.participation_grade_threshold and likes_given_length <= q.participation_grade_threshold else 0
-        csv += grade.student.last_name + "," + grade.student.first_name + "," + grade.student.email + "," + str(grade.initial_total_score) + "," + str(grade.revised_total_score) + "," + str(justification_grade[grade.student.id]) + "," + str(participation_grade) + "," + str(likes_given_length) + "," + str(likes_received_length) + "," + str(total_scores[grade.student.id]) + "\n"
+        csv += grade.student.last_name + "," + grade.student.first_name + "," + grade.student.email + "," + str(grade.initial_total_score) + "," + str(grade.revised_total_score) + "," + str(justification_grade[grade.student.id]) + "," + str(participation_grade) + "," + str(likes_given_length) + "," + str(likes_received_length) + "," + str(total_scores[grade.student.id]) + " / " + str(total_scores[-1]) + "," + str( round(((total_scores[grade.student.id] / total_scores[-1] ) * 100), 1) ) + "%" + "\n"
     filename = (current_user.email + "-" + q.title).replace(" ", "_")
     return Response(
         csv,
