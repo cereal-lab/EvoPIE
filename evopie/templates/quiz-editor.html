@@ -5,6 +5,195 @@
 {% block head%}
 <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.css">  
 <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.js"></script>
+<script>
+    async function changeInitialScoreWeight() {
+        if (!checkSum()) {
+            return;
+        }
+        let target_url = '/grades/{{quiz.id}}/initialScoreWeight';
+        let e = document.querySelector('#initial_score');
+        let selectedValue = e.options[e.selectedIndex].value;
+        return await fetch(target_url,{
+            method:         'POST',
+            headers:        {'Content-Type' : 'application/json'},
+            body:           JSON.stringify({"initial_score" :  selectedValue}),
+            credentials:    'same-origin'
+        })
+        .then(
+            response => {
+                if(response.ok){
+                    $('#initial_score_weight')[0].innerHTML = "Initial Score Weight : " + selectedValue + "%";
+                    //window.location.reload();
+                }
+            }
+        )
+        .catch((error) => {
+        })
+    }
+
+    async function changeRevisedScoreWeight() {
+        if (!checkSum()) {
+            return;
+        }
+        let target_url = '/grades/{{quiz.id}}/revisedScoreWeight';
+        let e = document.querySelector('#revised_score');
+        let selectedValue = e.options[e.selectedIndex].value;
+        return await fetch(target_url,{
+            method:         'POST',
+            headers:        {'Content-Type' : 'application/json'},
+            body:           JSON.stringify({"revised_score" :  selectedValue}),
+            credentials:    'same-origin'
+        })
+        .then(
+            response => {
+                if(response.ok){
+                    $('#revised_score_weight')[0].innerHTML = "Revised Score Weight : " + selectedValue + "%";
+                    //window.location.reload();
+                }
+            }
+        )
+        .catch((error) => {
+        })
+    }
+
+    async function changeJustificationGradeWeight() {
+        if (!checkSum()) {
+            return;
+        }
+        let target_url = '/grades/{{quiz.id}}/justificationGradeWeight';
+        let e = document.querySelector('#justification_grade');
+        let selectedValue = e.options[e.selectedIndex].value;
+        return await fetch(target_url,{
+            method:         'POST',
+            headers:        {'Content-Type' : 'application/json'},
+            body:           JSON.stringify({"justification_grade" :  selectedValue}),
+            credentials:    'same-origin'
+        })
+        .then(
+            response => {
+                if(response.ok){
+                    $('#justification_grade_weight')[0].innerHTML = "Justification Grade Weight : " + selectedValue + "%";
+                    //window.location.reload();
+                }
+            }
+        )
+        .catch((error) => {
+        })
+    }
+
+    async function changeParticipationGradeWeight() {
+        if (!checkSum()) {
+            return;
+        }
+        let target_url = '/grades/{{quiz.id}}/participationGradeWeight';
+        let e = document.querySelector('#participation_grade');
+        let selectedValue = e.options[e.selectedIndex].value;
+        return await fetch(target_url,{
+            method:         'POST',
+            headers:        {'Content-Type' : 'application/json'},
+            body:           JSON.stringify({"participation_grade" :  selectedValue}),
+            credentials:    'same-origin'
+        })
+        .then(
+            response => {
+                if(response.ok){
+                    $('#participation_grade_weight')[0].innerHTML = "Participation Grade Weight : " + selectedValue + "%";
+                    // window.location.reload();
+                }
+            }
+        )
+        .catch((error) => {
+        })
+    }
+
+    $(document).ready( function () {
+
+        // document.querySelector('#initial_score').addEventListener('change', changeInitialScoreWeight());
+
+        // document.querySelector('#revised_score').addEventListener('change', changeRevisedScoreWeight());
+
+        // document.querySelector('#justification_grade').addEventListener('change', changeJustificationGradeWeight());
+
+        // document.querySelector('#participation_grade').addEventListener('change', changeParticipationGradeWeight());
+
+        document.querySelector('#limiting_factor').addEventListener('change', function(){
+            let target_url = '/grades/{{quiz.id}}/limitingFactor';
+            let e = document.querySelector('#limiting_factor');
+            let selectedValue = e.options[e.selectedIndex].value;
+            fetch(target_url,{
+                method:         'POST',
+                headers:        {'Content-Type' : 'application/json'},
+                body:           JSON.stringify({"limiting_factor" :  selectedValue}),
+                credentials:    'same-origin'
+            })
+            .then(
+                response => {
+                    if(response.ok){
+                        // $('#initial_score_weight')[0].innerHTML = "Initial Score Weight : " + selectedValue + "%";
+                        window.location.reload();
+                    }
+                }
+            )
+            .catch((error) => {
+            })
+        })
+
+        document.querySelector('#participation_grade_threshold').addEventListener('change', function() {
+            let target_url = '/grades/{{quiz.id}}/participationGradeThreshold';
+            let e = document.querySelector('#participation_grade_threshold');
+            let selectedValue = e.options[e.selectedIndex].value;
+            fetch(target_url,{
+                method:         'POST',
+                headers:        {'Content-Type' : 'application/json'},
+                body:           JSON.stringify({"participation_grade_threshold" :  selectedValue}),
+                credentials:    'same-origin'
+            })
+            .then(
+                response => {
+                    if(response.ok){
+                        $('#participation_grade_threshold_display')[0].innerHTML = "Participation Grade Threshold : " + Math.round(0.8 * selectedValue) + " likes to " + selectedValue + " likes";
+                        window.location.reload();
+                    }
+                }
+            )
+            .catch((error) => {
+            })
+        });
+
+} );
+
+async function refresh() {
+    if (checkSum()) {
+        await changeInitialScoreWeight();
+        await changeRevisedScoreWeight();
+        await changeJustificationGradeWeight();
+        await changeParticipationGradeWeight();
+    } else {
+        window.alert("The percentages don't add up to 100%");
+        return;
+    }
+}
+
+function checkSum() {
+    let initialElement = document.querySelector('#initial_score');
+    let revisedElement = document.querySelector('#revised_score');
+    let justificationElement = document.querySelector('#justification_grade');
+    let participationElement = document.querySelector('#participation_grade');
+    let arr = [initialElement, revisedElement, justificationElement, participationElement];
+    // let actualWeights = [{{quiz.initial_score_weight}}, {{quiz.revised_score_weight}}, {{quiz.justification_grade_weight}}, {{quiz.participation_grade_weight}}];
+    // console.log(actualWeights);
+    let sum = 0;
+    for(let i = 0; i < arr.length; i++) {
+        sum += parseInt(arr[i].options[arr[i].selectedIndex].value);       
+    }
+    console.log(sum);
+    if (sum !== 100) {
+        return false;
+    }
+    return true;
+}
+
+</script>
 {% endblock %}
 
 {% block content %}
@@ -21,23 +210,18 @@
                         <li>
                             You can only like maximum
                             <select id="limiting_factor" name="limitingFactorOptions">
-                                <option value="not applied" selected></option>
                                 {% for option in limitingFactorOptions %}
-                                    <option value="{{option}}">{{option}}%</option>
+                                    <option value="{{option}}" {% if quiz.limiting_factor * 100 == option %} selected {% endif %} >{{option}}%</option>
                                 {% endfor %}
                             </select> 
                             of the justifications you see
                             <!-- <button class="btn btn-primary btn-sm" name="submit" value="submit">Submit</button> -->
                         </li>
-                        <!-- <li>
-                            Limiting Factor : {{ quiz.limiting_factor * 100 }}%
-                        </li> -->
                         <li>
                             Choose Initial Score Weight: 
                             <select id="initial_score" name="initialScoreFactorOptions">
-                                <option value="not applied" selected></option>
                                 {% for option in initialScoreFactorOptions %}
-                                    <option value="{{option}}">{{option}}%</option>
+                                    <option value="{{option}}" {% if quiz.initial_score_weight * 100 == option %} selected {% endif %} >{{option}}%</option>
                                 {% endfor %}
                             </select> 
                             <!-- <button onclick=test() class="btn btn-primary btn-sm" name="submit" value="submit">Submit</button> -->
@@ -45,36 +229,32 @@
                         <li>
                             Choose Revised Score Weight: 
                             <select id="revised_score" name="revisedScoreFactorOptions">
-                                <option value="not applied" selected></option>
                                 {% for option in revisedScoreFactorOptions %}
-                                    <option value="{{option}}">{{option}}%</option>
+                                    <option value="{{option}}" {% if quiz.revised_score_weight * 100 == option %} selected {% endif %} >{{option}}%</option>
                                 {% endfor %}
                             </select>
                         </li>
                         <li>
                             Choose Justifications Grade Weight
                             <select id="justification_grade" name="justificationsGradeOptions">
-                                <option value="not applied" selected></option>
                                 {% for option in justificationsGradeOptions %}
-                                    <option value="{{option}}">{{option}}%</option>
+                                    <option value="{{option}}" {% if quiz.justification_grade_weight * 100 == option %} selected {% endif %} >{{option}}%</option>
                                 {% endfor %}
                             </select> 
                         </li>
                         <li>
                             Choose Participation Grade Weight
                             <select id="participation_grade" name="participationGradeOptions">
-                                <option value="not applied" selected></option>
                                 {% for option in participationGradeOptions %}
-                                    <option value="{{option}}">{{option}}%</option>
+                                    <option value="{{option}}" {% if quiz.participation_grade_weight * 100 == option %} selected {% endif %} >{{option}}%</option>
                                 {% endfor %}
                             </select> 
                         </li>
                         <li>
                             Choose Participation Threshold
                             <select id="participation_grade_threshold" name="participationThresholdOptions">
-                                <option value="not applied" selected></option>
                                 {% for option in participationThresholdOptions %}
-                                    <option value="{{option}}">{{option}} likes</option>
+                                    <option value="{{option}}" {% if quiz.participation_grade_threshold == option %} selected {% endif %} >{{option}} likes</option>
                                 {% endfor %}
                             </select> 
                         </li>
@@ -89,11 +269,11 @@
                         </li>
                         <li id="participation_grade_weight">
                             Participation Grade Weight : {{ (quiz.participation_grade_weight * 100) | int }}%
-                        </li>
+                        </li> -->
                         <li id="participation_grade_threshold_display">
                             Participation Grade Threshold : {{ (quiz.participation_grade_threshold * 0.8) | round | int }} likes to {{ quiz.participation_grade_threshold }} likes
-                        </li> -->
-                        <!-- <button onclick=refresh() class="btn btn-primary btn-sm" name="refresh" value="refresh">Change Weights</button> -->
+                        </li>
+                        <button onclick=refresh() class="btn btn-primary btn-sm" name="refresh" value="refresh">Change Weights</button>
                     </ul>             
     </div>
 </div>
