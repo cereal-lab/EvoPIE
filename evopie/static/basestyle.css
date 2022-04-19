@@ -74,3 +74,13 @@
   .progress-bar__text {
     display: none;
   }
+
+  .sticky {
+    position: fixed !important;
+    z-index: 9999;
+    width: 100%;
+    padding: 10px;
+    margin-top: 15px;
+    padding-top:10px;
+    transform: translate(25rem, 900%);
+}
