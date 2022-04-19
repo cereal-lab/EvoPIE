@@ -198,7 +198,7 @@
                 if (counter_value > {{ quiz.participation_grade_threshold }}) {
                     progress.css({ 'width': {{ quiz.participation_grade_threshold }} * rate + '%' });
                 }
-                if (counter_value === {{ quiz.participation_grade_threshold }}) {
+                if (counter_value == {{ quiz.participation_grade_threshold }}) {
                     window.alert("You have gone beyond the participation threshold!");
                 }
             }
