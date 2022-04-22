@@ -290,13 +290,14 @@ def quiz_editor(quiz_id):
     if q.status != "HIDDEN":
         flash("Quiz not editable at this time", "error")
         return redirect(url_for('pages.index'))
+    numJustificationsOptions = [num for num in range(1, 10)]
     limitingFactorOptions = [25, 50, 75]
     initialScoreFactorOptions = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
     revisedScoreFactorOptions = initialScoreFactorOptions
     justificationsGradeOptions = initialScoreFactorOptions
     participationGradeOptions = initialScoreFactorOptions
     participationThresholdOptions = [num for num in range(1, 100)]
-    return render_template('quiz-editor.html', quiz = q, limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, participationThresholdOptions = participationThresholdOptions)
+    return render_template('quiz-editor.html', quiz = q, limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, participationThresholdOptions = participationThresholdOptions, numJustificationsOptions = numJustificationsOptions)
     
 
 
@@ -414,7 +415,7 @@ def get_student(qid):
                 #pick multiple of the justification objects at random
                 
                 #NOTE make sure we check that the len of the array is big enough first
-                number_to_select = min(3 , len(quiz_justifications[key_question][key_distractor]))
+                number_to_select = min(q.num_justifications_shown , len(quiz_justifications[key_question][key_distractor]))
                 #TODO FFS remove the above ugly, hardcoded, magic, number
 
                 selected = []
@@ -636,7 +637,7 @@ def getNumJustificationsShown(qid):
             #pick multiple of the justification objects at random
             
             #NOTE make sure we check that the len of the array is big enough first
-            number_to_select = min(3 , len(quiz_justifications[key_question][key_distractor]))
+            number_to_select = min(q.num_justifications_shown, len(quiz_justifications[key_question][key_distractor]))
             #TODO FFS remove the above ugly, hardcoded, magic, number
 
             selected = []
@@ -712,6 +713,7 @@ def quiz_grader(qid):
 
     q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade, justificationLikesCount = get_data(qid)
 
+    numJustificationsOptions = [num for num in range(1, 10)]
     limitingFactorOptions = [25, 50, 75]
     initialScoreFactorOptions = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
     revisedScoreFactorOptions = initialScoreFactorOptions
@@ -724,7 +726,7 @@ def quiz_grader(qid):
     total_scores = getTotalScore(q, grades, justification_grade, likes_given)
     
 
-    return render_template('quiz-grader.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, count_likes_received = count_likes_received, like_scores = like_scores, justification_grade = justification_grade, limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, participationThresholdOptions = participationThresholdOptions, LimitingFactor = LimitingFactor, total_scores = total_scores, justificationLikesCount = justificationLikesCount)
+    return render_template('quiz-grader.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, count_likes_received = count_likes_received, like_scores = like_scores, justification_grade = justification_grade, limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, participationThresholdOptions = participationThresholdOptions, LimitingFactor = LimitingFactor, total_scores = total_scores, justificationLikesCount = justificationLikesCount, numJustificationsOptions = numJustificationsOptions)
 
 @pages.route("/getDataCSV/<int:qid>", methods=['GET'])
 @login_required

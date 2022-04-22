@@ -84,3 +84,8 @@
     padding-top:10px;
     transform: translate(25rem, 900%);
 }
+
+#justificationsTable {
+  display: none;
+}
+

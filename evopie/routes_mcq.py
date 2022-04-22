@@ -954,7 +954,16 @@ def changeParticipationGradeThreshold(qid):
             models.DB.session.commit()
         return make_response(response)
 
-
+@mcq.route('/grades/<int:qid>/numJustificationsShown', methods=['POST'])
+@login_required
+def changeNumJustificationsShown(qid):
+    if current_user.is_instructor():
+        q = models.Quiz.query.get_or_404(qid)
+        response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
+        if request.json:
+            q.num_justifications_shown = int(request.json['num_justifications_shown'])
+            models.DB.session.commit()
+        return make_response(response)
 
 @mcq.route('/justification/<int:justification_id>/<action>', methods=['PUT'])
 @login_required

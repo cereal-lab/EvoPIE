@@ -160,6 +160,28 @@
             })
         });
 
+        document.querySelector('#num_justifications_shown').addEventListener('change', function() {
+            let target_url = '/grades/{{quiz.id}}/numJustificationsShown';
+            let e = document.querySelector('#num_justifications_shown');
+            let selectedValue = e.options[e.selectedIndex].value;
+            fetch(target_url,{
+                method:         'POST',
+                headers:        {'Content-Type' : 'application/json'},
+                body:           JSON.stringify({"num_justifications_shown" :  selectedValue}),
+                credentials:    'same-origin'
+            })
+            .then(
+                response => {
+                    if(response.ok){
+                        // $('#participation_grade_weight')[0].innerHTML = "Participation Grade Weight : " + selectedValue + "%";
+                        // window.location.reload();
+                    }
+                }
+            )
+            .catch((error) => {
+            })
+        });
+
 } );
 
 async function refresh() {
@@ -207,6 +229,14 @@ function checkSum() {
             </p>
             <p class="lead">
                     <ul>
+                        <li>
+                            Number of justifications shown to students
+                            <select id="num_justifications_shown" name="numJustificationsOptions">
+                                {% for option in numJustificationsOptions %}
+                                    <option value="{{option}}" {% if quiz.num_justifications_shown == option %} selected {% endif %} >{{option}}</option>
+                                {% endfor %}
+                            </select> 
+                        </li>
                         <li>
                             You can only like maximum
                             <select id="limiting_factor" name="limitingFactorOptions">
