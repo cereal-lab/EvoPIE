@@ -436,8 +436,14 @@ def get_student(qid):
         asdict = json.loads(a[0].initial_responses.replace("'",'"'))
         for k in asdict:
             initial_responses.append(asdict[k])
+        
+        likes_given = len(LikesGiven(models.QuizAttempt.query.join(models.User)\
+        .filter(models.QuizAttempt.quiz_id == qid)\
+        .filter(models.QuizAttempt.student_id == u.id)\
+        .order_by(collate(models.User.last_name, 'NOCASE'))\
+        .first()))
 
-        return render_template('student.html', quiz=q, simplified_questions=simplified_quiz_questions, questions=quiz_questions, student=u, attempt=a[0], initial_responses=initial_responses, justifications=quiz_justifications)
+        return render_template('student.html', quiz=q, simplified_questions=simplified_quiz_questions, questions=quiz_questions, student=u, attempt=a[0], initial_responses=initial_responses, justifications=quiz_justifications, likes_given = likes_given)
 
     else: # step == 1
 
