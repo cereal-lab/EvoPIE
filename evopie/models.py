@@ -1,6 +1,7 @@
 # pylint: disable=no-member
 # pylint: disable=E1101
 
+from email.policy import default
 from random import shuffle # to shuffle lists
 from flask_login import UserMixin
 from jinja2 import Markup
@@ -208,6 +209,10 @@ class Quiz(DB.Model):
     participation_grade_threshold = DB.Column(DB.Integer, default = 10)
     max_likes = DB.Column(DB.Integer, default = -99)
     num_justifications_shown = DB.Column(DB.Integer, default = 3)
+    first_quartile_grade = DB.Column(DB.Integer, default = 1)
+    second_quartile_grade = DB.Column(DB.Integer, default = 3)
+    third_quartile_grade = DB.Column(DB.Integer, default = 5)
+    fourth_quartile_grade = DB.Column(DB.Integer, default = 10)
 
     # NOTE for now the statuses that are handled are "HIDDEN", "STEP1", "STEP2"
     # TODO might want to make this a foreign key to a table of statuses

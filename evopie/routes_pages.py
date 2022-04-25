@@ -290,14 +290,15 @@ def quiz_editor(quiz_id):
     if q.status != "HIDDEN":
         flash("Quiz not editable at this time", "error")
         return redirect(url_for('pages.index'))
-    numJustificationsOptions = [num for num in range(1, 10)]
+    numJustificationsOptions = [num for num in range(1, 11)]
     limitingFactorOptions = [25, 50, 75]
     initialScoreFactorOptions = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
     revisedScoreFactorOptions = initialScoreFactorOptions
     justificationsGradeOptions = initialScoreFactorOptions
     participationGradeOptions = initialScoreFactorOptions
     participationThresholdOptions = [num for num in range(1, 100)]
-    return render_template('quiz-editor.html', quiz = q, limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, participationThresholdOptions = participationThresholdOptions, numJustificationsOptions = numJustificationsOptions)
+    quartileOptions = numJustificationsOptions
+    return render_template('quiz-editor.html', quiz = q, limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, participationThresholdOptions = participationThresholdOptions, numJustificationsOptions = numJustificationsOptions, quartileOptions = quartileOptions)
     
 
 
@@ -546,7 +547,7 @@ def get_data(qid):
 
         quartiles = [Q1, median, Q3]
         for grade in grades:
-            justification_grade[grade.student_id] = decideGrades(like_scores[grade.student_id], quartiles) if q.status == "STEP2" else 0
+            justification_grade[grade.student_id] = decideGrades(q, like_scores[grade.student_id], quartiles) if q.status == "STEP2" else 0
 
         print(MaxLikes, sorted_scores, quartiles)
     return q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade, justificationLikesCount
@@ -566,18 +567,18 @@ def getTotalScore(q, grades, justification_grade, likes_given):
     return total_scores
 
 
-def decideGrades(score, ranges):
+def decideGrades(quiz, score, ranges):
     grade = 0
     if score <= ranges[0]:
-        grade = 1
+        grade = quiz.first_quartile_grade
     elif score > ranges[0]:
         if score < ranges[1]:
-            grade = 3
+            grade = quiz.second_quartile_grade
         elif score > ranges[1]:
             if score < ranges[2]:
-                grade = 5
+                grade = quiz.third_quartile_grade
             elif score > ranges[2]:
-                grade = 10
+                grade = quiz.fourth_quartile_grade
     return grade
 
 
@@ -719,20 +720,21 @@ def quiz_grader(qid):
 
     q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade, justificationLikesCount = get_data(qid)
 
-    numJustificationsOptions = [num for num in range(1, 10)]
+    numJustificationsOptions = [num for num in range(1, 11)]
     limitingFactorOptions = [25, 50, 75]
     initialScoreFactorOptions = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
     revisedScoreFactorOptions = initialScoreFactorOptions
     justificationsGradeOptions = initialScoreFactorOptions
     participationGradeOptions = initialScoreFactorOptions
     participationThresholdOptions = [num for num in range(1, 100)]
+    quartileOptions = numJustificationsOptions
 
     LimitingFactor = q.limiting_factor
 
     total_scores = getTotalScore(q, grades, justification_grade, likes_given)
     
 
-    return render_template('quiz-grader.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, count_likes_received = count_likes_received, like_scores = like_scores, justification_grade = justification_grade, limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, participationThresholdOptions = participationThresholdOptions, LimitingFactor = LimitingFactor, total_scores = total_scores, justificationLikesCount = justificationLikesCount, numJustificationsOptions = numJustificationsOptions)
+    return render_template('quiz-grader.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, count_likes_received = count_likes_received, like_scores = like_scores, justification_grade = justification_grade, limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, participationThresholdOptions = participationThresholdOptions, LimitingFactor = LimitingFactor, total_scores = total_scores, justificationLikesCount = justificationLikesCount, numJustificationsOptions = numJustificationsOptions, quartileOptions = quartileOptions)
 
 @pages.route("/getDataCSV/<int:qid>", methods=['GET'])
 @login_required

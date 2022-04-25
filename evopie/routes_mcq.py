@@ -965,6 +965,50 @@ def changeNumJustificationsShown(qid):
             models.DB.session.commit()
         return make_response(response)
 
+@mcq.route('/grades/<int:qid>/firstQuartileGrade', methods=['POST'])
+@login_required
+def changeFirstQuartileGrade(qid):
+    if current_user.is_instructor():
+        q = models.Quiz.query.get_or_404(qid)
+        response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
+        if request.json:
+            q.first_quartile_grade = int(request.json['first_quartile_grade'])
+            models.DB.session.commit()
+        return make_response(response)
+
+@mcq.route('/grades/<int:qid>/secondQuartileGrade', methods=['POST'])
+@login_required
+def changeSecondQuartileGrade(qid):
+    if current_user.is_instructor():
+        q = models.Quiz.query.get_or_404(qid)
+        response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
+        if request.json:
+            q.second_quartile_grade = int(request.json['second_quartile_grade'])
+            models.DB.session.commit()
+        return make_response(response)
+
+@mcq.route('/grades/<int:qid>/thirdQuartileGrade', methods=['POST'])
+@login_required
+def changeThirdQuartileGrade(qid):
+    if current_user.is_instructor():
+        q = models.Quiz.query.get_or_404(qid)
+        response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
+        if request.json:
+            q.third_quartile_grade = int(request.json['third_quartile_grade'])
+            models.DB.session.commit()
+        return make_response(response)
+
+@mcq.route('/grades/<int:qid>/fourthQuartileGrade', methods=['POST'])
+@login_required
+def changeFourthQuartileGrade(qid):
+    if current_user.is_instructor():
+        q = models.Quiz.query.get_or_404(qid)
+        response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
+        if request.json:
+            q.fourth_quartile_grade = int(request.json['fourth_quartile_grade'])
+            models.DB.session.commit()
+        return make_response(response)
+
 @mcq.route('/justification/<int:justification_id>/<action>', methods=['PUT'])
 @login_required
 def like_justification(justification_id, action):
