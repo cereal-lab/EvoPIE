@@ -202,17 +202,19 @@
 
         function counterInit( fValue, lValue, counter_value ) {    
         var progress = $('.progressbar .progress')
-        let rate = 100 / {{ quiz.participation_grade_threshold }};
+        var lower = Math.round(0.8 * {{ quiz.participation_grade_threshold }});
+        var upper = {{ quiz.participation_grade_threshold }};
+        let rate = 100 / upper;
         $('.counter').text( counter_value );
-        $('.progress').text( counter_value + " likes" );
-        progress.css({ 'width': {{ quiz.participation_grade_threshold }} * rate + '%' });
+        $('.progress').text( counter_value + " likes given (" + lower + " min, " + upper + " max)");
+        progress.css({ 'width': upper * rate + '%' });
         // progress.innerHTML = counter_value;
 
-        if (counter_value >= Math.round(0.8 * {{ quiz.participation_grade_threshold }}) && counter_value <= {{ quiz.participation_grade_threshold }}) {
+        if (counter_value >= lower && counter_value <= upper) {
             $('.progress').css("background", "#96ff96")
         } else {
             $('.progress').css("background", "rgb(223, 96, 65)")
-            if (counter_value - 1 == {{ quiz.participation_grade_threshold }}) {
+            if (counter_value - 1 == upper) {
                 console.log("ok")
                 window.alert("You have gone beyond the participation threshold!");
             }
