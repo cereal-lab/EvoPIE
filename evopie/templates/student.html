@@ -205,20 +205,16 @@
         let rate = 100 / {{ quiz.participation_grade_threshold }};
         $('.counter').text( counter_value );
         $('.progress').text( counter_value + " likes" );
-        progress.css({ 'width': counter_value * rate + '%' });
+        progress.css({ 'width': {{ quiz.participation_grade_threshold }} * rate + '%' });
         // progress.innerHTML = counter_value;
 
         if (counter_value >= Math.round(0.8 * {{ quiz.participation_grade_threshold }}) && counter_value <= {{ quiz.participation_grade_threshold }}) {
             $('.progress').css("background", "#96ff96")
         } else {
             $('.progress').css("background", "rgb(223, 96, 65)")
-            console.log(counter_value)
             if (counter_value - 1 == {{ quiz.participation_grade_threshold }}) {
                 console.log("ok")
                 window.alert("You have gone beyond the participation threshold!");
-            }
-            if (counter_value > {{ quiz.participation_grade_threshold }}) {
-                progress.css({ 'width': {{ quiz.participation_grade_threshold }} * rate + '%' });
             }
         }
 
