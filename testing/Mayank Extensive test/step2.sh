@@ -12,75 +12,228 @@ curlit  "set quiz to step 2"        "/quizzes/1/status"     ' { "status" : "STEP
 # step #2
 
 # max likes = 3 * 22 = 66
-# 2 correct, 15 likes
-for s in {1..4}
-do
-    header "Step #2 for Student #${s}"
-    curl_login            "student #${s}"        '{ "email": "student'${s}'@usf.edu", "password": "pwd"}'
-    curlit "GET quiz"     "/quizzes/1/take"   ''
-    curlit "POST quiz"    "/quizzes/1/take"   '{ "revised_responses": {"1":"4" , "2":"-1", "3":"-1", "4":"13", "5": "17"} }'
-    # like "s1q1d1"    "1"
-    # like "s1q1d2"    "2"
-    # like "s1q1d4"    "4"
-    # like "s1q1sol"   "5"
+# 14 likes
+header "Step #2 for Student #1"
+curl_login            "student #1"        '{ "email": "student1@usf.edu", "password": "pwd"}'
+curlit "GET quiz"     "/quizzes/1/take"   ''
+curlit "POST quiz"    "/quizzes/1/take"   '{ "revised_responses": {"1":"4" , "2":"-1", "3":"-1", "4":"13", "5": "17"} }'
+# like "s1q1d1"    "1"
+# like "s1q1d2"    "2"
+# like "s1q1d4"    "4"
+# like "s1q1sol"   "5"
 
-    like "s5q1d1"    "89"
-    like "s5q1d2"    "90"
-    like "s5q1d3"    "91"
-    like "s5q1d4"    "92"
-    like "s5q1sol"   "93"
-    like "s5q2d5"   "94"
-    like "s5q2d6"   "95"
-    like "s5q2d7"   "96"
-    like "s5q2sol"   "97"
-    like "s5q3d9"   "98"
-    like "s5q3d10"   "99"
-    like "s5q3d11"   "100"
-    like "s5q3sol"   "101"
-    like "s5q4d13"   "102"
-    like "s5q4d14"   "103"
-    # like "s5q4d16"   "104"
-    # like "s5q4sol"   "105"
-done
+# like "s5q1d1"    "89"
+like "s5q1d2"    "90"
+like "s5q1d3"    "91"
+like "s5q1d4"    "92"
+like "s5q1sol"   "93"
+like "s5q2d5"   "94"
+like "s5q2d6"   "95"
+like "s5q2d7"   "96"
+like "s5q2sol"   "97"
+like "s5q3d9"   "98"
+like "s5q3d10"   "99"
+like "s5q3d11"   "100"
+like "s5q3sol"   "101"
+like "s5q4d13"   "102"
+like "s5q4d14"   "103"
+# like "s5q4d16"   "104"
+# like "s5q4sol"   "105"
 
-    # 26 likes
-    header "Step #2 for Student #5"
-    curl_login            "student #5"        '{ "email": "student5@usf.edu", "password": "pwd"}'
-    curlit "GET quiz"     "/quizzes/1/take"   ''
-    curlit "POST quiz"    "/quizzes/1/take"   '{ "revised_responses": {"1":"4" , "2":"-1", "3":"-1", "4":"13", "5": "17"} }'
-    like "s1q1d1"    "1"
-    like "s1q1d2"    "2"
-    like "s1q1d3"    "3"
-    like "s1q1d4"    "4"
-    like "s1q1sol"   "5"
-    like "s1q2d5"    "6"
-    like "s1q2d6"    "7"
-    like "s1q2d7"    "8"
-    like "s1q2sol"   "9"
+# 15 likes
+header "Step #2 for Student #2"
+curl_login            "student #2"        '{ "email": "student2@usf.edu", "password": "pwd"}'
+curlit "GET quiz"     "/quizzes/1/take"   ''
+curlit "POST quiz"    "/quizzes/1/take"   '{ "revised_responses": {"1":"4" , "2":"-1", "3":"-1", "4":"13", "5": "17"} }'
+# like "s1q1d1"    "1"
+# like "s1q1d2"    "2"
+# like "s1q1d4"    "4"
+# like "s1q1sol"   "5"
 
-    like "s2q1d1"    "23"
-    like "s2q1d2"    "24"
-    like "s2q1d3"    "25"
-    like "s2q1d4"    "26"
-    like "s2q1sol"   "27"
+# like "s5q1d1"    "89"
+like "s5q1d2"    "90"
+like "s5q1d3"    "91"
+like "s5q1d4"    "92"
+like "s5q1sol"   "93"
+like "s5q2d5"   "94"
+like "s5q2d6"   "95"
+like "s5q2d7"   "96"
+like "s5q2sol"   "97"
+like "s5q3d9"   "98"
+like "s5q3d10"   "99"
+like "s5q3d11"   "100"
+like "s5q3sol"   "101"
+like "s5q4d13"   "102"
+like "s5q4d14"   "103"
+like "s5q4d16"   "104"
+# like "s5q4sol"   "105"
 
-    like "s2q1d4"    "17" 
-    like "s2q2sol"   "22"
-    like "s2q3d10"   "24"
+# 16 likes
+header "Step #2 for Student #3"
+curl_login            "student #3"        '{ "email": "student3@usf.edu", "password": "pwd"}'
+curlit "GET quiz"     "/quizzes/1/take"   ''
+curlit "POST quiz"    "/quizzes/1/take"   '{ "revised_responses": {"1":"4" , "2":"-1", "3":"-1", "4":"13", "5": "17"} }'
+# like "s1q1d1"    "1"
+# like "s1q1d2"    "2"
+# like "s1q1d4"    "4"
+# like "s1q1sol"   "5"
 
-    like "s3q1d4"    "30"
-    like "s3q2d6"    "33"
-    like "s3q3d10"   "37"
-    like "s3q3sol"   "57"
+like "s5q1d1"    "89"
+like "s5q1d2"    "90"
+like "s5q1d3"    "91"
+like "s5q1d4"    "92"
+like "s5q1sol"   "93"
+like "s5q2d5"   "94"
+like "s5q2d6"   "95"
+like "s5q2d7"   "96"
+like "s5q2sol"   "97"
+like "s5q3d9"   "98"
+like "s5q3d10"   "99"
+like "s5q3d11"   "100"
+like "s5q3sol"   "101"
+like "s5q4d13"   "102"
+like "s5q4d14"   "103"
+like "s5q4d16"   "104"
+# like "s5q4sol"   "105"
 
-    like "s4q1d1"    "67"
-    like "s4q1d2"    "68"
-    like "s4q1d3"    "69"
-    like "s4q1d4"    "70"
-    like "s4q1sol"   "71"
+# 17 likes
+header "Step #2 for Student #4"
+curl_login            "student #4"        '{ "email": "student4@usf.edu", "password": "pwd"}'
+curlit "GET quiz"     "/quizzes/1/take"   ''
+curlit "POST quiz"    "/quizzes/1/take"   '{ "revised_responses": {"1":"4" , "2":"-1", "3":"-1", "4":"13", "5": "17"} }'
+# like "s1q1d1"    "1"
+# like "s1q1d2"    "2"
+# like "s1q1d4"    "4"
+# like "s1q1sol"   "5"
+
+like "s5q1d1"    "89"
+like "s5q1d2"    "90"
+like "s5q1d3"    "91"
+like "s5q1d4"    "92"
+like "s5q1sol"   "93"
+like "s5q2d5"   "94"
+like "s5q2d6"   "95"
+like "s5q2d7"   "96"
+like "s5q2sol"   "97"
+like "s5q3d9"   "98"
+like "s5q3d10"   "99"
+like "s5q3d11"   "100"
+like "s5q3sol"   "101"
+like "s5q4d13"   "102"
+like "s5q4d14"   "103"
+like "s5q4d16"   "104"
+like "s5q4sol"   "105"
+
+# 20 likes
+header "Step #2 for Student #5"
+curl_login            "student #5"        '{ "email": "student5@usf.edu", "password": "pwd"}'
+curlit "GET quiz"     "/quizzes/1/take"   ''
+curlit "POST quiz"    "/quizzes/1/take"   '{ "revised_responses": {"1":"4" , "2":"-1", "3":"-1", "4":"13", "5": "17"} }'
+like "s1q1d1"    "1"
+like "s1q1d2"    "2"
+like "s1q1d3"    "3"
+like "s1q1d4"    "4"
+like "s1q1sol"   "5"
+like "s1q2d5"    "6"
+like "s1q2d6"    "7"
+like "s1q2d7"    "8"
+like "s1q2sol"   "9"
+
+like "s2q1d1"    "23"
+like "s2q1d2"    "24"
+like "s2q1d3"    "25"
+like "s2q1d4"    "26"
+like "s2q1sol"   "27"
+
+like "s2q1d4"    "17" 
+like "s2q2sol"   "22"
+like "s2q3d10"   "24"
+
+like "s3q1d4"    "30"
+like "s3q2d6"    "33"
+like "s3q3d10"   "37"
+like "s3q3sol"   "57"
+
+# like "s4q1d1"    "67"
+# like "s4q1d2"    "68"
+# like "s4q1d3"    "69"
+# like "s4q1d4"    "70"
+# like "s4q1sol"   "71"
+
+# 19 likes
+header "Step #2 for Student #6"
+curl_login            "student #6"        '{ "email": "student6@usf.edu", "password": "pwd"}'
+curlit "GET quiz"     "/quizzes/1/take"   ''
+curlit "POST quiz"    "/quizzes/1/take"   '{ "revised_responses": {"1":"4" , "2":"-1", "3":"-1", "4":"13", "5": "17"} }'
+like "s1q1d1"    "1"
+like "s1q1d2"    "2"
+like "s1q1d3"    "3"
+like "s1q1d4"    "4"
+like "s1q1sol"   "5"
+like "s1q2d5"    "6"
+like "s1q2d6"    "7"
+like "s1q2d7"    "8"
+like "s1q2sol"   "9"
+
+like "s2q1d1"    "23"
+like "s2q1d2"    "24"
+like "s2q1d3"    "25"
+like "s2q1d4"    "26"
+like "s2q1sol"   "27"
+
+like "s2q1d4"    "17" 
+like "s2q2sol"   "22"
+like "s2q3d10"   "24"
+
+like "s3q1d4"    "30"
+like "s3q2d6"    "33"
+# like "s3q3d10"   "37"
+# like "s3q3sol"   "57"
+
+# like "s4q1d1"    "67"
+# like "s4q1d2"    "68"
+# like "s4q1d3"    "69"
+# like "s4q1d4"    "70"
+# like "s4q1sol"   "71"
+
+# 20 likes
+header "Step #2 for Student #7"
+curl_login            "student #7"        '{ "email": "student7@usf.edu", "password": "pwd"}'
+curlit "GET quiz"     "/quizzes/1/take"   ''
+curlit "POST quiz"    "/quizzes/1/take"   '{ "revised_responses": {"1":"4" , "2":"-1", "3":"-1", "4":"13", "5": "17"} }'
+like "s1q1d1"    "1"
+like "s1q1d2"    "2"
+like "s1q1d3"    "3"
+like "s1q1d4"    "4"
+like "s1q1sol"   "5"
+like "s1q2d5"    "6"
+like "s1q2d6"    "7"
+like "s1q2d7"    "8"
+like "s1q2sol"   "9"
+
+like "s2q1d1"    "23"
+like "s2q1d2"    "24"
+like "s2q1d3"    "25"
+like "s2q1d4"    "26"
+like "s2q1sol"   "27"
+
+like "s1q4sol"    "17" 
+like "s1q5sol"   "22"
+# like "s2q3d10"   "24"
+
+like "s2q2d7"    "30"
+like "s3q3d10"    "33"
+# like "s2q4d14"   "37"
+like "s3q3sol"   "57"
+
+# like "s4q1d1"    "67"
+# like "s4q1d2"    "68"
+# like "s4q1d3"    "69"
+# like "s4q1d4"    "70"
+# like "s4q1sol"   "71"
 
 # 23 likes
-for s in {6..9}
+for s in {8..9}
 do
     header "Step #2 for Student #${s}"
     curl_login            "student #${s}"        '{ "email": "student'${s}'@usf.edu", "password": "pwd"}'

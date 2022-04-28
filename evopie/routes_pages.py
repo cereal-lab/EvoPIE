@@ -572,10 +572,10 @@ def decideGrades(quiz, score, ranges):
     if score <= ranges[0]:
         grade = quiz.first_quartile_grade
     elif score > ranges[0]:
-        if score < ranges[1]:
+        if score <= ranges[1]:
             grade = quiz.second_quartile_grade
         elif score > ranges[1]:
-            if score < ranges[2]:
+            if score <= ranges[2]:
                 grade = quiz.third_quartile_grade
             elif score > ranges[2]:
                 grade = quiz.fourth_quartile_grade
