@@ -211,9 +211,11 @@
         // progress.innerHTML = counter_value;
 
         if (counter_value >= lower && counter_value <= upper) {
-            $('.progress').css("background", "#96ff96")
+            $('.progress').css("background", "#96ff96");
+            $('.progress').css("color", "black");
         } else {
-            $('.progress').css("background", "rgb(223, 96, 65)")
+            $('.progress').css("background", "rgb(223, 96, 65)");
+            $('.progress').css("color", "white");
         }
 
 

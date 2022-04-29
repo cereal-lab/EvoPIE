@@ -511,6 +511,7 @@ def get_data(qid):
             questions[str(question.id)] = models.Question.query.filter(question.question_id == models.Question.id).first()
         questions[str(question.id)].stem = Markup(questions[str(question.id)].stem).unescape()
         questions[str(question.id)].answer = Markup(questions[str(question.id)].answer).unescape()
+        questions[str(question.id)].title = Markup(questions[str(question.id)].title).unescape()
         for distractor in question.distractors:
             if str(question.id) not in distractors:
                 distractors[str(question.id)] = {}

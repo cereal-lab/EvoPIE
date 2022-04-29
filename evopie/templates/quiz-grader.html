@@ -496,7 +496,7 @@
                                     <h2 class="accordion-header" id="Heading{{question_id}}">
                                         <button class="accordion-button collapsed text-start align-top" type="button" data-toggle="collapse" data-parent="#accordionExample" href="#collapse{{question_id}}" aria-expanded="false" aria-controls="collapse{{question_id}}">
                                             <!-- FIX ME : the safe filter renders the text by applying the p and br tags -->
-                                             Question #{{ question_id }} <!--(<b>QID#{{ question_id | safe }}</b>)-->
+                                            {{ questions[question_id].title | safe }} <!--(<b>QID#{{ question_id | safe }}</b>)-->
                                         </button>
                                     </h2>
                                     <div id="collapse{{question_id}}" class="accordion-collapse collapse" aria-labelledby="Heading{{question_id}}">
@@ -570,14 +570,14 @@
                 <div class="modal fade TG-GIVEN-{{all_grades[i].student.id}}" tabindex="-1" role="dialog"
                         aria-labelledby="mySmallModalLabel" aria-hidden="true">
                     <div class="modal-dialog modal-xl">
-                      <div class="modal-content">
+                      <div class="modal-content text-start">
                         <div class="accordion" id="accordionExample">
                             {% for question_id, justifications_eachQuestion in grading_details[i].justifications.items() %}
                                     <div class="accordion-item" >
                                     <h2 class="accordion-header" id="Heading{{question_id}}">
                                         <button class="accordion-button" type="button" data-toggle="collapse" data-parent="#accordionExample" href="#collapse{{question_id}}" aria-expanded="false" aria-controls="collapse{{question_id}}"">
                                             <!--Question #{{ question_id | safe }} - -->
-                                            Question #{{ question_id }}
+                                            {{ questions[question_id].title | safe }}
                                         </button>
                                     </h2>
                                     <div id="collapse{{question_id}}"" class="accordion-collapse collapse show" aria-labelledby="Heading{{question_id}}" ">
@@ -590,8 +590,8 @@
                                             <p>
                                                 {{ questions[question_id].answer | safe }}
                                             </p>
-                                            <div style="display: flex; justify-content: center;">
-                                                <table class="align-top">
+                                            <div>
+                                                <table class="align-top text-start">
                                                     <tr>
                                                         <td style="font-weight: bold;">Justifications</td>
                                                     </tr>
@@ -623,14 +623,14 @@
                 <div class="modal fade TG-REC-{{all_grades[i].student.id}}" tabindex="-1" role="dialog"
                         aria-labelledby="mySmallModalLabel" aria-hidden="true">
                     <div class="modal-dialog modal-xl">
-                      <div class="modal-content">
+                      <div class="modal-content text-start">
                         <div class="accordion" id="accordionExample">
                             {% for question_id, justifications_eachQuestion in grading_details[i].justifications.items() %}
                                     <div class="accordion-item" >
                                     <h2 class="accordion-header" id="Heading{{question_id}}">
                                         <button class="accordion-button" type="button" data-toggle="collapse" data-parent="#accordionExample" href="#collapse{{question_id}}" aria-expanded="false" aria-controls="collapse{{question_id}}"">
                                             <!-- Question #{{ question_id | safe }} - -->
-                                            Question #{{ question_id }}                                            
+                                            {{ questions[question_id].title | safe }}                                          
                                         </button>
                                     </h2>
                                     <div id="collapse{{question_id}}"" class="accordion-collapse collapse show" aria-labelledby="Heading{{question_id}}" ">
