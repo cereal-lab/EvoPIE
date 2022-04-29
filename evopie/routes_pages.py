@@ -547,14 +547,17 @@ def get_data(qid):
 
         quartiles = [Q1, median, Q3]
         for grade in grades:
-            justification_grade[grade.student_id] = decideGrades(q, like_scores[grade.student_id], quartiles) if q.status == "STEP2" else 0
+            if q.status == "HIDDEN" or q.status == "STEP1":
+                justification_grade[grade.student_id] = 0    
+            else:
+                justification_grade[grade.student_id] = decideGrades(q, like_scores[grade.student_id], quartiles) if q.status == "STEP2" else 0
 
         print(MaxLikes, sorted_scores, quartiles)
     return q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade, justificationLikesCount
 
 def getTotalScore(q, grades, justification_grade, likes_given):
-    max_justfication_grade = 10
-    max_score = len(q.quiz_questions) * q.initial_score_weight + len(q.quiz_questions) * q.revised_score_weight + max_justfication_grade * q.justification_grade_weight + 1 * q.participation_grade_weight
+    max_justfication_grade = max(q.first_quartile_grade, q.second_quartile_grade, q.third_quartile_grade, q.fourth_quartile_grade)
+    max_score = round( ( len(q.quiz_questions) * q.initial_score_weight + len(q.quiz_questions) * q.revised_score_weight + max_justfication_grade * q.justification_grade_weight + 1 * q.participation_grade_weight), 2)
     total_scores = {}
     total_scores[-1] = max_score
     for grade in grades:
@@ -562,7 +565,7 @@ def getTotalScore(q, grades, justification_grade, likes_given):
         participation_grade = 1 if likes_given_length >= 0.8 * q.participation_grade_threshold and likes_given_length <= q.participation_grade_threshold else 0
         if (grade.student.id == 13):
             print("The participation grade is", participation_grade)
-            print(justification_grade[grade.student.id] * q.justification_grade_weight)
+            print(justification_grade[grade.student.id])
         total_scores[grade.student.id] = round(grade.initial_total_score * q.initial_score_weight + grade.revised_total_score * q.revised_score_weight + justification_grade[grade.student.id] * q.justification_grade_weight + participation_grade * q.participation_grade_weight, 2)
     return total_scores
 
