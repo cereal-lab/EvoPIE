@@ -16,7 +16,7 @@
         <div class="container">
             <h1 class="display-4">User Accounts Browser</h1>
                 <p class="lead">
-                    Change role or password for system users.
+                    Change role or password for any user accounts.
                 </p>
         </div>
     </div>
@@ -33,9 +33,9 @@
         <tbody>
     {% for user in all_users %}
         <tr>
-            <td class="text-left">{{user.last_name}}</td>
-            <td class="text-left">{{user.first_name}}</td>
-            <td class="text-left">{{user.email}}</td>
+            <td class="text-start">{{user.last_name}}</td>
+            <td class="text-start">{{user.first_name}}</td>
+            <td class="text-start">{{user.email}}</td>
             <td class="">
                 <!-- role selector -->
                 <select id="role{{user.id}}">
@@ -71,7 +71,7 @@
                     });
                 </script>
             </td>
-            <td class="text-right">
+            <td class="text-right text-end">
                 <!-- password switcher -->
                 <a  data-toggle="modal" data-target=".TG-INI-{{user.id}}">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-key" viewBox="0 0 16 16">

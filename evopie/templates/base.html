@@ -3,13 +3,8 @@
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
         <title>{% block title %}{% endblock %}</title>
-
-        <link   rel="stylesheet" 
-                href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" 
-                integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" 
-                crossorigin="anonymous">
-        <link   rel="stylesheet" 
-                href="{{ url_for('static', filename='basestyle.css') }}">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+        <link rel="stylesheet" href="{{ url_for('static', filename='basestyle.css') }}">
         <style>
             .reveal-if-not-selected {
                 opacity: 1;
@@ -71,78 +66,81 @@
     
     <body>
         <nav class="navbar navbar-expand-lg navbar-light bg-light">
+                <div class="container-fluid">
+                    <a class="navbar-brand" href="/">EvoPIE</a>
 
-            <a class="navbar-brand" href="/">EvoPIE</a>
-
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" 
-                    aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-            </button>
-        
-            <div class="collapse navbar-collapse" id="navbarSupportedContent">
-            <ul class="navbar-nav mr-auto">
-                {% if current_user.is_authenticated %}
-                
-                    {% if current_user.is_instructor() %}
-                        <li class="nav-item">
-                            <a href="/questions-browser"    class="nav-link"> Questions  </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="/quizzes-browser"      class="nav-link"> Quizzes  </a>
-                        </li>
-                    {% endif %}
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" 
+                        aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+                </button>
             
-                    {% if current_user.is_admin() %}
-                        <li class="nav-item">
-                            <a href="/users/" class="nav-link">User Accounts</a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="/admin" class="nav-link"> Admin Dashboard </a>
-                        </li>
-                    {% endif %}
-            
-                {% else %}
-                {% endif %}
-
-                <!--
-                <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    Dropdown
-                </a>
-                <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                    <a class="dropdown-item" href="#">Action</a>
-                    <a class="dropdown-item" href="#">Another action</a>
-                    <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" href="#">Something else here</a>
-                </div>
-                </li>
-                -->
-                <!--
-                <li class="nav-item">
-                <a class="nav-link disabled" href="#">Disabled</a>
-                </li>
-                -->
-                </ul>
-                
-                
-                <form class="form-inline my-2 my-lg-0">
+                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav me-auto">
                     {% if current_user.is_authenticated %}
+                    
+                        {% if current_user.is_instructor() %}
+                            <li class="nav-item">
+                                <a href="/questions-browser"    class="nav-link"> Questions  </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="/quizzes-browser"      class="nav-link"> Quizzes  </a>
+                            </li>
+                        {% endif %}
                 
-                        Logged as: [{{current_user.email}}] 
-                        <a href="/logout" class="btn my-2"> Logout </a>
-                        <!--
-                            <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
-                            <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
-                        -->
+                        {% if current_user.is_admin() %}
+                            <li class="nav-item">
+                                <a href="/users/" class="nav-link">User Accounts</a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="/admin" class="nav-link"> Admin Dashboard </a>
+                            </li>
+                        {% endif %}
                 
                     {% else %}
-
-                        <a href="{{ url_for('auth.get_signup') }}"  class="btn my-2">Signup for an Account</a>
-                        <a href="{{ url_for('auth.get_login') }}"   class="btn my-2">Login</a>
-                        
                     {% endif %}
-                </form>
+
+                    <!--
+                    <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        Dropdown
+                    </a>
+                    <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                        <a class="dropdown-item" href="#">Action</a>
+                        <a class="dropdown-item" href="#">Another action</a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="#">Something else here</a>
+                    </div>
+                    </li>
+                    -->
+                    <!--
+                    <li class="nav-item">
+                    <a class="nav-link disabled" href="#">Disabled</a>
+                    </li>
+                    -->
+                    </ul>
+                    
+                    
+                    <form class="form-inline my-2 my-lg-0">
+                        {% if current_user.is_authenticated %}
+                    
+                            Logged as: [{{current_user.email}}] 
+                            <a href="/logout" class="btn my-2"> Logout </a>
+                            <!--
+                                <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
+                                <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+                            -->
+                    
+                        {% else %}
+
+                            <a href="{{ url_for('auth.get_signup') }}"  class="btn my-2">Signup for an Account</a>
+                            <a href="{{ url_for('auth.get_login') }}"   class="btn my-2">Login</a>
+                            
+                        {% endif %}
+                    </form>
+                </div>
             </div>
+
+            
         </nav>
 
 
@@ -151,10 +149,9 @@
             {% if messages %}
                 {% for message in messages %}
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
                     {{ message }}
+                    <button type="button" class="btn-close" data-dismiss="alert" aria-label="Close">
+                    </button>
                 </div>
                 {% endfor %}
             {% endif %}
@@ -166,7 +163,7 @@
                 var data = document.createElement('div')
                 data.innerHTML = '<div class="alert alert-' + type + ' alert-dismissible fade show" role="alert">' 
                     + message 
-                    + '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button></div>'
+                    + '<button type="button" class="btn-close" data-dismiss="alert" aria-label="Close"></button></div>'
                 target.append(data)
             }
         </script>

@@ -3,6 +3,8 @@
 # Dynamic classes like scoped_session are caught by pylint as not having any
 # of the members they end up featuring at runtime. This is a way to tell pylint to let it be
 
+from dataclasses import replace
+from mimetypes import init
 from operator import not_
 from flask import jsonify, abort, request, Response, render_template, redirect, url_for, make_response
 from flask import Blueprint
@@ -13,7 +15,9 @@ from sqlalchemy.sql import collate
 from flask import Markup
 from random import shuffle
 
-import json, random
+import json, random, ast, re
+import numpy as np
+CLEANR = re.compile('<.*?>') 
 
 from . import DB, models
 
@@ -22,7 +26,51 @@ import jinja2
 
 pages = Blueprint('pages', __name__)
 
+def checkToContinue(str1, index):
 
+    if str1[index + 1] == ' ' and str1[index + 2] == '"' and str1[index - 1] == '"' and str1[index - 2].isdigit():
+        return True
+    return False
+
+def replaceModified(str):
+    str1 = list(str)
+    openTags = [m.start() for m in re.finditer('<p>', str)]
+    closeTags = [m.start() for m in re.finditer('</p>', str)]
+    singleQuotes = [m.start() for m in re.finditer('\'', str)]
+    i = 0
+    if len(openTags) == 0:
+        return str.replace("'", '"')
+    start = openTags[i]
+    end = closeTags[i]
+    for j in range(len(singleQuotes)):
+        curr = singleQuotes[j]
+        if curr > end:
+            i += 1
+            if i >= len(openTags):
+                break
+            start = openTags[i]
+            end = closeTags[i]
+        if not (curr > start and curr < end):
+            str1[curr] = '\"'
+    for j in range(closeTags[len(closeTags) - 1] + 4, len(str)):
+        if str1[j] == "\'":
+            str1[j] = "\""
+    str = ''.join(str1)
+    return str
+    # openColons = [m.start() for m in re.finditer(':', str)]
+    # for i in range(len(openColons)):
+    #     index = openColons[i]
+    #     if checkToContinue(str1, index):
+    #         j = index + 3
+    #         while j < openColons[i + 1] - 7:
+    #             if str1[j] == '"':
+    #                 str1[j] = "'"
+    # return ''.join(str1)
+
+class QuizAttempt:
+    justifications = {}
+    initial_responses = []
+    revised_responses = []
 
 @pages.route('/')
 def index():
@@ -182,6 +230,8 @@ def quiz_question_selector_2(quiz_id, question_id):
     question.answer = Markup(question.answer).unescape()
     for d in question.distractors:
         d.answer = Markup(d.answer).unescape()
+    
+
     return render_template('quiz-question-selector-2.html', quiz_id=quiz_id, question=question)
 
 
@@ -237,7 +287,17 @@ def quiz_editor(quiz_id):
         # NOTE we do not have to worry about unescaping the distractors because the quiz-editor 
         # does not render them. However, if we had to do so, remember that we need to add to 
         # each QuizQuestion a field named alternatives that has the answer + distractors unescaped.
-    return render_template('quiz-editor.html', quiz = q)
+    if q.status != "HIDDEN":
+        flash("Quiz not editable at this time", "error")
+        return redirect(url_for('pages.index'))
+    numJustificationsOptions = [num for num in range(1, 11)]
+    limitingFactorOptions = [num for num in range(1, 100)]
+    initialScoreFactorOptions = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+    revisedScoreFactorOptions = initialScoreFactorOptions
+    justificationsGradeOptions = initialScoreFactorOptions
+    participationGradeOptions = initialScoreFactorOptions
+    quartileOptions = numJustificationsOptions
+    return render_template('quiz-editor.html', quiz = q, limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, numJustificationsOptions = numJustificationsOptions, quartileOptions = quartileOptions)
     
 
 
@@ -316,6 +376,7 @@ def get_student(qid):
     if a: # step == 2
         # retrieve the peers' justifications for each question
         quiz_justifications = {}
+        count_distractor = 0
         for quiz_question in q.quiz_questions:
             question_justifications = {}
             for distractor in quiz_question.distractors:
@@ -329,6 +390,7 @@ def get_student(qid):
                     .filter(not_(models.Justification.justification=="<p></p>"))\
                     .filter(not_(models.Justification.student_id==current_user.id))\
                     .all()
+                count_distractor += 1
             # also handle the solution -1
             question_justifications["-1"] = models.Justification.query\
                 .filter_by(quiz_question_id=quiz_question.id)\
@@ -353,7 +415,7 @@ def get_student(qid):
                 #pick multiple of the justification objects at random
                 
                 #NOTE make sure we check that the len of the array is big enough first
-                number_to_select = min(3 , len(quiz_justifications[key_question][key_distractor]))
+                number_to_select = min(q.num_justifications_shown , len(quiz_justifications[key_question][key_distractor]))
                 #TODO FFS remove the above ugly, hardcoded, magic, number
 
                 selected = []
@@ -364,14 +426,24 @@ def get_student(qid):
 
                 quiz_justifications[key_question][key_distractor] = selected
 
+        if q.max_likes == -99:
+            q.max_likes = number_to_select * (count_distractor + len(quiz_questions))
+            models.DB.session.commit()
+
         initial_responses = [] 
 
         # FIXME TODO figure out how the JSON got messed up in the first place, then fix it instead of the ugly patch below
         asdict = json.loads(a[0].initial_responses.replace("'",'"'))
         for k in asdict:
             initial_responses.append(asdict[k])
+        
+        likes_given = len(LikesGiven(models.QuizAttempt.query.join(models.User)\
+        .filter(models.QuizAttempt.quiz_id == qid)\
+        .filter(models.QuizAttempt.student_id == u.id)\
+        .order_by(collate(models.User.last_name, 'NOCASE'))\
+        .first()))
 
-        return render_template('student.html', quiz=q, simplified_questions=simplified_quiz_questions, questions=quiz_questions, student=u, attempt=a[0], initial_responses=initial_responses, justifications=quiz_justifications)
+        return render_template('student.html', quiz=q, simplified_questions=simplified_quiz_questions, questions=quiz_questions, student=u, attempt=a[0], initial_responses=initial_responses, justifications=quiz_justifications, likes_given = likes_given)
 
     else: # step == 1
 
@@ -393,11 +465,8 @@ def users_browser():
     return render_template('users-browser.html', all_users=all_users)
 
 
-
-
-@pages.route('/grades/<int:qid>', methods=['GET'])
 @login_required
-def quiz_grader(qid):
+def get_data(qid):
     '''
     This page allows to get all stats on a given quiz.
     '''
@@ -415,4 +484,365 @@ def quiz_grader(qid):
         .filter(models.QuizAttempt.student_id == models.User.id)\
         .order_by(collate(models.User.last_name, 'NOCASE'))\
         .all()
-    return render_template('quiz-grader.html', quiz=q, all_grades=grades)
+
+    questions = {}
+    distractors = {}
+    count_distractor = 0
+    like_scores = {}
+    grading_details = []
+    likes_given = {}
+    likes_received = {}
+    count_likes_received = {}
+    justification_grade = {}
+    justificationLikesCount = {}
+    quiz_questions = q.quiz_questions
+
+    if len(grades) == 0:
+        return q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade
+
+    # LikesGiven format: (Justification object, Likes4Justifcations object, quiz_id, quiz_question_id)
+    # LikesReceived format: (Likes4Justification object, Justification object, quiz_id, quiz_question_id)
+    for grade in grades:
+        likes_given[grade.student_id] = LikesGiven(grade)
+        likes_received[grade.student_id], count_likes_received[grade.student_id], justificationLikesCount[grade.student_id]  = LikesReceived(grade)
+
+    for question in quiz_questions:
+        with models.DB.session.no_autoflush:
+            questions[str(question.id)] = models.Question.query.filter(question.question_id == models.Question.id).first()
+        questions[str(question.id)].stem = Markup(questions[str(question.id)].stem).unescape()
+        questions[str(question.id)].answer = Markup(questions[str(question.id)].answer).unescape()
+        questions[str(question.id)].title = Markup(questions[str(question.id)].title).unescape()
+        for distractor in question.distractors:
+            if str(question.id) not in distractors:
+                distractors[str(question.id)] = {}
+            distractors[str(question.id)][str(distractor.id)] = Markup(distractor.answer).unescape()
+            count_distractor += 1
+
+    MaxLikes = q.max_likes
+    LimitingFactor = q.limiting_factor
+    for i in range(len(grades)):
+        grading_details.append(QuizAttempt())
+        grades[i].justifications = Markup(grades[i].justifications).unescape()
+        grading_details[i].initial_responses = json.loads(grades[i].initial_responses.replace("'", '"'))
+        grading_details[i].revised_responses = json.loads(grades[i].revised_responses.replace("'", '"'))
+        # grading_details[i].justifications = json.loads(grades[i].justifications.replace("'", '"'))
+        # print("The student is ", grades[i].student_id)
+        # print(replaceModified(grades[i].justifications).replace('\\n', '\n').replace("\\'", "'"))
+        # grading_details[i].justifications = json.loads(replaceModified(grades[i].justifications.replace('"', "'")).replace('\\n', '\n').replace("\\'", "'"))
+        grading_details[i].justifications = ast.literal_eval(grades[i].justifications.replace("\\n", "a").replace('\\"', '\"'))
+        # grading_details[i].justifications = ast.literal_eval(grades[i].justifications.replace('\\"', '\"').replace('\\n', '\n'))
+        like_scores[grades[i].student_id] = 0
+        # for j in range(len(grades)):
+        #     if j != i:
+        #         if grades[i].student_id not in like_scores:
+        #             like_scores[grades[i].student_id] = 0
+        #         likes_by_g = len(LikesGiven(grades[j])) if len(LikesGiven(grades[j])) != 0 else 1
+        #         like_scores[grades[i].student_id] += ( Likes(grades[j], grades[i]) * min( ( (MaxLikes * LimitingFactor) / likes_by_g ), 1 ) )
+                # print (grades[i].student.email, Likes(grades[j], grades[i]), grades[j].student.email, likes_by_g, like_scores[grades[i].student_id])
+    sorted_scores = list(like_scores.values())
+    sorted_scores.sort()    
+    if len(sorted_scores) > 0:
+        median, median_indices = find_median(sorted_scores)
+        Q1, Q1_indices = find_median(sorted_scores[:median_indices[0]])
+        Q3, Q3_indices = find_median(sorted_scores[median_indices[-1] + 1:])
+
+        quartiles = [Q1, median, Q3]
+        for grade in grades:
+            if q.status == "HIDDEN" or q.status == "STEP1":
+                justification_grade[grade.student_id] = 0    
+            else:
+                justification_grade[grade.student_id] = decideGrades(q, like_scores[grade.student_id], quartiles)
+
+        print(MaxLikes, sorted_scores, quartiles)
+    return q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade, justificationLikesCount
+
+def getTotalScore(q, grades, justification_grade, likes_given):
+    max_justfication_grade = max(q.first_quartile_grade, q.second_quartile_grade, q.third_quartile_grade, q.fourth_quartile_grade)
+    max_score = round( ( len(q.quiz_questions) * q.initial_score_weight + len(q.quiz_questions) * q.revised_score_weight + max_justfication_grade * q.justification_grade_weight + 1 * q.participation_grade_weight), 2)
+    total_scores = {}
+    total_scores[-1] = max_score
+    for grade in grades:
+        likes_given_length = len(likes_given[grade.student.id]) if grade.student.id in likes_given else 0
+        participation_grade = 1 if likes_given_length >= 0.8 * q.participation_grade_threshold and likes_given_length <= q.participation_grade_threshold else 0
+        if (grade.student.id == 13):
+            print("The participation grade is", participation_grade)
+            print(justification_grade[grade.student.id])
+        total_scores[grade.student.id] = round(grade.initial_total_score * q.initial_score_weight + grade.revised_total_score * q.revised_score_weight + justification_grade[grade.student.id] * q.justification_grade_weight + participation_grade * q.participation_grade_weight, 2)
+    return total_scores
+
+
+def decideGrades(quiz, score, ranges):
+    grade = 0
+    if score <= ranges[0]:
+        grade = quiz.first_quartile_grade
+    elif score > ranges[0]:
+        if score <= ranges[1]:
+            grade = quiz.second_quartile_grade
+        elif score > ranges[1]:
+            if score <= ranges[2]:
+                grade = quiz.third_quartile_grade
+            elif score > ranges[2]:
+                grade = quiz.fourth_quartile_grade
+    return grade
+
+
+def find_median(sorted_list):
+    indices = []
+
+    list_size = len(sorted_list)
+    median = 0
+
+    if list_size % 2 == 0:
+        indices.append(int(list_size / 2) - 1)  # -1 because index starts from 0
+        indices.append(int(list_size / 2))
+
+        median = (sorted_list[indices[0]] + sorted_list[indices[1]]) / 2
+        pass
+    else:
+        indices.append(int(list_size / 2))
+
+        median = sorted_list[indices[0]]
+        pass
+
+    return median, indices
+
+def getNumJustificationsShown(qid):
+    q = models.Quiz.query.get_or_404(qid)
+    # retrieve the peers' justifications for each question
+    number_to_select = 0
+    quiz_justifications = {}
+    for quiz_question in q.quiz_questions:
+        question_justifications = {}
+        for distractor in quiz_question.distractors:
+            # get all justifications for that alternative / question pair
+            question_justifications[str(distractor.id)] = models.Justification.query\
+                .filter_by(quiz_question_id=quiz_question.id)\
+                .filter_by(distractor_id=distractor.id)\
+                .filter(not_(models.Justification.justification==""))\
+                .filter(not_(models.Justification.justification=="<br>"))\
+                .filter(not_(models.Justification.justification=="<p><br></p>"))\
+                .filter(not_(models.Justification.justification=="<p></p>"))\
+                .filter(not_(models.Justification.student_id==current_user.id))\
+                .all()
+        # also handle the solution -1
+        question_justifications["-1"] = models.Justification.query\
+            .filter_by(quiz_question_id=quiz_question.id)\
+            .filter_by(distractor_id="-1")\
+            .filter(not_(models.Justification.justification==""))\
+            .filter(not_(models.Justification.justification=="<br>"))\
+            .filter(not_(models.Justification.justification=="<p><br></p>"))\
+            .filter(not_(models.Justification.justification=="<p></p>"))\
+            .filter(not_(models.Justification.student_id==current_user.id))\
+            .all()
+        
+        # NOTE use filter instead of filter_by for != comparisons
+        # https://stackoverflow.com/questions/16093475/flask-sqlalchemy-querying-a-column-with-not-equals/16093713
+
+        # record this array of objects as corresponding to this question
+        quiz_justifications[str(quiz_question.id)] = question_justifications
+        
+    # This is where we apply the peer selection policy
+    # We now revisit the data we collected and pick one justification in each array of Justification objects
+    for key_question in quiz_justifications:
+        for key_distractor in quiz_justifications[key_question]:
+            #pick multiple of the justification objects at random
+            
+            #NOTE make sure we check that the len of the array is big enough first
+            number_to_select = min(q.num_justifications_shown, len(quiz_justifications[key_question][key_distractor]))
+            #TODO FFS remove the above ugly, hardcoded, magic, number
+
+            selected = []
+            for n in range(number_to_select):                     
+                index = random.randint(0,len(quiz_justifications[key_question][key_distractor])-1)
+                neo = quiz_justifications[key_question][key_distractor].pop(index) #[index]
+                selected.append(neo)
+
+            quiz_justifications[key_question][key_distractor] = selected
+    
+    return number_to_select
+
+def Likes(g, s):
+    '''
+    Gives us the amount of likes given by g to s for a quiz
+    '''
+    return len(models.DB.session.query(models.Likes4Justifications, models.Justification, DB.Model.metadata.tables['relation_questions_vs_quizzes'])\
+        .filter(models.Justification.id == models.Likes4Justifications.justification_id)\
+        .filter(models.Likes4Justifications.student_id == g.student_id)\
+        .filter(models.Justification.student_id == s.student_id)\
+        .filter(DB.Model.metadata.tables['relation_questions_vs_quizzes'].c.quiz_id == g.quiz_id)\
+        .filter(DB.Model.metadata.tables['relation_questions_vs_quizzes'].c.quiz_question_id == models.Justification.quiz_question_id)\
+        .all())
+
+
+def LikesGiven(g):
+    '''
+    All likes given by g for a particular quiz
+    '''
+    return (models.DB.session.query(models.Justification, models.Likes4Justifications, DB.Model.metadata.tables['relation_questions_vs_quizzes'])
+        .filter(models.Likes4Justifications.student_id == g.student_id)\
+        .filter(models.Likes4Justifications.justification_id == models.Justification.id)\
+        .filter(DB.Model.metadata.tables['relation_questions_vs_quizzes'].c.quiz_id == g.quiz_id)\
+        .filter(DB.Model.metadata.tables['relation_questions_vs_quizzes'].c.quiz_question_id == models.Justification.quiz_question_id)\
+        .all())
+
+def LikesReceived(g):
+    '''
+    Likes received by student for a quiz
+    '''
+    actual_justifications = (models.DB.session.query(models.Likes4Justifications, models.Justification, DB.Model.metadata.tables['relation_questions_vs_quizzes'])\
+        .filter(models.Justification.student_id == g.student_id)\
+        .filter(models.Likes4Justifications.justification_id == models.Justification.id)\
+        .filter(DB.Model.metadata.tables['relation_questions_vs_quizzes'].c.quiz_id == g.quiz_id)\
+        .filter(DB.Model.metadata.tables['relation_questions_vs_quizzes'].c.quiz_question_id == models.Justification.quiz_question_id)\
+        .group_by(models.Likes4Justifications.justification_id)\
+        .all()
+    )
+
+    count_likes = (models.DB.session.query(models.Likes4Justifications, models.Justification, DB.Model.metadata.tables['relation_questions_vs_quizzes'])\
+        .filter(models.Justification.student_id == g.student_id)\
+        .filter(models.Likes4Justifications.justification_id == models.Justification.id)\
+        .filter(DB.Model.metadata.tables['relation_questions_vs_quizzes'].c.quiz_id == g.quiz_id)\
+        .filter(DB.Model.metadata.tables['relation_questions_vs_quizzes'].c.quiz_question_id == models.Justification.quiz_question_id)\
+        .all()
+    )
+
+    justificationLikesCount = {}
+
+    for data in count_likes:
+        if data[1].justification not in justificationLikesCount:
+            justificationLikesCount[data[1].justification] = 0
+        justificationLikesCount[data[1].justification] += 1
+
+    return actual_justifications, count_likes, justificationLikesCount
+
+@pages.route('/grades/<int:qid>', methods=['GET'])
+@login_required
+def quiz_grader(qid):
+    '''
+    This page allows to get all stats on a given quiz.
+    '''
+
+    q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade, justificationLikesCount = get_data(qid)
+
+    numJustificationsOptions = [num for num in range(1, 11)]
+    ''' 
+    We are using the limitng factor to calculate the participation threshold, for example:
+
+    Let's say The max likes is 36
+    The default limiting factor is 0.5
+
+    So the range of likes should be 14 - 18
+
+    '''
+    limitingFactorOptions = [num for num in range(1, 100)]
+    initialScoreFactorOptions = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+    revisedScoreFactorOptions = initialScoreFactorOptions
+    justificationsGradeOptions = initialScoreFactorOptions
+    participationGradeOptions = initialScoreFactorOptions
+    quartileOptions = numJustificationsOptions
+
+    LimitingFactor = q.limiting_factor
+
+    total_scores = getTotalScore(q, grades, justification_grade, likes_given)
+    
+
+    return render_template('quiz-grader.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, count_likes_received = count_likes_received, like_scores = like_scores, justification_grade = justification_grade, limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, LimitingFactor = LimitingFactor, total_scores = total_scores, justificationLikesCount = justificationLikesCount, numJustificationsOptions = numJustificationsOptions, quartileOptions = quartileOptions)
+
+@pages.route("/getDataCSV/<int:qid>", methods=['GET'])
+@login_required
+def getDataCSV(qid):
+    # resetTotalScores(qid)
+    q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade, justificationLikesCount = get_data(qid)
+    total_scores = getTotalScore(q, grades, justification_grade, likes_given)
+    csv = 'Last Name,First Name,Email,Initial Score,Revised Score,Grade for Justifications,Grade for Participation,Likes Given,Likes Received,Total Score,Final Percentage\n'
+    for grade in grades:
+        likes_given_length = len(likes_given[grade.student.id]) if grade.student.id in likes_given else 0
+        likes_received_length = len(count_likes_received[grade.student.id]) if grade.student.id in likes_received else 0
+        participation_grade = 1 if likes_given_length >=  0.8 * q.participation_grade_threshold and likes_given_length <= q.participation_grade_threshold else 0
+        csv += grade.student.last_name + "," + grade.student.first_name + "," + grade.student.email + "," + str(grade.initial_total_score) + "," + str(grade.revised_total_score) + "," + str(justification_grade[grade.student.id]) + "," + str(participation_grade) + "," + str(likes_given_length) + "," + str(likes_received_length) + "," + str(total_scores[grade.student.id]) + " / " + str(total_scores[-1]) + "," + str( round(((total_scores[grade.student.id] / total_scores[-1] ) * 100), 1) ) + "%" + "\n"
+    filename = (current_user.email + "-" + q.title).replace(" ", "_")
+    return Response(
+        csv,
+        mimetype="text/csv",
+        headers={"Content-disposition":
+                 "attachment; filename={}.csv".format(filename)})
+
+@pages.route("/edit/LimitingFactor/<int:qid>", methods=['POST'])
+@login_required
+def changeLimitingFactor(qid):
+    data = request.form.get('limitingFactorOptions')
+        
+    print(data)
+    if data == "not applied":
+        return redirect(url_for('pages.quiz_grader', qid = qid))
+    q = models.Quiz.query.get_or_404(qid)
+    q.limiting_factor = int(data) / 100
+    models.DB.session.commit()
+    return redirect(url_for('pages.quiz_grader', qid = qid))
+
+@pages.route("/edit/InitialScoreFactor/<int:qid>", methods=['POST'])
+@login_required
+def changeInitialScoreFactor(qid):
+    data = request.form.get('initialScoreFactorOptions')
+        
+    print(data)
+    if data == "not applied":
+        return redirect(url_for('pages.quiz_grader', qid = qid))
+    q = models.Quiz.query.get_or_404(qid)
+    # resetTotalScores(qid)
+    q.initial_score_factor = int(data)
+    models.DB.session.commit()
+    return redirect(url_for('pages.quiz_grader', qid = qid))
+
+@pages.route("/edit/RevisedScoreFactor/<int:qid>", methods=['POST'])
+@login_required
+def changeRevisedScoreFactor(qid):
+    data = request.form.get('revisedScoreFactorOptions')
+        
+    print(data)
+    if data == "not applied":
+        return redirect(url_for('pages.quiz_grader', qid = qid))
+    q = models.Quiz.query.get_or_404(qid)
+    # resetTotalScores(qid)
+    q.revised_score_factor = int(data)
+    models.DB.session.commit()
+    return redirect(url_for('pages.quiz_grader', qid = qid))
+
+@pages.route("/edit/JustificationsGrade/<int:qid>", methods=['POST'])
+@login_required
+def changeJustificationsGrade(qid):
+    data = request.form.get('justificationsGradeOptions')
+        
+    print(data)
+    if data == "not applied":
+        return redirect(url_for('pages.quiz_grader', qid = qid))
+    q = models.Quiz.query.get_or_404(qid)
+    # resetTotalScores(qid)
+    q.justifications_grade = int(data)
+    models.DB.session.commit()
+    return redirect(url_for('pages.quiz_grader', qid = qid))
+
+@pages.route("/edit/ParticipationGrade/<int:qid>", methods=['POST'])
+@login_required
+def changeParticipationGrade(qid):
+    data = request.form.get('participationGradeOptions')
+        
+    print(data)
+    if data == "not applied":
+        return redirect(url_for('pages.quiz_grader', qid = qid))
+    q = models.Quiz.query.get_or_404(qid)
+    # resetTotalScores(qid)
+    q.participation_grade = int(data)
+    models.DB.session.commit()
+    return redirect(url_for('pages.quiz_grader', qid = qid))
+
+# def resetTotalScores(qid):
+#     q = models.Quiz.query.get_or_404(qid)
+#     attempts=models.QuizAttempt.query.join(models.User)\
+#         .filter(models.QuizAttempt.quiz_id == qid)\
+#         .filter(models.QuizAttempt.student_id == models.User.id)\
+#         .order_by(collate(models.User.last_name, 'NOCASE'))\
+#         .all()
+#     for attempt in attempts:
+#         attempt.initial_total_score = attempt.initial_total_score / q.initial_score_factor
+#         attempt.revised_total_score = attempt.revised_total_score / q.revised_score_factor

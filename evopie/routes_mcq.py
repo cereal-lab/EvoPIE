@@ -884,7 +884,120 @@ def get_quizzes_responses(qid):
     attempts = models.QuizAttempt.query.filter_by(quiz_id=qid).all()
     return jsonify([a.dump_as_dict() for a in attempts])
 
+@mcq.route("/grades/<int:qid>/limitingFactor", methods=['POST'])
+@login_required
+def changeLimitingFactor(qid):
+    if current_user.is_instructor():
+        q = models.Quiz.query.get_or_404(qid)
+        response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
+        if request.json:
+            q.limiting_factor = int(request.json['limiting_factor']) / 100
+            q.participation_grade_threshold = round(q.max_likes * (int(request.json['limiting_factor']) / 100))
+            models.DB.session.commit()
 
+        return make_response(response)
+
+@mcq.route('/grades/<int:qid>/initialScoreWeight', methods=['POST'])
+@login_required
+def changeInitialScoreWeight(qid):
+    if current_user.is_instructor():
+        q = models.Quiz.query.get_or_404(qid)
+        response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
+        if request.json:
+            q.initial_score_weight = int(request.json['initial_score']) / 100
+            models.DB.session.commit()
+
+        return make_response(response)
+
+@mcq.route('/grades/<int:qid>/revisedScoreWeight', methods=['POST'])
+@login_required
+def changeRevisedScoreWeight(qid):
+    if current_user.is_instructor():
+        q = models.Quiz.query.get_or_404(qid)
+        response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
+        if request.json:
+            q.revised_score_weight = int(request.json['revised_score']) / 100
+            models.DB.session.commit()
+        return make_response(response)
+  
+    
+@mcq.route('/grades/<int:qid>/justificationGradeWeight', methods=['POST'])
+@login_required
+def changeJustificationGradeWeight(qid):
+    if current_user.is_instructor():
+        q = models.Quiz.query.get_or_404(qid)
+        response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
+        if request.json:
+            q.justification_grade_weight = int(request.json['justification_grade']) / 100
+            models.DB.session.commit()
+        return make_response(response)
+
+
+@mcq.route('/grades/<int:qid>/participationGradeWeight', methods=['POST'])
+@login_required
+def changeParticipationGradeWeight(qid):
+    if current_user.is_instructor():
+        q = models.Quiz.query.get_or_404(qid)
+        response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
+        if request.json:
+            q.participation_grade_weight = int(request.json['participation_grade']) / 100
+            models.DB.session.commit()
+        return make_response(response)
+
+@mcq.route('/grades/<int:qid>/numJustificationsShown', methods=['POST'])
+@login_required
+def changeNumJustificationsShown(qid):
+    if current_user.is_instructor():
+        q = models.Quiz.query.get_or_404(qid)
+        response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
+        if request.json:
+            q.num_justifications_shown = int(request.json['num_justifications_shown'])
+            models.DB.session.commit()
+        return make_response(response)
+
+@mcq.route('/grades/<int:qid>/firstQuartileGrade', methods=['POST'])
+@login_required
+def changeFirstQuartileGrade(qid):
+    if current_user.is_instructor():
+        q = models.Quiz.query.get_or_404(qid)
+        response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
+        if request.json:
+            q.first_quartile_grade = int(request.json['first_quartile_grade'])
+            models.DB.session.commit()
+        return make_response(response)
+
+@mcq.route('/grades/<int:qid>/secondQuartileGrade', methods=['POST'])
+@login_required
+def changeSecondQuartileGrade(qid):
+    if current_user.is_instructor():
+        q = models.Quiz.query.get_or_404(qid)
+        response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
+        if request.json:
+            q.second_quartile_grade = int(request.json['second_quartile_grade'])
+            models.DB.session.commit()
+        return make_response(response)
+
+@mcq.route('/grades/<int:qid>/thirdQuartileGrade', methods=['POST'])
+@login_required
+def changeThirdQuartileGrade(qid):
+    if current_user.is_instructor():
+        q = models.Quiz.query.get_or_404(qid)
+        response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
+        if request.json:
+            q.third_quartile_grade = int(request.json['third_quartile_grade'])
+            models.DB.session.commit()
+        return make_response(response)
+
+@mcq.route('/grades/<int:qid>/fourthQuartileGrade', methods=['POST'])
+@login_required
+def changeFourthQuartileGrade(qid):
+    if current_user.is_instructor():
+        q = models.Quiz.query.get_or_404(qid)
+        response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
+        if request.json:
+            q.fourth_quartile_grade = int(request.json['fourth_quartile_grade'])
+            models.DB.session.commit()
+        return make_response(response)
 
 @mcq.route('/justification/<int:justification_id>/<action>', methods=['PUT'])
 @login_required
@@ -942,3 +1055,10 @@ def post_user_password(uid):
     models.DB.session.commit()
 
     return redirect(url_for('pages.users_browser'))
+
+def check(qid):
+    q = models.Quiz.query.get_or_404(qid)
+    total = q.initial_score_weight + q.revised_score_weight + q.justification_grade_weight + q.participation_grade_weight
+    if total > 1:
+        return False
+    return True

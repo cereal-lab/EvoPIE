@@ -5,4 +5,48 @@
     color: white;
   }
 
+  .progressbar {
+    position: fixed;
+    max-width: 500px;
+    border-radius: 2rem;
+    height: 30px;
+    bottom: 1rem;
+    width: 100%;
+    background: rgb(141 216 255);
+    overflow: hidden;
+    z-index: 9999;
+  }
   
+  span.progress {
+    height: 100%;
+    justify-content: center;
+    align-items: center;
+    background: rgb(223, 96, 65);
+    transition: all .3s;
+  }
+
+.expandable-content {
+  display: none;
+}
+
+.bar {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+}
+
+@media (min-width: 992px) {
+  .modal-lg {
+    width: 900px;
+  }
+}
+
+@media (min-width: 768px) {
+  .modal-xl {
+    width: 90%;
+   max-width:1200px;
+  }
+}
+
