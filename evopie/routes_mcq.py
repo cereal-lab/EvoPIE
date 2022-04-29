@@ -892,6 +892,7 @@ def changeLimitingFactor(qid):
         response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
         if request.json:
             q.limiting_factor = int(request.json['limiting_factor']) / 100
+            q.participation_grade_threshold = round(q.max_likes * (int(request.json['limiting_factor']) / 100))
             models.DB.session.commit()
 
         return make_response(response)
@@ -940,17 +941,6 @@ def changeParticipationGradeWeight(qid):
         response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
         if request.json:
             q.participation_grade_weight = int(request.json['participation_grade']) / 100
-            models.DB.session.commit()
-        return make_response(response)
-
-@mcq.route('/grades/<int:qid>/participationGradeThreshold', methods=['POST'])
-@login_required
-def changeParticipationGradeThreshold(qid):
-    if current_user.is_instructor():
-        q = models.Quiz.query.get_or_404(qid)
-        response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
-        if request.json:
-            q.participation_grade_threshold = int(request.json['participation_grade_threshold'])
             models.DB.session.commit()
         return make_response(response)
 

@@ -138,28 +138,6 @@
             })
         })
 
-        document.querySelector('#participation_grade_threshold').addEventListener('change', function() {
-            let target_url = '/grades/{{quiz.id}}/participationGradeThreshold';
-            let e = document.querySelector('#participation_grade_threshold');
-            let selectedValue = e.options[e.selectedIndex].value;
-            fetch(target_url,{
-                method:         'POST',
-                headers:        {'Content-Type' : 'application/json'},
-                body:           JSON.stringify({"participation_grade_threshold" :  selectedValue}),
-                credentials:    'same-origin'
-            })
-            .then(
-                response => {
-                    if(response.ok){
-                        $('#participation_grade_threshold_display')[0].innerHTML = "Participation Grade Threshold : " + Math.round(0.8 * selectedValue) + " likes to " + selectedValue + " likes";
-                        window.location.reload();
-                    }
-                }
-            )
-            .catch((error) => {
-            })
-        });
-
         document.querySelector('#num_justifications_shown').addEventListener('change', function() {
             let target_url = '/grades/{{quiz.id}}/numJustificationsShown';
             let e = document.querySelector('#num_justifications_shown');
@@ -334,14 +312,6 @@ function checkSum() {
                             </select> 
                             of the justifications you see
                             <!-- <button class="btn btn-primary btn-sm" name="submit" value="submit">Submit</button> -->
-                        </li>
-                        <li>
-                            Choose Participation Threshold
-                            <select id="participation_grade_threshold" name="participationThresholdOptions">
-                                {% for option in participationThresholdOptions %}
-                                    <option value="{{option}}" {% if quiz.participation_grade_threshold == option %} selected {% endif %} >{{option}} likes</option>
-                                {% endfor %}
-                            </select> 
                         </li>
                         <li id="participation_grade_threshold_display">
                             Participation Grade Threshold : {{ (quiz.participation_grade_threshold * 0.8) | round | int }} likes to {{ quiz.participation_grade_threshold }} likes

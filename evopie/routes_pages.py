@@ -291,14 +291,13 @@ def quiz_editor(quiz_id):
         flash("Quiz not editable at this time", "error")
         return redirect(url_for('pages.index'))
     numJustificationsOptions = [num for num in range(1, 11)]
-    limitingFactorOptions = [25, 50, 75]
+    limitingFactorOptions = [num for num in range(1, 100)]
     initialScoreFactorOptions = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
     revisedScoreFactorOptions = initialScoreFactorOptions
     justificationsGradeOptions = initialScoreFactorOptions
     participationGradeOptions = initialScoreFactorOptions
-    participationThresholdOptions = [num for num in range(1, 100)]
     quartileOptions = numJustificationsOptions
-    return render_template('quiz-editor.html', quiz = q, limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, participationThresholdOptions = participationThresholdOptions, numJustificationsOptions = numJustificationsOptions, quartileOptions = quartileOptions)
+    return render_template('quiz-editor.html', quiz = q, limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, numJustificationsOptions = numJustificationsOptions, quartileOptions = quartileOptions)
     
 
 
@@ -531,12 +530,13 @@ def get_data(qid):
         # grading_details[i].justifications = json.loads(replaceModified(grades[i].justifications.replace('"', "'")).replace('\\n', '\n').replace("\\'", "'"))
         grading_details[i].justifications = ast.literal_eval(grades[i].justifications.replace("\\n", "a").replace('\\"', '\"'))
         # grading_details[i].justifications = ast.literal_eval(grades[i].justifications.replace('\\"', '\"').replace('\\n', '\n'))
-        for j in range(len(grades)):
-            if j != i:
-                if grades[i].student_id not in like_scores:
-                    like_scores[grades[i].student_id] = 0
-                likes_by_g = len(LikesGiven(grades[j])) if len(LikesGiven(grades[j])) != 0 else 1
-                like_scores[grades[i].student_id] += ( Likes(grades[j], grades[i]) * min( ( (MaxLikes * LimitingFactor) / likes_by_g ), 1 ) )
+        like_scores[grades[i].student_id] = 0
+        # for j in range(len(grades)):
+        #     if j != i:
+        #         if grades[i].student_id not in like_scores:
+        #             like_scores[grades[i].student_id] = 0
+        #         likes_by_g = len(LikesGiven(grades[j])) if len(LikesGiven(grades[j])) != 0 else 1
+        #         like_scores[grades[i].student_id] += ( Likes(grades[j], grades[i]) * min( ( (MaxLikes * LimitingFactor) / likes_by_g ), 1 ) )
                 # print (grades[i].student.email, Likes(grades[j], grades[i]), grades[j].student.email, likes_by_g, like_scores[grades[i].student_id])
     sorted_scores = list(like_scores.values())
     sorted_scores.sort()    
@@ -724,12 +724,20 @@ def quiz_grader(qid):
     q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade, justificationLikesCount = get_data(qid)
 
     numJustificationsOptions = [num for num in range(1, 11)]
-    limitingFactorOptions = [25, 50, 75]
+    ''' 
+    We are using the limitng factor to calculate the participation threshold, for example:
+
+    Let's say The max likes is 36
+    The default limiting factor is 0.5
+
+    So the range of likes should be 14 - 18
+
+    '''
+    limitingFactorOptions = [num for num in range(1, 100)]
     initialScoreFactorOptions = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
     revisedScoreFactorOptions = initialScoreFactorOptions
     justificationsGradeOptions = initialScoreFactorOptions
     participationGradeOptions = initialScoreFactorOptions
-    participationThresholdOptions = [num for num in range(1, 100)]
     quartileOptions = numJustificationsOptions
 
     LimitingFactor = q.limiting_factor
@@ -737,7 +745,7 @@ def quiz_grader(qid):
     total_scores = getTotalScore(q, grades, justification_grade, likes_given)
     
 
-    return render_template('quiz-grader.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, count_likes_received = count_likes_received, like_scores = like_scores, justification_grade = justification_grade, limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, participationThresholdOptions = participationThresholdOptions, LimitingFactor = LimitingFactor, total_scores = total_scores, justificationLikesCount = justificationLikesCount, numJustificationsOptions = numJustificationsOptions, quartileOptions = quartileOptions)
+    return render_template('quiz-grader.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, count_likes_received = count_likes_received, like_scores = like_scores, justification_grade = justification_grade, limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, LimitingFactor = LimitingFactor, total_scores = total_scores, justificationLikesCount = justificationLikesCount, numJustificationsOptions = numJustificationsOptions, quartileOptions = quartileOptions)
 
 @pages.route("/getDataCSV/<int:qid>", methods=['GET'])
 @login_required
