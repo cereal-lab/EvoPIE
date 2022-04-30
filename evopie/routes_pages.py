@@ -531,13 +531,12 @@ def get_data(qid):
         # grading_details[i].justifications = json.loads(replaceModified(grades[i].justifications.replace('"', "'")).replace('\\n', '\n').replace("\\'", "'"))
         grading_details[i].justifications = ast.literal_eval(grades[i].justifications.replace("\\n", "a").replace('\\"', '\"'))
         # grading_details[i].justifications = ast.literal_eval(grades[i].justifications.replace('\\"', '\"').replace('\\n', '\n'))
-        like_scores[grades[i].student_id] = 0
-        # for j in range(len(grades)):
-        #     if j != i:
-        #         if grades[i].student_id not in like_scores:
-        #             like_scores[grades[i].student_id] = 0
-        #         likes_by_g = len(LikesGiven(grades[j])) if len(LikesGiven(grades[j])) != 0 else 1
-        #         like_scores[grades[i].student_id] += ( Likes(grades[j], grades[i]) * min( ( (MaxLikes * LimitingFactor) / likes_by_g ), 1 ) )
+        for j in range(len(grades)):
+            if j != i:
+                if grades[i].student_id not in like_scores:
+                    like_scores[grades[i].student_id] = 0
+                likes_by_g = len(LikesGiven(grades[j])) if len(LikesGiven(grades[j])) != 0 else 1
+                like_scores[grades[i].student_id] += ( Likes(grades[j], grades[i]) * min( ( (MaxLikes * LimitingFactor) / likes_by_g ), 1 ) )
                 # print (grades[i].student.email, Likes(grades[j], grades[i]), grades[j].student.email, likes_by_g, like_scores[grades[i].student_id])
     sorted_scores = list(like_scores.values())
     sorted_scores.sort()    
