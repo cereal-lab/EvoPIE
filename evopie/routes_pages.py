@@ -292,7 +292,7 @@ def quiz_editor(quiz_id):
         return redirect(url_for('pages.index'))
     numJustificationsOptions = [num for num in range(1, 11)]
     limitingFactorOptions = [num for num in range(1, 100)]
-    initialScoreFactorOptions = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+    initialScoreFactorOptions = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100]
     revisedScoreFactorOptions = initialScoreFactorOptions
     justificationsGradeOptions = initialScoreFactorOptions
     participationGradeOptions = initialScoreFactorOptions
@@ -734,7 +734,7 @@ def quiz_grader(qid):
 
     '''
     limitingFactorOptions = [num for num in range(1, 100)]
-    initialScoreFactorOptions = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+    initialScoreFactorOptions = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100]
     revisedScoreFactorOptions = initialScoreFactorOptions
     justificationsGradeOptions = initialScoreFactorOptions
     participationGradeOptions = initialScoreFactorOptions

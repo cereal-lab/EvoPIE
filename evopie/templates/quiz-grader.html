@@ -397,7 +397,7 @@
             </th>
             <th>Likes Given</th>
             <th>Likes Received</th>
-            <th>Total Score</th>
+            <th>Total Score / {{ total_scores[-1] }}</th>
             <th>Final Percentage</th>
         </tr></thead>
         <tbody>
@@ -692,17 +692,17 @@
                 </div>
             </td>
             <td>
-                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
+                <!button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
                 data-target=".TG-TOTAL-{{all_grades[i].student.id}}">
-                {{total_scores[all_grades[i].student.id]}} / {{ total_scores[-1] }} 
-                </button>
+                {{total_scores[all_grades[i].student.id]}}
+                <!/button>
             </td>
             <td>
-                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
+                <!button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
                 data-target=".TG-FINAL-{{all_grades[i].student.id}}">
                 {% set percentage = (total_scores[all_grades[i].student.id] / total_scores[-1] ) * 100 %}
                 {{ '%0.1f' % percentage | float }}%
-                </button>
+                <!/button>
             </td>
         </tr>
     {% endfor %}
