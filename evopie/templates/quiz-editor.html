@@ -715,7 +715,6 @@ function checkSum() {
 
     function removeQuizQuestion(quiz,question_id){
         let url = '/quizzes/' + quiz.id;
-        let result = document.querySelector('#quiz_result');
         let data =  {   "title": quiz.title, 
                         "description": quiz.description,
                         "questions_ids": []

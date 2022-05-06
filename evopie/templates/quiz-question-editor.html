@@ -103,8 +103,13 @@
         </h5>
 
         <div>
+            <h6>Distractor Answer:</h6>
             <p class="card-text">
                 {{ single_distractor.answer | safe }}
+            </p>
+            <h6>Justification for not picking:</h6>
+            <p class="card-text">
+                {{ single_distractor.justification | safe }}
             </p>
         </div>
     </div>

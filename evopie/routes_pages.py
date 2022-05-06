@@ -150,6 +150,7 @@ def question_editor(question_id):
     q.answer = Markup(q.answer).unescape()
     for d in q.distractors:
         d.answer = Markup(d.answer).unescape()
+        d.justification = Markup(d.justification).unescape()
     #return render_template('question-editor.html', all_distractors = ds, question = q)
     return render_template('question-editor.html', all_distractors = q.distractors, question = q)
     
@@ -192,6 +193,8 @@ def quiz_question_editor(quiz_id,quiz_question_id):
         # TODO #3 Refactor Markup(...).unescape()
         for d in qq.distractors:
             d.answer = Markup(d.answer).unescape()
+            d.justification = Markup(d.justification).unescape()
+            
     # now edit the QuizQuestion
     #return redirect("/question-editor/" + str(q.id), code=302)
     return render_template('quiz-question-editor.html', quiz_id = quiz_id, quiz_question = qq, question = q)
@@ -230,6 +233,7 @@ def quiz_question_selector_2(quiz_id, question_id):
     question.answer = Markup(question.answer).unescape()
     for d in question.distractors:
         d.answer = Markup(d.answer).unescape()
+        d.justification = Markup(d.justification).unescape()
     
 
     return render_template('quiz-question-selector-2.html', quiz_id=quiz_id, question=question)
