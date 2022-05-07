@@ -566,9 +566,9 @@ def calculateJustificationGrade(qid):
             quartiles = [Q1, median, Q3]
             for grade in grades:
                 if q.status == "HIDDEN" or q.status == "STEP1":
-                    justification_grade[grade.student_id] = 0    
+                    justification_grade[str(grade.student_id)] = 0    
                 else:
-                    justification_grade[grade.student_id] = decideGrades(q, like_scores[grade.student_id], quartiles)
+                    justification_grade[str(grade.student_id)] = decideGrades(q, like_scores[grade.student_id], quartiles)
     return justification_grade
 
 @pages.route('/grades/<int:qid>/justificationGrade', methods=['GET'])
@@ -783,24 +783,30 @@ def quiz_grader(qid):
     quartileOptions = numJustificationsOptions
 
     LimitingFactor = q.limiting_factor
-    # total_scores = getTotalScore(q, grades, calculateJustificationGrade(qid), likes_given)
     
 
     return render_template('quiz-grader.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, count_likes_received = count_likes_received, limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, LimitingFactor = LimitingFactor, justificationLikesCount = justificationLikesCount, numJustificationsOptions = numJustificationsOptions, quartileOptions = quartileOptions)
 
-@pages.route("/getDataCSV/<int:qid>", methods=['GET'])
+@pages.route("/getDataCSV/<int:qid>", methods=['POST'])
 @login_required
 def getDataCSV(qid):
     # resetTotalScores(qid)
+    if request.json:
+        justification_grade = request.json["justification_grade"]
+        total_scores = request.json["total_scores"]
     q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, justificationLikesCount = get_data(qid)
-    total_scores = getTotalScore(q, grades, calculateJustificationGrade(qid), likes_given)
     csv = 'Last Name,First Name,Email,Initial Score,Revised Score,Grade for Justifications,Grade for Participation,Likes Given,Likes Received,Total Score,Final Percentage\n'
     for grade in grades:
         likes_given_length = len(likes_given[grade.student.id]) if grade.student.id in likes_given else 0
         likes_received_length = len(count_likes_received[grade.student.id]) if grade.student.id in likes_received else 0
-        participation_grade = 1 if likes_given_length >=  0.8 * q.participation_grade_threshold and likes_given_length <= q.participation_grade_threshold else 0
-        csv += grade.student.last_name + "," + grade.student.first_name + "," + grade.student.email + "," + str(grade.initial_total_score) + "," + str(grade.revised_total_score) + "," + str(justification_grade[grade.student.id]) + "," + str(participation_grade) + "," + str(likes_given_length) + "," + str(likes_received_length) + "," + str(total_scores[grade.student.id]) + " / " + str(total_scores[-1]) + "," + str( round(((total_scores[grade.student.id] / total_scores[-1] ) * 100), 1) ) + "%" + "\n"
+        participation_grade = 1 if likes_given_length >= round(0.8 * q.participation_grade_threshold) and likes_given_length <= q.participation_grade_threshold else 0
+        csv += grade.student.last_name + "," + grade.student.first_name + "," + grade.student.email + "," + str(grade.initial_total_score) + "," + str(grade.revised_total_score) + "," + str(justification_grade[str(grade.student.id)]) + "," + str(participation_grade) + "," + str(likes_given_length) + "," + str(likes_received_length) + "," + str(total_scores[str(grade.student.id)]) + " / " + str(total_scores['-1']) + "," + str( round(((total_scores[str(grade.student.id)] / total_scores['-1'] ) * 100), 1) ) + "%" + "\n"
     filename = (current_user.email + "-" + q.title).replace(" ", "_")
+    downloadCSV(csv, filename)
+    response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
+    return make_response(response)
+
+def downloadCSV(csv, filename):
     return Response(
         csv,
         mimetype="text/csv",

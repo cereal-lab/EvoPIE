@@ -263,6 +263,9 @@
     </script>
 
     <script defer> 
+
+        let jgrades;
+        let tscores;
         document.addEventListener("DOMContentLoaded", function() { 
             document.querySelector('#loadJustificationGrade').addEventListener('click', function(event) {
             let target_url = '/grades/{{ quiz.id }}/justificationGrade';
@@ -277,6 +280,7 @@
             .then(
                 justification_grade => {
                     console.log(justification_grade)
+                    jgrades = justification_grade;
                     for (let id of Object.keys(justification_grade)) { 
                         let e = document.querySelector('#justification_grade-' + id); 
                         if (e) { 
@@ -294,6 +298,7 @@
                     .then(
                         total_scores => {
                             console.log(total_scores)
+                            tscores = total_scores;
                             for (let id of Object.keys(justification_grade)) { 
                                 let total_score = document.querySelector('#total_score-' + id);
                                 let final_percentage = document.querySelector('#final_percentage-' + id);
@@ -312,6 +317,26 @@
             )
             .catch((error) => {
             })
+        })
+
+        document.querySelector('#download-csv').addEventListener('click', function(event) {
+            let target_url = '/getDataCSV/{{ quiz.id }}';
+            fetch(target_url, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({"justification_grade" : jgrades, "total_scores" : tscores}),
+                credentials: 'same-origin'
+            })
+            .then(
+                    response => {
+                        if(response.ok){
+                            // $('#participation_grade_threshold_display')[0].innerHTML = "Participation Grade Threshold : " + Math.round(0.8 * selectedValue) + " likes to " + selectedValue + " likes";
+                            // window.location.reload();
+                        }
+                    }
+                )
+                .catch((error) => {
+                })
         })
     })
     </script>
@@ -773,6 +798,6 @@
         </tbody>
     </table>
     </div>
-    <a class="btn btn-primary btn-sm" href="/getDataCSV/{{quiz.id}}">Download CSV</a>
+    <button id="download-csv" class="btn btn-primary btn-sm">Download CSV</a>
     </div>
 {% endblock %}
