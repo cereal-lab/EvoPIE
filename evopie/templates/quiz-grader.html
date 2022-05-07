@@ -4,7 +4,7 @@
 {% block head %}
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.css">  
     <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.js"></script>
-    <script>
+    <script> 
         async function changeInitialScoreWeight() {
             if (!checkSum()) {
                 return;
@@ -261,6 +261,60 @@
     }
 
     </script>
+
+    <script defer> 
+        document.addEventListener("DOMContentLoaded", function() { 
+            document.querySelector('#loadJustificationGrade').addEventListener('click', function(event) {
+            let target_url = '/grades/{{ quiz.id }}/justificationGrade';
+            let spinner = document.querySelector('.spinner');
+            $('.spinner-border').removeClass('spinner');
+            fetch(target_url,{
+                method:         'GET',
+                headers:        {'Content-Type' : 'application/json'},
+                credentials:    'same-origin'
+            })
+            .then(response => response.json())
+            .then(
+                justification_grade => {
+                    console.log(justification_grade)
+                    for (let id of Object.keys(justification_grade)) { 
+                        let e = document.querySelector('#justification_grade-' + id); 
+                        if (e) { 
+                            e.innerHTML = justification_grade[id]; 
+                        } 
+                    }
+
+                    fetch('/grades/{{ quiz.id }}/totalScore',{
+                        method:         'POST',
+                        headers:        {'Content-Type' : 'application/json'},
+                        body:           JSON.stringify({"justification_grade" :  justification_grade}),
+                        credentials:    'same-origin'
+                    })
+                    .then(response => response.json())
+                    .then(
+                        total_scores => {
+                            console.log(total_scores)
+                            for (let id of Object.keys(justification_grade)) { 
+                                let total_score = document.querySelector('#total_score-' + id);
+                                let final_percentage = document.querySelector('#final_percentage-' + id);
+                                if (total_score) { 
+                                    total_score.innerHTML = total_scores[id] + " / " + total_scores[-1];
+                                }
+                                if (final_percentage) {
+                                    final_percentage.innerHTML = Math.round( ( (total_scores[id] / total_scores[-1]) * 100 ) * 100 ) / 100 + "%"
+                                }
+                            }
+                        }
+                    )
+
+                    $('.spinner-border').addClass('spinner');
+                }
+            )
+            .catch((error) => {
+            })
+        })
+    })
+    </script>
 {% endblock %}
 {% block content %}
 
@@ -368,7 +422,36 @@
     <div class="card bg-light m-3 mx-auto" style="width: 90%">
         <div class="card-body text-center" bg-light>
     <table class='compact stripe' width='100%' id="gradingtable">
-        <thead><tr>
+        <thead>
+        <tr>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th><div class="spinner-border spinner" role="status">
+                <span class="sr-only"></span>
+              </div></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+        </tr>
+        <tr>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th><button id="loadJustificationGrade" class="btn btn-primary btn-sm" name="refresh" value="refresh">Load</button></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+        </tr>
+        <tr>
             <th>Last Name</th>
             <th>First Name</th>
             <th>Email</th>
@@ -380,7 +463,8 @@
             <th>Likes Received</th>
             <th>Total Score</th>
             <th>Final Percentage</th>
-        </tr></thead>
+        </tr>
+    </thead>
         <tbody>
     {% for i in range(all_grades | length) %}
         <tr>
@@ -482,9 +566,9 @@
                 </div>
             </td>
             <td>
-                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
+                <button id="justification_grade-{{all_grades[i].student.id}}" type="button" class="btn btn-primary btn-sm" data-toggle="modal"
                         data-target=".TG-JUS-{{all_grades[i].student.id}}">
-                    {{justification_grade[all_grades[i].student.id]}}
+                    -
                 </button>
                 <div class="modal fade TG-JUS-{{all_grades[i].student.id}} text-start" tabindex="-1" role="dialog"
                         aria-labelledby="mySmallModalLabel" aria-hidden="true">
@@ -673,16 +757,15 @@
                 </div>
             </td>
             <td>
-                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
+                <button id="total_score-{{all_grades[i].student.id}}" type="button" class="btn btn-primary btn-sm" data-toggle="modal"
                 data-target=".TG-TOTAL-{{all_grades[i].student.id}}">
-                {{total_scores[all_grades[i].student.id]}} / {{ total_scores[-1] }} 
+                -
                 </button>
             </td>
             <td>
-                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
+                <button id="final_percentage-{{all_grades[i].student.id}}" type="button" class="btn btn-primary btn-sm" data-toggle="modal"
                 data-target=".TG-FINAL-{{all_grades[i].student.id}}">
-                {% set percentage = (total_scores[all_grades[i].student.id] / total_scores[-1] ) * 100 %}
-                {{ '%0.1f' % percentage | float }}%
+                -
                 </button>
             </td>
         </tr>

@@ -498,7 +498,7 @@ def get_data(qid):
     quiz_questions = q.quiz_questions
 
     if len(grades) == 0:
-        return q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade
+        return q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received
 
     # LikesGiven format: (Justification object, Likes4Justifcations object, quiz_id, quiz_question_id)
     # LikesReceived format: (Likes4Justification object, Justification object, quiz_id, quiz_question_id)
@@ -518,8 +518,6 @@ def get_data(qid):
             distractors[str(question.id)][str(distractor.id)] = Markup(distractor.answer).unescape()
             count_distractor += 1
 
-    MaxLikes = q.max_likes
-    LimitingFactor = q.limiting_factor
     for i in range(len(grades)):
         grading_details.append(QuizAttempt())
         grades[i].justifications = Markup(grades[i].justifications).unescape()
@@ -531,42 +529,86 @@ def get_data(qid):
         # grading_details[i].justifications = json.loads(replaceModified(grades[i].justifications.replace('"', "'")).replace('\\n', '\n').replace("\\'", "'"))
         grading_details[i].justifications = ast.literal_eval(grades[i].justifications.replace("\\n", "a").replace('\\"', '\"'))
         # grading_details[i].justifications = ast.literal_eval(grades[i].justifications.replace('\\"', '\"').replace('\\n', '\n'))
-        for j in range(len(grades)):
-            if j != i:
-                if grades[i].student_id not in like_scores:
-                    like_scores[grades[i].student_id] = 0
-                likes_by_g = len(LikesGiven(grades[j])) if len(LikesGiven(grades[j])) != 0 else 1
-                like_scores[grades[i].student_id] += ( Likes(grades[j], grades[i]) * min( ( (MaxLikes * LimitingFactor) / likes_by_g ), 1 ) )
-                # print (grades[i].student.email, Likes(grades[j], grades[i]), grades[j].student.email, likes_by_g, like_scores[grades[i].student_id])
-    sorted_scores = list(like_scores.values())
-    sorted_scores.sort()    
-    if len(sorted_scores) > 0:
-        median, median_indices = find_median(sorted_scores)
-        Q1, Q1_indices = find_median(sorted_scores[:median_indices[0]])
-        Q3, Q3_indices = find_median(sorted_scores[median_indices[-1] + 1:])
 
-        quartiles = [Q1, median, Q3]
+    return q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, justificationLikesCount
+
+def calculateJustificationGrade(qid):
+    if current_user.is_instructor():
+        q = models.Quiz.query.get_or_404(qid)
+        grades=models.QuizAttempt.query.join(models.User)\
+        .filter(models.QuizAttempt.quiz_id == qid)\
+        .filter(models.QuizAttempt.student_id == models.User.id)\
+        .order_by(collate(models.User.last_name, 'NOCASE'))\
+        .all()
+        like_scores = {}
+        justification_grade = {}
+        for i in range(len(grades)):
+            for j in range(len(grades)):
+                if i != j:
+                    if grades[i].student_id not in like_scores:
+                        like_scores[grades[i].student_id] = 0
+                    likes_by_g = len(LikesGiven(grades[j])) if len(LikesGiven(grades[j])) != 0 else 1
+                    # A DIFFERENT SOLUTION IDEA:
+                    # likes given by j to i is the same as likes received by i from j
+                    # make a group by query that gives a column of likes received from j for i
+                    # store that column as a hashmap for student i -> has all the likes given by every j for i
+                    # store likes given by j in a different hashmap
+                    # use that in the implementation of the formula
+                    like_scores[grades[i].student_id] += ( Likes(grades[j], grades[i]) * min( ( (q.max_likes * q.limiting_factor) / likes_by_g ), 1 ) )
+        
+        sorted_scores = list(like_scores.values())
+        sorted_scores.sort()    
+        if len(sorted_scores) > 0:
+            median, median_indices = find_median(sorted_scores)
+            Q1, Q1_indices = find_median(sorted_scores[:median_indices[0]])
+            Q3, Q3_indices = find_median(sorted_scores[median_indices[-1] + 1:])
+
+            quartiles = [Q1, median, Q3]
+            for grade in grades:
+                if q.status == "HIDDEN" or q.status == "STEP1":
+                    justification_grade[grade.student_id] = 0    
+                else:
+                    justification_grade[grade.student_id] = decideGrades(q, like_scores[grade.student_id], quartiles)
+    return justification_grade
+
+@pages.route('/grades/<int:qid>/justificationGrade', methods=['GET'])
+@login_required
+def getJustificationGrade(qid):
+    if current_user.is_instructor():
+        q = models.Quiz.query.get_or_404(qid)
+        response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
+        
+        return jsonify(calculateJustificationGrade(qid))     
+
+@pages.route('/grades/<int:qid>/totalScore', methods=['POST'])
+@login_required
+def findTotalScore(qid):
+    if current_user.is_instructor():
+        q = models.Quiz.query.get_or_404(qid)
+        response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
+        grades=models.QuizAttempt.query.join(models.User)\
+        .filter(models.QuizAttempt.quiz_id == qid)\
+        .filter(models.QuizAttempt.student_id == models.User.id)\
+        .order_by(collate(models.User.last_name, 'NOCASE'))\
+        .all()
+        likes_given = {}
         for grade in grades:
-            if q.status == "HIDDEN" or q.status == "STEP1":
-                justification_grade[grade.student_id] = 0    
-            else:
-                justification_grade[grade.student_id] = decideGrades(q, like_scores[grade.student_id], quartiles)
-
-        print(MaxLikes, sorted_scores, quartiles)
-    return q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade, justificationLikesCount
+            likes_given[grade.student_id] = LikesGiven(grade)
+        if request.json:
+            print
+            total_scores = getTotalScore(q, grades, request.json['justification_grade'], likes_given)
+        return jsonify(total_scores)     
 
 def getTotalScore(q, grades, justification_grade, likes_given):
     max_justfication_grade = max(q.first_quartile_grade, q.second_quartile_grade, q.third_quartile_grade, q.fourth_quartile_grade)
     max_score = round( ( len(q.quiz_questions) * q.initial_score_weight + len(q.quiz_questions) * q.revised_score_weight + max_justfication_grade * q.justification_grade_weight + 1 * q.participation_grade_weight), 2)
     total_scores = {}
     total_scores[-1] = max_score
+    print(justification_grade)
     for grade in grades:
         likes_given_length = len(likes_given[grade.student.id]) if grade.student.id in likes_given else 0
-        participation_grade = 1 if likes_given_length >= 0.8 * q.participation_grade_threshold and likes_given_length <= q.participation_grade_threshold else 0
-        if (grade.student.id == 13):
-            print("The participation grade is", participation_grade)
-            print(justification_grade[grade.student.id])
-        total_scores[grade.student.id] = round(grade.initial_total_score * q.initial_score_weight + grade.revised_total_score * q.revised_score_weight + justification_grade[grade.student.id] * q.justification_grade_weight + participation_grade * q.participation_grade_weight, 2)
+        participation_grade = 1 if likes_given_length >= round(0.8 * q.participation_grade_threshold) and likes_given_length <= q.participation_grade_threshold else 0
+        total_scores[grade.student.id] = round(grade.initial_total_score * q.initial_score_weight + grade.revised_total_score * q.revised_score_weight + justification_grade[str(grade.student.id)] * q.justification_grade_weight + participation_grade * q.participation_grade_weight, 2)
     return total_scores
 
 
@@ -721,7 +763,7 @@ def quiz_grader(qid):
     This page allows to get all stats on a given quiz.
     '''
 
-    q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade, justificationLikesCount = get_data(qid)
+    q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, justificationLikesCount = get_data(qid)
 
     numJustificationsOptions = [num for num in range(1, 11)]
     ''' 
@@ -741,18 +783,17 @@ def quiz_grader(qid):
     quartileOptions = numJustificationsOptions
 
     LimitingFactor = q.limiting_factor
-
-    total_scores = getTotalScore(q, grades, justification_grade, likes_given)
+    # total_scores = getTotalScore(q, grades, calculateJustificationGrade(qid), likes_given)
     
 
-    return render_template('quiz-grader.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, count_likes_received = count_likes_received, like_scores = like_scores, justification_grade = justification_grade, limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, LimitingFactor = LimitingFactor, total_scores = total_scores, justificationLikesCount = justificationLikesCount, numJustificationsOptions = numJustificationsOptions, quartileOptions = quartileOptions)
+    return render_template('quiz-grader.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, count_likes_received = count_likes_received, limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, LimitingFactor = LimitingFactor, justificationLikesCount = justificationLikesCount, numJustificationsOptions = numJustificationsOptions, quartileOptions = quartileOptions)
 
 @pages.route("/getDataCSV/<int:qid>", methods=['GET'])
 @login_required
 def getDataCSV(qid):
     # resetTotalScores(qid)
-    q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, like_scores, justification_grade, justificationLikesCount = get_data(qid)
-    total_scores = getTotalScore(q, grades, justification_grade, likes_given)
+    q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, justificationLikesCount = get_data(qid)
+    total_scores = getTotalScore(q, grades, calculateJustificationGrade(qid), likes_given)
     csv = 'Last Name,First Name,Email,Initial Score,Revised Score,Grade for Justifications,Grade for Participation,Likes Given,Likes Received,Total Score,Final Percentage\n'
     for grade in grades:
         likes_given_length = len(likes_given[grade.student.id]) if grade.student.id in likes_given else 0
