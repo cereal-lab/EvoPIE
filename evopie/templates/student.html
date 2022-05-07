@@ -427,6 +427,29 @@
                                     </div>
 
                                 {% endif %}
+
+                                {% else %} <!-- We are in SOLUTIONS mode -->
+                                <p>
+                                    <div class = "justificationsContainer">
+                                        <table id="justificationsTable_{{q.id}}_{{id}}" class="expandable-content table">
+                                        </table>
+                                        <tr>
+                                            <td></td>
+                                            {% if id != -1 %}
+                                            <td class='text-start'>
+                                                <h6>
+                                                    Justification from Instructor for not picking this alternative:
+                                                </h6>
+                                                    <p> {{ explanations[id |int ] | safe }} </p>
+                                            </td>
+                                            {% else %}
+                                            <td>
+
+                                            </td>
+                                            {% endif %}
+                                        </tr>
+                                    </div>
+                                </p>
                                 {% endif %}
                             </div>
                         </div>
