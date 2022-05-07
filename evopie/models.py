@@ -88,6 +88,10 @@ class Distractor(DB.Model):
     id = DB.Column(DB.Integer, primary_key=True)
 
     answer = DB.Column(DB.String, nullable=False)
+    
+    # The following is used as reference justification for not picking this distractor & 
+    # is provided by the distractor's author
+    justification = DB.Column(DB.String, nullable=False)
 
     # to allow for 1-to-many relationship Question / Distractor
     question_id = DB.Column(None, DB.ForeignKey('question.id'))
@@ -96,10 +100,10 @@ class Distractor(DB.Model):
         return "<Distractor: id='%d',question_id=%d>" % (self.id, self.question_id)
 
     def dump_as_dict(self): # TODO #3
-        return {"id" : self.id, "answer": Markup(self.answer).unescape()}
+        return {"id" : self.id, "answer": Markup(self.answer).unescape(), "justification": Markup(self.justification).unescape()}
 
     def dump_as_simplified_dict(self):
-        return {"id" : self.id, "answer": ""}
+        return {"id" : self.id, "answer": "", "justification": ""}
         
 
 

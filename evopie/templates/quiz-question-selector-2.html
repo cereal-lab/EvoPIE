@@ -82,26 +82,32 @@
         <h5 class="card-title">
             List of all distractors that were created for this Question
         </h5>
-        <table>
+        <table style="border:1px solid">
             <tr>
-                <th>
+                <th style="border:1px solid; padding:  0 0.5em">
                     Distractor ID#
                 </th>
-                <th>
+                <th style="border:1px solid; padding:  0 0.5em">
                     Description
+                </th>
+                <th style="border:1px solid; padding:  0 0.5em">
+                    Justification for not picking
                 </th>
             </tr>
 {% for distractor in question.distractors %}
             <tr>
-                <td valign='top'>
+                <td  style="border:1px solid; padding:  0 0.5em" valign='top'>
                     <label for="D{{distractor.id}}">
                         <INPUT TYPE="Checkbox" Name="distractors_checkboxes" ID="D{{distractor.id}}" Value="{{distractor.id}}">
                         &nbsp;&nbsp;&nbsp;&nbsp;
                         {{distractor.id}}
                     </label>
                 </td>
-                <td>
+                <td  style="border:1px solid; padding:  0 0.5em" valign="top">
                     {{ distractor.answer | safe }}
+                </td>
+                <td  style="border:1px solid; padding:  0 0.5em" valign="top">
+                    {{ distractor.justification | safe }}
                 </td>
             </tr>
         </div>
