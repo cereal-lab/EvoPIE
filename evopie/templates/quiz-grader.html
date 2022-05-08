@@ -106,7 +106,6 @@
         }
 
         $(document).ready( function () {
-            $('#gradingtable').DataTable();
 
             // document.querySelector('#initial_score').addEventListener('change', changeInitialScoreWeight());
 
@@ -266,11 +265,43 @@
 
         let jgrades;
         let tscores;
-        document.addEventListener("DOMContentLoaded", function() { 
+
+        function download(filename, textInput) {
+
+            var element = document.createElement('a');
+            element.setAttribute('href','data:text/plain;charset=utf-8, ' + encodeURIComponent(textInput));
+            element.setAttribute('download', filename);
+            document.body.appendChild(element);
+            element.click();
+        }
+
+
+        document.addEventListener("DOMContentLoaded", function() {
+            var table = $('#gradingtable').DataTable();
+
+            let students = [];
+            let length = {{ all_grades | length }};
+
+            for (let i = 0; i < length; i++) {
+                let justification_grade = document.querySelector('#justification_grade-' + i);
+                let total_score = document.querySelector('#total_score-' + i);
+                let final_percentage = document.querySelector('#final_percentage-' + i);
+                if (justification_grade) {
+                    justification_grade.innerHTML = '-';
+                }
+                if (total_score) {
+                    total_score.innerHTML = '-';
+                }
+                if (final_percentage) {
+                    final_percentage.innerHTML = '-';
+                }
+            }
+
             document.querySelector('#loadJustificationGrade').addEventListener('click', function(event) {
             let target_url = '/grades/{{ quiz.id }}/justificationGrade';
             let spinner = document.querySelector('.spinner');
             $('.spinner-border').removeClass('spinner');
+            table.page.len( -1 ).draw();
             fetch(target_url,{
                 method:         'GET',
                 headers:        {'Content-Type' : 'application/json'},
@@ -278,65 +309,57 @@
             })
             .then(response => response.json())
             .then(
-                justification_grade => {
+                data => {
+                    let justification_grade = data[0];
+                    let total_scores = data[1];
                     console.log(justification_grade)
                     jgrades = justification_grade;
                     for (let id of Object.keys(justification_grade)) { 
                         let e = document.querySelector('#justification_grade-' + id); 
                         if (e) { 
                             e.innerHTML = justification_grade[id]; 
+                        }
+                        let total_score = document.querySelector('#total_score-' + id);
+                        let final_percentage = document.querySelector('#final_percentage-' + id);
+                        if (total_score) {
+                            total_score.innerHTML = total_scores[id] + " / " + total_scores[-1];
+                        }
+                        if (final_percentage) {
+                            final_percentage.innerHTML = Math.round( ( (total_scores[id] / total_scores[-1]) * 100 ) * 100 ) / 100 + "%";
                         } 
                     }
 
-                    fetch('/grades/{{ quiz.id }}/totalScore',{
-                        method:         'POST',
-                        headers:        {'Content-Type' : 'application/json'},
-                        body:           JSON.stringify({"justification_grade" :  justification_grade}),
-                        credentials:    'same-origin'
-                    })
-                    .then(response => response.json())
-                    .then(
-                        total_scores => {
-                            console.log(total_scores)
-                            tscores = total_scores;
-                            for (let id of Object.keys(justification_grade)) { 
-                                let total_score = document.querySelector('#total_score-' + id);
-                                let final_percentage = document.querySelector('#final_percentage-' + id);
-                                if (total_score) { 
-                                    total_score.innerHTML = total_scores[id] + " / " + total_scores[-1];
-                                }
-                                if (final_percentage) {
-                                    final_percentage.innerHTML = Math.round( ( (total_scores[id] / total_scores[-1]) * 100 ) * 100 ) / 100 + "%"
-                                }
-                            }
-                        }
-                    )
-
                     $('.spinner-border').addClass('spinner');
+                    table.page.len( 10 ).draw();
                 }
             )
-            .catch((error) => {
-            })
         })
 
         document.querySelector('#download-csv').addEventListener('click', function(event) {
             let target_url = '/getDataCSV/{{ quiz.id }}';
             fetch(target_url, {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+       },
                 body: JSON.stringify({"justification_grade" : jgrades, "total_scores" : tscores}),
                 credentials: 'same-origin'
             })
-            .then(
-                    response => {
-                        if(response.ok){
-                            // $('#participation_grade_threshold_display')[0].innerHTML = "Participation Grade Threshold : " + Math.round(0.8 * selectedValue) + " likes to " + selectedValue + " likes";
-                            // window.location.reload();
-                        }
-                    }
-                )
-                .catch((error) => {
-                })
+            .then(response => response.blob())
+            .then(blob => {
+                var url = window.URL.createObjectURL(blob);
+                var link = document.createElement('a');
+                document.body.appendChild(link);
+                link.style = "display: none";
+                link.href = url;
+                link.download = "{{ current_user.email }}-{{ quiz.title }}.csv".replace(' ', '_');
+                link.click();
+
+                setTimeout(() => {
+                window.URL.revokeObjectURL(url);
+                link.remove(); } , 100);
+            })
         })
     })
     </script>

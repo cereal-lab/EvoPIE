@@ -6,7 +6,7 @@
 from dataclasses import replace
 from mimetypes import init
 from operator import not_
-from flask import jsonify, abort, request, Response, render_template, redirect, url_for, make_response
+from flask import jsonify, abort, request, Response, render_template, redirect, url_for, make_response, send_file
 from flask import Blueprint
 from flask_login import login_required, current_user
 from flask import flash
@@ -540,6 +540,10 @@ def calculateJustificationGrade(qid):
         .filter(models.QuizAttempt.student_id == models.User.id)\
         .order_by(collate(models.User.last_name, 'NOCASE'))\
         .all()
+        likes_given = {}
+        for grade in grades:
+            likes_given[grade.student_id] = LikesGiven(grade)
+        total_scores = {}
         like_scores = {}
         justification_grade = {}
         for i in range(len(grades)):
@@ -569,7 +573,8 @@ def calculateJustificationGrade(qid):
                     justification_grade[str(grade.student_id)] = 0    
                 else:
                     justification_grade[str(grade.student_id)] = decideGrades(q, like_scores[grade.student_id], quartiles)
-    return justification_grade
+        total_scores = getTotalScore(q, grades, justification_grade, likes_given)
+    return justification_grade, total_scores
 
 @pages.route('/grades/<int:qid>/justificationGrade', methods=['GET'])
 @login_required
@@ -595,7 +600,6 @@ def findTotalScore(qid):
         for grade in grades:
             likes_given[grade.student_id] = LikesGiven(grade)
         if request.json:
-            print
             total_scores = getTotalScore(q, grades, request.json['justification_grade'], likes_given)
         return jsonify(total_scores)     
 
@@ -604,7 +608,6 @@ def getTotalScore(q, grades, justification_grade, likes_given):
     max_score = round( ( len(q.quiz_questions) * q.initial_score_weight + len(q.quiz_questions) * q.revised_score_weight + max_justfication_grade * q.justification_grade_weight + 1 * q.participation_grade_weight), 2)
     total_scores = {}
     total_scores[-1] = max_score
-    print(justification_grade)
     for grade in grades:
         likes_given_length = len(likes_given[grade.student.id]) if grade.student.id in likes_given else 0
         participation_grade = 1 if likes_given_length >= round(0.8 * q.participation_grade_threshold) and likes_given_length <= q.participation_grade_threshold else 0
@@ -785,7 +788,7 @@ def quiz_grader(qid):
     LimitingFactor = q.limiting_factor
     
 
-    return render_template('quiz-grader.html', quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, count_likes_received = count_likes_received, limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, LimitingFactor = LimitingFactor, justificationLikesCount = justificationLikesCount, numJustificationsOptions = numJustificationsOptions, quartileOptions = quartileOptions)
+    return render_template('quiz-grader.html', current_user=current_user, quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, count_likes_received = count_likes_received, limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, LimitingFactor = LimitingFactor, justificationLikesCount = justificationLikesCount, numJustificationsOptions = numJustificationsOptions, quartileOptions = quartileOptions)
 
 @pages.route("/getDataCSV/<int:qid>", methods=['POST'])
 @login_required
@@ -802,16 +805,12 @@ def getDataCSV(qid):
         participation_grade = 1 if likes_given_length >= round(0.8 * q.participation_grade_threshold) and likes_given_length <= q.participation_grade_threshold else 0
         csv += grade.student.last_name + "," + grade.student.first_name + "," + grade.student.email + "," + str(grade.initial_total_score) + "," + str(grade.revised_total_score) + "," + str(justification_grade[str(grade.student.id)]) + "," + str(participation_grade) + "," + str(likes_given_length) + "," + str(likes_received_length) + "," + str(total_scores[str(grade.student.id)]) + " / " + str(total_scores['-1']) + "," + str( round(((total_scores[str(grade.student.id)] / total_scores['-1'] ) * 100), 1) ) + "%" + "\n"
     filename = (current_user.email + "-" + q.title).replace(" ", "_")
-    downloadCSV(csv, filename)
-    response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
-    return make_response(response)
-
-def downloadCSV(csv, filename):
     return Response(
         csv,
         mimetype="text/csv",
         headers={"Content-disposition":
                  "attachment; filename={}.csv".format(filename)})
+
 
 @pages.route("/edit/LimitingFactor/<int:qid>", methods=['POST'])
 @login_required
