@@ -279,23 +279,7 @@
         document.addEventListener("DOMContentLoaded", function() {
             var table = $('#gradingtable').DataTable();
 
-            let students = [];
-            let length = {{ all_grades | length }};
-
-            for (let i = 0; i < length; i++) {
-                let justification_grade = document.querySelector('#justification_grade-' + i);
-                let total_score = document.querySelector('#total_score-' + i);
-                let final_percentage = document.querySelector('#final_percentage-' + i);
-                if (justification_grade) {
-                    justification_grade.innerHTML = '-';
-                }
-                if (total_score) {
-                    total_score.innerHTML = '-';
-                }
-                if (final_percentage) {
-                    final_percentage.innerHTML = '-';
-                }
-            }
+            let justification_grade, total_scores;
 
             document.querySelector('#loadJustificationGrade').addEventListener('click', function(event) {
             let target_url = '/grades/{{ quiz.id }}/justificationGrade';
@@ -310,8 +294,8 @@
             .then(response => response.json())
             .then(
                 data => {
-                    let justification_grade = data[0];
-                    let total_scores = data[1];
+                    justification_grade = data[0];
+                    total_scores = data[1];
                     console.log(justification_grade)
                     jgrades = justification_grade;
                     for (let id of Object.keys(justification_grade)) { 
@@ -340,10 +324,10 @@
             fetch(target_url, {
                 method: 'POST',
                 headers: { 
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-       },
-                body: JSON.stringify({"justification_grade" : jgrades, "total_scores" : tscores}),
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({"justification_grade" : justification_grade, "total_scores" : total_scores}),
                 credentials: 'same-origin'
             })
             .then(response => response.blob())

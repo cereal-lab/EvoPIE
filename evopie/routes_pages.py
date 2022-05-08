@@ -583,25 +583,7 @@ def getJustificationGrade(qid):
         q = models.Quiz.query.get_or_404(qid)
         response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
         
-        return jsonify(calculateJustificationGrade(qid))     
-
-@pages.route('/grades/<int:qid>/totalScore', methods=['POST'])
-@login_required
-def findTotalScore(qid):
-    if current_user.is_instructor():
-        q = models.Quiz.query.get_or_404(qid)
-        response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
-        grades=models.QuizAttempt.query.join(models.User)\
-        .filter(models.QuizAttempt.quiz_id == qid)\
-        .filter(models.QuizAttempt.student_id == models.User.id)\
-        .order_by(collate(models.User.last_name, 'NOCASE'))\
-        .all()
-        likes_given = {}
-        for grade in grades:
-            likes_given[grade.student_id] = LikesGiven(grade)
-        if request.json:
-            total_scores = getTotalScore(q, grades, request.json['justification_grade'], likes_given)
-        return jsonify(total_scores)     
+        return jsonify(calculateJustificationGrade(qid))  
 
 def getTotalScore(q, grades, justification_grade, likes_given):
     max_justfication_grade = max(q.first_quartile_grade, q.second_quartile_grade, q.third_quartile_grade, q.fourth_quartile_grade)
