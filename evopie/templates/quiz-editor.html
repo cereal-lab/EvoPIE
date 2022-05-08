@@ -491,7 +491,7 @@ function checkSum() {
                 </svg>
             </a>
 
-            {{qq.question.title|safe}} [ID#{{qq.id}}]
+            {{qq.title|safe}} [ID#{{qq.id}}]
 
         </h5>
         
@@ -501,13 +501,13 @@ function checkSum() {
                     <tr>
                         <td style="vertical-align: top"><b>Q:</b></td>
                         <td>
-                            {{ qq.question.stem | safe }}
+                            {{ qq.stem | safe }}
                         </td>
                     </tr>
                     <tr>   
                         <td style="vertical-align: top"><b>A:</b></td>
                         <td>
-                            {{ qq.question.answer | safe }}
+                            {{ qq.answer | safe }}
                         </td>
                     </tr>
                         {% for distractor in qq.alternatives %}
@@ -564,29 +564,6 @@ function checkSum() {
                     .catch((error) => {
                     })
                 })
-
-                document.querySelector('#participation_grade_threshold').addEventListener('change', function() {
-                    let target_url = '/grades/{{quiz.id}}/participationGradeThreshold';
-                    let e = document.querySelector('#participation_grade_threshold');
-                    let selectedValue = e.options[e.selectedIndex].value;
-                    fetch(target_url,{
-                        method:         'POST',
-                        headers:        {'Content-Type' : 'application/json'},
-                        body:           JSON.stringify({"participation_grade_threshold" :  selectedValue}),
-                        credentials:    'same-origin'
-                    })
-                    .then(
-                        response => {
-                            if(response.ok){
-                                // $('#participation_grade_threshold_display')[0].innerHTML = "Participation Grade Threshold : " + Math.round(0.8 * selectedValue) + " likes to " + selectedValue + " likes";
-                                // window.location.reload();
-                            }
-                        }
-                    )
-                    .catch((error) => {
-                    })
-                });
-    
         } );
 
         function changeInitialScoreWeight() {
@@ -720,7 +697,7 @@ function checkSum() {
                         "description": quiz.description,
                         "questions_ids": []
                     };
-        for (q of quiz.questions){
+        for (q of quiz.quiz_questions){
             if(q.id != question_id){
                 data.questions_ids.push(q.id);
             }
