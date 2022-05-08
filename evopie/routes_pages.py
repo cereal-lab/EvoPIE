@@ -293,7 +293,8 @@ def quiz_editor(quiz_id):
         # each QuizQuestion a field named alternatives that has the answer + distractors unescaped.
     if q.status != "HIDDEN":
         flash("Quiz not editable at this time", "error")
-        return redirect(url_for('pages.index'))
+        #return redirect(url_for('pages.index'))
+        return redirect(request.referrer)
     numJustificationsOptions = [num for num in range(1, 11)]
     limitingFactorOptions = [num for num in range(1, 100)]
     initialScoreFactorOptions = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100]
@@ -301,7 +302,7 @@ def quiz_editor(quiz_id):
     justificationsGradeOptions = initialScoreFactorOptions
     participationGradeOptions = initialScoreFactorOptions
     quartileOptions = numJustificationsOptions
-    return render_template('quiz-editor.html', quiz = q, limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, numJustificationsOptions = numJustificationsOptions, quartileOptions = quartileOptions)
+    return render_template('quiz-editor.html', quiz = q.dump_as_dict(), limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, numJustificationsOptions = numJustificationsOptions, quartileOptions = quartileOptions)
     
 
 
@@ -349,7 +350,7 @@ def get_student(qid):
         tmp1 = [] # list of distractors IDs, -1 for right answer
         tmp2 = [] # list of alternatives, including the right answer
         tmp1.append(-1)
-        tmp2.append(Markup(qq.question.answer).unescape())
+        tmp2.append(Markup(qq.answer).unescape())
         for d in qq.distractors:
             tmp1.append(Markup(d.id).unescape()) # FIXME not necessary
             tmp2.append(Markup(d.answer).unescape())
@@ -362,19 +363,19 @@ def get_student(qid):
     
     if q.status == "HIDDEN":
         flash("Quiz not accessible at this time", "error")
-        return redirect(url_for('pages.index'))
+        return redirect(request.referrer) #return redirect(url_for('pages.index'))
 
     if a and q.status == "STEP1":
         flash("You already submitted your answers for step 1 of this quiz. Wait for the instructor to open step 2 for everyone.", "error")
-        return redirect(url_for('pages.index'))
+        return redirect(request.referrer) #return redirect(url_for('pages.index'))
 
     if not a and q.status == "STEP2":
         flash("You did not submit your answers for step 1 of this quiz. Because of that, you may not participate in step 2.", "error")
-        return redirect(url_for('pages.index'))
+        return redirect(request.referrer) #return redirect(url_for('pages.index'))
 
     if a and q.status == "STEP2" and a[0].revised_responses != "{}":
         flash("You already submitted your answers for both step 1 and step 2. You are done with this quiz.", "error")
-        return redirect(url_for('pages.index'))
+        return redirect(request.referrer) #return redirect(url_for('pages.index'))
 
 
     # finding the reference justifications for each distractor
