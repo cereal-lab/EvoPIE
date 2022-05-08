@@ -6,3 +6,7 @@ venv/
 evopie/DB_quizlib-easy.sqlite
 testing/Easy Labels Tests/gradebooks.diff
 testing/Easy Labels Tests/gradebook-downloaded.csv
+deployments/2022-spring-COP2512-alessio/migration-commands.sql
+deployments/2022-spring-COP2512-alessio/migration.sh
+testing/Extensive Test/
+testing/deprecated/
