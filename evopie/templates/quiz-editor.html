@@ -173,7 +173,6 @@
                 .then(
                     response => {
                         if(response.ok){
-                            // $('#participation_grade_threshold_display')[0].innerHTML = "Participation Grade Threshold : " + Math.round(0.8 * selectedValue) + " likes to " + selectedValue + " likes";
                             // window.location.reload();
                         }
                     }
@@ -195,7 +194,6 @@
                 .then(
                     response => {
                         if(response.ok){
-                            // $('#participation_grade_threshold_display')[0].innerHTML = "Participation Grade Threshold : " + Math.round(0.8 * selectedValue) + " likes to " + selectedValue + " likes";
                             // window.location.reload();
                         }
                     }
@@ -217,7 +215,6 @@
                 .then(
                     response => {
                         if(response.ok){
-                            // $('#participation_grade_threshold_display')[0].innerHTML = "Participation Grade Threshold : " + Math.round(0.8 * selectedValue) + " likes to " + selectedValue + " likes";
                             // window.location.reload();
                         }
                     }
@@ -239,7 +236,6 @@
                 .then(
                     response => {
                         if(response.ok){
-                            // $('#participation_grade_threshold_display')[0].innerHTML = "Participation Grade Threshold : " + Math.round(0.8 * selectedValue) + " likes to " + selectedValue + " likes";
                             // window.location.reload();
                         }
                     }
@@ -293,7 +289,6 @@ function checkSum() {
                 First pick a question (solution + answer) then add distractors to it.
                 You may also remove entire questions from the quiz.
             </p>
-
     </div>
 </div>
 
@@ -447,19 +442,7 @@ function checkSum() {
 
 <div class="card bg-light m-3 mx-auto" style="width: 75%">
     <div class="card-body" bg-light>
-        <h5 class="card-title"> List of Questions assigned to this Quiz:</h5>
-        <p class="lead">
-            The questions already assigned to this quiz are listed below. 
-            You may always 
-            <button onclick="addExistingQuestion()" class="btn btn-primary">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-square" viewBox="0 0 16 16">
-                    <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
-                    <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
-                </svg>
-                Add a Question
-            </button>
-            to this Quiz, from the pool of existing questions.
-        </p>
+        <button onclick="addExistingQuestion()" class="btn btn-primary">Add existing question to this Quiz</button>
     </div>
 </div>
 
@@ -693,6 +676,7 @@ function checkSum() {
 
     function removeQuizQuestion(quiz,question_id){
         let url = '/quizzes/' + quiz.id;
+        let result = document.querySelector('#quiz_result');
         let data =  {   "title": quiz.title, 
                         "description": quiz.description,
                         "questions_ids": []
