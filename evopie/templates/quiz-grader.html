@@ -348,7 +348,7 @@
 
     <div class="jumbotron jumbotron-fluid">
         <div class="container">
-            <h1 class="display-4">Grades for Quiz {{quiz.title | safe}} [{{quiz.id | safe}}] </h1>
+            <h1 class="display-4">Grades for "{{quiz.title | safe}}"  </h1>
                 <p class="lead">
                     <h6>The following are computed below;</h6>
                     <ul>
@@ -361,8 +361,7 @@
                         </li>
                         <li>
                             Grade for the participation of the student, aka providing the expected number of likes to 
-                            other students' justifications during step 2. Configure the details by clicking the gear icon 
-                            in the Participation column.
+                            other students' justifications during step 2. 
                         </li>
                         <li>
                             Number of likes that the student's justifications received from other students
@@ -374,19 +373,14 @@
                     <h6>Other instructions:</h6>
                         <ul>
                         <li>
-                            You may modifying the weights of each component of the total grade.
+                            You may modifying the weights of each component of the total grade. Recompute afterward.
                         </li>
                         <li>
-                            If you do so, make sure all weights add up to 100% then 
-                            <button onclick=refresh() class="btn btn-primary btn-sm" name="refresh" value="refresh">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
-                                    <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
-                                    <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
-                                </svg>
-                                Update</button> the totals.
+                            You may configure the details of the participation grading by clicking the gear icon 
+                            in the Participation column. Recompute afterward.
                         </li>
                         <li>
-                            Click any score or grade to inspect the details.
+                            Click any grade to inspect the details.
                         </li>
                     </ul>
                 </p>
@@ -464,37 +458,16 @@
 
 
     <div class="card bg-light m-3 mx-auto" style="width: 90%">
-        <div class="card-body text-center" bg-light>
-    <table class='compact stripe' width='100%' id="gradingtable">
-        <thead>
-        <tr>
-            <th></th>
-            <th></th>
-            <th></th>
-            <th></th>
-            <th></th>
-            <th><div class="spinner-border spinner" role="status">
+        <button  id="loadJustificationGrade" class="btn btn-primary btn-sm" name="refresh" value="refresh">
+            <span class="spinner-border spinner-border-sm spinner" role="status">
                 <span class="sr-only"></span>
-              </div></th>
-            <th></th>
-            <th></th>
-            <th></th>
-            <th></th>
-            <th></th>
-        </tr>
-        <tr>
-            <th></th>
-            <th></th>
-            <th></th>
-            <th></th>
-            <th></th>
-            <th><button id="loadJustificationGrade" class="btn btn-primary btn-sm" name="refresh" value="refresh">Load</button></th>
-            <th></th>
-            <th></th>
-            <th></th>
-            <th></th>
-            <th></th>
-        </tr>
+            </span>
+            (Re)compute All Grades based on weights below
+        </button>
+        <div class="card-body text-center" bg-light>
+    
+    <table class='compact stripe' width='100%' id="gradingtable">
+    <thead>
         <tr>
             <th>Last Name</th>
             <th>First Name</th>
@@ -539,7 +512,7 @@
         </tr>
     </thead>
     <tbody>
-    {% for i in range(all_grades | length) %}
+        {% for i in range(all_grades | length) %}
         <tr>
             <td class='text-start align-top'>{{all_grades[i].student.last_name | safe}}</td>
             <td class='text-start align-top'>{{all_grades[i].student.first_name | safe}}</td>
@@ -842,8 +815,8 @@
                 </button>
             </td>
         </tr>
-    {% endfor %}
-        </tbody>
+        {% endfor %}
+    </tbody>
     </table>
     </div>
     <button id="download-csv" class="btn btn-primary btn-sm">Download CSV</a>
