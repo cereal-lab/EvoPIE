@@ -59,8 +59,15 @@
                     <div class="form-group">
                         <input type="hidden" name="qid" id="qid" value="{{ question.id }}" class="form-control" required>
                     </div>
+                    Provide the distractor answer:
                     <div class="form-group">
-                        <textarea class="summernote form-control" name="answer" id="answer" required></textarea>
+                        <textarea   placeholder="Distractor Answer"
+                                    class="summernote form-control" name="answer" id="answer" required></textarea>
+                    </div>
+                    Provide a justification for not picking it:
+                    <div class="form-group">
+                        <textarea   placeholder="Justification for not picking this distractor"
+                                    class="summernote form-control" name="justification" id="justification" required></textarea>
                     </div>
                     <input type="submit" value="Submit New Distractor" class="btn btn-primary">
                 </form>                        
@@ -74,7 +81,7 @@
             <div  id = "newdistractor">
                 <p class="card-text">
                     The following are all distractors currently assigned to this question.
-                    Click a distractor ID to edit it &amp; submit the new version.
+                    Click a distractor to edit it &amp; submit the new version.
                 </p>
             </div>
         </div>
@@ -87,19 +94,33 @@
             <div class="card-body" bg-light>
         
                 <div data-toggle = "collapse" data-target = "#distractor{{single_distractor.id}}">
+                    <h6>Distractor Answer: </h6>
                     <p class="card-text">
                         {{ single_distractor.answer | safe }}
                     </p>
+                    <h6>Justification for not picking this distractor:</h6>
+                    <p class="card-text">
+                        {{ single_distractor.justification | safe }}
+                    </p>
+                    
                 </div>
 
                 <div id = "distractor{{single_distractor.id}}" class = "collapse">
+                    <h5>Edit the distractor below:</h5>
                     <form method="post" action='/distractors/{{ single_distractor.id }}'>
                         <div class="form-group">
                             <input type="hidden" name="did" id="did" value="{{ single_distractor.id }}" class="form-control" required>
                         </div>
+                        <h6>Distractor Answer: </h6>
                         <div class="form-group">
                             <textarea class="summernote form-control" name="answer" id="answer" required>
                                 {{ single_distractor.answer | safe }}
+                            </textarea>
+                        </div>
+                        <h6>Justification for not picking this distractor:</h6>
+                        <div class="form-group">
+                            <textarea class="summernote form-control" name="justification" id="justification" required>
+                                {{ single_distractor.justification | safe }}
                             </textarea>
                         </div>
                         <input type="submit" value="Submit Changes to Distractor" class="btn btn-primary">

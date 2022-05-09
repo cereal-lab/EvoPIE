@@ -173,7 +173,6 @@
                 .then(
                     response => {
                         if(response.ok){
-                            // $('#participation_grade_threshold_display')[0].innerHTML = "Participation Grade Threshold : " + Math.round(0.8 * selectedValue) + " likes to " + selectedValue + " likes";
                             // window.location.reload();
                         }
                     }
@@ -195,7 +194,6 @@
                 .then(
                     response => {
                         if(response.ok){
-                            // $('#participation_grade_threshold_display')[0].innerHTML = "Participation Grade Threshold : " + Math.round(0.8 * selectedValue) + " likes to " + selectedValue + " likes";
                             // window.location.reload();
                         }
                     }
@@ -217,7 +215,6 @@
                 .then(
                     response => {
                         if(response.ok){
-                            // $('#participation_grade_threshold_display')[0].innerHTML = "Participation Grade Threshold : " + Math.round(0.8 * selectedValue) + " likes to " + selectedValue + " likes";
                             // window.location.reload();
                         }
                     }
@@ -239,7 +236,6 @@
                 .then(
                     response => {
                         if(response.ok){
-                            // $('#participation_grade_threshold_display')[0].innerHTML = "Participation Grade Threshold : " + Math.round(0.8 * selectedValue) + " likes to " + selectedValue + " likes";
                             // window.location.reload();
                         }
                     }
@@ -293,96 +289,126 @@ function checkSum() {
                 First pick a question (solution + answer) then add distractors to it.
                 You may also remove entire questions from the quiz.
             </p>
-            <p class="lead">
-                    <ul>
-                        <li>
-                            Number of justifications shown to students
-                            <select id="num_justifications_shown" name="numJustificationsOptions">
-                                {% for option in numJustificationsOptions %}
-                                    <option value="{{option}}" {% if quiz.num_justifications_shown == option %} selected {% endif %} >{{option}}</option>
-                                {% endfor %}
-                            </select> 
-                        </li>
-                        <li>
-                            You can only like maximum
-                            <select id="limiting_factor" name="limitingFactorOptions">
-                                {% for option in limitingFactorOptions %}
-                                    <option value="{{option}}" {% if quiz.limiting_factor * 100 == option %} selected {% endif %} >{{option}}%</option>
-                                {% endfor %}
-                            </select> 
-                            of the justifications you see
-                            <!-- <button class="btn btn-primary btn-sm" name="submit" value="submit">Submit</button> -->
-                        </li>
-                        <li id="participation_grade_threshold_display">
-                            Participation Grade Threshold : {{ (quiz.participation_grade_threshold * 0.8) | round | int }} likes to {{ quiz.participation_grade_threshold }} likes
-                        </li>
-                        <li>
-                            Choose points for 1st quartile
-                            <select id="first_quartile_grade" name="quartileOptions">
-                                {% for option in quartileOptions %}
-                                    <option value="{{option}}" {% if quiz.first_quartile_grade == option %} selected {% endif %} >{{option}} points</option>
-                                {% endfor %}
-                            </select> 
-                        </li>
-                        <li>
-                            Choose points for 2nd quartile
-                            <select id="second_quartile_grade" name="quartileOptions">
-                                {% for option in quartileOptions %}
-                                    <option value="{{option}}" {% if quiz.second_quartile_grade == option %} selected {% endif %} >{{option}} points</option>
-                                {% endfor %}
-                            </select> 
-                        </li>
-                        <li>
-                            Choose points for 3rd quartile
-                            <select id="third_quartile_grade" name="quartileOptions">
-                                {% for option in quartileOptions %}
-                                    <option value="{{option}}" {% if quiz.third_quartile_grade == option %} selected {% endif %} >{{option}} points</option>
-                                {% endfor %}
-                            </select> 
-                        </li>
-                        <li>
-                            Choose points for 4th quartile
-                            <select id="fourth_quartile_grade" name="quartileOptions">
-                                {% for option in quartileOptions %}
-                                    <option value="{{option}}" {% if quiz.fourth_quartile_grade == option %} selected {% endif %} >{{option}} points</option>
-                                {% endfor %}
-                            </select> 
-                        </li>
-                        <li>
-                            Choose Initial Score Weight: 
-                            <select id="initial_score" name="initialScoreFactorOptions">
-                                {% for option in initialScoreFactorOptions %}
-                                    <option value="{{option}}" {% if quiz.initial_score_weight * 100 == option %} selected {% endif %} >{{option}}%</option>
-                                {% endfor %}
-                            </select> 
-                            <!-- <button onclick=test() class="btn btn-primary btn-sm" name="submit" value="submit">Submit</button> -->
-                        </li>
-                        <li>
-                            Choose Revised Score Weight: 
-                            <select id="revised_score" name="revisedScoreFactorOptions">
-                                {% for option in revisedScoreFactorOptions %}
-                                    <option value="{{option}}" {% if quiz.revised_score_weight * 100 == option %} selected {% endif %} >{{option}}%</option>
-                                {% endfor %}
-                            </select>
-                        </li>
-                        <li>
-                            Choose Justifications Grade Weight
-                            <select id="justification_grade" name="justificationsGradeOptions">
-                                {% for option in justificationsGradeOptions %}
-                                    <option value="{{option}}" {% if quiz.justification_grade_weight * 100 == option %} selected {% endif %} >{{option}}%</option>
-                                {% endfor %}
-                            </select> 
-                        </li>
-                        <li>
-                            Choose Participation Grade Weight
-                            <select id="participation_grade" name="participationGradeOptions">
-                                {% for option in participationGradeOptions %}
-                                    <option value="{{option}}" {% if quiz.participation_grade_weight * 100 == option %} selected {% endif %} >{{option}}%</option>
-                                {% endfor %}
-                            </select> 
-                        </li>
-                        <button onclick=refresh() class="btn btn-primary btn-sm" name="refresh" value="refresh">Change Weights</button>
-                    </ul>             
+    </div>
+</div>
+
+<div class="card bg-light m-3 mx-auto" style="width: 75%">
+    <div class="card-body" bg-light>
+
+        <h5 class="card-title">Configure Quiz' Parameters Below:</h5>
+        <div>
+            <p class="card-text">
+                <ul>
+                    <li>
+                        Each student will be able to see 
+                        <select id="num_justifications_shown" name="numJustificationsOptions">
+                            {% for option in numJustificationsOptions %}
+                                <option value="{{option}}" {% if quiz.num_justifications_shown == option %} selected {% endif %} >{{option}}</option>
+                            {% endfor %}
+                        </select> justifications from other students, for each alternative response.
+                    </li>
+                    <li>
+                        Students may only like up to 
+                        <select id="limiting_factor" name="limitingFactorOptions">
+                            {% for option in limitingFactorOptions %}
+                                <option value="{{option}}" {% if quiz.limiting_factor * 100 == option %} selected {% endif %} >{{option}}%</option>
+                            {% endfor %}
+                        </select> 
+                        of all the justifications that they see during step 2.
+                        <!-- <button class="btn btn-primary btn-sm" name="submit" value="submit">Submit</button> -->
+                        This means that they must assign between {{ (quiz.participation_grade_threshold * 0.8) | round | int }}
+                        and {{ quiz.participation_grade_threshold }} likes in order to get participation credit.
+                    </li>
+                    <li>
+                        Justification credit is based on the number of likes received by the student and which quartile they
+                        fall into when compared to their peers. 
+                        You may adjust the number of points given to students, depending on the quartile: 
+                        
+                        <br/>
+                        <!ul>
+                            <!li>
+                                1st quartile: 
+                                <select id="first_quartile_grade" name="quartileOptions">
+                                    {% for option in quartileOptions %}
+                                        <option value="{{option}}" {% if quiz.first_quartile_grade == option %} selected {% endif %} >{{option}}</option>
+                                    {% endfor %}
+                                </select> points, 
+                            <!/li>
+                            <!li>
+                                2nd quartile:
+                                <select id="second_quartile_grade" name="quartileOptions">
+                                    {% for option in quartileOptions %}
+                                        <option value="{{option}}" {% if quiz.second_quartile_grade == option %} selected {% endif %} >{{option}}</option>
+                                    {% endfor %}
+                                </select>  points, 
+                            <!/li>
+                            <!li>
+                                3rd quartile:
+                                <select id="third_quartile_grade" name="quartileOptions">
+                                    {% for option in quartileOptions %}
+                                        <option value="{{option}}" {% if quiz.third_quartile_grade == option %} selected {% endif %} >{{option}}</option>
+                                    {% endfor %}
+                                </select>  points, 
+                            <!/li>
+                            <!li>
+                                4th quartile:
+                                <select id="fourth_quartile_grade" name="quartileOptions">
+                                    {% for option in quartileOptions %}
+                                        <option value="{{option}}" {% if quiz.fourth_quartile_grade == option %} selected {% endif %} >{{option}}</option>
+                                    {% endfor %}
+                                </select> points.
+                            <!/li> 
+                        <!/ul>
+                    </li>
+                    <li>
+                        The final grade for each students is based on the following weighted components. 
+                        Adjust the weights below: 
+                        <br/>
+                        <!ul>
+                            <!li>
+                                Initial Score Weight:
+                                <select id="initial_score" name="initialScoreFactorOptions">
+                                    {% for option in initialScoreFactorOptions %}
+                                        <option value="{{option}}" {% if quiz.initial_score_weight * 100 == option %} selected {% endif %} >{{option}}%</option>
+                                    {% endfor %}
+                                </select> 
+                            <!/li>
+                            <!li>
+                                Revised Score Weight:
+                                <select id="revised_score" name="revisedScoreFactorOptions">
+                                    {% for option in revisedScoreFactorOptions %}
+                                        <option value="{{option}}" {% if quiz.revised_score_weight * 100 == option %} selected {% endif %} >{{option}}%</option>
+                                    {% endfor %}
+                                </select>
+                            <!/li>
+                            <!li>
+                                Justifications Weight:
+                                <select id="justification_grade" name="justificationsGradeOptions">
+                                    {% for option in justificationsGradeOptions %}
+                                        <option value="{{option}}" {% if quiz.justification_grade_weight * 100 == option %} selected {% endif %} >{{option}}%</option>
+                                    {% endfor %}
+                                </select> 
+                            <!/li>
+                            <!li>
+                                Participation Weight:
+                                <select id="participation_grade" name="participationGradeOptions">
+                                    {% for option in participationGradeOptions %}
+                                        <option value="{{option}}" {% if quiz.participation_grade_weight * 100 == option %} selected {% endif %} >{{option}}%</option>
+                                    {% endfor %}
+                                </select> 
+                            <!/li>
+                            <button onclick=refresh() class="btn btn-primary btn-sm" name="refresh" value="refresh">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-clockwise" viewBox="0 0 16 16">
+                                    <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                                    <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                                </svg>
+                                Update Weights
+                            </button>
+                        <!/ul>
+                    </li>
+                </ul>             
+            </p>
+        </div>
     </div>
 </div>
 
@@ -448,7 +474,7 @@ function checkSum() {
                 </svg>
             </a>
 
-            {{qq.question.title|safe}} [ID#{{qq.id}}]
+            {{qq.title|safe}} [ID#{{qq.id}}]
 
         </h5>
         
@@ -458,13 +484,13 @@ function checkSum() {
                     <tr>
                         <td style="vertical-align: top"><b>Q:</b></td>
                         <td>
-                            {{ qq.question.stem | safe }}
+                            {{ qq.stem | safe }}
                         </td>
                     </tr>
                     <tr>   
                         <td style="vertical-align: top"><b>A:</b></td>
                         <td>
-                            {{ qq.question.answer | safe }}
+                            {{ qq.answer | safe }}
                         </td>
                     </tr>
                         {% for distractor in qq.alternatives %}
@@ -521,29 +547,6 @@ function checkSum() {
                     .catch((error) => {
                     })
                 })
-
-                document.querySelector('#participation_grade_threshold').addEventListener('change', function() {
-                    let target_url = '/grades/{{quiz.id}}/participationGradeThreshold';
-                    let e = document.querySelector('#participation_grade_threshold');
-                    let selectedValue = e.options[e.selectedIndex].value;
-                    fetch(target_url,{
-                        method:         'POST',
-                        headers:        {'Content-Type' : 'application/json'},
-                        body:           JSON.stringify({"participation_grade_threshold" :  selectedValue}),
-                        credentials:    'same-origin'
-                    })
-                    .then(
-                        response => {
-                            if(response.ok){
-                                // $('#participation_grade_threshold_display')[0].innerHTML = "Participation Grade Threshold : " + Math.round(0.8 * selectedValue) + " likes to " + selectedValue + " likes";
-                                // window.location.reload();
-                            }
-                        }
-                    )
-                    .catch((error) => {
-                    })
-                });
-    
         } );
 
         function changeInitialScoreWeight() {
@@ -678,7 +681,7 @@ function checkSum() {
                         "description": quiz.description,
                         "questions_ids": []
                     };
-        for (q of quiz.questions){
+        for (q of quiz.quiz_questions){
             if(q.id != question_id){
                 data.questions_ids.push(q.id);
             }

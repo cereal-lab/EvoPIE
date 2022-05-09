@@ -88,6 +88,10 @@ class Distractor(DB.Model):
     id = DB.Column(DB.Integer, primary_key=True)
 
     answer = DB.Column(DB.String, nullable=False)
+    
+    # The following is used as reference justification for not picking this distractor & 
+    # is provided by the distractor's author
+    justification = DB.Column(DB.String, nullable=False)
 
     # to allow for 1-to-many relationship Question / Distractor
     question_id = DB.Column(None, DB.ForeignKey('question.id'))
@@ -96,10 +100,10 @@ class Distractor(DB.Model):
         return "<Distractor: id='%d',question_id=%d>" % (self.id, self.question_id)
 
     def dump_as_dict(self): # TODO #3
-        return {"id" : self.id, "answer": Markup(self.answer).unescape()}
+        return {"id" : self.id, "answer": Markup(self.answer).unescape(), "justification": Markup(self.justification).unescape()}
 
     def dump_as_simplified_dict(self):
-        return {"id" : self.id, "answer": ""}
+        return {"id" : self.id, "answer": "", "justification": ""}
         
 
 
@@ -233,8 +237,20 @@ class Quiz(DB.Model):
         return  {   "id" : self.id,
                     "title" : self.title,
                     "description" : self.description,
-                    "questions" : questions, # FIXME this field should really be named quiz_questions instead of questions
-                    "status" : self.status
+                    "quiz_questions" : questions, # FIXME this field should really be named quiz_questions instead of questions
+                    "status" : self.status, 
+                    "limiting_factor" : self.limiting_factor,
+                    "initial_score_weight" : self.initial_score_weight, 
+                    "revised_score_weight" :  self.revised_score_weight,
+                    "justification_grade_weight" : self.justification_grade_weight ,
+                    "participation_grade_weight" : self.participation_grade_weight ,
+                    "participation_grade_threshold" : self.participation_grade_threshold ,
+                    "max_likes" : self.max_likes ,
+                    "num_justifications_shown" : self.num_justifications_shown ,
+                    "first_quartile_grade" : self.first_quartile_grade ,
+                    "second_quartile_grade" : self.second_quartile_grade,
+                    "third_quartile_grade" : self.third_quartile_grade ,
+                    "fourth_quartile_grade" : self.fourth_quartile_grade
                 }
 
     def __repr__(self):

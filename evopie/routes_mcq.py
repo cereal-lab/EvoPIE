@@ -244,9 +244,11 @@ def post_new_distractor_for_question(question_id):
     # and thus neither the Quizzes that make use of them.
     if request.json:
         answer = request.json['answer']
+        justification = request.json['justification']
     else:
         #FIXME do we want to continue handling both formats?
         answer = request.form['answer']
+        justification = request.form['justification']
     
     # detect if did was passed too; if so, then it's an update
     if 'did' in request.form:
@@ -265,7 +267,10 @@ def post_new_distractor_for_question(question_id):
     escaped_answer = Markup.escape(answer) # escapes HTML characters
     escaped_answer = sanitize(escaped_answer)
 
-    q.distractors.append(models.Distractor(answer=escaped_answer,question_id=q.id))
+    escaped_justification = Markup.escape(justification)
+    escaped_justification = sanitize(escaped_justification)
+
+    q.distractors.append(models.Distractor(answer=escaped_answer,justification=escaped_justification,question_id=q.id))
     models.DB.session.commit()
     
     if request.json:
@@ -285,7 +290,7 @@ def get_distractor(distractor_id):
         return make_response(response)
 
     d = models.Distractor.query.get_or_404(distractor_id)
-    return jsonify({ "answer": d.answer })
+    return jsonify({ "answer": d.answer, "justification": d.justification })
 
 
 
@@ -308,16 +313,25 @@ def put_distractor(distractor_id):
     if not request.json:
         #TODO NOW accept form data if it's been sent from the POST handler with an ID
         answer = request.form['answer']
+        justification = request.form['justification']
         #abort(406, "JSON format required for request") # not acceptable
     else:
         answer = request.json['answer']    
+        justification = request.json['justification']
     
     # validate that all required information was sent
     if answer is None:
         abort(400, "Unable to modify distractor due to missing data") # bad request
 
     d = models.Distractor.query.get_or_404(distractor_id)
-    d.answer = sanitize(answer)
+    #d.answer = sanitize(answer)
+    #d.justfication = sanitize(justification)
+    #BUG here we apply only justification but in one of the above methods we also escape
+    d.answer = Markup.escape(answer) # escapes HTML characters
+    d.answer = sanitize(d.answer)
+
+    d.justification = Markup.escape(justification)
+    d.justification = sanitize(d.justification)
 
     models.DB.session.commit()
 

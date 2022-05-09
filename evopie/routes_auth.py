@@ -6,6 +6,7 @@ from flask import flash, Markup
 from flask import Blueprint
 from flask_login import login_user, login_required, current_user, login_manager, logout_user
 from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import timedelta
 
 import evopie.models as models
 
@@ -31,17 +32,17 @@ def post_login():
     if request.json:
         email = request.json.get('email')
         password = request.json.get('password')
-        remember = True if request.json.get('remember') else False
+        remember = True if request.json.get('remember_me') else False
     else:
         email = request.form.get('email')
         password = request.form.get('password')
-        remember = True if request.form.get('remember') else False
+        remember = True if request.form.get('remember_me') else False
     user = models.User.query.filter_by(email=email).first()
 
     if not user or not check_password_hash(user.password, password):        
         flash(Markup('Login or password incorrect. Do you need to <a href="' + url_for('auth.get_signup') + '">sign up</a> for an account?'))
         return redirect(url_for('auth.get_login'))
-    login_user(user, remember=remember)
+    login_user(user, remember=remember, duration=timedelta(days=5))
     return redirect(url_for('pages.index'))
 
 

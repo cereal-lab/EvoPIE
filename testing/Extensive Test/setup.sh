@@ -35,44 +35,44 @@ curlit "signed up student #20"      "/signup"           '{ "email": "student20@u
 
 curl_login                          "instructor"        '{ "email": "instructor@usf.edu", "password": "pwd" }'
 
-##header 'ADDING QUESTION #1' #QID 1
+header 'ADDING QUESTION #1' #QID 1
 curlit  'Added Question'            "/questions"                    '{ "title": "Question 1 Title", "stem": "Question 1 Stem?", "answer": "Question 1 answer"}'
-curlit  'Added distractor'          "/questions/1/distractors"      '{ "answer": "Question 1 distractor 1"}'                                #D1
-curlit  'Added distractor'          "/questions/1/distractors"      '{ "answer": "Question 1 distractor 2"}'                                #D2
-curlit  'Added distractor'          "/questions/1/distractors"      '{ "answer": "Question 1 distractor 3"}'                                #D3
-curlit  'Added distractor'          "/questions/1/distractors"      '{ "answer": "Question 1 distractor 4"}'                                #D4
+curlit  'Added distractor'          "/questions/1/distractors"      '{ "answer": "Question 1 distractor 1", "justification": "Q1 D1 Reference Justification"}'                                #D1
+curlit  'Added distractor'          "/questions/1/distractors"      '{ "answer": "Question 1 distractor 2", "justification": "Q1 D2 Reference Justification"}'                                #D2
+curlit  'Added distractor'          "/questions/1/distractors"      '{ "answer": "Question 1 distractor 3", "justification": "Q1 D3 Reference Justification"}'                                #D3
+curlit  'Added distractor'          "/questions/1/distractors"      '{ "answer": "Question 1 distractor 4", "justification": "Q1 D4 Reference Justification"}'                                #D4
 curlit  'QuizQuestion composed'     "/quizquestions"                '{ "qid": "1", "distractors_ids": [1, 2, 3, 4]}'
 
 header 'ADDING QUESTION #2' #QID 2
 curlit  'Added Question'            "/questions"                    '{ "title": "Question 2 Title", "stem": "Question 2 Stem?", "answer": "Question 2 answer"}'
-curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "Question 2 distractor 1"}'                                #D5
-curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "Question 2 distractor 2"}'                                #D6
-curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "Question 2 distractor 3"}'                                #D7
-curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "Question 2 distractor 4 (not used in question)"}'         #D8
+curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "Question 2 distractor 1", "justification": "Q2 D1 Reference Justification"}'                                #D5
+curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "Question 2 distractor 2", "justification": "Q2 D2 Reference Justification"}'                                #D6
+curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "Question 2 distractor 3", "justification": "Q2 D3 Reference Justification"}'                                #D7
+curlit  'Added distractor'          "/questions/2/distractors"      '{ "answer": "Question 2 distractor 4 (not used in question)", "justification": "Q2 D4 Reference Justification"}'         #D8
 curlit  'QuizQuestion composed'     "/quizquestions"                '{ "qid": "2", "distractors_ids": [5, 6, 7]}'
 
-#header 'ADDING QUESTION #3' #QID 3
+header 'ADDING QUESTION #3' #QID 3
 curlit  'Added Question'            "/questions"                    '{ "title": "Question 3 Title", "stem": "Question 3 stem?", "answer": "Question 3 answer"}'
-curlit  'Added distractor'          "/questions/3/distractors"      '{ "answer": "Question 3 distractor 1"}'                                #D9
-curlit  'Added distractor'          "/questions/3/distractors"      '{ "answer": "Question 3 distractor 2"}'                                #D10
-curlit  'Added distractor'          "/questions/3/distractors"      '{ "answer": "Question 3 distractor 3"}'                                #D11
-curlit  'Added distractor'          "/questions/3/distractors"      '{ "answer": "Question 3 distractor 4 (not used in question)"}'         #D12
+curlit  'Added distractor'          "/questions/3/distractors"      '{ "answer": "Question 3 distractor 1", "justification": "Q3 D1 Reference Justification"}'                                #D9
+curlit  'Added distractor'          "/questions/3/distractors"      '{ "answer": "Question 3 distractor 2", "justification": "Q3 D2 Reference Justification"}'                                #D10
+curlit  'Added distractor'          "/questions/3/distractors"      '{ "answer": "Question 3 distractor 3", "justification": "Q3 D3 Reference Justification"}'                                #D11
+curlit  'Added distractor'          "/questions/3/distractors"      '{ "answer": "Question 3 distractor 4 (not used in question)", "justification": "Q3 D4 Reference Justification"}'         #D12
 curlit  'QuizQuestion composed'     "/quizquestions"                '{ "qid": "3", "distractors_ids": [9, 10, 11]}'
 
-#header 'ADDING QUESTION #4' #QID 4
+header 'ADDING QUESTION #4' #QID 4
 curlit  'Added Question'            "/questions"                    '{ "title": "Question 4 Title", "stem": "Question 4 stem?", "answer": "Question 4 answer"}'
-curlit  'Added distractor'          "/questions/4/distractors"      '{ "answer": "Question 4 distractor 1"}'                                #D13
-curlit  'Added distractor'          "/questions/4/distractors"      '{ "answer": "Question 4 distractor 2"}'                                #D14
-curlit  'Added distractor'          "/questions/4/distractors"      '{ "answer": "Question 4 distractor 3 (not used in question)"}'         #D15
-curlit  'Added distractor'          "/questions/4/distractors"      '{ "answer": "Question 4 distractor 4"}'                                #D16
+curlit  'Added distractor'          "/questions/4/distractors"      '{ "answer": "Question 4 distractor 1", "justification": "Q4 D1 Reference Justification"}'                                #D13
+curlit  'Added distractor'          "/questions/4/distractors"      '{ "answer": "Question 4 distractor 2", "justification": "Q4 D2 Reference Justification"}'                                #D14
+curlit  'Added distractor'          "/questions/4/distractors"      '{ "answer": "Question 4 distractor 3 (not used in question)", "justification": "Q4 D3 Reference Justification"}'         #D15
+curlit  'Added distractor'          "/questions/4/distractors"      '{ "answer": "Question 4 distractor 4", "justification": "Q4 D4 Reference Justification"}'                                #D16
 curlit  'QuizQuestion composed'     "/quizquestions"                '{ "qid": "4", "distractors_ids": [13, 14, 16]}'
 
-#header 'ADDING QUESTION #5' #QID 5
+header 'ADDING QUESTION #5' #QID 5
 curlit  'Added Question'            "/questions"                    '{ "title": "Question 5 Title", "stem": "Question 5 stem?", "answer": "Question 5 answer"}'
-curlit  'Added distractor'          "/questions/5/distractors"      '{ "answer": "Question 5 distractor 1"}'                                #D17
-curlit  'Added distractor'          "/questions/5/distractors"      '{ "answer": "Question 5 distractor 2"}'                                #D18
-curlit  'Added distractor'          "/questions/5/distractors"      '{ "answer": "Question 5 distractor 3"}'                                #D19
-curlit  'Added distractor'          "/questions/5/distractors"      '{ "answer": "Question 5 distractor 4"}'                                #D20
+curlit  'Added distractor'          "/questions/5/distractors"      '{ "answer": "Question 5 distractor 1", "justification": "Q5 D1 Reference Justification"}'                                #D17
+curlit  'Added distractor'          "/questions/5/distractors"      '{ "answer": "Question 5 distractor 2", "justification": "Q5 D2 Reference Justification"}'                                #D18
+curlit  'Added distractor'          "/questions/5/distractors"      '{ "answer": "Question 5 distractor 3", "justification": "Q5 D3 Reference Justification"}'                                #D19
+curlit  'Added distractor'          "/questions/5/distractors"      '{ "answer": "Question 5 distractor 4", "justification": "Q5 D4 Reference Justification"}'                                #D20
 curlit  'QuizQuestion composed'     "/quizquestions"                '{ "qid": "5", "distractors_ids": [17, 18, 19, 20]}'
 
 header 'CREATING QUIZ #1 from above questions'
