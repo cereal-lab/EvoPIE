@@ -4,7 +4,7 @@
 {% block head %}
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.css">  
     <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.js"></script>
-    <script>
+    <script> 
         async function changeInitialScoreWeight() {
             if (!checkSum()) {
                 return;
@@ -106,7 +106,6 @@
         }
 
         $(document).ready( function () {
-            $('#gradingtable').DataTable();
 
             // document.querySelector('#initial_score').addEventListener('change', changeInitialScoreWeight());
 
@@ -257,6 +256,93 @@
     }
 
     </script>
+
+    <script defer> 
+
+        let jgrades;
+        let tscores;
+
+        function download(filename, textInput) {
+
+            var element = document.createElement('a');
+            element.setAttribute('href','data:text/plain;charset=utf-8, ' + encodeURIComponent(textInput));
+            element.setAttribute('download', filename);
+            document.body.appendChild(element);
+            element.click();
+        }
+
+
+        document.addEventListener("DOMContentLoaded", function() {
+            var table = $('#gradingtable').DataTable();
+
+            let justification_grade, total_scores;
+
+            document.querySelector('#loadJustificationGrade').addEventListener('click', function(event) {
+            let target_url = '/grades/{{ quiz.id }}/justificationGrade';
+            let spinner = document.querySelector('.spinner');
+            $('.spinner-border').removeClass('spinner');
+            table.page.len( -1 ).draw();
+            fetch(target_url,{
+                method:         'GET',
+                headers:        {'Content-Type' : 'application/json'},
+                credentials:    'same-origin'
+            })
+            .then(response => response.json())
+            .then(
+                data => {
+                    justification_grade = data[0];
+                    total_scores = data[1];
+                    console.log(justification_grade)
+                    jgrades = justification_grade;
+                    for (let id of Object.keys(justification_grade)) { 
+                        let e = document.querySelector('#justification_grade-' + id); 
+                        if (e) { 
+                            e.innerHTML = justification_grade[id]; 
+                        }
+                        let total_score = document.querySelector('#total_score-' + id);
+                        let final_percentage = document.querySelector('#final_percentage-' + id);
+                        if (total_score) {
+                            total_score.innerHTML = total_scores[id] + " / " + total_scores[-1];
+                        }
+                        if (final_percentage) {
+                            final_percentage.innerHTML = Math.round( ( (total_scores[id] / total_scores[-1]) * 100 ) * 100 ) / 100 + "%";
+                        } 
+                    }
+
+                    $('.spinner-border').addClass('spinner');
+                    table.page.len( 10 ).draw();
+                }
+            )
+        })
+
+        document.querySelector('#download-csv').addEventListener('click', function(event) {
+            let target_url = '/getDataCSV/{{ quiz.id }}';
+            fetch(target_url, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({"justification_grade" : justification_grade, "total_scores" : total_scores}),
+                credentials: 'same-origin'
+            })
+            .then(response => response.blob())
+            .then(blob => {
+                var url = window.URL.createObjectURL(blob);
+                var link = document.createElement('a');
+                document.body.appendChild(link);
+                link.style = "display: none";
+                link.href = url;
+                link.download = "{{ current_user.email }}-{{ quiz.title }}.csv".replace(' ', '_');
+                link.click();
+
+                setTimeout(() => {
+                window.URL.revokeObjectURL(url);
+                link.remove(); } , 100);
+            })
+        })
+    })
+    </script>
 {% endblock %}
 {% block content %}
 
@@ -380,7 +466,36 @@
     <div class="card bg-light m-3 mx-auto" style="width: 90%">
         <div class="card-body text-center" bg-light>
     <table class='compact stripe' width='100%' id="gradingtable">
-        <thead><tr>
+        <thead>
+        <tr>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th><div class="spinner-border spinner" role="status">
+                <span class="sr-only"></span>
+              </div></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+        </tr>
+        <tr>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th><button id="loadJustificationGrade" class="btn btn-primary btn-sm" name="refresh" value="refresh">Load</button></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th></th>
+        </tr>
+        <tr>
             <th>Last Name</th>
             <th>First Name</th>
             <th>Email</th>
@@ -419,10 +534,11 @@
             </th>
             <th>Likes Given</th>
             <th>Likes Received</th>
-            <th>Total / {{ total_scores[-1] }}</th>
-            <th>Total %</th>
-        </tr></thead>
-        <tbody>
+            <th>Total Score</th>
+            <th>Total (%)</th>
+        </tr>
+    </thead>
+    <tbody>
     {% for i in range(all_grades | length) %}
         <tr>
             <td class='text-start align-top'>{{all_grades[i].student.last_name | safe}}</td>
@@ -523,9 +639,9 @@
                 </div>
             </td>
             <td>
-                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
+                <button id="justification_grade-{{all_grades[i].student.id}}" type="button" class="btn btn-primary btn-sm" data-toggle="modal"
                         data-target=".TG-JUS-{{all_grades[i].student.id}}">
-                    {{justification_grade[all_grades[i].student.id]}}
+                    -
                 </button>
                 <div class="modal fade TG-JUS-{{all_grades[i].student.id}} text-start" tabindex="-1" role="dialog"
                         aria-labelledby="mySmallModalLabel" aria-hidden="true">
@@ -714,23 +830,22 @@
                 </div>
             </td>
             <td>
-                <!button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
+                <button id="total_score-{{all_grades[i].student.id}}" type="button" class="btn btn-primary btn-sm" data-toggle="modal"
                 data-target=".TG-TOTAL-{{all_grades[i].student.id}}">
-                {{total_scores[all_grades[i].student.id]}}
-                <!/button>
+                -
+                </button>
             </td>
             <td>
-                <!button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
+                <button id="final_percentage-{{all_grades[i].student.id}}" type="button" class="btn btn-primary btn-sm" data-toggle="modal"
                 data-target=".TG-FINAL-{{all_grades[i].student.id}}">
-                {% set percentage = (total_scores[all_grades[i].student.id] / total_scores[-1] ) * 100 %}
-                {{ '%0.1f' % percentage | float }}%
-                <!/button>
+                -
+                </button>
             </td>
         </tr>
     {% endfor %}
         </tbody>
     </table>
     </div>
-    <a class="btn btn-primary btn-sm" href="/getDataCSV/{{quiz.id}}">Download CSV</a>
+    <button id="download-csv" class="btn btn-primary btn-sm">Download CSV</a>
     </div>
 {% endblock %}
