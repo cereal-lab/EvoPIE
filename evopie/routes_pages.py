@@ -350,7 +350,7 @@ def get_student(qid):
         tmp1 = [] # list of distractors IDs, -1 for right answer
         tmp2 = [] # list of alternatives, including the right answer
         tmp1.append(-1)
-        tmp2.append(Markup(qq.answer).unescape())
+        tmp2.append(Markup(qq.question.answer).unescape())
         for d in qq.distractors:
             tmp1.append(Markup(d.id).unescape()) # FIXME not necessary
             tmp2.append(Markup(d.answer).unescape())
