@@ -4,6 +4,6 @@ evopie/DB_quizlib.sqlite*
 mycookies
 venv/
 evopie/DB_quizlib-easy.sqlite
-testing/Easy Labels Tests/gradebooks.diff
-testing/Easy Labels Tests/gradebook-downloaded.cs
+gradebooks.diff
+gradebook-downloaded.csv
 .DS_Store
