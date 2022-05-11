@@ -405,3 +405,4 @@ class Justification(DB.Model):
     student_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'), nullable=False)
     justification = DB.Column(DB.String) # FIXME do we allow duplicates like empty strings?
     likes = DB.relationship('Likes4Justifications', backref='justification', lazy='dynamic')
+    seen = DB.Column(DB.Integer, nullable = False, default = 0)

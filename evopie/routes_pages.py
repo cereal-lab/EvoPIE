@@ -303,8 +303,31 @@ def quiz_editor(quiz_id):
     participationGradeOptions = initialScoreFactorOptions
     quartileOptions = numJustificationsOptions
     return render_template('quiz-editor.html', quiz = q.dump_as_dict(), limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, numJustificationsOptions = numJustificationsOptions, quartileOptions = quartileOptions)
-    
 
+def getRandomJustification(justifications):
+    index = random.randint(0,len(justifications)-1)
+    neo = justifications.pop(index) #[index]
+    neo.seen = neo.seen + 1
+    return neo
+
+def getLeastSeenJustification(justifications):
+    pass
+
+def getJustifications(quiz_justifications, num_justifications_shown, getter = getRandomJustification): 
+    ''' This is where we apply the peer selection policy
+        :param quiz_justifications - dict of dicts, (quizId:(justId, just))
+        :param num_justifications_shown - wanted number per quiz 
+    '''
+    # 
+    # We now revisit the data we collected and pick one justification in each array of Justification objects
+    selectedJustifications = {}
+    for (questionId, distractors) in quiz_justifications.items():
+        selectedJustifications[questionId] = {}
+        for (distractorId, justifications) in distractors.items():
+            number_to_select = min(num_justifications_shown , len(justifications))            
+            selected = [ getter(justifications) for n in range(number_to_select) ]                
+            selectedJustifications[questionId][distractorId] = selected
+    return selectedJustifications
 
 
 
@@ -422,24 +445,29 @@ def get_student(qid):
             
         # This is where we apply the peer selection policy
         # We now revisit the data we collected and pick one justification in each array of Justification objects
-        for key_question in quiz_justifications:
-            for key_distractor in quiz_justifications[key_question]:
-                #pick multiple of the justification objects at random
+        selectedJustifications = getJustifications(quiz_justifications, q.num_justifications_shown)
+        # for key_question in quiz_justifications:
+        #     for key_distractor in quiz_justifications[key_question]:
+        #         #pick multiple of the justification objects at random
                 
-                #NOTE make sure we check that the len of the array is big enough first
-                number_to_select = min(q.num_justifications_shown , len(quiz_justifications[key_question][key_distractor]))
-                #TODO FFS remove the above ugly, hardcoded, magic, number
+        #         #NOTE make sure we check that the len of the array is big enough first
+        #         number_to_select = min(q.num_justifications_shown, len(quiz_justifications[key_question][key_distractor]))
+        #         #TODO FFS remove the above ugly, hardcoded, magic, number
 
-                selected = []
-                for n in range(number_to_select):                     
-                    index = random.randint(0,len(quiz_justifications[key_question][key_distractor])-1)
-                    neo = quiz_justifications[key_question][key_distractor].pop(index) #[index]
-                    selected.append(neo)
+        #         selected = []
+        #         for n in range(number_to_select):                     
+        #             index = random.randint(0,len(quiz_justifications[key_question][key_distractor])-1)
+        #             neo = quiz_justifications[key_question][key_distractor].pop(index) #[index]
+        #             selected.append(neo)
 
-                quiz_justifications[key_question][key_distractor] = selected
+        #         quiz_justifications[key_question][key_distractor] = selected
 
-        if q.max_likes == -99:
-            q.max_likes = number_to_select * (count_distractor + len(quiz_questions))
+        quiz_max_likes = sum(len(justifications) for (_,distractors) in selectedJustifications.items() for (_, justifications) in distractors.items())
+        if q.max_likes != quiz_max_likes:
+        # if q.max_likes == -99:
+            # q.max_likes = quiz_max_likes
+            q.max_likes = max(q.max_likes, quiz_max_likes) 
+            # q.max_likes = number_to_select * (count_distractor + len(quiz_questions))
             models.DB.session.commit()
 
         initial_responses = [] 
@@ -455,11 +483,15 @@ def get_student(qid):
         .order_by(collate(models.User.last_name, 'NOCASE'))\
         .first()))
 
-        return render_template('student.html', explanations=expl, quiz=q, simplified_questions=simplified_quiz_questions, questions=quiz_questions, student=u, attempt=a[0], initial_responses=initial_responses, justifications=quiz_justifications, likes_given = likes_given)
+        # quiz_questions = q.dump_as_dict()['quiz_questions']
+        return render_template('student.html', explanations=expl, quiz=q, simplified_questions=simplified_quiz_questions, \
+            questions=quiz_questions, student=u, attempt=a[0], initial_responses=initial_responses, \
+            justifications=selectedJustifications, likes_given = likes_given)
 
     else: # step == 1
 
-        return render_template('student.html', explanations=expl, quiz=q, simplified_questions=simplified_quiz_questions, questions=quiz_questions, student=u)
+        return render_template('student.html', explanations=expl, quiz=q, simplified_questions=simplified_quiz_questions, \
+            questions=quiz_questions, student=u)
 
 
 
@@ -510,7 +542,7 @@ def get_data(qid):
     quiz_questions = q.quiz_questions
 
     if len(grades) == 0:
-        return q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received
+        return q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, dict()
 
     # LikesGiven format: (Justification object, Likes4Justifcations object, quiz_id, quiz_question_id)
     # LikesReceived format: (Likes4Justification object, Justification object, quiz_id, quiz_question_id)

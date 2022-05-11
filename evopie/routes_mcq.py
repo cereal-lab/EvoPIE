@@ -835,7 +835,7 @@ def all_quizzes_take(qid):
             for key_quest in justifications_dict:
                 quest = justifications_dict[key_quest]
                 for key_just in quest:
-                    just = models.Justification(quiz_question_id=key_quest, distractor_id=key_just, student_id=sid, justification=sanitize(quest[key_just]))
+                    just = models.Justification(quiz_question_id=key_quest, distractor_id=key_just, student_id=sid, justification=sanitize(quest[key_just]), seen=0)
                     models.DB.session.add(just)
             models.DB.session.add(attempt)
             models.DB.session.commit()
