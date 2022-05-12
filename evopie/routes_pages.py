@@ -4,6 +4,7 @@
 # of the members they end up featuring at runtime. This is a way to tell pylint to let it be
 
 from dataclasses import replace
+from datetime import datetime
 from mimetypes import init
 from operator import not_
 from flask import jsonify, abort, request, Response, render_template, redirect, url_for, make_response, send_file
@@ -12,6 +13,7 @@ from flask_login import login_required, current_user
 from flask import flash
 from sqlalchemy import not_
 from sqlalchemy.sql import collate
+from sqlalchemy.orm.exc import StaleDataError
 from flask import Markup
 from random import shuffle
 
@@ -366,10 +368,11 @@ def select_justifications(justifications, num_justifications_shown, getter = sel
     for (qid, distractors) in justifications.items():
         res[qid] = {}
         for (did, js) in distractors.items():            
-            if (len(js) < num_justifications_shown):
+            if (len(js) <= num_justifications_shown):
                 res[qid][did] = js
             else:
-                selected = [ getter(justifications) for n in range(num_justifications_shown) ]
+                cloned = js[:]
+                selected = [ getter(cloned) for n in range(num_justifications_shown) ]
                 res[qid][did] = selected
     return res
 
@@ -450,34 +453,35 @@ def get_student(qid):
             expl[distractor.id] = Markup(distractor.justification).unescape()
             
     # Handle different steps
-    if a: # step == 2 or SOLUTIONS
-        # retrieve the peers' justifications for each question
-        selected_justifications = a.selected_justifications #here db query for selected justififcations
-        if len(selected_justifications) == 0: 
-            possible_justifications = get_possible_justifications(q)
-        # This is where we apply the peer selection policy
-        # We now revisit the data we collected and pick one justification in each array of Justification objects
-            selected_justification_map = select_justifications(possible_justifications, q.num_justifications_shown)
+    if a: # step == 2 or SOLUTIONS    
+        while True: #exist this loop if no StaleDataError: https://docs.sqlalchemy.org/en/14/orm/versioning.html   
+            try:
+                if a.selected_justifications_timestamp is None: #attempt justifications were not initialized yet
+                    # retrieve the peers' justifications for each question  
+                    possible_justifications = get_possible_justifications(q)
+                    # This is where we apply the peer selection policy
+                    selected_justification_map = select_justifications(possible_justifications, q.num_justifications_shown)
 
-            for d in selected_justification_map.values():
-                for js in d.values():
-                    for j in js:
-                        a.selected_justifications.append(j)            
+                    a.selected_justifications.extend(j for d in selected_justification_map.values() for js in d.values() for j in js)
 
-            q.max_likes = sum(len(js) for d in selected_justification_map.values() for js in d.values())
-            models.DB.session.commit()
-        else: 
-            #justification list to map
-            selected_justification_map = {}
-            for j in selected_justifications:
-                qid = str(j.quiz_question_id)
-                did = str(j.distractor_id)
-                if qid not in selected_justification_map:
-                    selected_justification_map[qid] = {}
-                if did not in selected_justification_map[qid]:
-                    selected_justification_map[qid][did] = []
-                selected_justification_map[qid][did].append(j)
-
+                    q.max_likes = sum(len(js) for d in selected_justification_map.values() for js in d.values())
+                    #Idea: put another select to check if we have someting for this attempt id 
+                    a.selected_justifications_timestamp = datetime.now()
+                    models.DB.session.commit()
+                else: 
+                    #justification list to map
+                    # selected_justification_map = {}
+                    selected_justifications = a.selected_justifications #here db query for selected justififcations
+                    quiz_question_ids = set(str(j.quiz_question_id) for j in selected_justifications)
+                    distractor_ids = set(str(j.distractor_id) for j in selected_justifications)
+                    selected_justification_map = {qid:{did:[] for did in distractor_ids} for qid in quiz_question_ids}
+                    for j in selected_justifications:
+                        selected_justification_map[str(j.quiz_question_id)][str(j.distractor_id)].append(j)
+                break
+            except StaleDataError:
+                models.DB.session.rollback()
+                a = models.QuizAttempt.query.filter_by(student_id=current_user.id).filter_by(quiz_id=qid).first()
+                pass
         initial_responses = [] 
 
         # FIXME TODO figure out how the JSON got messed up in the first place, then fix it instead of the ugly patch below

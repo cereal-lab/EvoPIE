@@ -290,9 +290,15 @@ class QuizAttempt(DB.Model):
 
     # score
     initial_scores = DB.Column(DB.String, default="") # as json list of -1 / distractor ID
-    revised_scores = DB.Column(DB.String, default="") # as json list of -1 / distractor ID
+    revised_scores = DB.Column(DB.String, default="") # as json list of -1 / distractor ID    
+    version_id = DB.Column(DB.Integer, nullable=False)
+    selected_justifications_timestamp = DB.Column(DB.DateTime, nullable=True)
 
     selected_justifications = DB.relationship('Justification', secondary=attempt_justifications, lazy=True)
+
+    __mapper_args__ = {
+        "version_id_col": version_id
+    }    
 
     def dump_as_dict(self):
         return {    "id" : self.id,
