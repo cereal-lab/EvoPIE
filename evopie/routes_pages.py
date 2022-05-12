@@ -348,16 +348,50 @@ def get_possible_justifications(quiz):
         justifications[str(q.id)]["-1"] = res
     return justifications
 
-def select_random_justification(justifications):
-    index = random.randint(0,len(justifications)-1)
-    neo = justifications.pop(index) #[index]
+#See discussion of policies on overleaf
+def pick_without_replacement(justifications, index):
+    neo = justifications.pop(index)
     neo.seen = neo.seen + 1
     return neo
+    
+def select_random_justification(justifications):
+    index = random.randint(0, len(justifications) - 1)
+    return pick_without_replacement(justifications, index)
 
-def select_least_seen_justification(justifications):
-    pass
+def not_seen_justification_and(not_seen_n_times = 1, not_seen_policy = select_random_justification, fallback_policy = select_random_justification):
+    '''
+    prefers first not seen yet justififcations and then apply inner getter 
+    :param getter - inner policy which is select_random_justification by default
+    '''
+    assert(not_seen_n_times >= 1) #number of seen required should be positive
+    def policy(justifications):    
+        not_seen_justification = [ j for j in justifications if j.seen < not_seen_n_times ]
+        if any(not_seen_justification):
+            neo = not_seen_policy(not_seen_justification)
+            justifications.remove(neo)
+            return neo
+        else:
+            return fallback_policy(justifications)
+    return policy
 
-def select_justifications(justifications, num_justifications_shown, getter = select_random_justification): 
+def least_seen_justification(min_seen_policy = select_random_justification):
+    def policy(justifications):
+        one_min_seen = min(justifications, default=None, key=lambda j: j.seen)    
+        min_seen_justifications = [ j for j in justifications if j.seen == one_min_seen ]
+        selected = min_seen_policy(min_seen_justifications)
+        justifications.remove(selected)
+        return selected 
+    return policy
+
+def single_justification_or(fallback_policy = select_random_justification):
+    def policy(justifications):
+        if len(justifications) == 1:
+            return justifications.pop()
+        else: 
+            return fallback_policy(justifications)
+    return policy
+
+def select_justifications(justifications, num_justifications_shown, selection_policy = select_random_justification): 
     ''' This is where we apply the peer selection policy
         :param justifications - list of all justififcations
         :param num_justifications_shown - wanted number per quiz 
@@ -372,7 +406,7 @@ def select_justifications(justifications, num_justifications_shown, getter = sel
                 res[qid][did] = js
             else:
                 cloned = js[:]
-                selected = [ getter(cloned) for n in range(num_justifications_shown) ]
+                selected = [ selection_policy(cloned) for n in range(num_justifications_shown) ]
                 res[qid][did] = selected
     return res
 
@@ -460,7 +494,14 @@ def get_student(qid):
                     # retrieve the peers' justifications for each question  
                     possible_justifications = get_possible_justifications(q)
                     # This is where we apply the peer selection policy
-                    selected_justification_map = select_justifications(possible_justifications, q.num_justifications_shown)
+                    selected_justification_map = select_justifications(possible_justifications, q.num_justifications_shown, \
+                        selection_policy = \
+                            not_seen_justification_and(not_seen_n_times=1, \
+                                not_seen_policy = select_random_justification, \
+                                fallback_policy = \
+                                    not_seen_justification_and(not_seen_n_times=2, \
+                                        not_seen_policy = select_random_justification, \
+                                        fallback_policy = select_random_justification) ))
 
                     a.selected_justifications.extend(j for d in selected_justification_map.values() for js in d.values() for j in js)
 
