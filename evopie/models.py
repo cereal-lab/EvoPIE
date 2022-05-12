@@ -256,6 +256,11 @@ class Quiz(DB.Model):
     def __repr__(self):
         return f'<{self.title}, {self.id}>'
 
+#Justifications that were selected and presented to student on step 2
+attempt_justifications = DB.Table('attempt_justification',
+   DB.Column('attempt_id', DB.Integer, DB.ForeignKey('quiz_attempt.id'), primary_key=True),
+   DB.Column('justification_id',DB.Integer, DB.ForeignKey('justification.id'),primary_key=True)
+)
 
 class QuizAttempt(DB.Model):
     '''
@@ -286,6 +291,8 @@ class QuizAttempt(DB.Model):
     # score
     initial_scores = DB.Column(DB.String, default="") # as json list of -1 / distractor ID
     revised_scores = DB.Column(DB.String, default="") # as json list of -1 / distractor ID
+
+    selected_justifications = DB.relationship('Justification', secondary=attempt_justifications, lazy=True)
 
     def dump_as_dict(self):
         return {    "id" : self.id,

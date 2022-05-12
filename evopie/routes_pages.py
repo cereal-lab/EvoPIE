@@ -304,32 +304,74 @@ def quiz_editor(quiz_id):
     quartileOptions = numJustificationsOptions
     return render_template('quiz-editor.html', quiz = q.dump_as_dict(), limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, numJustificationsOptions = numJustificationsOptions, quartileOptions = quartileOptions)
 
-def getRandomJustification(justifications):
+
+def get_possible_justifications(quiz):
+    '''
+    Collect all possible justifications from which policy should pick 
+    :param quiz - quiz model
+    '''
+    justifications = {}
+    for q in quiz.quiz_questions:
+        justifications[str(q.id)] = {}
+        for d in q.distractors:
+            # get all justifications for that alternative / question pair
+            res = models.Justification.query\
+                .filter_by(quiz_question_id=q.id)\
+                .filter_by(distractor_id=d.id)\
+                .filter(not_(models.Justification.justification==""))\
+                .filter(not_(models.Justification.justification=="<br>"))\
+                .filter(not_(models.Justification.justification=="<p><br></p>"))\
+                .filter(not_(models.Justification.justification=="<p></p>"))\
+                .filter(not_(models.Justification.student_id==current_user.id))\
+                .all()
+            # justifications.extend(res)
+            justifications[str(q.id)][str(d.id)] = res
+        # also handle the solution -1
+        res = models.Justification.query\
+            .filter_by(quiz_question_id=q.id)\
+            .filter_by(distractor_id="-1")\
+            .filter(not_(models.Justification.justification==""))\
+            .filter(not_(models.Justification.justification=="<br>"))\
+            .filter(not_(models.Justification.justification=="<p><br></p>"))\
+            .filter(not_(models.Justification.justification=="<p></p>"))\
+            .filter(not_(models.Justification.student_id==current_user.id))\
+            .all()
+        
+        # NOTE use filter instead of filter_by for != comparisons
+        # https://stackoverflow.com/questions/16093475/flask-sqlalchemy-querying-a-column-with-not-equals/16093713
+
+        # record this array of objects as corresponding to this question
+        # quiz_justifications[str(q.id)] = question_justifications
+        # justifications.extend(res)
+        justifications[str(q.id)]["-1"] = res
+    return justifications
+
+def select_random_justification(justifications):
     index = random.randint(0,len(justifications)-1)
     neo = justifications.pop(index) #[index]
     neo.seen = neo.seen + 1
     return neo
 
-def getLeastSeenJustification(justifications):
+def select_least_seen_justification(justifications):
     pass
 
-def getJustifications(quiz_justifications, num_justifications_shown, getter = getRandomJustification): 
+def select_justifications(justifications, num_justifications_shown, getter = select_random_justification): 
     ''' This is where we apply the peer selection policy
-        :param quiz_justifications - dict of dicts, (quizId:(justId, just))
+        :param justifications - list of all justififcations
         :param num_justifications_shown - wanted number per quiz 
     '''
     # 
-    # We now revisit the data we collected and pick one justification in each array of Justification objects
-    selectedJustifications = {}
-    for (questionId, distractors) in quiz_justifications.items():
-        selectedJustifications[questionId] = {}
-        for (distractorId, justifications) in distractors.items():
-            number_to_select = min(num_justifications_shown , len(justifications))            
-            selected = [ getter(justifications) for n in range(number_to_select) ]                
-            selectedJustifications[questionId][distractorId] = selected
-    return selectedJustifications
-
-
+    # We now revisit the data we collected and pick one justification in each array of Justification objects    
+    res = {}
+    for (qid, distractors) in justifications.items():
+        res[qid] = {}
+        for (did, js) in distractors.items():            
+            if (len(js) < num_justifications_shown):
+                res[qid][did] = js
+            else:
+                selected = [ getter(justifications) for n in range(num_justifications_shown) ]
+                res[qid][did] = selected
+    return res
 
 @pages.route('/student/<int:qid>', methods=['GET'])
 @login_required
@@ -382,7 +424,7 @@ def get_student(qid):
         # now, each QuizQuestion has an additional field "alternatives"
 
     # determine which step of the peer instruction the student is in
-    a = models.QuizAttempt.query.filter_by(student_id=current_user.id).filter_by(quiz_id=qid).all()
+    a = models.QuizAttempt.query.filter_by(student_id=current_user.id).filter_by(quiz_id=qid).first()
     
     if q.status == "HIDDEN":
         flash("Quiz not accessible at this time", "error")
@@ -396,7 +438,7 @@ def get_student(qid):
         flash("You did not submit your answers for step 1 of this quiz. Because of that, you may not participate in step 2.", "error")
         return redirect(request.referrer) #return redirect(url_for('pages.index'))
 
-    if a and q.status == "STEP2" and a[0].revised_responses != "{}":
+    if a and q.status == "STEP2" and a.revised_responses != "{}":
         flash("You already submitted your answers for both step 1 and step 2. You are done with this quiz.", "error")
         return redirect(request.referrer) #return redirect(url_for('pages.index'))
 
@@ -410,70 +452,36 @@ def get_student(qid):
     # Handle different steps
     if a: # step == 2 or SOLUTIONS
         # retrieve the peers' justifications for each question
-        quiz_justifications = {}
-        count_distractor = 0
-        for quiz_question in q.quiz_questions:
-            question_justifications = {}
-            for distractor in quiz_question.distractors:
-                # get all justifications for that alternative / question pair
-                question_justifications[str(distractor.id)] = models.Justification.query\
-                    .filter_by(quiz_question_id=quiz_question.id)\
-                    .filter_by(distractor_id=distractor.id)\
-                    .filter(not_(models.Justification.justification==""))\
-                    .filter(not_(models.Justification.justification=="<br>"))\
-                    .filter(not_(models.Justification.justification=="<p><br></p>"))\
-                    .filter(not_(models.Justification.justification=="<p></p>"))\
-                    .filter(not_(models.Justification.student_id==current_user.id))\
-                    .all()
-                count_distractor += 1
-            # also handle the solution -1
-            question_justifications["-1"] = models.Justification.query\
-                .filter_by(quiz_question_id=quiz_question.id)\
-                .filter_by(distractor_id="-1")\
-                .filter(not_(models.Justification.justification==""))\
-                .filter(not_(models.Justification.justification=="<br>"))\
-                .filter(not_(models.Justification.justification=="<p><br></p>"))\
-                .filter(not_(models.Justification.justification=="<p></p>"))\
-                .filter(not_(models.Justification.student_id==current_user.id))\
-                .all()
-            
-            # NOTE use filter instead of filter_by for != comparisons
-            # https://stackoverflow.com/questions/16093475/flask-sqlalchemy-querying-a-column-with-not-equals/16093713
-
-            # record this array of objects as corresponding to this question
-            quiz_justifications[str(quiz_question.id)] = question_justifications
-            
+        selected_justifications = a.selected_justifications #here db query for selected justififcations
+        if len(selected_justifications) == 0: 
+            possible_justifications = get_possible_justifications(q)
         # This is where we apply the peer selection policy
         # We now revisit the data we collected and pick one justification in each array of Justification objects
-        selectedJustifications = getJustifications(quiz_justifications, q.num_justifications_shown)
-        # for key_question in quiz_justifications:
-        #     for key_distractor in quiz_justifications[key_question]:
-        #         #pick multiple of the justification objects at random
-                
-        #         #NOTE make sure we check that the len of the array is big enough first
-        #         number_to_select = min(q.num_justifications_shown, len(quiz_justifications[key_question][key_distractor]))
-        #         #TODO FFS remove the above ugly, hardcoded, magic, number
+            selected_justification_map = select_justifications(possible_justifications, q.num_justifications_shown)
 
-        #         selected = []
-        #         for n in range(number_to_select):                     
-        #             index = random.randint(0,len(quiz_justifications[key_question][key_distractor])-1)
-        #             neo = quiz_justifications[key_question][key_distractor].pop(index) #[index]
-        #             selected.append(neo)
+            for d in selected_justification_map.values():
+                for js in d.values():
+                    for j in js:
+                        a.selected_justifications.append(j)            
 
-        #         quiz_justifications[key_question][key_distractor] = selected
-
-        quiz_max_likes = sum(len(justifications) for (_,distractors) in selectedJustifications.items() for (_, justifications) in distractors.items())
-        if q.max_likes != quiz_max_likes:
-        # if q.max_likes == -99:
-            # q.max_likes = quiz_max_likes
-            q.max_likes = max(q.max_likes, quiz_max_likes) 
-            # q.max_likes = number_to_select * (count_distractor + len(quiz_questions))
+            q.max_likes = sum(len(js) for d in selected_justification_map.values() for js in d.values())
             models.DB.session.commit()
+        else: 
+            #justification list to map
+            selected_justification_map = {}
+            for j in selected_justifications:
+                qid = str(j.quiz_question_id)
+                did = str(j.distractor_id)
+                if qid not in selected_justification_map:
+                    selected_justification_map[qid] = {}
+                if did not in selected_justification_map[qid]:
+                    selected_justification_map[qid][did] = []
+                selected_justification_map[qid][did].append(j)
 
         initial_responses = [] 
 
         # FIXME TODO figure out how the JSON got messed up in the first place, then fix it instead of the ugly patch below
-        asdict = json.loads(a[0].initial_responses.replace("'",'"'))
+        asdict = json.loads(a.initial_responses.replace("'",'"'))
         for k in asdict:
             initial_responses.append(asdict[k])
         
@@ -482,11 +490,11 @@ def get_student(qid):
         .filter(models.QuizAttempt.student_id == u.id)\
         .order_by(collate(models.User.last_name, 'NOCASE'))\
         .first()))
-
+            
         # quiz_questions = q.dump_as_dict()['quiz_questions']
         return render_template('student.html', explanations=expl, quiz=q, simplified_questions=simplified_quiz_questions, \
-            questions=quiz_questions, student=u, attempt=a[0], initial_responses=initial_responses, \
-            justifications=selectedJustifications, likes_given = likes_given)
+            questions=quiz_questions, student=u, attempt=a, initial_responses=initial_responses, \
+            justifications=selected_justification_map, likes_given = likes_given)
 
     else: # step == 1
 
