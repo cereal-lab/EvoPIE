@@ -363,70 +363,74 @@ def pick_without_replacement(justifications, index):
     neo.seen = neo.seen + 1
     return neo
     
-def select_random_justification(justifications):
+#NOTE: signature of this function corresponds to signature of policy 
+# - pool of justifications, id of slot to which they are picked and max number of slots
+def j_random(justifications, slot_id, max_slots):
     index = random.randint(0, len(justifications) - 1)
     return pick_without_replacement(justifications, index)
 
-def not_seen_justification_and(not_seen_n_times = 1, not_seen_policy = select_random_justification, fallback_policy = select_random_justification):
+def j_not_seen(not_seen_n_times = 1, not_seen_policy = j_random, seen_policy = j_random):
     '''
     prefers first not seen yet justififcations and then apply inner getter 
     :param getter - inner policy which is select_random_justification by default
     '''
     assert(not_seen_n_times >= 1) #number of seen required should be positive
-    def policy(justifications):    
+    def policy(justifications, slot_id, max_slots):    
         not_seen_justification = [ j for j in justifications if j.seen < not_seen_n_times ]
         if any(not_seen_justification):
-            neo = not_seen_policy(not_seen_justification)
+            neo = not_seen_policy(not_seen_justification, slot_id, max_slots)
             justifications.remove(neo)
             return neo
         else:
-            return fallback_policy(justifications)
+            return seen_policy(justifications, slot_id, max_slots)
     return policy
 
-def least_seen_justification(min_seen_policy = select_random_justification):
-    def policy(justifications):
-        one_min_seen = min(justifications, default=None, key=lambda j: j.seen)    
-        min_seen_justifications = [ j for j in justifications if j.seen == one_min_seen ]
-        selected = min_seen_policy(min_seen_justifications)
+def j_least_seen(inner_policy = j_random):
+    def policy(justifications, slot_id, max_slots):
+        assert(len(justifications) > 0)
+        one_min_seen_j = min(justifications, key=lambda j: j.seen)    
+        min_seen_justifications = [ j for j in justifications if j.seen == one_min_seen_j.seen ]
+        selected = inner_policy(min_seen_justifications, slot_id, max_slots)
         justifications.remove(selected)
         return selected 
     return policy
 
-def single_justification_or(fallback_policy = select_random_justification):
-    def policy(justifications):
-        if len(justifications) == 1:
-            return justifications.pop()
-        else: 
-            return fallback_policy(justifications)
-    return policy
-
 # selections from https://cdn.discordapp.com/attachments/773018086114590721/973348013655343124/Whiteson_-_2006_-_OEA.pdf
-def epsilon_greedy(epsilon, fitness, best_policy = select_random_justification, fallback_policy = select_random_justification):
+def j_e_greedy(epsilon, fitness, best_policy = j_random, other_policy = j_random):
     '''
     Builder of epsilon-greedy policy where which chance epsilon the best justification based on quality will be taken 
     Otherwise, fallback_policy will be applied 
     '''
-    def policy(justifications):
+    def policy(justifications, slot_id, max_slots):
         level = random.random()
         if level < epsilon: 
             j_with_f = [ (j, fitness(j)) for j in justifications ]
             (_, best_fitness) = max(j_with_f, key=lambda j: j[1])
             best_justfications = [j for (j, f) in j_with_f if f == best_fitness]
-            neo = best_policy(best_justfications)
+            neo = best_policy(best_justfications, slot_id, max_slots)
             justifications.remove(neo)
             return neo 
         else:
-            return fallback_policy(justifications)
+            return other_policy(justifications, slot_id, max_slots)
     return policy
 
-def softmax(temperature, fitness):
+def j_slot_group_till(edge_id_excluded = 1, in_group_policy = j_random, out_group_policy = j_random):
+    assert(edge_id_excluded > 0)
+    def policy(justifications, slot_id, max_slots):
+        if slot_id < edge_id_excluded:
+            return in_group_policy(justifications, slot_id, max_slots)
+        else:
+            return out_group_policy(justifications, slot_id, max_slots)
+    return policy
+
+def j_softmax(temperature, fitness):
     '''
     implements softmax policy builder 
     temperature could be constant or function (for anealing)
     '''
     if not callable(temperature):
         temperature = lambda: temperature
-    def policy(justifications):
+    def policy(justifications, slot_id, max_slots):
         j_with_f = [ (j, fitness(j)) for j in justifications ]
         t = temperature()
         j_with_p = [ (j, exp(f) / t) for (j, f) in j_with_f ]
@@ -456,8 +460,8 @@ def softmax(temperature, fitness):
 
 # classic EA selections 
 
-def fitness_proportional(fitness):
-    def policy(justifications):
+def j_fitness_proportional(fitness):
+    def policy(justifications, slot_id, max_slots):
         j_with_f = [ (j, fitness(j)) for j in justifications]
         total = sum(f for (_, f) in j_with_f)
         level = random.random() * total 
@@ -471,8 +475,8 @@ def fitness_proportional(fitness):
                 return neo                 
     return policy 
 
-def tournament(k, fitness):
-    def policy(justifications):
+def j_tournament(k, fitness):
+    def policy(justifications, slot_id, max_slots):
         j_with_f = [ (j, fitness(j)) for j in justifications]
         candidates = [ random.choice(j_with_f) for i in range(min(len(justifications), k)) ]
         (neo, _) = max(candidates, key = lambda j: j[1])
@@ -480,8 +484,9 @@ def tournament(k, fitness):
         justifications.remove(neo)
         return neo
     return policy 
+    
 
-def select_justifications(justifications, num_justifications_shown, selection_policy = select_random_justification): 
+def select_justifications(justifications, num_slots, selection_policy = j_random): 
     ''' This is where we apply the peer selection policy
         :param justifications - list of all justififcations
         :param num_justifications_shown - wanted number per quiz 
@@ -492,11 +497,11 @@ def select_justifications(justifications, num_justifications_shown, selection_po
     for (qid, distractors) in justifications.items():
         res[qid] = {}
         for (did, js) in distractors.items():            
-            if (len(js) <= num_justifications_shown):
-                res[qid][did] = js
+            if (len(js) <= num_slots):
+                res[qid][did] = js #TODO: order still could metter
             else:
                 cloned = js[:]
-                selected = [ selection_policy(cloned) for n in range(num_justifications_shown) ]
+                selected = [ selection_policy(cloned, slot_id, num_slots) for slot_id in range(num_slots) ]
                 res[qid][did] = selected
     return res
 
@@ -654,14 +659,24 @@ def get_student(qid):
                     #             fallback_policy = tournament(7, fitness=get_justification_fitness)))       
                     #
                      
+                    # selected_justification_map = select_justifications(possible_justifications, q.num_justifications_shown, \
+                    #     selection_policy = \
+                    #         not_seen_justification_and(not_seen_n_times=1, \
+                    #             not_seen_policy = select_random_justification, \
+                    #             fallback_policy = epsilon_greedy(0.25, \
+                    #                 best_policy=select_random_justification, \
+                    #                 fallback_policy=select_random_justification, \
+                    #                 fitness=get_justification_fitness)))
+
+                    num_in_group = min(1, q.num_justifications_shown)
+                    tournament_size = 7
                     selected_justification_map = select_justifications(possible_justifications, q.num_justifications_shown, \
-                        selection_policy = \
-                            not_seen_justification_and(not_seen_n_times=1, \
-                                not_seen_policy = select_random_justification, \
-                                fallback_policy = epsilon_greedy(0.25, \
-                                    best_policy=select_random_justification, \
-                                    fallback_policy=select_random_justification, \
-                                    fitness=get_justification_fitness)))
+                        selection_policy = j_slot_group_till(num_in_group,\
+                            in_group_policy=j_least_seen(j_random), \
+                            out_group_policy=\
+                                # j_tournament(tournament_size, fitness=get_justification_fitness)))
+                                # j_e_greedy(0.2, fitness=get_justification_fitness, best_policy=j_random, other_policy=j_random)))
+                                j_fitness_proportional(fitness=get_justification_fitness)))
 
                     a.selected_justifications.extend(j for d in selected_justification_map.values() for js in d.values() for j in js)
 
