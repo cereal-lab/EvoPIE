@@ -5,6 +5,8 @@
 
 from dataclasses import replace
 from datetime import datetime
+import io
+from math import exp
 from mimetypes import init
 from operator import not_
 from flask import jsonify, abort, request, Response, render_template, redirect, url_for, make_response, send_file
@@ -24,6 +26,12 @@ CLEANR = re.compile('<.*?>')
 from . import DB, models
 
 import jinja2
+
+#used for justification histogram rendering
+import matplotlib
+import matplotlib.pyplot as plt
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
 
 
 pages = Blueprint('pages', __name__)
@@ -391,6 +399,87 @@ def single_justification_or(fallback_policy = select_random_justification):
             return fallback_policy(justifications)
     return policy
 
+# selections from https://cdn.discordapp.com/attachments/773018086114590721/973348013655343124/Whiteson_-_2006_-_OEA.pdf
+def epsilon_greedy(epsilon, fitness, best_policy = select_random_justification, fallback_policy = select_random_justification):
+    '''
+    Builder of epsilon-greedy policy where which chance epsilon the best justification based on quality will be taken 
+    Otherwise, fallback_policy will be applied 
+    '''
+    def policy(justifications):
+        level = random.random()
+        if level < epsilon: 
+            j_with_f = [ (j, fitness(j)) for j in justifications ]
+            (_, best_fitness) = max(j_with_f, key=lambda j: j[1])
+            best_justfications = [j for (j, f) in j_with_f if f == best_fitness]
+            neo = best_policy(best_justfications)
+            justifications.remove(neo)
+            return neo 
+        else:
+            return fallback_policy(justifications)
+    return policy
+
+def softmax(temperature, fitness):
+    '''
+    implements softmax policy builder 
+    temperature could be constant or function (for anealing)
+    '''
+    if not callable(temperature):
+        temperature = lambda: temperature
+    def policy(justifications):
+        j_with_f = [ (j, fitness(j)) for j in justifications ]
+        t = temperature()
+        j_with_p = [ (j, exp(f) / t) for (j, f) in j_with_f ]
+        total = sum(p for (_, p) in j_with_p)
+        # j_with_p = [ (j, p / total) for (j, p) in j_with_p ]
+        for (j, p) in j_with_p:
+            level = random.random()
+            if level < p / total: 
+                neo = j
+                neo.seen = neo.seen + 1 
+                justifications.remove(neo)
+                return neo 
+            else:
+                total = total - p
+    return policy 
+
+# NOTE: cannot dev this due to deterministic nature of fitness in our case at moment of selection
+# def interval_estimation(uncertainty, fitness):
+#     '''
+#     uses uncertainty interval
+#     https://cdn.discordapp.com/attachments/773018086114590721/973348013655343124/Whiteson_-_2006_-_OEA.pdf
+#     Algo 3
+#     '''
+#     def policy(justifications):
+#               ....        
+#     return policy 
+
+# classic EA selections 
+
+def fitness_proportional(fitness):
+    def policy(justifications):
+        j_with_f = [ (j, fitness(j)) for j in justifications]
+        total = sum(f for (_, f) in j_with_f)
+        level = random.random() * total 
+        upLevel = 0
+        for (j, f) in j_with_f:
+            upLevel = upLevel + f 
+            if upLevel > level:
+                neo = j 
+                neo.seen = neo.seen + 1
+                justifications.remove(neo)
+                return neo                 
+    return policy 
+
+def tournament(k, fitness):
+    def policy(justifications):
+        j_with_f = [ (j, fitness(j)) for j in justifications]
+        candidates = [ random.choice(justifications) for i in range(k) ]
+        (neo, _) = max(candidates, key = lambda j: j[1])
+        neo.seen = neo.seen + 1
+        justifications.remove(neo)
+        return neo
+    return policy 
+
 def select_justifications(justifications, num_justifications_shown, selection_policy = select_random_justification): 
     ''' This is where we apply the peer selection policy
         :param justifications - list of all justififcations
@@ -410,6 +499,44 @@ def select_justifications(justifications, num_justifications_shown, selection_po
                 res[qid][did] = selected
     return res
 
+@pages.route('/quiz/<int:quiz_id>/justification/histogram', methods=['GET'])
+@login_required 
+def get_justification_distribution(quiz_id):
+    if not current_user.is_instructor():
+        flash("You are not allowed to get justification distribution")
+        return redirect(url_for('pages.index'))
+    attempt_quality_attr = request.args.get("attempt_quality", "initial_total_score")   
+    def attempt_quality(attempt):
+        return getattr(attempt, attempt_quality_attr)    
+    attempts = models.QuizAttempt.query.filter_by(quiz_id=quiz_id).all() # assuming one per student for now 
+    quiz_attempt_ids = set(a.id for a in attempts)
+    student_attempts = {a.student_id: a for a in attempts} #TODO: one attempt per student per quiz currently 
+    # attempt_map = {a.id:a for a in attempts}
+    # questions = models.Question.query.filter_by(quiz_id=quiz_id).with_entities(models.Question.id, models.Question.id).all()
+    attempt_justifications = DB.session.query(models.attempt_justifications).where(models.attempt_justifications.c.attempt_id.in_(quiz_attempt_ids)).all()    
+    justification_ids = set(j_id for (_, j_id) in attempt_justifications)
+    # justifications = models.Justification.query.where(models.Justification.id.in_(justification_ids)).with_entities(models.Justification.student_id).all()
+    justifications = models.Justification.query.where(models.Justification.id.in_(justification_ids)).all()
+    # justification_student_ids = set(j.student_id for j in justifications)
+
+    def justification_fitness(justification):
+        justification_attempt = student_attempts[justification.student_id]
+        return attempt_quality(justification_attempt)
+    j_with_p = [(j, justification_fitness(j)) for j in justifications]
+    j_with_p.sort(key=lambda j: j[1])
+    justification_histogram = [j.seen for (j, _) in j_with_p]
+
+    figure = plt.figure(figsize=[12.8, 4.8])
+    try:
+        # figure.gca().hist(justification_histogram, bins=len(justification_histogram), weights=justification_histogram)
+        figure.gca().bar(range(len(justification_histogram)), justification_histogram, width=1, align='edge')
+        bytes = io.BytesIO()
+        figure.savefig(bytes, format='png')
+        bytes.seek(0)
+        return send_file(bytes, as_attachment = False, mimetype = 'image/png')
+    finally:
+        plt.close(figure)
+
 @pages.route('/student/<int:qid>', methods=['GET'])
 @login_required
 def get_student(qid):
@@ -422,7 +549,6 @@ def get_student(qid):
         flash("You are not allowed to take this quiz", "error")
         return redirect(url_for('pages.index'))
 
-    u = models.User.query.get_or_404(current_user.id)
     q = models.Quiz.query.get_or_404(qid)
 
     # we replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
@@ -488,7 +614,7 @@ def get_student(qid):
             
     # Handle different steps
     if a: # step == 2 or SOLUTIONS    
-        while True: #exist this loop if no StaleDataError: https://docs.sqlalchemy.org/en/14/orm/versioning.html   
+        while True: #exit this loop if no StaleDataError: https://docs.sqlalchemy.org/en/14/orm/versioning.html   
             try:
                 if a.selected_justifications_timestamp is None: #attempt justifications were not initialized yet
                     # retrieve the peers' justifications for each question  
@@ -532,19 +658,19 @@ def get_student(qid):
         
         likes_given = len(LikesGiven(models.QuizAttempt.query.join(models.User)\
         .filter(models.QuizAttempt.quiz_id == qid)\
-        .filter(models.QuizAttempt.student_id == u.id)\
+        .filter(models.QuizAttempt.student_id == current_user.id)\
         .order_by(collate(models.User.last_name, 'NOCASE'))\
         .first()))
             
         # quiz_questions = q.dump_as_dict()['quiz_questions']
         return render_template('student.html', explanations=expl, quiz=q, simplified_questions=simplified_quiz_questions, \
-            questions=quiz_questions, student=u, attempt=a, initial_responses=initial_responses, \
+            questions=quiz_questions, student=current_user, attempt=a, initial_responses=initial_responses, \
             justifications=selected_justification_map, likes_given = likes_given)
 
     else: # step == 1
 
         return render_template('student.html', explanations=expl, quiz=q, simplified_questions=simplified_quiz_questions, \
-            questions=quiz_questions, student=u)
+            questions=quiz_questions, student=current_user)
 
 
 
