@@ -9,6 +9,7 @@ import io
 from math import exp
 from mimetypes import init
 from operator import not_
+import traceback
 from flask import jsonify, abort, request, Response, render_template, redirect, url_for, make_response, send_file
 from flask import Blueprint
 from flask_login import login_required, current_user
@@ -473,7 +474,7 @@ def fitness_proportional(fitness):
 def tournament(k, fitness):
     def policy(justifications):
         j_with_f = [ (j, fitness(j)) for j in justifications]
-        candidates = [ random.choice(justifications) for i in range(k) ]
+        candidates = [ random.choice(j_with_f) for i in range(min(len(justifications), k)) ]
         (neo, _) = max(candidates, key = lambda j: j[1])
         neo.seen = neo.seen + 1
         justifications.remove(neo)
@@ -525,11 +526,20 @@ def get_justification_distribution(quiz_id):
     j_with_p = [(j, justification_fitness(j)) for j in justifications]
     j_with_p.sort(key=lambda j: j[1])
     justification_histogram = [j.seen for (j, _) in j_with_p]
+    tick_label = [str(f) for (_, f) in j_with_p]
+    prev = None 
+    for i in range(len(tick_label)):
+        if prev is None:
+            prev = tick_label[i]
+        elif prev == tick_label[i]:
+            tick_label[i] = None 
+        else:
+            prev = tick_label[i]
 
     figure = plt.figure(figsize=[12.8, 4.8])
     try:
         # figure.gca().hist(justification_histogram, bins=len(justification_histogram), weights=justification_histogram)
-        figure.gca().bar(range(len(justification_histogram)), justification_histogram, width=1, align='edge')
+        figure.gca().bar(range(len(justification_histogram)), justification_histogram, width=1, align='edge', tick_label=tick_label)
         bytes = io.BytesIO()
         figure.savefig(bytes, format='png')
         bytes.seek(0)
@@ -619,15 +629,39 @@ def get_student(qid):
                 if a.selected_justifications_timestamp is None: #attempt justifications were not initialized yet
                     # retrieve the peers' justifications for each question  
                     possible_justifications = get_possible_justifications(q)
+
                     # This is where we apply the peer selection policy
+                    # selected_justification_map = select_justifications(possible_justifications, q.num_justifications_shown, \
+                    #     selection_policy = \
+                    #         not_seen_justification_and(not_seen_n_times=1, \
+                    #             not_seen_policy = select_random_justification, \
+                    #             fallback_policy = \
+                    #                 not_seen_justification_and(not_seen_n_times=2, \
+                    #                     not_seen_policy = select_random_justification, \
+                    #                     fallback_policy = select_random_justification) ))
+
+                    student_ids = set(j.student_id for (_, d) in possible_justifications.items() for (_, js) in d.items() for j in js)
+                    attempts = models.QuizAttempt.query.filter_by(quiz_id = qid).where(models.QuizAttempt.student_id.in_(student_ids)).all()
+                    student_attempts = {a.student_id:a for a in attempts}
+
+                    def get_justification_fitness(justification):
+                        return student_attempts[justification.student_id].initial_total_score
+
+                    # selected_justification_map = select_justifications(possible_justifications, q.num_justifications_shown, \
+                    #     selection_policy = \
+                    #         not_seen_justification_and(not_seen_n_times=1, \
+                    #             not_seen_policy = select_random_justification, \
+                    #             fallback_policy = tournament(7, fitness=get_justification_fitness)))       
+                    #
+                     
                     selected_justification_map = select_justifications(possible_justifications, q.num_justifications_shown, \
                         selection_policy = \
                             not_seen_justification_and(not_seen_n_times=1, \
                                 not_seen_policy = select_random_justification, \
-                                fallback_policy = \
-                                    not_seen_justification_and(not_seen_n_times=2, \
-                                        not_seen_policy = select_random_justification, \
-                                        fallback_policy = select_random_justification) ))
+                                fallback_policy = epsilon_greedy(0.25, \
+                                    best_policy=select_random_justification, \
+                                    fallback_policy=select_random_justification, \
+                                    fitness=get_justification_fitness)))
 
                     a.selected_justifications.extend(j for d in selected_justification_map.values() for js in d.values() for j in js)
 
@@ -648,6 +682,9 @@ def get_student(qid):
             except StaleDataError:
                 models.DB.session.rollback()
                 a = models.QuizAttempt.query.filter_by(student_id=current_user.id).filter_by(quiz_id=qid).first()
+                pass
+            except Exception as e:
+                traceback.print_exc()
                 pass
         initial_responses = [] 
 
