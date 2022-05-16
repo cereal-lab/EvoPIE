@@ -20,7 +20,7 @@ from sqlalchemy.orm.exc import StaleDataError
 from flask import Markup
 from random import shuffle
 
-from .config import get_k_tournament_size
+from .config import get_k_tournament_size, get_least_seen_slots_num
 
 import json, random, ast, re
 import numpy as np
@@ -671,7 +671,7 @@ def get_student(qid):
                     #                 fallback_policy=select_random_justification, \
                     #                 fitness=get_justification_fitness)))
 
-                    num_in_group = min(1, q.num_justifications_shown)
+                    num_in_group = get_least_seen_slots_num(q.num_justifications_shown)
                     selected_justification_map = select_justifications(possible_justifications, q.num_justifications_shown, \
                         selection_policy = j_slot_group_till(num_in_group,\
                             in_group_policy=j_least_seen(j_random), \
