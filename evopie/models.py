@@ -210,8 +210,6 @@ class Quiz(DB.Model):
     revised_score_weight = DB.Column(DB.Integer, default=0.3)
     justification_grade_weight = DB.Column(DB.Integer, default=0.2)
     participation_grade_weight = DB.Column(DB.Integer, default=0.1)
-    participation_grade_threshold = DB.Column(DB.Integer, default = 10)
-    max_likes = DB.Column(DB.Integer, default = -99)
     num_justifications_shown = DB.Column(DB.Integer, default = 3)
     first_quartile_grade = DB.Column(DB.Integer, default = 1)
     second_quartile_grade = DB.Column(DB.Integer, default = 3)
@@ -243,14 +241,13 @@ class Quiz(DB.Model):
                     "initial_score_weight" : self.initial_score_weight, 
                     "revised_score_weight" :  self.revised_score_weight,
                     "justification_grade_weight" : self.justification_grade_weight ,
-                    "participation_grade_weight" : self.participation_grade_weight ,
-                    "participation_grade_threshold" : self.participation_grade_threshold ,
-                    "max_likes" : self.max_likes ,
+                    "participation_grade_weight" : self.participation_grade_weight ,                    
                     "num_justifications_shown" : self.num_justifications_shown ,
                     "first_quartile_grade" : self.first_quartile_grade ,
                     "second_quartile_grade" : self.second_quartile_grade,
                     "third_quartile_grade" : self.third_quartile_grade ,
-                    "fourth_quartile_grade" : self.fourth_quartile_grade
+                    "fourth_quartile_grade" : self.fourth_quartile_grade,
+                    "participation_grade_threshold" : round(self.num_justifications_shown * len(questions) * self.limiting_factor)
                 }
 
     def __repr__(self):
@@ -293,6 +290,8 @@ class QuizAttempt(DB.Model):
     revised_scores = DB.Column(DB.String, default="") # as json list of -1 / distractor ID    
     version_id = DB.Column(DB.Integer, nullable=False)
     selected_justifications_timestamp = DB.Column(DB.DateTime, nullable=True)
+    max_likes = DB.Column(DB.Integer, default = -99)
+    participation_grade_threshold = DB.Column(DB.Integer, default = 10)    
 
     selected_justifications = DB.relationship('Justification', secondary=attempt_justifications, lazy=True)
 
@@ -310,7 +309,9 @@ class QuizAttempt(DB.Model):
                     "initial_scores" : self.initial_scores,
                     "revised_scores" : self.revised_scores,
                     "initial_total_score" : self.initial_total_score,
-                    "revised_total_score" : self.revised_total_score
+                    "revised_total_score" : self.revised_total_score,
+                    "max_likes" : self.max_likes,
+                    "participation_grade_threshold" : self.participation_grade_threshold
                 }
 
 

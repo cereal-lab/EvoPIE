@@ -202,8 +202,13 @@
 
         function counterInit( fValue, lValue, counter_value ) {    
         var progress = $('.progressbar .progress')
+        {% if attempt is not defined %}
         var lower = Math.round(0.8 * {{ quiz.participation_grade_threshold }});
         var upper = {{ quiz.participation_grade_threshold }};
+        {% else %}
+        var lower = Math.round(0.8 * {{ attempt.participation_grade_threshold }});
+        var upper = {{ attempt.participation_grade_threshold }};
+        {% endif %}
         let rate = 100 / upper;
         $('.counter').text( counter_value );
         $('.progress').text( counter_value + " likes given (" + lower + " min, " + upper + " max)");
@@ -268,7 +273,7 @@
                             Use them to determine what is your definitive answer to each question.
                         </li>
                         <li>
-                            In order to receive participation points, ensure that you give likes in the following range: {{ (0.8 * quiz.participation_grade_threshold) | round | int }} to {{ quiz.participation_grade_threshold }}
+                            In order to receive participation points, ensure that you give likes in the following range: {{ (0.8 * attempt.participation_grade_threshold) | round | int }} to {{ attempt.participation_grade_threshold }}
                         </li>
                     </ul>
                     <div id = "likes_counter" class="counter">0</div>

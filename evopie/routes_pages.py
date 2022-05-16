@@ -680,7 +680,8 @@ def get_student(qid):
 
                     a.selected_justifications.extend(j for d in selected_justification_map.values() for js in d.values() for j in js)
 
-                    q.max_likes = sum(len(js) for d in selected_justification_map.values() for js in d.values())
+                    a.max_likes = sum(len(js) for d in selected_justification_map.values() for js in d.values())
+                    a.participation_grade_threshold = round(a.max_likes * q.limiting_factor)
                     #Idea: put another select to check if we have someting for this attempt id 
                     a.selected_justifications_timestamp = datetime.now()
                     models.DB.session.commit()
@@ -715,13 +716,13 @@ def get_student(qid):
         .first()))
             
         # quiz_questions = q.dump_as_dict()['quiz_questions']
-        return render_template('student.html', explanations=expl, quiz=q, simplified_questions=simplified_quiz_questions, \
+        return render_template('student.html', explanations=expl, quiz=q.dump_as_dict(), simplified_questions=simplified_quiz_questions, \
             questions=quiz_questions, student=current_user, attempt=a, initial_responses=initial_responses, \
             justifications=selected_justification_map, likes_given = likes_given)
 
     else: # step == 1
 
-        return render_template('student.html', explanations=expl, quiz=q, simplified_questions=simplified_quiz_questions, \
+        return render_template('student.html', explanations=expl, quiz=q.dump_as_dict(), simplified_questions=simplified_quiz_questions, \
             questions=quiz_questions, student=current_user)
 
 
@@ -826,14 +827,15 @@ def calculateJustificationGrade(qid):
                 if i != j:
                     if grades[i].student_id not in like_scores:
                         like_scores[grades[i].student_id] = 0
-                    likes_by_g = len(LikesGiven(grades[j])) if len(LikesGiven(grades[j])) != 0 else 1
+                    likes_j = len(LikesGiven(grades[j])) if len(LikesGiven(grades[j])) != 0 else 1
+                    participation_threshold_j = q.limiting_factor * grades[j].max_likes
                     # A DIFFERENT SOLUTION IDEA:
                     # likes given by j to i is the same as likes received by i from j
                     # make a group by query that gives a column of likes received from j for i
                     # store that column as a hashmap for student i -> has all the likes given by every j for i
                     # store likes given by j in a different hashmap
                     # use that in the implementation of the formula
-                    like_scores[grades[i].student_id] += ( Likes(grades[j], grades[i]) * min( ( (q.max_likes * q.limiting_factor) / likes_by_g ), 1 ) )
+                    like_scores[grades[i].student_id] += (Likes(grades[j], grades[i]) * min(participation_threshold_j / likes_j, 1 ))
         
         sorted_scores = list(like_scores.values())
         sorted_scores.sort()    
@@ -867,7 +869,7 @@ def getTotalScore(q, grades, justification_grade, likes_given):
     total_scores[-1] = max_score
     for grade in grades:
         likes_given_length = len(likes_given[grade.student.id]) if grade.student.id in likes_given else 0
-        participation_grade = 1 if likes_given_length >= round(0.8 * q.participation_grade_threshold) and likes_given_length <= q.participation_grade_threshold else 0
+        participation_grade = 1 if likes_given_length >= round(0.8 * grade.participation_grade_threshold) and likes_given_length <= grade.participation_grade_threshold else 0
         total_scores[grade.student.id] = round(grade.initial_total_score * q.initial_score_weight + grade.revised_total_score * q.revised_score_weight + justification_grade[str(grade.student.id)] * q.justification_grade_weight + participation_grade * q.participation_grade_weight, 2)
     return total_scores
 
@@ -1045,7 +1047,7 @@ def quiz_grader(qid):
     LimitingFactor = q.limiting_factor
     
 
-    return render_template('quiz-grader.html', current_user=current_user, quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, count_likes_received = count_likes_received, limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, LimitingFactor = LimitingFactor, justificationLikesCount = justificationLikesCount, numJustificationsOptions = numJustificationsOptions, quartileOptions = quartileOptions)
+    return render_template('quiz-grader.html', current_user=current_user, quiz=q.dump_as_dict(), all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, count_likes_received = count_likes_received, limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, LimitingFactor = LimitingFactor, justificationLikesCount = justificationLikesCount, numJustificationsOptions = numJustificationsOptions, quartileOptions = quartileOptions)
 
 @pages.route("/getDataCSV/<int:qid>", methods=['POST'])
 @login_required
@@ -1059,7 +1061,7 @@ def getDataCSV(qid):
     for grade in grades:
         likes_given_length = len(likes_given[grade.student.id]) if grade.student.id in likes_given else 0
         likes_received_length = len(count_likes_received[grade.student.id]) if grade.student.id in likes_received else 0
-        participation_grade = 1 if likes_given_length >= round(0.8 * q.participation_grade_threshold) and likes_given_length <= q.participation_grade_threshold else 0
+        participation_grade = 1 if likes_given_length >= round(0.8 * grade.participation_grade_threshold) and likes_given_length <= grade.participation_grade_threshold else 0
         csv += grade.student.last_name + "," + grade.student.first_name + "," + grade.student.email + "," + str(grade.initial_total_score) + "," + str(grade.revised_total_score) + "," + str(justification_grade[str(grade.student.id)]) + "," + str(participation_grade) + "," + str(likes_given_length) + "," + str(likes_received_length) + "," + str(total_scores[str(grade.student.id)]) + " / " + str(total_scores['-1']) + "," + str( round(((total_scores[str(grade.student.id)] / total_scores['-1'] ) * 100), 1) ) + "%" + "\n"
     filename = (current_user.email + "-" + q.title).replace(" ", "_")
     return Response(
