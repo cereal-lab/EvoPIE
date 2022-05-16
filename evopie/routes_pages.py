@@ -20,6 +20,8 @@ from sqlalchemy.orm.exc import StaleDataError
 from flask import Markup
 from random import shuffle
 
+from .config import get_k_tournament_size
+
 import json, random, ast, re
 import numpy as np
 CLEANR = re.compile('<.*?>') 
@@ -477,8 +479,9 @@ def j_fitness_proportional(fitness):
 
 def j_tournament(k, fitness):
     def policy(justifications, slot_id, max_slots):
+        size = k(justifications) if callable(k) else k
         j_with_f = [ (j, fitness(j)) for j in justifications]
-        candidates = [ random.choice(j_with_f) for i in range(min(len(justifications), k)) ]
+        candidates = [ random.choice(j_with_f) for i in range(min(len(justifications), size)) ]
         (neo, _) = max(candidates, key = lambda j: j[1])
         neo.seen = neo.seen + 1
         justifications.remove(neo)
@@ -669,14 +672,13 @@ def get_student(qid):
                     #                 fitness=get_justification_fitness)))
 
                     num_in_group = min(1, q.num_justifications_shown)
-                    tournament_size = 7
                     selected_justification_map = select_justifications(possible_justifications, q.num_justifications_shown, \
                         selection_policy = j_slot_group_till(num_in_group,\
                             in_group_policy=j_least_seen(j_random), \
                             out_group_policy=\
-                                # j_tournament(tournament_size, fitness=get_justification_fitness)))
+                                j_tournament(get_k_tournament_size, fitness=get_justification_fitness)))
                                 # j_e_greedy(0.2, fitness=get_justification_fitness, best_policy=j_random, other_policy=j_random)))
-                                j_fitness_proportional(fitness=get_justification_fitness)))
+                                # j_fitness_proportional(fitness=get_justification_fitness)))
 
                     a.selected_justifications.extend(j for d in selected_justification_map.values() for js in d.values() for j in js)
 
