@@ -906,7 +906,9 @@ def changeLimitingFactor(qid):
         response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
         if request.json:
             q.limiting_factor = int(request.json['limiting_factor']) / 100
-            q.participation_grade_threshold = round(q.max_likes * (int(request.json['limiting_factor']) / 100))
+            attempts = models.QuizAttempt.query.filter_by(quiz_id = qid).all()
+            for a in attempts:
+                a.participation_grade_threshold = round(a.max_likes * (int(request.json['limiting_factor']) / 100))
             models.DB.session.commit()
 
         return make_response(response)

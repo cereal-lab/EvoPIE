@@ -16,6 +16,7 @@ curlit  "set quiz to step 2"        "/quizzes/1/status"     ' { "status" : "STEP
 header "Step #2 for Student #1"
 curl_login            "student #1"        '{ "email": "student1@usf.edu", "password": "pwd"}'
 curlit "GET quiz"     "/quizzes/1/take"   ''
+curlit "GET justifications"     "/student/1"   ''
 curlit "POST quiz"    "/quizzes/1/take"   '{ "revised_responses": {"1":"4" , "2":"-1", "3":"-1", "4":"13", "5": "17"} }'
 # like "s1q1d1"    "1"
 # like "s1q1d2"    "2"
@@ -44,6 +45,7 @@ like "s5q4d14"   "103"
 header "Step #2 for Student #2"
 curl_login            "student #2"        '{ "email": "student2@usf.edu", "password": "pwd"}'
 curlit "GET quiz"     "/quizzes/1/take"   ''
+curlit "GET justifications"     "/student/1"   ''
 curlit "POST quiz"    "/quizzes/1/take"   '{ "revised_responses": {"1":"4" , "2":"-1", "3":"-1", "4":"13", "5": "17"} }'
 # like "s1q1d1"    "1"
 # like "s1q1d2"    "2"
@@ -72,6 +74,7 @@ like "s5q4d16"   "104"
 header "Step #2 for Student #3"
 curl_login            "student #3"        '{ "email": "student3@usf.edu", "password": "pwd"}'
 curlit "GET quiz"     "/quizzes/1/take"   ''
+curlit "GET justifications"     "/student/1"   ''
 curlit "POST quiz"    "/quizzes/1/take"   '{ "revised_responses": {"1":"4" , "2":"-1", "3":"-1", "4":"13", "5": "17"} }'
 # like "s1q1d1"    "1"
 # like "s1q1d2"    "2"
@@ -100,6 +103,7 @@ like "s5q4d16"   "104"
 header "Step #2 for Student #4"
 curl_login            "student #4"        '{ "email": "student4@usf.edu", "password": "pwd"}'
 curlit "GET quiz"     "/quizzes/1/take"   ''
+curlit "GET justifications"     "/student/1"   ''
 curlit "POST quiz"    "/quizzes/1/take"   '{ "revised_responses": {"1":"4" , "2":"-1", "3":"-1", "4":"13", "5": "17"} }'
 # like "s1q1d1"    "1"
 # like "s1q1d2"    "2"
@@ -128,6 +132,7 @@ like "s5q4sol"   "105"
 header "Step #2 for Student #5"
 curl_login            "student #5"        '{ "email": "student5@usf.edu", "password": "pwd"}'
 curlit "GET quiz"     "/quizzes/1/take"   ''
+curlit "GET justifications"     "/student/1"   ''
 curlit "POST quiz"    "/quizzes/1/take"   '{ "revised_responses": {"1":"4" , "2":"-1", "3":"-1", "4":"13", "5": "17"} }'
 like "s1q1d1"    "1"
 like "s1q1d2"    "2"
@@ -164,6 +169,7 @@ like "s3q3sol"   "57"
 header "Step #2 for Student #6"
 curl_login            "student #6"        '{ "email": "student6@usf.edu", "password": "pwd"}'
 curlit "GET quiz"     "/quizzes/1/take"   ''
+curlit "GET justifications"     "/student/1"   ''
 curlit "POST quiz"    "/quizzes/1/take"   '{ "revised_responses": {"1":"4" , "2":"-1", "3":"-1", "4":"13", "5": "17"} }'
 like "s1q1d1"    "1"
 like "s1q1d2"    "2"
@@ -200,6 +206,7 @@ like "s3q2d6"    "33"
 header "Step #2 for Student #7"
 curl_login            "student #7"        '{ "email": "student7@usf.edu", "password": "pwd"}'
 curlit "GET quiz"     "/quizzes/1/take"   ''
+curlit "GET justifications"     "/student/1"   ''
 curlit "POST quiz"    "/quizzes/1/take"   '{ "revised_responses": {"1":"4" , "2":"-1", "3":"-1", "4":"13", "5": "17"} }'
 like "s1q1d1"    "1"
 like "s1q1d2"    "2"
@@ -238,6 +245,7 @@ do
     header "Step #2 for Student #${s}"
     curl_login            "student #${s}"        '{ "email": "student'${s}'@usf.edu", "password": "pwd"}'
     curlit "GET quiz"     "/quizzes/1/take"   ''
+    curlit "GET justifications"     "/student/1"   ''
     curlit "POST quiz"    "/quizzes/1/take"   '{ "revised_responses": {"1":"4" , "2":"-1", "3":"-1", "4":"-1", "5": "17"} }'
     like "s1q1d1"    "1"
     like "s1q1d2"    "2"
@@ -272,6 +280,7 @@ done
     header "Step #2 for Student #10" 
     curl_login            "student #10"        '{ "email": "student10@usf.edu", "password": "pwd"}'
     curlit "GET quiz"     "/quizzes/1/take"   ''
+    curlit "GET justifications"     "/student/1"   ''
     curlit "POST quiz"    "/quizzes/1/take"   '{ "revised_responses": {"1":"4" , "2":"-1", "3":"-1", "4":"13", "5": "17"} }'
     like "s1q1d1"    "1"
     like "s1q1d2"    "2"
@@ -327,6 +336,7 @@ do
     header "Step #2 for Student #${s}"
     curl_login            "student #${s}"        '{ "email": "student'${s}'@usf.edu", "password": "pwd"}'
     curlit "GET quiz"     "/quizzes/1/take"   ''
+    curlit "GET justifications"     "/student/1"   ''
     curlit "POST quiz"    "/quizzes/1/take"   '{ "revised_responses": {"1":"4" , "2":"-1", "3":"-1", "4":"-1", "5": "17"} }'
     like "s1q1d1"    "1"
     like "s1q1d2"    "2"
@@ -375,6 +385,7 @@ do
     header "Step #2 for Student #${s}"
     curl_login            "student #${s}"        '{ "email": "student'${s}'@usf.edu", "password": "pwd"}'
     curlit "GET quiz"     "/quizzes/1/take"   ''
+    curlit "GET justifications"     "/student/1"   ''
     curlit "POST quiz"    "/quizzes/1/take"   '{ "revised_responses": {"1":"-1" , "2":"-1", "3":"-1", "4":"-1", "5": "-1"} }'
     like "s1q1d1"    "1"
     like "s1q1d2"    "2"
@@ -428,6 +439,7 @@ done
 header "Step #2 for Student #20"
 curl_login            "student #20"        '{ "email": "student20@usf.edu", "password": "pwd"}'
 curlit "GET quiz"     "/quizzes/1/take"   ''
+curlit "GET justifications"     "/student/1"   ''
 curlit "POST quiz"    "/quizzes/1/take"   '{ "revised_responses": {"1":"-1" , "2":"-1", "3":"-1", "4":"-1", "5": "-1"} }'
     like "s1q1d1"    "1"
     like "s1q1d2"    "2"

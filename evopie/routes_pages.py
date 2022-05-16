@@ -5,8 +5,11 @@
 
 from dataclasses import replace
 from datetime import datetime
+import io
+from math import exp
 from mimetypes import init
 from operator import not_
+import traceback
 from flask import jsonify, abort, request, Response, render_template, redirect, url_for, make_response, send_file
 from flask import Blueprint
 from flask_login import login_required, current_user
@@ -17,6 +20,8 @@ from sqlalchemy.orm.exc import StaleDataError
 from flask import Markup
 from random import shuffle
 
+from .config import get_k_tournament_size
+
 import json, random, ast, re
 import numpy as np
 CLEANR = re.compile('<.*?>') 
@@ -24,6 +29,12 @@ CLEANR = re.compile('<.*?>')
 from . import DB, models
 
 import jinja2
+
+#used for justification histogram rendering
+import matplotlib
+import matplotlib.pyplot as plt
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
 
 
 pages = Blueprint('pages', __name__)
@@ -348,16 +359,137 @@ def get_possible_justifications(quiz):
         justifications[str(q.id)]["-1"] = res
     return justifications
 
-def select_random_justification(justifications):
-    index = random.randint(0,len(justifications)-1)
-    neo = justifications.pop(index) #[index]
+#See discussion of policies on overleaf
+def pick_without_replacement(justifications, index):
+    neo = justifications.pop(index)
     neo.seen = neo.seen + 1
     return neo
+    
+#NOTE: signature of this function corresponds to signature of policy 
+# - pool of justifications, id of slot to which they are picked and max number of slots
+def j_random(justifications, slot_id, max_slots):
+    index = random.randint(0, len(justifications) - 1)
+    return pick_without_replacement(justifications, index)
 
-def select_least_seen_justification(justifications):
-    pass
+def j_not_seen(not_seen_n_times = 1, not_seen_policy = j_random, seen_policy = j_random):
+    '''
+    prefers first not seen yet justififcations and then apply inner getter 
+    :param getter - inner policy which is select_random_justification by default
+    '''
+    assert(not_seen_n_times >= 1) #number of seen required should be positive
+    def policy(justifications, slot_id, max_slots):    
+        not_seen_justification = [ j for j in justifications if j.seen < not_seen_n_times ]
+        if any(not_seen_justification):
+            neo = not_seen_policy(not_seen_justification, slot_id, max_slots)
+            justifications.remove(neo)
+            return neo
+        else:
+            return seen_policy(justifications, slot_id, max_slots)
+    return policy
 
-def select_justifications(justifications, num_justifications_shown, getter = select_random_justification): 
+def j_least_seen(inner_policy = j_random):
+    def policy(justifications, slot_id, max_slots):
+        assert(len(justifications) > 0)
+        one_min_seen_j = min(justifications, key=lambda j: j.seen)    
+        min_seen_justifications = [ j for j in justifications if j.seen == one_min_seen_j.seen ]
+        selected = inner_policy(min_seen_justifications, slot_id, max_slots)
+        justifications.remove(selected)
+        return selected 
+    return policy
+
+# selections from https://cdn.discordapp.com/attachments/773018086114590721/973348013655343124/Whiteson_-_2006_-_OEA.pdf
+def j_e_greedy(epsilon, fitness, best_policy = j_random, other_policy = j_random):
+    '''
+    Builder of epsilon-greedy policy where which chance epsilon the best justification based on quality will be taken 
+    Otherwise, fallback_policy will be applied 
+    '''
+    def policy(justifications, slot_id, max_slots):
+        level = random.random()
+        if level < epsilon: 
+            j_with_f = [ (j, fitness(j)) for j in justifications ]
+            (_, best_fitness) = max(j_with_f, key=lambda j: j[1])
+            best_justfications = [j for (j, f) in j_with_f if f == best_fitness]
+            neo = best_policy(best_justfications, slot_id, max_slots)
+            justifications.remove(neo)
+            return neo 
+        else:
+            return other_policy(justifications, slot_id, max_slots)
+    return policy
+
+def j_slot_group_till(edge_id_excluded = 1, in_group_policy = j_random, out_group_policy = j_random):
+    assert(edge_id_excluded > 0)
+    def policy(justifications, slot_id, max_slots):
+        if slot_id < edge_id_excluded:
+            return in_group_policy(justifications, slot_id, max_slots)
+        else:
+            return out_group_policy(justifications, slot_id, max_slots)
+    return policy
+
+def j_softmax(temperature, fitness):
+    '''
+    implements softmax policy builder 
+    temperature could be constant or function (for anealing)
+    '''
+    if not callable(temperature):
+        temperature = lambda: temperature
+    def policy(justifications, slot_id, max_slots):
+        j_with_f = [ (j, fitness(j)) for j in justifications ]
+        t = temperature()
+        j_with_p = [ (j, exp(f) / t) for (j, f) in j_with_f ]
+        total = sum(p for (_, p) in j_with_p)
+        # j_with_p = [ (j, p / total) for (j, p) in j_with_p ]
+        for (j, p) in j_with_p:
+            level = random.random()
+            if level < p / total: 
+                neo = j
+                neo.seen = neo.seen + 1 
+                justifications.remove(neo)
+                return neo 
+            else:
+                total = total - p
+    return policy 
+
+# NOTE: cannot dev this due to deterministic nature of fitness in our case at moment of selection
+# def interval_estimation(uncertainty, fitness):
+#     '''
+#     uses uncertainty interval
+#     https://cdn.discordapp.com/attachments/773018086114590721/973348013655343124/Whiteson_-_2006_-_OEA.pdf
+#     Algo 3
+#     '''
+#     def policy(justifications):
+#               ....        
+#     return policy 
+
+# classic EA selections 
+
+def j_fitness_proportional(fitness):
+    def policy(justifications, slot_id, max_slots):
+        j_with_f = [ (j, fitness(j)) for j in justifications]
+        total = sum(f for (_, f) in j_with_f)
+        level = random.random() * total 
+        upLevel = 0
+        for (j, f) in j_with_f:
+            upLevel = upLevel + f 
+            if upLevel > level:
+                neo = j 
+                neo.seen = neo.seen + 1
+                justifications.remove(neo)
+                return neo                 
+    return policy 
+
+def j_tournament(k, fitness):
+    def policy(justifications, slot_id, max_slots):
+        size = k(justifications) if callable(k) else k
+        j_with_f = [ (j, fitness(j)) for j in justifications]
+        candidates = [ random.choice(j_with_f) for i in range(min(len(justifications), size)) ]
+        (neo, _) = max(candidates, key = lambda j: j[1])
+        neo.seen = neo.seen + 1
+        justifications.remove(neo)
+        return neo
+    return policy 
+    
+
+def select_justifications(justifications, num_slots, selection_policy = j_random): 
     ''' This is where we apply the peer selection policy
         :param justifications - list of all justififcations
         :param num_justifications_shown - wanted number per quiz 
@@ -368,13 +500,60 @@ def select_justifications(justifications, num_justifications_shown, getter = sel
     for (qid, distractors) in justifications.items():
         res[qid] = {}
         for (did, js) in distractors.items():            
-            if (len(js) <= num_justifications_shown):
-                res[qid][did] = js
+            if (len(js) <= num_slots):
+                res[qid][did] = js #TODO: order still could metter
             else:
                 cloned = js[:]
-                selected = [ getter(cloned) for n in range(num_justifications_shown) ]
+                selected = [ selection_policy(cloned, slot_id, num_slots) for slot_id in range(num_slots) ]
                 res[qid][did] = selected
     return res
+
+@pages.route('/quiz/<int:quiz_id>/justification/histogram', methods=['GET'])
+@login_required 
+def get_justification_distribution(quiz_id):
+    if not current_user.is_instructor():
+        flash("You are not allowed to get justification distribution")
+        return redirect(url_for('pages.index'))
+    attempt_quality_attr = request.args.get("attempt_quality", "initial_total_score")   
+    def attempt_quality(attempt):
+        return getattr(attempt, attempt_quality_attr)    
+    attempts = models.QuizAttempt.query.filter_by(quiz_id=quiz_id).all() # assuming one per student for now 
+    quiz_attempt_ids = set(a.id for a in attempts)
+    student_attempts = {a.student_id: a for a in attempts} #TODO: one attempt per student per quiz currently 
+    # attempt_map = {a.id:a for a in attempts}
+    # questions = models.Question.query.filter_by(quiz_id=quiz_id).with_entities(models.Question.id, models.Question.id).all()
+    attempt_justifications = DB.session.query(models.attempt_justifications).where(models.attempt_justifications.c.attempt_id.in_(quiz_attempt_ids)).all()    
+    justification_ids = set(j_id for (_, j_id) in attempt_justifications)
+    # justifications = models.Justification.query.where(models.Justification.id.in_(justification_ids)).with_entities(models.Justification.student_id).all()
+    justifications = models.Justification.query.where(models.Justification.id.in_(justification_ids)).all()
+    # justification_student_ids = set(j.student_id for j in justifications)
+
+    def justification_fitness(justification):
+        justification_attempt = student_attempts[justification.student_id]
+        return attempt_quality(justification_attempt)
+    j_with_p = [(j, justification_fitness(j)) for j in justifications]
+    j_with_p.sort(key=lambda j: j[1])
+    justification_histogram = [j.seen for (j, _) in j_with_p]
+    tick_label = [str(f) for (_, f) in j_with_p]
+    prev = None 
+    for i in range(len(tick_label)):
+        if prev is None:
+            prev = tick_label[i]
+        elif prev == tick_label[i]:
+            tick_label[i] = None 
+        else:
+            prev = tick_label[i]
+
+    figure = plt.figure(figsize=[12.8, 4.8])
+    try:
+        # figure.gca().hist(justification_histogram, bins=len(justification_histogram), weights=justification_histogram)
+        figure.gca().bar(range(len(justification_histogram)), justification_histogram, width=1, align='edge', tick_label=tick_label)
+        bytes = io.BytesIO()
+        figure.savefig(bytes, format='png')
+        bytes.seek(0)
+        return send_file(bytes, as_attachment = False, mimetype = 'image/png')
+    finally:
+        plt.close(figure)
 
 @pages.route('/student/<int:qid>', methods=['GET'])
 @login_required
@@ -388,7 +567,6 @@ def get_student(qid):
         flash("You are not allowed to take this quiz", "error")
         return redirect(url_for('pages.index'))
 
-    u = models.User.query.get_or_404(current_user.id)
     q = models.Quiz.query.get_or_404(qid)
 
     # we replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
@@ -454,17 +632,58 @@ def get_student(qid):
             
     # Handle different steps
     if a: # step == 2 or SOLUTIONS    
-        while True: #exist this loop if no StaleDataError: https://docs.sqlalchemy.org/en/14/orm/versioning.html   
+        while True: #exit this loop if no StaleDataError: https://docs.sqlalchemy.org/en/14/orm/versioning.html   
             try:
                 if a.selected_justifications_timestamp is None: #attempt justifications were not initialized yet
                     # retrieve the peers' justifications for each question  
                     possible_justifications = get_possible_justifications(q)
+
                     # This is where we apply the peer selection policy
-                    selected_justification_map = select_justifications(possible_justifications, q.num_justifications_shown)
+                    # selected_justification_map = select_justifications(possible_justifications, q.num_justifications_shown, \
+                    #     selection_policy = \
+                    #         not_seen_justification_and(not_seen_n_times=1, \
+                    #             not_seen_policy = select_random_justification, \
+                    #             fallback_policy = \
+                    #                 not_seen_justification_and(not_seen_n_times=2, \
+                    #                     not_seen_policy = select_random_justification, \
+                    #                     fallback_policy = select_random_justification) ))
+
+                    student_ids = set(j.student_id for (_, d) in possible_justifications.items() for (_, js) in d.items() for j in js)
+                    attempts = models.QuizAttempt.query.filter_by(quiz_id = qid).where(models.QuizAttempt.student_id.in_(student_ids)).all()
+                    student_attempts = {a.student_id:a for a in attempts}
+
+                    def get_justification_fitness(justification):
+                        return student_attempts[justification.student_id].initial_total_score
+
+                    # selected_justification_map = select_justifications(possible_justifications, q.num_justifications_shown, \
+                    #     selection_policy = \
+                    #         not_seen_justification_and(not_seen_n_times=1, \
+                    #             not_seen_policy = select_random_justification, \
+                    #             fallback_policy = tournament(7, fitness=get_justification_fitness)))       
+                    #
+                     
+                    # selected_justification_map = select_justifications(possible_justifications, q.num_justifications_shown, \
+                    #     selection_policy = \
+                    #         not_seen_justification_and(not_seen_n_times=1, \
+                    #             not_seen_policy = select_random_justification, \
+                    #             fallback_policy = epsilon_greedy(0.25, \
+                    #                 best_policy=select_random_justification, \
+                    #                 fallback_policy=select_random_justification, \
+                    #                 fitness=get_justification_fitness)))
+
+                    num_in_group = min(1, q.num_justifications_shown)
+                    selected_justification_map = select_justifications(possible_justifications, q.num_justifications_shown, \
+                        selection_policy = j_slot_group_till(num_in_group,\
+                            in_group_policy=j_least_seen(j_random), \
+                            out_group_policy=\
+                                j_tournament(get_k_tournament_size, fitness=get_justification_fitness)))
+                                # j_e_greedy(0.2, fitness=get_justification_fitness, best_policy=j_random, other_policy=j_random)))
+                                # j_fitness_proportional(fitness=get_justification_fitness)))
 
                     a.selected_justifications.extend(j for d in selected_justification_map.values() for js in d.values() for j in js)
 
-                    q.max_likes = sum(len(js) for d in selected_justification_map.values() for js in d.values())
+                    a.max_likes = sum(len(js) for d in selected_justification_map.values() for js in d.values())
+                    a.participation_grade_threshold = round(a.max_likes * q.limiting_factor)
                     #Idea: put another select to check if we have someting for this attempt id 
                     a.selected_justifications_timestamp = datetime.now()
                     models.DB.session.commit()
@@ -482,6 +701,9 @@ def get_student(qid):
                 models.DB.session.rollback()
                 a = models.QuizAttempt.query.filter_by(student_id=current_user.id).filter_by(quiz_id=qid).first()
                 pass
+            except Exception as e:
+                traceback.print_exc()
+                pass
         initial_responses = [] 
 
         # FIXME TODO figure out how the JSON got messed up in the first place, then fix it instead of the ugly patch below
@@ -491,19 +713,19 @@ def get_student(qid):
         
         likes_given = len(LikesGiven(models.QuizAttempt.query.join(models.User)\
         .filter(models.QuizAttempt.quiz_id == qid)\
-        .filter(models.QuizAttempt.student_id == u.id)\
+        .filter(models.QuizAttempt.student_id == current_user.id)\
         .order_by(collate(models.User.last_name, 'NOCASE'))\
         .first()))
             
         # quiz_questions = q.dump_as_dict()['quiz_questions']
-        return render_template('student.html', explanations=expl, quiz=q, simplified_questions=simplified_quiz_questions, \
-            questions=quiz_questions, student=u, attempt=a, initial_responses=initial_responses, \
+        return render_template('student.html', explanations=expl, quiz=q.dump_as_dict(), simplified_questions=simplified_quiz_questions, \
+            questions=quiz_questions, student=current_user, attempt=a, initial_responses=initial_responses, \
             justifications=selected_justification_map, likes_given = likes_given)
 
     else: # step == 1
 
-        return render_template('student.html', explanations=expl, quiz=q, simplified_questions=simplified_quiz_questions, \
-            questions=quiz_questions, student=u)
+        return render_template('student.html', explanations=expl, quiz=q.dump_as_dict(), simplified_questions=simplified_quiz_questions, \
+            questions=quiz_questions, student=current_user)
 
 
 
@@ -607,14 +829,15 @@ def calculateJustificationGrade(qid):
                 if i != j:
                     if grades[i].student_id not in like_scores:
                         like_scores[grades[i].student_id] = 0
-                    likes_by_g = len(LikesGiven(grades[j])) if len(LikesGiven(grades[j])) != 0 else 1
+                    likes_j = len(LikesGiven(grades[j])) if len(LikesGiven(grades[j])) != 0 else 1
+                    participation_threshold_j = q.limiting_factor * grades[j].max_likes
                     # A DIFFERENT SOLUTION IDEA:
                     # likes given by j to i is the same as likes received by i from j
                     # make a group by query that gives a column of likes received from j for i
                     # store that column as a hashmap for student i -> has all the likes given by every j for i
                     # store likes given by j in a different hashmap
                     # use that in the implementation of the formula
-                    like_scores[grades[i].student_id] += ( Likes(grades[j], grades[i]) * min( ( (q.max_likes * q.limiting_factor) / likes_by_g ), 1 ) )
+                    like_scores[grades[i].student_id] += (Likes(grades[j], grades[i]) * min(participation_threshold_j / likes_j, 1 ))
         
         sorted_scores = list(like_scores.values())
         sorted_scores.sort()    
@@ -648,7 +871,7 @@ def getTotalScore(q, grades, justification_grade, likes_given):
     total_scores[-1] = max_score
     for grade in grades:
         likes_given_length = len(likes_given[grade.student.id]) if grade.student.id in likes_given else 0
-        participation_grade = 1 if likes_given_length >= round(0.8 * q.participation_grade_threshold) and likes_given_length <= q.participation_grade_threshold else 0
+        participation_grade = 1 if likes_given_length >= round(0.8 * grade.participation_grade_threshold) and likes_given_length <= grade.participation_grade_threshold else 0
         total_scores[grade.student.id] = round(grade.initial_total_score * q.initial_score_weight + grade.revised_total_score * q.revised_score_weight + justification_grade[str(grade.student.id)] * q.justification_grade_weight + participation_grade * q.participation_grade_weight, 2)
     return total_scores
 
@@ -826,7 +1049,7 @@ def quiz_grader(qid):
     LimitingFactor = q.limiting_factor
     
 
-    return render_template('quiz-grader.html', current_user=current_user, quiz=q, all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, count_likes_received = count_likes_received, limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, LimitingFactor = LimitingFactor, justificationLikesCount = justificationLikesCount, numJustificationsOptions = numJustificationsOptions, quartileOptions = quartileOptions)
+    return render_template('quiz-grader.html', current_user=current_user, quiz=q.dump_as_dict(), all_grades=grades, grading_details = grading_details, distractors = distractors, questions = questions, likes_given = likes_given, likes_received = likes_received, count_likes_received = count_likes_received, limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, LimitingFactor = LimitingFactor, justificationLikesCount = justificationLikesCount, numJustificationsOptions = numJustificationsOptions, quartileOptions = quartileOptions)
 
 @pages.route("/getDataCSV/<int:qid>", methods=['POST'])
 @login_required
@@ -840,7 +1063,7 @@ def getDataCSV(qid):
     for grade in grades:
         likes_given_length = len(likes_given[grade.student.id]) if grade.student.id in likes_given else 0
         likes_received_length = len(count_likes_received[grade.student.id]) if grade.student.id in likes_received else 0
-        participation_grade = 1 if likes_given_length >= round(0.8 * q.participation_grade_threshold) and likes_given_length <= q.participation_grade_threshold else 0
+        participation_grade = 1 if likes_given_length >= round(0.8 * grade.participation_grade_threshold) and likes_given_length <= grade.participation_grade_threshold else 0
         csv += grade.student.last_name + "," + grade.student.first_name + "," + grade.student.email + "," + str(grade.initial_total_score) + "," + str(grade.revised_total_score) + "," + str(justification_grade[str(grade.student.id)]) + "," + str(participation_grade) + "," + str(likes_given_length) + "," + str(likes_received_length) + "," + str(total_scores[str(grade.student.id)]) + " / " + str(total_scores['-1']) + "," + str( round(((total_scores[str(grade.student.id)] / total_scores['-1'] ) * 100), 1) ) + "%" + "\n"
     filename = (current_user.email + "-" + q.title).replace(" ", "_")
     return Response(

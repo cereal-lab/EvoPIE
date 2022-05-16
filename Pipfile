@@ -19,6 +19,7 @@ numpy = "==1.22.2"
 pylint = "==2.12.2"
 bleach = "==4.1.0"
 bleach-allowlist = "==1.0.3"
+matplotlib = "==3.3.3"
 
 [dev-packages]
 pylint = "==2.12.2"
