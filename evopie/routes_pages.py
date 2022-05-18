@@ -814,10 +814,10 @@ def calculateJustificationGrade(qid):
     if current_user.is_instructor():
         q = models.Quiz.query.get_or_404(qid)
         grades=models.QuizAttempt.query.join(models.User)\
-        .filter(models.QuizAttempt.quiz_id == qid)\
-        .filter(models.QuizAttempt.student_id == models.User.id)\
-        .order_by(collate(models.User.last_name, 'NOCASE'))\
-        .all()
+            .filter(models.QuizAttempt.quiz_id == qid)\
+            .filter(models.QuizAttempt.student_id == models.User.id)\
+            .order_by(collate(models.User.last_name, 'NOCASE'))\
+            .all()
         likes_given = {}
         for grade in grades:
             likes_given[grade.student_id] = LikesGiven(grade)
@@ -1058,13 +1058,18 @@ def getDataCSV(qid):
     if request.json:
         justification_grade = request.json["justification_grade"]
         total_scores = request.json["total_scores"]
+    else: 
+        j, t = calculateJustificationGrade(qid)
+        justification_grade = {str(k):j[k] for k in j}
+        total_scores = {str(k):t[k] for k in t}
     q, grades, grading_details, distractors, questions, likes_given, likes_received, count_likes_received, justificationLikesCount = get_data(qid)
     csv = 'Last Name,First Name,Email,Initial Score,Revised Score,Grade for Justifications,Grade for Participation,Likes Given,Likes Received,Total Score,Final Percentage\n'
     for grade in grades:
+        sid = str(grade.student.id)
         likes_given_length = len(likes_given[grade.student.id]) if grade.student.id in likes_given else 0
         likes_received_length = len(count_likes_received[grade.student.id]) if grade.student.id in likes_received else 0
         participation_grade = 1 if likes_given_length >= round(0.8 * grade.participation_grade_threshold) and likes_given_length <= grade.participation_grade_threshold else 0
-        csv += grade.student.last_name + "," + grade.student.first_name + "," + grade.student.email + "," + str(grade.initial_total_score) + "," + str(grade.revised_total_score) + "," + str(justification_grade[str(grade.student.id)]) + "," + str(participation_grade) + "," + str(likes_given_length) + "," + str(likes_received_length) + "," + str(total_scores[str(grade.student.id)]) + " / " + str(total_scores['-1']) + "," + str( round(((total_scores[str(grade.student.id)] / total_scores['-1'] ) * 100), 1) ) + "%" + "\n"
+        csv += grade.student.last_name + "," + grade.student.first_name + "," + grade.student.email + "," + str(grade.initial_total_score) + "," + str(grade.revised_total_score) + "," + str(justification_grade.get(sid, 0)) + "," + str(participation_grade) + "," + str(likes_given_length) + "," + str(likes_received_length) + "," + str(total_scores.get(sid, 0)) + " / " + str(total_scores['-1']) + "," + str( round(((total_scores.get(sid, 0) / total_scores['-1'] ) * 100), 1) ) + "%" + "\n"
     filename = (current_user.email + "-" + q.title).replace(" ", "_")
     return Response(
         csv,
