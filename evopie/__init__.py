@@ -100,3 +100,7 @@ def load_user(user_id):
 login_manager.init_app(APP)
 
 from . import utils
+
+# import logging
+# logging.basicConfig()
+# logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)

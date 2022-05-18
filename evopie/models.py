@@ -246,8 +246,8 @@ class Quiz(DB.Model):
                     "first_quartile_grade" : self.first_quartile_grade ,
                     "second_quartile_grade" : self.second_quartile_grade,
                     "third_quartile_grade" : self.third_quartile_grade ,
-                    "fourth_quartile_grade" : self.fourth_quartile_grade,
-                    "participation_grade_threshold" : round(self.num_justifications_shown * len(questions) * self.limiting_factor)
+                    "fourth_quartile_grade" : self.fourth_quartile_grade
+                    # "participation_grade_threshold" : round(self.num_justifications_shown * len(questions) * self.limiting_factor)
                 }
 
     def __repr__(self):

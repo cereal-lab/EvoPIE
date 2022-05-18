@@ -240,7 +240,6 @@
             await changeRevisedScoreWeight();
             await changeJustificationGradeWeight();
             await changeParticipationGradeWeight();
-            window.location.reload();
         } else {
             window.alert("The percentages don't add up to 100%");
             return;
@@ -284,6 +283,7 @@
 
 
         document.addEventListener("DOMContentLoaded", function() {
+            // var table = $('#gradingtable').DataTable({ "paging": false, "bInfo" : false });
             var table = $('#gradingtable').DataTable();
 
             let justification_grade, total_scores;
@@ -417,8 +417,7 @@
                         </select> of them.
                     </li>
                     <li id="participation_grade_threshold_display">
-                        As a result, a student will get participation credit if they assign from 
-                        {{ (quiz.participation_grade_threshold * 0.8) | round | int }} to {{ quiz.participation_grade_threshold }} likes during step #2.
+                        As a result, a student will get participation credit if they assign number of likes in given range during step #2.
                     </li>
                 </ul>
             </div>
@@ -483,7 +482,7 @@
 
 
     <div class="card bg-light m-3 mx-auto" style="width: 90%">
-        <button  id="loadJustificationGrade" class="btn btn-primary btn-sm" name="refresh" value="refresh">
+        <button type="button" id="loadJustificationGrade" class="btn btn-primary btn-sm" name="refresh" value="refresh">
             <span class="spinner-border spinner-border-sm spinner" role="status">
                 <span class="sr-only"></span>
             </span>
@@ -549,10 +548,10 @@
             <td class='text-start align-top'>{{all_grades[i].student.email | safe}}</td>
             <td>
                 <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
-                        data-target=".TG-INI-{{all_grades[i].student.id}}">
+                        data-target=".TG-INI-{{all_grades[i].student_id}}">
                     {{all_grades[i].initial_total_score}}
                 </button>
-                <div class="modal fade TG-INI-{{all_grades[i].student.id}}" tabindex="-1" role="dialog"
+                <div class="modal fade TG-INI-{{all_grades[i].student_id}}" tabindex="-1" role="dialog"
                         aria-labelledby="mySmallModalLabel" aria-hidden="true">
                     <div class="modal-dialog modal-xl">
                       <div class="modal-content">
@@ -596,10 +595,10 @@
             </td>
             <td>
                 <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
-                        data-target=".TG-REV-{{all_grades[i].student.id}}">
+                        data-target=".TG-REV-{{all_grades[i].student_id}}">
                     {{all_grades[i].revised_total_score}}
                 </button>
-                <div class="modal fade TG-REV-{{all_grades[i].student.id}}" tabindex="-1" role="dialog"
+                <div class="modal fade TG-REV-{{all_grades[i].student_id}}" tabindex="-1" role="dialog"
                         aria-labelledby="mySmallModalLabel" aria-hidden="true">
                     <div class="modal-dialog modal-xl">
                       <div class="modal-content">
@@ -642,11 +641,11 @@
                 </div>
             </td>
             <td>
-                <button id="justification_grade-{{all_grades[i].student.id}}" type="button" class="btn btn-primary btn-sm" data-toggle="modal"
-                        data-target=".TG-JUS-{{all_grades[i].student.id}}">
-                    -
+                <button id="justification_grade-{{all_grades[i].student_id}}" type="button" class="btn btn-primary btn-sm" data-toggle="modal"
+                        data-target=".TG-JUS-{{all_grades[i].student_id}}">
+                    {{justification_grade[all_grades[i].student_id]}}
                 </button>
-                <div class="modal fade TG-JUS-{{all_grades[i].student.id}} text-start" tabindex="-1" role="dialog"
+                <div class="modal fade TG-JUS-{{all_grades[i].student_id}} text-start" tabindex="-1" role="dialog"
                         aria-labelledby="mySmallModalLabel" aria-hidden="true">
                     <div class="modal-dialog modal-xl">
                       <div class="modal-content">
@@ -680,7 +679,7 @@
                                                             <td class="align-top">{{ questions[question_id].answer | safe }}</td>
                                                             <td class="align-top">{{ justification | safe }}</td>
                                                             <td class="align-top">
-                                                                {{ justificationLikesCount[all_grades[i].student.id][justification] }}
+                                                                {{ justificationLikesCount[all_grades[i].student_id | string][justification] }}
                                                             </td>
                                                         {% else %}
                                                             <td class="align-top"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="red" class="bi bi-x-square" viewBox="0 0 16 16">
@@ -691,7 +690,7 @@
                                                             <td class="align-top">{{ distractors[question_id][distractor_id] | safe }}</td>
                                                             <td class="align-top">{{ justification | safe }}</td>
                                                             <td class="align-top" style="width: 2%">
-                                                                {{ justificationLikesCount[all_grades[i].student.id][justification] }}
+                                                                {{ justificationLikesCount[all_grades[i].student_id | string][justification] }}
                                                             </td>
                                                         {% endif %}
                                                     </tr>
@@ -708,9 +707,9 @@
                 </div>
             </td>
             <td>
-                {% set num_likes_given = likes_given[all_grades[i].student.id] | length | int %}
-                {% set lower_bound = (0.8 * quiz.participation_grade_threshold) | round | int %}
-                {% if num_likes_given <= quiz.participation_grade_threshold and num_likes_given >= lower_bound %}
+                {% set num_likes_given = likes_given[all_grades[i].student_id | string] | length | int %}
+                {% set lower_bound = (0.8 * all_grades[i].participation_grade_threshold) | round | int %}                                
+                {% if num_likes_given <= all_grades[i].participation_grade_threshold and num_likes_given >= lower_bound %}                
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="green" class="bi bi-check-square" viewBox="0 0 16 16">
                     <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
                     <path d="M10.97 4.97a.75.75 0 0 1 1.071 1.05l-3.992 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.235.235 0 0 1 .02-.022z"/>
@@ -724,10 +723,11 @@
             </td>
             <td>
                 <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
-                data-target=".TG-GIVEN-{{all_grades[i].student.id}}">
-                    {{likes_given[all_grades[i].student.id] | length}}
+                data-target=".TG-GIVEN-{{all_grades[i].student_id}}">
+                    {{likes_given[all_grades[i].student_id | string] | length}}
                 </button>
-                <div class="modal fade TG-GIVEN-{{all_grades[i].student.id}}" tabindex="-1" role="dialog"
+                [{{lower_bound}}, {{all_grades[i].participation_grade_threshold}}]
+                <div class="modal fade TG-GIVEN-{{all_grades[i].student_id}}" tabindex="-1" role="dialog"
                         aria-labelledby="mySmallModalLabel" aria-hidden="true">
                     <div class="modal-dialog modal-xl">
                       <div class="modal-content text-start">
@@ -755,11 +755,11 @@
                                                     <tr>
                                                         <td style="font-weight: bold;">Justifications</td>
                                                     </tr>
-                                                    {% for data in likes_given[all_grades[i].student.id] %}
+                                                    {% for data in likes_given[all_grades[i].student_id] %}
                                                         {% set q = question_id | int %}
-                                                        {% if data[3] == q %}
+                                                        {% if data.quiz_question_id == q %}
                                                             <tr style="border: 1px solid;">
-                                                                <td>{{ data[0].justification | safe }}</td>
+                                                                <td>{{ data.justification | safe }}</td>
                                                             </tr>
                                                         {% endif %}
                                                     {% endfor %}
@@ -777,10 +777,10 @@
             </td>
             <td>
                 <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
-                data-target=".TG-REC-{{all_grades[i].student.id}}">
-                    {{count_likes_received[all_grades[i].student.id] | length }}
+                data-target=".TG-REC-{{all_grades[i].student_id}}">
+                    {{likes_received[all_grades[i].student_id | string] | length }}
                 </button>
-                <div class="modal fade TG-REC-{{all_grades[i].student.id}}" tabindex="-1" role="dialog"
+                <div class="modal fade TG-REC-{{all_grades[i].student_id}}" tabindex="-1" role="dialog"
                         aria-labelledby="mySmallModalLabel" aria-hidden="true">
                     <div class="modal-dialog modal-xl">
                       <div class="modal-content text-start">
@@ -808,15 +808,15 @@
                                                     <th>Justification</th>
                                                     <th style="width: 2%">Likes Received</th>
                                                 </tr>
-                                            {% for data in likes_received[all_grades[i].student.id] %}
+                                            {% for data in likes_received[all_grades[i].student_id] %}
                                                 {% set q = question_id | int %}
-                                                {% if data[3] == q %}
+                                                {% if data.quiz_question_id == q %}
                                                 <tr style="border: 1px solid;">
                                                     <td class="align-top" style="width: 98%">
-                                                        {{ data[1].justification | safe }}
+                                                        {{ data.justification | safe }}
                                                     </td>
                                                     <td class="align-top" style="width: 2%">
-                                                        {{ justificationLikesCount[all_grades[i].student.id][data[1].justification] }}
+                                                        {{ justificationLikesCount[all_grades[i].student_id][data.justification] }}
                                                     </td>
                                                 </tr>
                                                 {% endif %}
@@ -833,15 +833,15 @@
                 </div>
             </td>
             <td>
-                <button id="total_score-{{all_grades[i].student.id}}" type="button" class="btn btn-primary btn-sm" data-toggle="modal"
-                data-target=".TG-TOTAL-{{all_grades[i].student.id}}">
-                -
+                <button id="total_score-{{all_grades[i].student_id}}" type="button" class="btn btn-primary btn-sm" data-toggle="modal"
+                data-target=".TG-TOTAL-{{all_grades[i].student_id}}">
+                {{total_scores[all_grades[i].student_id]}} / {{total_scores[-1]}}
                 </button>
             </td>
             <td>
-                <button id="final_percentage-{{all_grades[i].student.id}}" type="button" class="btn btn-primary btn-sm" data-toggle="modal"
-                data-target=".TG-FINAL-{{all_grades[i].student.id}}">
-                -
+                <button id="final_percentage-{{all_grades[i].student_id}}" type="button" class="btn btn-primary btn-sm" data-toggle="modal"
+                data-target=".TG-FINAL-{{all_grades[i].student_id}}">
+                {{((total_scores[all_grades[i].student_id] / total_scores[-1]) * 100) | round(2) }}%
                 </button>
             </td>
         </tr>
