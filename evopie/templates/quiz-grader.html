@@ -124,6 +124,8 @@
                 ev.stopPropagation();
             });            
 
+            document.querySelector('#loadJustificationGrade').addEventListener('click', refresh);
+
             document.querySelector('#limiting_factor').addEventListener('change', function(){
                 let target_url = '/grades/{{quiz.id}}/limitingFactor';
                 let e = document.querySelector('#limiting_factor');
