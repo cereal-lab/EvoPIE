@@ -2,6 +2,7 @@
 # pylint: disable=E1101
 
 # The following are flask custom commands; 
+import flask_login
 from . import models, APP # get also DB from there
 import click
 
@@ -91,3 +92,40 @@ def DB_populate():
 
     models.DB.session.add_all(some_distractors + more_distractors + yet_more_distractors)
     models.DB.session.commit()
+
+
+from flask import flash, redirect, url_for, request, abort
+from flask_login import current_user
+
+from functools import wraps
+
+def groupby(iterable, key=lambda x: x):
+    '''from iterable creates list of pairs group_key:list of elements with the key'''
+    res = {}
+    for el in iterable:
+        k = key(el)
+        if k not in res:
+            res[k] = []
+        res[k].append(el)
+    return res.items()
+
+def role_required(role):
+    '''
+    Sepcifies what role is needed: student or instructor
+    Parameters
+    -----
+        role: one of ROLE_ contants from config module
+    '''
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if current_user.role != role:
+                if request.accept_mimetypes.accept_html: 
+                    flash("You are not authorized to access specified page")                    
+                    return redirect(url_for('login', next=request.url))
+                else: 
+                    return abort(403)
+            return f(*args, **kwargs)            
+        return decorated_function
+    return decorator
+    

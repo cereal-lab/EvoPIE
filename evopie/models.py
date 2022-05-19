@@ -6,6 +6,7 @@ from random import shuffle # to shuffle lists
 from flask_login import UserMixin
 from jinja2 import Markup
 from evopie import DB
+from .config import ROLE_INSTRUCTOR, ROLE_STUDENT, ROLE_ADMIN
 
 import ast
 
@@ -339,7 +340,7 @@ class User(UserMixin, DB.Model):
     first_name = DB.Column(DB.String)
     last_name = DB.Column(DB.String)
     password = DB.Column(DB.String)
-    role = DB.Column(DB.String, default="STUDENT")
+    role = DB.Column(DB.String, default=ROLE_STUDENT)
     # NOTE for now the roles that are handled are STUDENT (default), INSTRUCTOR, ADMIN
     # TODO might want to make this a foreign key to a table of roles
     
@@ -354,17 +355,17 @@ class User(UserMixin, DB.Model):
 
 
     def is_instructor(self):
-        return self.role == "INSTRUCTOR"
+        return self.role == ROLE_INSTRUCTOR
 
     def is_student(self):
-        return self.role == "STUDENT"
+        return self.role == ROLE_STUDENT
 
     def is_admin(self):
-        return self.id == 1 or self.role == "ADMIN"
+        return self.id == 1 or self.role == ROLE_ADMIN
     
     def set_role(self, role):
         urole = role.upper()
-        if urole != "STUDENT" and urole != "INSTRUCTOR" and urole != "ADMIN":
+        if urole != ROLE_STUDENT and urole != ROLE_INSTRUCTOR and urole != ROLE_ADMIN:
             return False
         else:
             self.role = urole
@@ -398,6 +399,14 @@ class User(UserMixin, DB.Model):
     def get_email(self):
         return self.email
 
+    def dump_as_dict(self):
+        return {    "id" : self.id,
+                    "email" : self.email,
+                    "first_name" : self.first_name,
+                    "last_name" : self.last_name,
+                    "password" : self.password,
+                    "role" : self.role,
+                }      
 
 
 class Likes4Justifications(DB.Model):
@@ -420,3 +429,12 @@ class Justification(DB.Model):
     justification = DB.Column(DB.String) # FIXME do we allow duplicates like empty strings?
     likes = DB.relationship('Likes4Justifications', backref='justification', lazy='dynamic')
     seen = DB.Column(DB.Integer, nullable = False, default = 0)
+
+    def dump_as_dict(self):
+        return {    "id" : self.id,
+                    "quiz_question_id" : self.quiz_question_id,
+                    "distractor_id" : self.distractor_id,
+                    "student_id" : self.student_id,
+                    "justification" : self.justification,
+                    "seen" : self.seen,
+                }    

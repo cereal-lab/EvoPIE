@@ -101,6 +101,4 @@ login_manager.init_app(APP)
 
 from . import utils
 
-# import logging
-# logging.basicConfig()
-# logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+# APP.config["SQLALCHEMY_ECHO"] = False #change to true to see logs of sql requests

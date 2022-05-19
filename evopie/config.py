@@ -3,6 +3,13 @@ Module were we put all research algo parameters.
 For instructor parameters, check models.py and Quiz table
 '''
 
+#system roles
+ROLE_STUDENT = "STUDENT"
+ROLE_INSTRUCTOR = "INSTRUCTOR"
+ROLE_ADMIN = "ADMIN"
+# ROLE_RESEARCHER = "RESEARCHER"
+
+
 #tournament params
 k_tournament_percent = 10
 k_tournament_min = 1

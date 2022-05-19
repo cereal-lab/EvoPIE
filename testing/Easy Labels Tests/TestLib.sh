@@ -76,11 +76,9 @@ function curl_download {
     MSG=$1
     TARGET_PATH=$2
     LOCAL_FILE=$3
-    curl_grades
-    DATA="{ \"justification_grade\": $justification_grade, \"total_scores\": $total_scores}"
     # METHOD='-X GET'
     # echo "$DATA"
-    curl --silent -b ./mycookies -X POST -d "$DATA" --output "$LOCAL_FILE" -H "Content-Type: application/json" "http://127.0.0.1:5000$TARGET_PATH"
+    curl --silent -b ./mycookies -X GET --output "$LOCAL_FILE" -H "Content-Type: application/json" "http://127.0.0.1:5000$TARGET_PATH"
     if [[ $? == 0 ]]
     then
         echo -e "\t$MSG"

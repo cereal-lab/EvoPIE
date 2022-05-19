@@ -7,6 +7,7 @@ from flask import Blueprint
 from flask_login import login_user, login_required, current_user, login_manager, logout_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import timedelta
+from .config import ROLE_INSTRUCTOR, ROLE_STUDENT
 
 import evopie.models as models
 
@@ -80,10 +81,10 @@ def post_signup():
     # to promote a user to a different role; e.g., promote_to_instructor()
     if models.User.query.all():
         # there is at least one user so this one is going to be a STUDENT
-        its_role = "STUDENT"
+        its_role = ROLE_STUDENT
     else:
         # first to the key, first to the egg!
-        its_role = "INSTRUCTOR"
+        its_role = ROLE_INSTRUCTOR
 
     password = generate_password_hash(password, method='sha256')
     new_user = models.User(email=email, first_name=first_name, last_name=last_name, password=password, role=its_role) #NOTE default role is STUDENT
