@@ -46,13 +46,15 @@ function createSlider(selector, {values, maxValue, cb}) {
             handle.setAttribute("title", tip);
         }
     }
-    const setHandlePos = (handle) => {        
+    const setHandlePos = (handle, shouldForce) => {        
         const step = handle.sl_step        
         let value = handle.sl_value
         const localMinValue = handle.sl_prev ? handle.sl_prev.sl_value : 0;
         const localMaxValue = handle.sl_next ? handle.sl_next.sl_value : maxValue;
         if (step) {
-            value = Math.round(value / step) * step; //round value to closest quant             
+            let newValue = Math.round(value / step) * step; //round value to closest quant             
+            if ((newValue == value) && !shouldForce) return;
+            value = newValue;
         }
         if (value < localMinValue) value = localMinValue
         else if (value > localMaxValue) value = localMaxValue
@@ -78,7 +80,7 @@ function createSlider(selector, {values, maxValue, cb}) {
         handle.sl_tip = tip;     
         handle.sl_value = value;   
         handle.addEventListener("mousedown", (e) => {
-            if (e.button != 0) return;
+            if ((e.button != 0) || activeHandle) return;
             handle.classList.add("active")
             activeHandle = handle
         })
@@ -99,19 +101,25 @@ function createSlider(selector, {values, maxValue, cb}) {
         }        
         handle.sl_handles = handles
         handle.sl_i = i
-        setHandlePos(handle)
+        setHandlePos(handle, true)
     })
     holder.addEventListener("mousemove", (e) => {
-        if (!activeHandle || (e.target == activeHandle)) return; 
+        if (!activeHandle || e.target.sl_handles) return; 
         activeHandle.sl_value = e.offsetX * maxValue / sliderWidth;
         setHandlePos(activeHandle)
         if (cb) cb(handles.map(h => h.sl_value))
     })
-    // holder.addEventListener("mouseleave", (e) => {
-    //     if (!activeHandle) return; 
-    //     activeHandle.classList.remove("active")
-    //     activeHandle = null
-    // })     
+    // line.addEventListener("click", (e) => {
+    //     // if (!activeHandle) return; 
+    //     activeHandle.sl_value = e.offsetX * maxValue / sliderWidth;
+    //     setHandlePos(activeHandle)
+    //     if (cb) cb(handles.map(h => h.sl_value))
+    // })
+    holder.addEventListener("mouseleave", (e) => {
+        if (!activeHandle) return; 
+        activeHandle.classList.remove("active")
+        activeHandle = null
+    })     
     window.addEventListener("resize", () => {
         newSliderWidth = host.offsetWidth
         if (newSliderWidth != sliderWidth) {

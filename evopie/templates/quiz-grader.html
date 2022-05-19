@@ -16,7 +16,7 @@
         const updateTable = async () => {
             // let spinner = document.querySelector('.spinner');
             // $('.spinner-border').removeClass('spinner');
-            table.page.len( -1 ).draw();
+            // table.page.len( -1 ).draw();
             let response = await fetch('/grades/{{ quiz.id }}/justificationGrade',{
                 method:         'GET',
                 headers:        {'Content-Type' : 'application/json'},
@@ -39,7 +39,7 @@
             }
 
             // $('.spinner-border').addClass('spinner');
-            table.page.len( 10 ).draw();
+            // table.page.len( 10 ).draw();
         }
 
         const changeGradeWeights = () => 
@@ -56,19 +56,19 @@
             let slider = createSlider("#sliderTest", { values: [
                 {
                     value: initialScoreWeight,
-                    label: "|diff|",
+                    label: "|value|",
                     step: 5,
                     tip: "Weight of step #1 attempt: |diff|%"
                 },
                 {
                     value: initialScoreWeight + revisedScoreWeight,
-                    label: "|diff|",
+                    label: "|value|",
                     step: 5,
                     tip: "Weight of step #2 attempt: |diff|%"
                 },
                 {
                     value: initialScoreWeight + revisedScoreWeight + justificationWeight,
-                    label: "|diff|",
+                    label: "|value|",
                     step: 5,
                     tip: "Weight of justifications: |diff|%. Weight of participation: |leftValue|%"
                 }
@@ -88,6 +88,7 @@
                         await updateTable()
                     } catch (e) {
                         //TODO: render error on UI
+                        console.error(e)
                     }
                 }, 400) //this will update everything after period of inactivity
             }
@@ -351,7 +352,7 @@
                     <div class="me-2">Justifications: <span id="justification-weight">{{(quiz.justification_grade_weight * 100) | round | int}}</span>%</div>
                     <div class="me-2">Participation: <span id="participation-weight">{{(quiz.participation_grade_weight * 100) | round | int}}</span>%</div>
                 </div>
-                <a href="?q=csv" target="_blank" class="btn btn-primary btn-sm">Download CSV</a>
+                <div class="align-self-center"><a href="?q=csv" target="_blank" class="btn btn-primary btn-sm">Download CSV</a></div>
             </div>                
     <table class='compact stripe' width='100%' id="gradingtable">
     <thead>
