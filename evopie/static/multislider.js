@@ -46,14 +46,14 @@ function createSlider(selector, {values, maxValue, cb}) {
             handle.setAttribute("title", tip);
         }
     }
-    const setHandlePos = (handle, shouldForce) => {        
+    const setHandlePos = (handle, newValue, shouldForce) => {        
         const step = handle.sl_step        
-        let value = handle.sl_value
+        let value = newValue || handle.sl_value
         const localMinValue = handle.sl_prev ? handle.sl_prev.sl_value : 0;
         const localMaxValue = handle.sl_next ? handle.sl_next.sl_value : maxValue;
         if (step) {
             let newValue = Math.round(value / step) * step; //round value to closest quant             
-            if ((newValue == value) && !shouldForce) return;
+            if ((newValue == handle.sl_value) && !shouldForce) return;
             value = newValue;
         }
         if (value < localMinValue) value = localMinValue
@@ -68,7 +68,7 @@ function createSlider(selector, {values, maxValue, cb}) {
         }
         let pos = (value * sliderWidth / maxValue);
         handleWidth = handle.offsetWidth;
-        handle.pos = pos;
+        handle.sl_pos = pos;
         handle.style.left = (pos - handleWidth / 2) + "px"; //we use absolute positioning
     }
     let handles = values.map(({value, step, label, tip}, i) => {
@@ -101,12 +101,18 @@ function createSlider(selector, {values, maxValue, cb}) {
         }        
         handle.sl_handles = handles
         handle.sl_i = i
-        setHandlePos(handle, true)
+        setHandlePos(handle, handle.sl_value, true)
     })
     holder.addEventListener("mousemove", (e) => {
-        if (!activeHandle || e.target.sl_handles) return; 
-        activeHandle.sl_value = e.offsetX * maxValue / sliderWidth;
-        setHandlePos(activeHandle)
+        if (!activeHandle || (activeHandle == e.target)) return; 
+        let pos = e.offsetX;
+        if (e.target.sl_handles) {
+            if ((e.target.sl_i == (activeHandle.sl_i + 1)) || (e.target.sl_i == (activeHandle.sl_i - 1)))
+                pos = e.target.sl_pos
+            else return;
+        }
+        let newValue = pos * maxValue / sliderWidth;
+        setHandlePos(activeHandle, newValue)
         if (cb) cb(handles.map(h => h.sl_value))
     })
     // line.addEventListener("click", (e) => {
@@ -124,7 +130,7 @@ function createSlider(selector, {values, maxValue, cb}) {
         newSliderWidth = host.offsetWidth
         if (newSliderWidth != sliderWidth) {
             sliderWidth = newSliderWidth
-            handles.forEach(setHandlePos)
+            handles.forEach(h => setHandlePos(h, h.sl_value, true))
         }
     })
     return { holder, line, handles, values, maxValue }
