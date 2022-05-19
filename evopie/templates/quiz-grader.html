@@ -4,371 +4,250 @@
 {% block head %}
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.css">  
     <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='multislider.css') }}">
+    <script type="text/javascript" charset="utf8" src="{{ url_for('static', filename='multislider.js') }}"></script>
     <script> 
-        async function changeInitialScoreWeight() {
-            if (!checkSum()) {
-                return;
-            }
-            let target_url = '/grades/{{quiz.id}}/initialScoreWeight';
-            let e = document.querySelector('#initial_score');
-            let selectedValue = e.options[e.selectedIndex].value;
-            return await fetch(target_url,{
-                method:         'POST',
-                headers:        {'Content-Type' : 'application/json'},
-                body:           JSON.stringify({"initial_score" :  selectedValue}),
-                credentials:    'same-origin'
-            })
-            .then(
-                response => {
-                    if(response.ok){
-                        $('#initial_score_weight')[0].innerHTML = "Initial Score Weight : " + selectedValue + "%";
-                        //window.location.reload();
-                    }
-                }
-            )
-            .catch((error) => {
-            })
-        }
+        var initialScoreWeight = {{(quiz.initial_score_weight * 100) | round }};
+        var revisedScoreWeight = {{(quiz.revised_score_weight * 100) | round }};
+        var justificationWeight = {{ (quiz.justification_grade_weight * 100) | round }};
+        var participationWeight = {{ (quiz.participation_grade_weight * 100) | round }};
+        var table = null; //DataTable - initialized on dom load
 
-        async function changeRevisedScoreWeight() {
-            if (!checkSum()) {
-                return;
-            }
-            let target_url = '/grades/{{quiz.id}}/revisedScoreWeight';
-            let e = document.querySelector('#revised_score');
-            let selectedValue = e.options[e.selectedIndex].value;
-            return await fetch(target_url,{
-                method:         'POST',
-                headers:        {'Content-Type' : 'application/json'},
-                body:           JSON.stringify({"revised_score" :  selectedValue}),
-                credentials:    'same-origin'
-            })
-            .then(
-                response => {
-                    if(response.ok){
-                        $('#revised_score_weight')[0].innerHTML = "Revised Score Weight : " + selectedValue + "%";
-                        //window.location.reload();
-                    }
-                }
-            )
-            .catch((error) => {
-            })
-        }
-
-        async function changeJustificationGradeWeight() {
-            if (!checkSum()) {
-                return;
-            }
-            let target_url = '/grades/{{quiz.id}}/justificationGradeWeight';
-            let e = document.querySelector('#justification_grade');
-            let selectedValue = e.options[e.selectedIndex].value;
-            return await fetch(target_url,{
-                method:         'POST',
-                headers:        {'Content-Type' : 'application/json'},
-                body:           JSON.stringify({"justification_grade" :  selectedValue}),
-                credentials:    'same-origin'
-            })
-            .then(
-                response => {
-                    if(response.ok){
-                        $('#justification_grade_weight')[0].innerHTML = "Justification Grade Weight : " + selectedValue + "%";
-                        //window.location.reload();
-                    }
-                }
-            )
-            .catch((error) => {
-            })
-        }
-
-        async function changeParticipationGradeWeight() {
-            if (!checkSum()) {
-                return;
-            }
-            let target_url = '/grades/{{quiz.id}}/participationGradeWeight';
-            let e = document.querySelector('#participation_grade');
-            let selectedValue = e.options[e.selectedIndex].value;
-            return await fetch(target_url,{
-                method:         'POST',
-                headers:        {'Content-Type' : 'application/json'},
-                body:           JSON.stringify({"participation_grade" :  selectedValue}),
-                credentials:    'same-origin'
-            })
-            .then(
-                response => {
-                    if(response.ok){
-                        $('#participation_grade_weight')[0].innerHTML = "Participation Grade Weight : " + selectedValue + "%";
-                        //window.location.reload();
-                    }
-                }
-            )
-            .catch((error) => {
-            })
-        }
-
-        $(document).ready( function () {
-
-            // document.querySelector('#initial_score').addEventListener('change', changeInitialScoreWeight());
-            document.querySelector('#initial_score').addEventListener('click', (ev) => {
-                ev.stopPropagation();
-            });
-
-            document.querySelector('#revised_score').addEventListener('click', (ev) => {
-                ev.stopPropagation();
-            });
-
-            document.querySelector('#justification_grade').addEventListener('click', (ev) => {
-                ev.stopPropagation();
-            });
-
-            document.querySelector('#participation_grade').addEventListener('click', (ev) => {
-                ev.stopPropagation();
-            });            
-
-            document.querySelector('#loadJustificationGrade').addEventListener('click', refresh);
-
-            document.querySelector('#limiting_factor').addEventListener('change', function(){
-                let target_url = '/grades/{{quiz.id}}/limitingFactor';
-                let e = document.querySelector('#limiting_factor');
-                let selectedValue = e.options[e.selectedIndex].value;
-                fetch(target_url,{
-                    method:         'POST',
-                    headers:        {'Content-Type' : 'application/json'},
-                    body:           JSON.stringify({"limiting_factor" :  selectedValue}),
-                    credentials:    'same-origin'
-                })
-                .then(
-                    response => {
-                        if(response.ok){
-                            // $('#initial_score_weight')[0].innerHTML = "Initial Score Weight : " + selectedValue + "%";
-                            window.location.reload();
-                        }
-                    }
-                )
-                .catch((error) => {
-                })
-            })
-
-            document.querySelector('#first_quartile_grade').addEventListener('change', function() {
-                let target_url = '/grades/{{quiz.id}}/firstQuartileGrade';
-                let e = document.querySelector('#first_quartile_grade');
-                let selectedValue = e.options[e.selectedIndex].value;
-                fetch(target_url,{
-                    method:         'POST',
-                    headers:        {'Content-Type' : 'application/json'},
-                    body:           JSON.stringify({"first_quartile_grade" :  selectedValue}),
-                    credentials:    'same-origin'
-                })
-                .then(
-                    response => {
-                        if(response.ok){
-                            window.location.reload();
-                        }
-                    }
-                )
-                .catch((error) => {
-                })
-            });
-
-            document.querySelector('#second_quartile_grade').addEventListener('change', function() {
-                let target_url = '/grades/{{quiz.id}}/secondQuartileGrade';
-                let e = document.querySelector('#second_quartile_grade');
-                let selectedValue = e.options[e.selectedIndex].value;
-                fetch(target_url,{
-                    method:         'POST',
-                    headers:        {'Content-Type' : 'application/json'},
-                    body:           JSON.stringify({"second_quartile_grade" :  selectedValue}),
-                    credentials:    'same-origin'
-                })
-                .then(
-                    response => {
-                        if(response.ok){
-                            window.location.reload();
-                        }
-                    }
-                )
-                .catch((error) => {
-                })
-            });
-
-            document.querySelector('#third_quartile_grade').addEventListener('change', function() {
-                let target_url = '/grades/{{quiz.id}}/thirdQuartileGrade';
-                let e = document.querySelector('#third_quartile_grade');
-                let selectedValue = e.options[e.selectedIndex].value;
-                fetch(target_url,{
-                    method:         'POST',
-                    headers:        {'Content-Type' : 'application/json'},
-                    body:           JSON.stringify({"third_quartile_grade" :  selectedValue}),
-                    credentials:    'same-origin'
-                })
-                .then(
-                    response => {
-                        if(response.ok){
-                            window.location.reload();
-                        }
-                    }
-                )
-                .catch((error) => {
-                })
-            });
-
-            document.querySelector('#fourth_quartile_grade').addEventListener('change', function() {
-                let target_url = '/grades/{{quiz.id}}/fourthQuartileGrade';
-                let e = document.querySelector('#fourth_quartile_grade');
-                let selectedValue = e.options[e.selectedIndex].value;
-                fetch(target_url,{
-                    method:         'POST',
-                    headers:        {'Content-Type' : 'application/json'},
-                    body:           JSON.stringify({"fourth_quartile_grade" :  selectedValue}),
-                    credentials:    'same-origin'
-                })
-                .then(
-                    response => {
-                        if(response.ok){
-                            window.location.reload();
-                        }
-                    }
-                )
-                .catch((error) => {
-                })
-            });
- 
-    } );
-
-    async function refresh() {
-        if (checkSum()) {
-            await changeInitialScoreWeight();
-            await changeRevisedScoreWeight();
-            await changeJustificationGradeWeight();
-            await changeParticipationGradeWeight();
-        } else {
-            window.alert("The percentages don't add up to 100%");
-            return;
-        }
-    }
-
-    function checkSum() {
-        let initialElement = document.querySelector('#initial_score');
-        let revisedElement = document.querySelector('#revised_score');
-        let justificationElement = document.querySelector('#justification_grade');
-        let participationElement = document.querySelector('#participation_grade');
-        let arr = [initialElement, revisedElement, justificationElement, participationElement];
-        // let actualWeights = [{{quiz.initial_score_weight}}, {{quiz.revised_score_weight}}, {{quiz.justification_grade_weight}}, {{quiz.participation_grade_weight}}];
-        // console.log(actualWeights);
-        let sum = 0;
-        for(let i = 0; i < arr.length; i++) {
-            sum += parseInt(arr[i].options[arr[i].selectedIndex].value);       
-        }
-        console.log(sum);
-        if (sum !== 100) {
-            return false;
-        }
-        return true;
-    }
-
-    </script>
-
-    <script defer> 
-
-        let jgrades;
-        let tscores;
-
-        function download(filename, textInput) {
-
-            var element = document.createElement('a');
-            element.setAttribute('href','data:text/plain;charset=utf-8, ' + encodeURIComponent(textInput));
-            element.setAttribute('download', filename);
-            document.body.appendChild(element);
-            element.click();
-        }
-
-
-        document.addEventListener("DOMContentLoaded", function() {
-            // var table = $('#gradingtable').DataTable({ "paging": false, "bInfo" : false });
-            var table = $('#gradingtable').DataTable();
-
-            let justification_grade, total_scores;
-
-            document.querySelector('#loadJustificationGrade').addEventListener('click', function(event) {
-            let target_url = '/grades/{{ quiz.id }}/justificationGrade';
-            let spinner = document.querySelector('.spinner');
-            $('.spinner-border').removeClass('spinner');
+        const updateTable = async () => {
+            // let spinner = document.querySelector('.spinner');
+            // $('.spinner-border').removeClass('spinner');
             table.page.len( -1 ).draw();
-            fetch(target_url,{
+            let response = await fetch('/grades/{{ quiz.id }}/justificationGrade',{
                 method:         'GET',
                 headers:        {'Content-Type' : 'application/json'},
                 credentials:    'same-origin'
             })
-            .then(response => response.json())
-            .then(
-                data => {
-                    justification_grade = data[0];
-                    total_scores = data[1];
-                    console.log(justification_grade)
-                    jgrades = justification_grade;
-                    for (let id of Object.keys(justification_grade)) { 
-                        let e = document.querySelector('#justification_grade-' + id); 
-                        if (e) { 
-                            e.innerHTML = justification_grade[id]; 
-                        }
-                        let total_score = document.querySelector('#total_score-' + id);
-                        let final_percentage = document.querySelector('#final_percentage-' + id);
-                        if (total_score) {
-                            total_score.innerHTML = total_scores[id] + " / " + total_scores[-1];
-                        }
-                        if (final_percentage) {
-                            final_percentage.innerHTML = Math.round( ( (total_scores[id] / total_scores[-1]) * 100 ) * 100 ) / 100 + "%";
-                        } 
-                    }
-
-                    $('.spinner-border').addClass('spinner');
-                    table.page.len( 10 ).draw();
+            let [justification_grade, total_scores] = await response.json()
+            for (let id of Object.keys(justification_grade)) { 
+                let e = document.querySelector('#justification_grade-' + id); 
+                if (e) { 
+                    e.innerHTML = justification_grade[id]; 
                 }
-            )
+                let total_score = document.querySelector('#total_score-' + id);
+                let final_percentage = document.querySelector('#final_percentage-' + id);
+                if (total_score) {
+                    total_score.innerHTML = (Math.round(total_scores[id] * 10) / 10) + " / " + (Math.round(total_scores[-1] * 10) / 10)
+                }
+                if (final_percentage) {
+                    final_percentage.innerHTML = Math.round(total_scores[id] * 100 / total_scores[-1]) + "%";
+                } 
+            }
+
+            // $('.spinner-border').addClass('spinner');
+            table.page.len( 10 ).draw();
+        }
+
+        const changeGradeWeights = () => 
+            fetch('/grades/{{quiz.id}}/weights',{
+                method:         'POST',
+                headers:        {'Content-Type' : 'application/json'},
+                body:           JSON.stringify({"initial_score" :  initialScoreWeight, "revised_score": revisedScoreWeight, "justification_grade": justificationWeight, "participation_grade": participationWeight}),
+                credentials:    'same-origin'
+            })            
+
+        $(document).ready( function () {
+
+            let tableUpdateTimeout = null
+            let slider = createSlider("#sliderTest", { values: [
+                {
+                    value: initialScoreWeight,
+                    label: "|diff|",
+                    step: 5,
+                    tip: "Weight of step #1 attempt: |diff|%"
+                },
+                {
+                    value: initialScoreWeight + revisedScoreWeight,
+                    label: "|diff|",
+                    step: 5,
+                    tip: "Weight of step #2 attempt: |diff|%"
+                },
+                {
+                    value: initialScoreWeight + revisedScoreWeight + justificationWeight,
+                    label: "|diff|",
+                    step: 5,
+                    tip: "Weight of justifications: |diff|%. Weight of participation: |leftValue|%"
+                }
+            ], maxValue: 100,
+            cb: function (values) {
+                let weights = values.map((v, i) => v - (values[i - 1] || 0));
+                weights.push(100 - values[values.length - 1]);
+                [ initialScoreWeight, revisedScoreWeight, justificationWeight, participationWeight ] = weights;
+                document.getElementById("step1-weight").innerHTML = initialScoreWeight
+                document.getElementById("step2-weight").innerHTML = revisedScoreWeight
+                document.getElementById("justification-weight").innerHTML = justificationWeight
+                document.getElementById("participation-weight").innerHTML = participationWeight
+                clearTimeout(tableUpdateTimeout)
+                tableUpdateTimeout = setTimeout(async () => {
+                    try {
+                        await changeGradeWeights()
+                        await updateTable()
+                    } catch (e) {
+                        //TODO: render error on UI
+                    }
+                }, 400) //this will update everything after period of inactivity
+            }
         })
 
-    })
+        table = $('#gradingtable').DataTable(); //{ paging: false});
+
+        document.querySelector('#limiting_factor').addEventListener('change', function(){
+            let target_url = '/grades/{{quiz.id}}/limitingFactor';
+            let e = document.querySelector('#limiting_factor');
+            let selectedValue = e.options[e.selectedIndex].value;
+            fetch(target_url,{
+                method:         'POST',
+                headers:        {'Content-Type' : 'application/json'},
+                body:           JSON.stringify({"limiting_factor" :  selectedValue}),
+                credentials:    'same-origin'
+            })
+            .then(
+                response => {
+                    if(response.ok){
+                        // $('#initial_score_weight')[0].innerHTML = "Initial Score Weight : " + selectedValue + "%";
+                        window.location.reload();
+                    }
+                }
+            )
+            .catch((error) => {
+            })
+        })
+
+        document.querySelector('#first_quartile_grade').addEventListener('change', function() {
+            let target_url = '/grades/{{quiz.id}}/firstQuartileGrade';
+            let e = document.querySelector('#first_quartile_grade');
+            let selectedValue = e.options[e.selectedIndex].value;
+            fetch(target_url,{
+                method:         'POST',
+                headers:        {'Content-Type' : 'application/json'},
+                body:           JSON.stringify({"first_quartile_grade" :  selectedValue}),
+                credentials:    'same-origin'
+            })
+            .then(
+                response => {
+                    if(response.ok){
+                        window.location.reload();
+                    }
+                }
+            )
+            .catch((error) => {
+            })
+        });
+
+        document.querySelector('#second_quartile_grade').addEventListener('change', function() {
+            let target_url = '/grades/{{quiz.id}}/secondQuartileGrade';
+            let e = document.querySelector('#second_quartile_grade');
+            let selectedValue = e.options[e.selectedIndex].value;
+            fetch(target_url,{
+                method:         'POST',
+                headers:        {'Content-Type' : 'application/json'},
+                body:           JSON.stringify({"second_quartile_grade" :  selectedValue}),
+                credentials:    'same-origin'
+            })
+            .then(
+                response => {
+                    if(response.ok){
+                        window.location.reload();
+                    }
+                }
+            )
+            .catch((error) => {
+            })
+        });
+
+        document.querySelector('#third_quartile_grade').addEventListener('change', function() {
+            let target_url = '/grades/{{quiz.id}}/thirdQuartileGrade';
+            let e = document.querySelector('#third_quartile_grade');
+            let selectedValue = e.options[e.selectedIndex].value;
+            fetch(target_url,{
+                method:         'POST',
+                headers:        {'Content-Type' : 'application/json'},
+                body:           JSON.stringify({"third_quartile_grade" :  selectedValue}),
+                credentials:    'same-origin'
+            })
+            .then(
+                response => {
+                    if(response.ok){
+                        window.location.reload();
+                    }
+                }
+            )
+            .catch((error) => {
+            })
+        });
+
+        document.querySelector('#fourth_quartile_grade').addEventListener('change', function() {
+            let target_url = '/grades/{{quiz.id}}/fourthQuartileGrade';
+            let e = document.querySelector('#fourth_quartile_grade');
+            let selectedValue = e.options[e.selectedIndex].value;
+            fetch(target_url,{
+                method:         'POST',
+                headers:        {'Content-Type' : 'application/json'},
+                body:           JSON.stringify({"fourth_quartile_grade" :  selectedValue}),
+                credentials:    'same-origin'
+            })
+            .then(
+                response => {
+                    if(response.ok){
+                        window.location.reload();
+                    }
+                }
+            )
+            .catch((error) => {
+            })
+        });
+ 
+    } );
+
     </script>
 {% endblock %}
 {% block content %}
 
     <div class="jumbotron jumbotron-fluid">
         <div class="container">
-            <h1 class="display-4">Grades for "{{quiz.title | safe}}"  </h1>
-                <p class="lead">
-                    <h6>The following are computed below;</h6>
-                    <ul>
-                        <li>
-                            Scores for initial responses provided by the student (step1) and their revised responses (step2)
-                            One point per question answered correctly.
-                        </li>
-                        <li>
-                            Grade for the justifications that the student provided for each non-selected alternative.
-                        </li>
-                        <li>
-                            Grade for the participation of the student, aka providing the expected number of likes to 
-                            other students' justifications during step 2. 
-                        </li>
-                        <li>
-                            Number of likes that the student's justifications received from other students
-                        </li>
-                        <li>
-                            Number of likes that the student gave other students' justifications.
-                        </li>
-                    </ul>
-                    <h6>Other instructions:</h6>
-                        <ul>
-                        <li>
-                            You may modifying the weights of each component of the total grade. Recompute afterward.
-                        </li>
-                        <li>
-                            You may configure the details of the participation grading by clicking the gear icon 
-                            in the Participation column. Recompute afterward.
-                        </li>
-                        <li>
-                            Click any grade to inspect the details.
-                        </li>
-                    </ul>
-                </p>
+            <h1 class="display-4">Grades for "{{quiz.title | safe}}"</h1>          
+            <a class="btn btn-primary btn-sm" data-toggle="collapse" href="#grades-info" data-target="#grades-info" role="button" aria-expanded="false" aria-controls="grades-info">
+                Information about scores computation
+            </a>            
+            <div id="grades-info" class="lead collapse fs-6">
+                <div>The following are computed below;</div>
+                <ul>
+                    <li>
+                        Scores for initial responses provided by the student (step1) and their revised responses (step2)
+                        One point per question answered correctly.
+                    </li>
+                    <li>
+                        Grade for the justifications that the student provided for each non-selected alternative.
+                    </li>
+                    <li>
+                        Grade for the participation of the student, aka providing the expected number of likes to 
+                        other students' justifications during step 2. 
+                    </li>
+                    <li>
+                        Number of likes that the student's justifications received from other students
+                    </li>
+                    <li>
+                        Number of likes that the student gave other students' justifications.
+                    </li>
+                </ul>
+                <div>Other instructions:</div>
+                <ul>
+                    <li>
+                        You may modifying the weights of each component of the total grade. Recompute afterward.
+                    </li>
+                    <li>
+                        You may configure the details of the participation grading by clicking the gear icon 
+                        in the Participation column. Recompute afterward.
+                    </li>
+                    <li>
+                        Click any grade to inspect the details.
+                    </li>
+                </ul>
+            </div>
         </div>
     </div>
 
@@ -454,16 +333,26 @@
 
 
 
-
     <div class="card bg-light m-3 mx-auto" style="width: 90%">
-        <button type="button" id="loadJustificationGrade" class="btn btn-primary btn-sm" name="refresh" value="refresh">
+        <!-- <button type="button" id="loadJustificationGrade" class="btn btn-primary btn-sm" name="refresh" value="refresh">
             <span class="spinner-border spinner-border-sm spinner" role="status">
                 <span class="sr-only"></span>
             </span>
             (Re)compute All Grades based on weights below
-        </button>
+        </button> -->
         <div class="card-body text-center" bg-light>
-    
+            <div class="d-flex flex-wrap mb-2">
+                <div class="align-self-center me-1">Grade weights:</div>
+                <div id="sliderTest" class="align-self-center me-2" style="max-width: 400px; width: 100%">
+                </div>
+                <div class="align-self-center d-flex flex-wrap">
+                    <div class="me-2">Step #1: <span id="step1-weight">{{(quiz.initial_score_weight * 100) | round | int}}</span>%</div>
+                    <div class="me-2">Step #2: <span id="step2-weight">{{(quiz.revised_score_weight * 100) | round | int}}</span>%</div>
+                    <div class="me-2">Justifications: <span id="justification-weight">{{(quiz.justification_grade_weight * 100) | round | int}}</span>%</div>
+                    <div class="me-2">Participation: <span id="participation-weight">{{(quiz.participation_grade_weight * 100) | round | int}}</span>%</div>
+                </div>
+                <a href="?q=csv" target="_blank" class="btn btn-primary btn-sm">Download CSV</a>
+            </div>                
     <table class='compact stripe' width='100%' id="gradingtable">
     <thead>
         <tr>
@@ -471,18 +360,18 @@
             <th>First Name</th>
             <th>Email</th>
             <th>Step #1
-                <select id="initial_score" name="initialScoreFactorOptions">
+                <!-- <select id="initial_score" name="initialScoreFactorOptions">
                     {% for option in initialScoreFactorOptions %}
                         <option value="{{option}}" {% if quiz.initial_score_weight * 100 == option %} selected {% endif %} >{{option}}%</option>
                     {% endfor %}
-                </select> 
+                </select>  -->
             </th>
             <th>Step #2
-                <select id="revised_score" name="revisedScoreFactorOptions">
+                <!-- <select id="revised_score" name="revisedScoreFactorOptions">
                     {% for option in revisedScoreFactorOptions %}
                         <option value="{{option}}" {% if quiz.revised_score_weight * 100 == option %} selected {% endif %} >{{option}}%</option>
                     {% endfor %}
-                </select>
+                </select> -->
             </th>
             <th> Justifications
                 <svg data-toggle="modal" data-target="#TG-GEARBOX-JUSTIFICATIONS"
@@ -490,11 +379,11 @@
                     <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
                     <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"/>
                 </svg>
-                <select id="justification_grade" name="justificationsGradeOptions">
+                <!-- <select id="justification_grade" name="justificationsGradeOptions">
                     {% for option in justificationsGradeOptions %}
                         <option value="{{option}}" {% if quiz.justification_grade_weight * 100 == option %} selected {% endif %} >{{option}}%</option>
                     {% endfor %}
-                </select> 
+                </select>  -->
             </th>
             <th> Participation
                         <svg data-toggle="modal" data-target="#TG-GEARBOX-PARTICIPATION"
@@ -502,11 +391,11 @@
                             <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
                             <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"/>
                         </svg>
-                <select id="participation_grade" name="participationGradeOptions">
+                <!-- <select id="participation_grade" name="participationGradeOptions">
                     {% for option in participationGradeOptions %}
                         <option value="{{option}}" {% if quiz.participation_grade_weight * 100 == option %} selected {% endif %} >{{option}}%</option>
                     {% endfor %}
-                </select>
+                </select> -->
             </th>
             <th>Likes Given</th>
             <th>Likes Received</th>
@@ -682,7 +571,8 @@
             </td>
             <td>
                 {% set num_likes_given = likes_given[sid] | length | int %}
-                {% set lower_bound = (0.8 * attempt.participation_grade_threshold) | round | int %}                                
+                {% set lower_bound = (0.8 * attempt.participation_grade_threshold) | round | int %}    
+                [{{lower_bound}}, {{attempt.participation_grade_threshold}}]                            
                 {% if num_likes_given <= attempt.participation_grade_threshold and num_likes_given >= lower_bound %}                
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="green" class="bi bi-check-square" viewBox="0 0 16 16">
                     <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
@@ -699,8 +589,7 @@
                 <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
                 data-target=".TG-GIVEN-{{sid}}">
                     {{likes_given[sid] | length}}
-                </button>
-                [{{lower_bound}}, {{attempt.participation_grade_threshold}}]
+                </button>                
                 <div class="modal fade TG-GIVEN-{{sid}}" tabindex="-1" role="dialog"
                         aria-labelledby="mySmallModalLabel" aria-hidden="true">
                     <div class="modal-dialog modal-xl">
@@ -809,20 +698,19 @@
             <td>
                 <button id="total_score-{{sid}}" type="button" class="btn btn-primary btn-sm" data-toggle="modal"
                 data-target=".TG-TOTAL-{{sid}}">
-                {{total_scores[sid]}} / {{total_scores[-1]}}
+                {{total_scores[sid] | round(1) }} / {{total_scores[-1] | round(1)}}
                 </button>
             </td>
             <td>
                 <button id="final_percentage-{{sid}}" type="button" class="btn btn-primary btn-sm" data-toggle="modal"
                 data-target=".TG-FINAL-{{sid}}">
-                {{((total_scores[sid] / total_scores[-1]) * 100) | round(2) }}%
+                {{((total_scores[sid] / total_scores[-1]) * 100) | round(0) | int }}%
                 </button>
             </td>
         </tr>
         {% endfor %}
     </tbody>
     </table>
-    </div>
-    <a href="?q=csv" target="_blank" class="btn btn-primary btn-sm">Download CSV</a>
+    </div>    
     </div>
 {% endblock %}

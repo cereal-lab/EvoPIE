@@ -1034,7 +1034,7 @@ def quiz_grader(qid):
     if request.accept_mimetypes.best == "text/csv" or request.args.get("q", None) == "csv":
         columns = [ 'Last Name', 'First Name', 'Email', 'Initial Score', 'Revised Score', 'Grade for Justifications',
                     'Min Participation','Likes Given', 'Max Participation', 'Grade for Participation', 'Likes Received',
-                    'Score', 'Total Score', 'Final Percentage' ]
+                    'Total Score', 'Max Possible Score', 'Final Percentage' ]
         data = DataFrame([ [ student["last_name"], student["first_name"], student["email"], 
                 attempt["initial_total_score"], attempt["revised_total_score"], justification_grade.get(sid, 0),                 
                 min_participation, likes_given_length, attempt["participation_grade_threshold"],

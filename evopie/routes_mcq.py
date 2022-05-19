@@ -913,6 +913,21 @@ def changeLimitingFactor(qid):
 
         return make_response(response)
 
+@mcq.route('/grades/<int:qid>/weights', methods=['POST'])
+@login_required
+def changeGradeWeights(qid):
+    if current_user.is_instructor():
+        q = models.Quiz.query.get_or_404(qid)
+        response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
+        if request.json:
+            q.initial_score_weight = int(request.json['initial_score']) / 100
+            q.revised_score_weight = int(request.json['revised_score']) / 100
+            q.justification_grade_weight = int(request.json['justification_grade']) / 100
+            q.participation_grade_weight = int(request.json['participation_grade']) / 100
+            models.DB.session.commit()
+
+        return make_response(response)
+
 @mcq.route('/grades/<int:qid>/initialScoreWeight', methods=['POST'])
 @login_required
 def changeInitialScoreWeight(qid):
