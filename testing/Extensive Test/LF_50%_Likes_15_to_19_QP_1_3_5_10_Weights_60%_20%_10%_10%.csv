@@ -1,20 +1,20 @@
-Last Name,First Name,Email,Initial Score,Revised Score,Grade for Justifications,Grade for Participation,Likes Given,Likes Received,Total Score,Final Percentage
-8,BB,student7@usf.edu,2,2,3,1,19,0,2.0 / 5.1,39.2%
-Ashraf,Aoun,student13@usf.edu,3,3,3,0,33,0,2.7 / 5.1,52.9%
-Binks,Jar-Jar,student10@usf.edu,3,2,3,0,41,0,2.5 / 5.1,49.0%
-D2,R2,student8@usf.edu,2,3,3,0,22,0,2.1 / 5.1,41.2%
-Gupta,Akshat,student15@usf.edu,3,5,3,0,38,0,3.1 / 5.1,60.8%
-Kakkar,Richa,student16@usf.edu,3,5,3,0,38,0,3.1 / 5.1,60.8%
-Kenobi,Obi-Wan,student3@usf.edu,0,2,1,1,16,14,0.6 / 5.1,11.8%
-Pandey,Mayank,student11@usf.edu,3,3,3,0,33,0,2.7 / 5.1,52.9%
-Pandey,Naman,student19@usf.edu,5,5,3,0,38,0,4.3 / 5.1,84.3%
-Pandey,Sarthak,student20@usf.edu,5,5,3,0,52,0,4.3 / 5.1,84.3%
-PO,C3,student9@usf.edu,2,3,3,0,22,0,2.1 / 5.1,41.2%
-Sharma,Mukund,student18@usf.edu,3,5,3,0,38,0,3.1 / 5.1,60.8%
-Shukla,Gopal Krishna,student14@usf.edu,3,3,3,0,33,0,2.7 / 5.1,52.9%
-Singh,Shashank,student17@usf.edu,3,5,3,0,38,0,3.1 / 5.1,60.8%
-Skywalker,Anakin,student1@usf.edu,0,2,1,0,14,165,0.5 / 5.1,9.8%
-Skywalker,Rey,student4@usf.edu,0,2,1,1,17,45,0.6 / 5.1,11.8%
-Skywalker,Luke,student6@usf.edu,2,2,3,1,18,5,2.0 / 5.1,39.2%
-Tano,Ahsoka,student2@usf.edu,0,2,1,0,15,112,0.5 / 5.1,9.8%
-Windu,Mace,student5@usf.edu,2,2,1,0,20,204,1.7 / 5.1,33.3%
+Last Name,First Name,Email,Initial Score,Revised Score,Grade for Justifications,Min Participation,Likes Given,Max Participation,Grade for Participation,Likes Received,Total Score,Max Possible Score,Final Percentage
+8,BB,student7@usf.edu,2,2,5,26,19,33,0,0,2.1,5.1,41.2
+Ashraf,Aoun,student13@usf.edu,3,3,5,26,33,33,1,0,3.0,5.1,58.8
+Binks,Jar-Jar,student10@usf.edu,3,2,5,26,41,33,0,0,2.7,5.1,52.9
+D2,R2,student8@usf.edu,2,3,5,26,22,33,0,0,2.3,5.1,45.1
+Gupta,Akshat,student15@usf.edu,3,5,5,26,38,33,0,0,3.3,5.1,64.7
+Kakkar,Richa,student16@usf.edu,3,5,5,26,38,33,0,0,3.3,5.1,64.7
+Kenobi,Obi-Wan,student3@usf.edu,0,2,10,26,16,33,0,14,1.4,5.1,27.5
+Pandey,Mayank,student11@usf.edu,3,3,5,26,33,33,1,0,3.0,5.1,58.8
+Pandey,Naman,student19@usf.edu,5,5,5,26,38,33,0,0,4.5,5.1,88.2
+Pandey,Sarthak,student20@usf.edu,5,5,5,26,52,33,0,0,4.5,5.1,88.2
+PO,C3,student9@usf.edu,2,3,5,26,22,33,0,0,2.3,5.1,45.1
+Sharma,Mukund,student18@usf.edu,3,5,5,26,38,33,0,0,3.3,5.1,64.7
+Shukla,Gopal Krishna,student14@usf.edu,3,3,5,26,33,33,1,0,3.0,5.1,58.8
+Singh,Shashank,student17@usf.edu,3,5,5,26,38,33,0,0,3.3,5.1,64.7
+Skywalker,Anakin,student1@usf.edu,0,2,10,26,14,33,0,165,1.4,5.1,27.5
+Skywalker,Rey,student4@usf.edu,0,2,10,26,17,33,0,45,1.4,5.1,27.5
+Skywalker,Luke,student6@usf.edu,2,2,5,26,18,33,0,5,2.1,5.1,41.2
+Tano,Ahsoka,student2@usf.edu,0,2,10,26,15,33,0,112,1.4,5.1,27.5
+Windu,Mace,student5@usf.edu,2,2,10,26,20,33,0,204,2.6,5.1,51.0
