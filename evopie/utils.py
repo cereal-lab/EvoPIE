@@ -5,6 +5,7 @@
 import flask_login
 from . import models, APP # get also DB from there
 import click
+from sqlalchemy.orm.exc import StaleDataError
 
 
 
@@ -109,7 +110,26 @@ def groupby(iterable, key=lambda x: x):
         res[k].append(el)
     return res.items()
 
-def role_required(role):
+def find_median(sorted_list):
+    if len(sorted_list) == 0: return None, []
+    indices = []
+
+    list_size = len(sorted_list)
+    median = 0
+
+    if list_size % 2 == 0:
+        indices.append(int(list_size / 2) - 1)  # -1 because index starts from 0
+        indices.append(int(list_size / 2))
+
+        median = (sorted_list[indices[0]] + sorted_list[indices[1]]) / 2
+    else:
+        indices.append(int(list_size / 2))
+
+        median = sorted_list[indices[0]]
+
+    return median, indices    
+
+def role_required(role, redirect_route='login', redirect_message="You are not authorized to access specified page"):
     '''
     Sepcifies what role is needed: student or instructor
     Parameters
@@ -121,11 +141,27 @@ def role_required(role):
         def decorated_function(*args, **kwargs):
             if current_user.role != role:
                 if request.accept_mimetypes.accept_html: 
-                    flash("You are not authorized to access specified page")                    
-                    return redirect(url_for('login', next=request.url))
+                    if redirect_message is not None: 
+                        flash(redirect_message)                    
+                    return redirect(url_for(redirect_route, next=request.url))
                 else: 
                     return abort(403)
             return f(*args, **kwargs)            
         return decorated_function
     return decorator
-    
+
+def retry_concurrent_update(f):
+    '''
+    For optimistic concurrency retries endpoint when concurrent updates happen.
+    This could be not always optimal strategy. Consider also showing to client updates versions of data from db before retry
+    '''
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        while True: #exit this loop if no StaleDataError: https://docs.sqlalchemy.org/en/14/orm/versioning.html   
+            try:
+                res = f(*args, **kwargs)            
+                break
+            except StaleDataError: 
+                models.DB.session.rollback()
+        return res 
+    return decorated_function

@@ -17,24 +17,25 @@
             // let spinner = document.querySelector('.spinner');
             // $('.spinner-border').removeClass('spinner');
             // table.page.len( -1 ).draw();
-            let response = await fetch('/grades/{{ quiz.id }}/justificationGrade',{
+            let response = await fetch('/grades/{{ quiz.id }}',{
                 method:         'GET',
-                headers:        {'Content-Type' : 'application/json'},
+                headers:        {'Accept' : 'application/json'},
                 credentials:    'same-origin'
             })
-            let [justification_grade, total_scores] = await response.json()
-            for (let id of Object.keys(justification_grade)) { 
-                let e = document.querySelector('#justification_grade-' + id); 
+            let stats = await response.json()
+            for (let id of Object.keys(stats.students)) { 
+                let s = stats.students[id]
+                let e = document.querySelector('#justification_grade-' + s.id); 
                 if (e) { 
-                    e.innerHTML = justification_grade[id]; 
+                    e.innerHTML = (s.justification_score == null) ? "N/A" : s.justification_score; 
                 }
-                let total_score = document.querySelector('#total_score-' + id);
-                let final_percentage = document.querySelector('#final_percentage-' + id);
+                let total_score = document.querySelector('#total_score-' + s.id);
+                let final_percentage = document.querySelector('#final_percentage-' + s.id);
                 if (total_score) {
-                    total_score.innerHTML = (Math.round(total_scores[id] * 10) / 10) + " / " + (Math.round(total_scores[-1] * 10) / 10)
+                    total_score.innerHTML = (Math.round(s.total_score * 10) / 10) + " / " + (Math.round(s.max_total_score * 10) / 10)
                 }
                 if (final_percentage) {
-                    final_percentage.innerHTML = Math.round(total_scores[id] * 100 / total_scores[-1]) + "%";
+                    final_percentage.innerHTML = Math.round(s.total_score * 100 / s.max_total_score) + "%";
                 } 
             }
 
@@ -42,11 +43,11 @@
             // table.page.len( 10 ).draw();
         }
 
-        const changeGradeWeights = () => 
-            fetch('/grades/{{quiz.id}}/weights',{
+        const changeQuizSettings = (settings) => 
+            fetch('/grades/{{quiz.id}}/settings',{
                 method:         'POST',
                 headers:        {'Content-Type' : 'application/json'},
-                body:           JSON.stringify({"initial_score" :  initialScoreWeight, "revised_score": revisedScoreWeight, "justification_grade": justificationWeight, "participation_grade": participationWeight}),
+                body:           JSON.stringify(settings),
                 credentials:    'same-origin'
             })            
 
@@ -84,7 +85,7 @@
                 clearTimeout(tableUpdateTimeout)
                 tableUpdateTimeout = setTimeout(async () => {
                     try {
-                        await changeGradeWeights()
+                        await changeQuizSettings({"initial_score" :  initialScoreWeight, "revised_score": revisedScoreWeight, "justification_grade": justificationWeight, "participation_grade": participationWeight})
                         await updateTable()
                     } catch (e) {
                         //TODO: render error on UI
@@ -94,113 +95,30 @@
             }
         })
 
-        table = $('#gradingtable').DataTable(); //{ paging: false});
+        table = $('#gradingtable').DataTable({conditionalPaging: true}); //{ paging: false});
 
-        document.querySelector('#limiting_factor').addEventListener('change', function(){
-            let target_url = '/grades/{{quiz.id}}/limitingFactor';
-            let e = document.querySelector('#limiting_factor');
-            let selectedValue = e.options[e.selectedIndex].value;
-            fetch(target_url,{
-                method:         'POST',
-                headers:        {'Content-Type' : 'application/json'},
-                body:           JSON.stringify({"limiting_factor" :  selectedValue}),
-                credentials:    'same-origin'
-            })
-            .then(
-                response => {
-                    if(response.ok){
-                        // $('#initial_score_weight')[0].innerHTML = "Initial Score Weight : " + selectedValue + "%";
-                        window.location.reload();
-                    }
+        const onSettingChange = (settingName, shouldReload = false) => async (e) => {
+            try {
+                let selectedValue = parseInt(e.target.value);
+                await changeQuizSettings({[settingName]:  selectedValue})
+                if (shouldReload) window.location.reload();
+                else {
+                    await updateTable();
                 }
-            )
-            .catch((error) => {
-            })
-        })
+            } catch (e) {
+                console.error(e);
+                //TODO: UI message
+            }
+        }        
+        document.querySelector('#limiting_factor').addEventListener('change', onSettingChange("limiting_factor", true))
 
-        document.querySelector('#first_quartile_grade').addEventListener('change', function() {
-            let target_url = '/grades/{{quiz.id}}/firstQuartileGrade';
-            let e = document.querySelector('#first_quartile_grade');
-            let selectedValue = e.options[e.selectedIndex].value;
-            fetch(target_url,{
-                method:         'POST',
-                headers:        {'Content-Type' : 'application/json'},
-                body:           JSON.stringify({"first_quartile_grade" :  selectedValue}),
-                credentials:    'same-origin'
-            })
-            .then(
-                response => {
-                    if(response.ok){
-                        window.location.reload();
-                    }
-                }
-            )
-            .catch((error) => {
-            })
-        });
+        document.querySelector('#first_quartile_grade').addEventListener('change', onSettingChange("first_quartile_grade"))
 
-        document.querySelector('#second_quartile_grade').addEventListener('change', function() {
-            let target_url = '/grades/{{quiz.id}}/secondQuartileGrade';
-            let e = document.querySelector('#second_quartile_grade');
-            let selectedValue = e.options[e.selectedIndex].value;
-            fetch(target_url,{
-                method:         'POST',
-                headers:        {'Content-Type' : 'application/json'},
-                body:           JSON.stringify({"second_quartile_grade" :  selectedValue}),
-                credentials:    'same-origin'
-            })
-            .then(
-                response => {
-                    if(response.ok){
-                        window.location.reload();
-                    }
-                }
-            )
-            .catch((error) => {
-            })
-        });
+        document.querySelector('#second_quartile_grade').addEventListener('change', onSettingChange("second_quartile_grade"))
 
-        document.querySelector('#third_quartile_grade').addEventListener('change', function() {
-            let target_url = '/grades/{{quiz.id}}/thirdQuartileGrade';
-            let e = document.querySelector('#third_quartile_grade');
-            let selectedValue = e.options[e.selectedIndex].value;
-            fetch(target_url,{
-                method:         'POST',
-                headers:        {'Content-Type' : 'application/json'},
-                body:           JSON.stringify({"third_quartile_grade" :  selectedValue}),
-                credentials:    'same-origin'
-            })
-            .then(
-                response => {
-                    if(response.ok){
-                        window.location.reload();
-                    }
-                }
-            )
-            .catch((error) => {
-            })
-        });
+        document.querySelector('#third_quartile_grade').addEventListener('change', onSettingChange("third_quartile_grade"))
 
-        document.querySelector('#fourth_quartile_grade').addEventListener('change', function() {
-            let target_url = '/grades/{{quiz.id}}/fourthQuartileGrade';
-            let e = document.querySelector('#fourth_quartile_grade');
-            let selectedValue = e.options[e.selectedIndex].value;
-            fetch(target_url,{
-                method:         'POST',
-                headers:        {'Content-Type' : 'application/json'},
-                body:           JSON.stringify({"fourth_quartile_grade" :  selectedValue}),
-                credentials:    'same-origin'
-            })
-            .then(
-                response => {
-                    if(response.ok){
-                        window.location.reload();
-                    }
-                }
-            )
-            .catch((error) => {
-            })
-        });
+        document.querySelector('#fourth_quartile_grade').addEventListener('change', onSettingChange("fourth_quartile_grade"))
  
     } );
 
@@ -360,43 +278,21 @@
             <th>Last Name</th>
             <th>First Name</th>
             <th>Email</th>
-            <th>Step #1
-                <!-- <select id="initial_score" name="initialScoreFactorOptions">
-                    {% for option in initialScoreFactorOptions %}
-                        <option value="{{option}}" {% if quiz.initial_score_weight * 100 == option %} selected {% endif %} >{{option}}%</option>
-                    {% endfor %}
-                </select>  -->
-            </th>
-            <th>Step #2
-                <!-- <select id="revised_score" name="revisedScoreFactorOptions">
-                    {% for option in revisedScoreFactorOptions %}
-                        <option value="{{option}}" {% if quiz.revised_score_weight * 100 == option %} selected {% endif %} >{{option}}%</option>
-                    {% endfor %}
-                </select> -->
-            </th>
+            <th>Step #1</th>
+            <th>Step #2</th>
             <th> Justifications
                 <svg data-toggle="modal" data-target="#TG-GEARBOX-JUSTIFICATIONS"
                      xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-gear" viewBox="0 0 16 16">
                     <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
                     <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"/>
                 </svg>
-                <!-- <select id="justification_grade" name="justificationsGradeOptions">
-                    {% for option in justificationsGradeOptions %}
-                        <option value="{{option}}" {% if quiz.justification_grade_weight * 100 == option %} selected {% endif %} >{{option}}%</option>
-                    {% endfor %}
-                </select>  -->
             </th>
             <th> Participation
-                        <svg data-toggle="modal" data-target="#TG-GEARBOX-PARTICIPATION"
-                             xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-gear" viewBox="0 0 16 16">
-                            <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
-                            <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"/>
-                        </svg>
-                <!-- <select id="participation_grade" name="participationGradeOptions">
-                    {% for option in participationGradeOptions %}
-                        <option value="{{option}}" {% if quiz.participation_grade_weight * 100 == option %} selected {% endif %} >{{option}}%</option>
-                    {% endfor %}
-                </select> -->
+                <svg data-toggle="modal" data-target="#TG-GEARBOX-PARTICIPATION"
+                        xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-gear" viewBox="0 0 16 16">
+                    <path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/>
+                    <path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"/>
+                </svg>
             </th>
             <th>Likes Given</th>
             <th>Likes Received</th>
@@ -405,19 +301,20 @@
         </tr>
     </thead>
     <tbody>
-        {% for student in students %}
-        {% set sid = student.id %}
-        {% set attempt = attempts[sid] %}        
+        {% for s in students %}   
         <tr>
-            <td class='text-start align-top'>{{student.last_name | safe}}</td>
-            <td class='text-start align-top'>{{student.first_name | safe}}</td>
-            <td class='text-start align-top'>{{student.email | safe}}</td>
+            <td class='text-start align-top'>{{s.last_name | safe}}</td>
+            <td class='text-start align-top'>{{s.first_name | safe}}</td>
+            <td class='text-start align-top'>{{s.email | safe}}</td>
             <td>
+                {%- if s.initial_total_score is none -%}
+                N/A
+                {% else %}
                 <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
-                        data-target=".TG-INI-{{sid}}">
-                    {{attempt.initial_total_score}}
+                        data-target=".TG-INI-{{s.id}}">
+                    {{s.initial_total_score}}
                 </button>
-                <div class="modal fade TG-INI-{{sid}}" tabindex="-1" role="dialog"
+                <div class="modal fade TG-INI-{{s.id}}" tabindex="-1" role="dialog"
                         aria-labelledby="mySmallModalLabel" aria-hidden="true">
                     <div class="modal-dialog modal-xl">
                       <div class="modal-content">
@@ -430,8 +327,8 @@
                                 <!-- <th>RID</th> -->
                                 <th>Student's Response</th>
                             </tr>
-                            {% for item in attempt.initial_responses %}
-                                {% set j = attempt.initial_responses[item] | int %}
+                            {% for item in s.initial_responses %}
+                                {% set j = s.initial_responses[item] | int %}
                                 {% set question = questions[item] %}
                                 <tr style="border: 1px solid;">
                                     <!-- <td class="align-top">{{ item | safe }}</td> -->
@@ -456,13 +353,17 @@
                       </div>
                     </div>
                 </div>
+                {% endif %}
             </td>
             <td>
+                {%- if s.revised_total_score is none -%}
+                N/A
+                {% else %}                
                 <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
-                        data-target=".TG-REV-{{sid}}">
-                    {{attempt.revised_total_score}}
+                        data-target=".TG-REV-{{s.id}}">
+                    {{s.revised_total_score}}
                 </button>
-                <div class="modal fade TG-REV-{{sid}}" tabindex="-1" role="dialog"
+                <div class="modal fade TG-REV-{{s.id}}" tabindex="-1" role="dialog"
                         aria-labelledby="mySmallModalLabel" aria-hidden="true">
                     <div class="modal-dialog modal-xl">
                       <div class="modal-content">
@@ -475,8 +376,8 @@
                                 <!-- <th>RID</th> -->
                                 <th>Student's Revised Response</th>
                             </tr>
-                            {% for item in attempt.revised_responses %}                            
-                                {% set j = attempt.revised_responses[item] | int %}
+                            {% for item in s.revised_responses %}                            
+                                {% set j = s.revised_responses[item] | int %}
                                 {% set question = questions[item] %}
                                 <tr style="border: 1px solid;">
                                     <!-- <td class="text-start align-top">{{ item | safe }}</td> -->
@@ -501,18 +402,22 @@
                       </div>
                     </div>
                 </div>
+                {% endif %}
             </td>
             <td>
-                <button id="justification_grade-{{sid}}" type="button" class="btn btn-primary btn-sm" data-toggle="modal"
-                        data-target=".TG-JUS-{{sid}}">
-                    {{justification_grade[sid]}}
+                {%- if s.justification_score is none -%}
+                N/A
+                {% else %}
+                <button id="justification_grade-{{s.id}}" type="button" class="btn btn-primary btn-sm" data-toggle="modal"
+                        data-target=".TG-JUS-{{s.id}}">
+                    {{s.justification_score}}
                 </button>
-                <div class="modal fade TG-JUS-{{sid}} text-start" tabindex="-1" role="dialog"
+                <div class="modal fade TG-JUS-{{s.id}} text-start" tabindex="-1" role="dialog"
                         aria-labelledby="mySmallModalLabel" aria-hidden="true">
                     <div class="modal-dialog modal-xl">
                       <div class="modal-content">
                         <div class="accordion" id="accordionExample">
-                            {% for question_id, justifications_eachQuestion in attempt.justifications.items() %}
+                            {% for question_id, justifications_eachQuestion in s.justifications.items() %}
                             {% set qid = question_id | int %}
                                     <div class="accordion-item" >
                                     <h2 class="accordion-header" id="Heading{{question_id}}">
@@ -534,16 +439,16 @@
                                                 {% for distractor_id, justification in justifications_eachQuestion.items() %}
                                                 {% set did = distractor_id | int %}
                                                     <tr style="border: 1px solid;">
-                                                        {% if did == '-1' %}
+                                                        {% if did == -1 %}
                                                             <td class="align-top"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="green" class="bi bi-check-square" viewBox="0 0 16 16">
                                                                 <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
                                                                 <path d="M10.97 4.97a.75.75 0 0 1 1.071 1.05l-3.992 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.235.235 0 0 1 .02-.022z"/>
                                                                 </svg></td>
                                                             <td class="align-top">{{ distractor_id | safe }}</td>
-                                                            <td class="align-top">{{ questions[question_id].answer | safe }}</td>
+                                                            <td class="align-top">{{ questions[qid].answer | safe }}</td>
                                                             <td class="align-top">{{ justification | safe }}</td>
                                                             <td class="align-top">
-                                                                {{ justification_like_count.get(sid, {}).get(justification, 0) }}
+                                                                {{ s.justification_like_count.get(justification, 0) }}
                                                             </td>
                                                         {% else %}
                                                             <td class="align-top"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="red" class="bi bi-x-square" viewBox="0 0 16 16">
@@ -554,7 +459,7 @@
                                                             <td class="align-top">{{ distractors[qid][did] | safe }}</td>
                                                             <td class="align-top">{{ justification | safe }}</td>
                                                             <td class="align-top" style="width: 2%">
-                                                                {{ justification_like_count.get(sid, {}).get(justification, 0) }}
+                                                                {{ s.justification_like_count.get(justification, 0) }}
                                                             </td>
                                                         {% endif %}
                                                     </tr>
@@ -569,143 +474,154 @@
                       </div>
                     </div>
                 </div>
-            </td>
-            <td>
-                {% set num_likes_given = likes_given[sid] | length | int %}
-                {% set lower_bound = (0.8 * attempt.participation_grade_threshold) | round | int %}    
-                [{{lower_bound}}, {{attempt.participation_grade_threshold}}]                            
-                {% if num_likes_given <= attempt.participation_grade_threshold and num_likes_given >= lower_bound %}                
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="green" class="bi bi-check-square" viewBox="0 0 16 16">
-                    <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
-                    <path d="M10.97 4.97a.75.75 0 0 1 1.071 1.05l-3.992 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.235.235 0 0 1 .02-.022z"/>
-                    </svg>
-                {% else %}
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="red" class="bi bi-x-square" viewBox="0 0 16 16">
-                    <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
-                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
-                    </svg>
                 {% endif %}
             </td>
             <td>
-                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
-                data-target=".TG-GIVEN-{{sid}}">
-                    {{likes_given[sid] | length}}
-                </button>                
-                <div class="modal fade TG-GIVEN-{{sid}}" tabindex="-1" role="dialog"
-                        aria-labelledby="mySmallModalLabel" aria-hidden="true">
-                    <div class="modal-dialog modal-xl">
-                      <div class="modal-content text-start">
-                        <div class="accordion" id="accordionExample">
-                            {% for question_id, justifications_eachQuestion in attempt.justifications.items() %}
-                            {% set qid = question_id | int %}
-                                    <div class="accordion-item" >
-                                    <h2 class="accordion-header" id="Heading{{qid}}">
-                                        <button class="accordion-button" type="button" data-toggle="collapse" data-parent="#accordionExample" href="#collapse{{qid}}" aria-expanded="false" aria-controls="collapse{{qid}}"">
-                                            <!--Question #{{ question_id | safe }} - -->
-                                            {{ questions[qid].title | safe }}
-                                        </button>
-                                    </h2>
-                                    <div id="collapse{{qid}}"" class="accordion-collapse collapse show" aria-labelledby="Heading{{qid}}" ">
-                                        <div class="accordion-body">
-                                            <h3>Question:</h3>
-                                            <p>
-                                                {{ questions[qid].stem | safe }}
-                                            </p>
-                                            <h3>Correct Answer:</h3>
-                                            <p>
-                                                {{ questions[qid].answer | safe }}
-                                            </p>
-                                            <div>
-                                                <table class="align-top text-start">
-                                                    <tr>
-                                                        <td style="font-weight: bold;">Justifications</td>
-                                                    </tr>
-                                                    {% for data in likes_given[sid] %}
-                                                        {% if data.quiz_question_id == qid %}
-                                                            <tr style="border: 1px solid;">
-                                                                <td>{{ data.justification | safe }}</td>
-                                                            </tr>
-                                                        {% endif %}
-                                                    {% endfor %}
-                                                    </table>
+                {%- if s.likes_given is none -%}
+                N/A
+                {% else %} 
+                    [{{s.min_participation_grade_threshold}}, {{s.participation_grade_threshold}}]                            
+                    {% if s.participation_score > 0 %}                
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="green" class="bi bi-check-square" viewBox="0 0 16 16">
+                        <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+                        <path d="M10.97 4.97a.75.75 0 0 1 1.071 1.05l-3.992 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.235.235 0 0 1 .02-.022z"/>
+                        </svg>
+                    {% else %}
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="red" class="bi bi-x-square" viewBox="0 0 16 16">
+                        <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+                        <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                        </svg>
+                    {% endif %}                                
+                {% endif %}
+            </td>
+            <td>
+                {%- if s.likes_given is none -%}
+                N/A 
+                {% else %}                
+                    <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
+                    data-target=".TG-GIVEN-{{s.id}}">
+                        {{s.likes_given_count}}
+                    </button>                
+                    <div class="modal fade TG-GIVEN-{{s.id}}" tabindex="-1" role="dialog"
+                            aria-labelledby="mySmallModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-xl">
+                        <div class="modal-content text-start">
+                            <div class="accordion" id="accordionExample">
+                                {% for question_id, justifications_eachQuestion in s.justifications.items() %}
+                                {% set qid = question_id | int %}
+                                        <div class="accordion-item" >
+                                        <h2 class="accordion-header" id="Heading{{qid}}">
+                                            <button class="accordion-button" type="button" data-toggle="collapse" data-parent="#accordionExample" href="#collapse{{qid}}" aria-expanded="false" aria-controls="collapse{{qid}}"">
+                                                <!--Question #{{ question_id | safe }} - -->
+                                                {{ questions[qid].title | safe }}
+                                            </button>
+                                        </h2>
+                                        <div id="collapse{{qid}}"" class="accordion-collapse collapse show" aria-labelledby="Heading{{qid}}" ">
+                                            <div class="accordion-body">
+                                                <h3>Question:</h3>
+                                                <p>
+                                                    {{ questions[qid].stem | safe }}
+                                                </p>
+                                                <h3>Correct Answer:</h3>
+                                                <p>
+                                                    {{ questions[qid].answer | safe }}
+                                                </p>
+                                                <div>
+                                                    <table class="align-top text-start">
+                                                        <tr>
+                                                            <td style="font-weight: bold;">Justifications</td>
+                                                        </tr>
+                                                        {% for data in s.likes_given %}
+                                                            {% if data.quiz_question_id == qid %}
+                                                                <tr style="border: 1px solid;">
+                                                                    <td>{{ data.justification | safe }}</td>
+                                                                </tr>
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                        </table>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    </div>
-                            {% endfor %}
-                            </div>
-                          </div>
-                      </div>
-                    </div>
-                </div>
-            </td>
-            <td>
-                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
-                data-target=".TG-REC-{{sid}}">
-                    {{likes_received[sid] | sum(attribute="num_likes") }}
-                </button>
-                <div class="modal fade TG-REC-{{sid}}" tabindex="-1" role="dialog"
-                        aria-labelledby="mySmallModalLabel" aria-hidden="true">
-                    <div class="modal-dialog modal-xl">
-                      <div class="modal-content text-start">
-                        <div class="accordion" id="accordionExample">
-                            {% for question_id, justifications_eachQuestion in attempt.justifications.items() %}
-                            {% set qid = question_id | int %}
-                                    <div class="accordion-item" >
-                                    <h2 class="accordion-header" id="Heading{{qid}}">
-                                        <button class="accordion-button" type="button" data-toggle="collapse" data-parent="#accordionExample" href="#collapse{{qid}}" aria-expanded="false" aria-controls="collapse{{qid}}"">
-                                            <!-- Question #{{ question_id | safe }} - -->
-                                            {{ questions[qid].title | safe }}                                          
-                                        </button>
-                                    </h2>
-                                    <div id="collapse{{qid}}"" class="accordion-collapse collapse show" aria-labelledby="Heading{{qid}}" ">
-                                        <div class="accordion-body">
-                                            <h3>Question:</h3>
-                                            <p>
-                                                {{ questions[qid].stem | safe }}
-                                            </p>
-                                            <h3>Correct Answer:</h3>
-                                            <p>
-                                                {{ questions[qid].answer | safe }}
-                                            </p>
-                                            <table class="align-top text-start">
-                                                <tr>
-                                                    <th>Justification</th>
-                                                    <th style="width: 2%">Likes Received</th>
-                                                </tr>
-                                            {% for data in likes_received[sid] %}
-                                                {% if data.quiz_question_id == qid %}
-                                                <tr style="border: 1px solid;">
-                                                    <td class="align-top" style="width: 98%">
-                                                        {{ data.justification | safe }}
-                                                    </td>
-                                                    <td class="align-top" style="width: 2%">
-                                                        {{ justification_like_count.get(sid, {}).get(data.justification, 0) }}
-                                                    </td>
-                                                </tr>
-                                                {% endif %}
-                                            {% endfor %}
-                                            </table>
                                         </div>
-                                    </div>
-                                    </div>
-                            {% endfor %}
+                                {% endfor %}
+                                </div>
                             </div>
-                          </div>
-                      </div>
+                        </div>
+                        </div>
                     </div>
-                </div>
+                {% endif %}
             </td>
             <td>
-                <button id="total_score-{{sid}}" type="button" class="btn btn-primary btn-sm" data-toggle="modal"
-                data-target=".TG-TOTAL-{{sid}}">
-                {{total_scores[sid] | round(1) }} / {{total_scores[-1] | round(1)}}
+                {%- if s.likes_received is none -%}
+                N/A
+                {% else %}                
+                    <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
+                    data-target=".TG-REC-{{s.id}}">
+                        {{s.likes_received_count }}
+                    </button>
+                    <div class="modal fade TG-REC-{{s.id}}" tabindex="-1" role="dialog"
+                            aria-labelledby="mySmallModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-xl">
+                        <div class="modal-content text-start">
+                            <div class="accordion" id="accordionExample">
+                                {% for question_id, justifications_eachQuestion in s.justifications.items() %}
+                                {% set qid = question_id | int %}
+                                        <div class="accordion-item" >
+                                        <h2 class="accordion-header" id="Heading{{qid}}">
+                                            <button class="accordion-button" type="button" data-toggle="collapse" data-parent="#accordionExample" href="#collapse{{qid}}" aria-expanded="false" aria-controls="collapse{{qid}}"">
+                                                <!-- Question #{{ question_id | safe }} - -->
+                                                {{ questions[qid].title | safe }}                                          
+                                            </button>
+                                        </h2>
+                                        <div id="collapse{{qid}}"" class="accordion-collapse collapse show" aria-labelledby="Heading{{qid}}" ">
+                                            <div class="accordion-body">
+                                                <h3>Question:</h3>
+                                                <p>
+                                                    {{ questions[qid].stem | safe }}
+                                                </p>
+                                                <h3>Correct Answer:</h3>
+                                                <p>
+                                                    {{ questions[qid].answer | safe }}
+                                                </p>
+                                                <table class="align-top text-start">
+                                                    <tr>
+                                                        <th>Justification</th>
+                                                        <th style="width: 2%">Likes Received</th>
+                                                    </tr>
+                                                {% for data in s.likes_received %}
+                                                    {% if data.quiz_question_id == qid %}
+                                                    <tr style="border: 1px solid;">
+                                                        <td class="align-top" style="width: 98%">
+                                                            {{ data.justification | safe }}
+                                                        </td>
+                                                        <td class="align-top" style="width: 2%">
+                                                            {{ s.justification_like_count.get(data.justification, 0) }}
+                                                        </td>
+                                                    </tr>
+                                                    {% endif %}
+                                                {% endfor %}
+                                                </table>
+                                            </div>
+                                        </div>
+                                        </div>
+                                {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+                    </div>
+                {% endif %}
+            </td>
+            <td>
+                <button id="total_score-{{s.id}}" type="button" class="btn btn-primary btn-sm" data-toggle="modal"
+                data-target=".TG-TOTAL-{{s.id}}">
+                {{s.total_score | round(1) }} / {{s.max_total_score | round(1)}}
                 </button>
             </td>
             <td>
-                <button id="final_percentage-{{sid}}" type="button" class="btn btn-primary btn-sm" data-toggle="modal"
-                data-target=".TG-FINAL-{{sid}}">
-                {{((total_scores[sid] / total_scores[-1]) * 100) | round(0) | int }}%
+                <button id="final_percentage-{{s.id}}" type="button" class="btn btn-primary btn-sm" data-toggle="modal"
+                data-target=".TG-FINAL-{{s.id}}">
+                {{(s.total_score * 100 / s.max_total_score) | round(0) | int }}%
                 </button>
             </td>
         </tr>

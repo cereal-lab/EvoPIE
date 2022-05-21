@@ -13,6 +13,9 @@ import json
 import bleach
 from bleach_allowlist import generally_xss_safe, print_attrs, standard_styles
 from werkzeug.security import generate_password_hash
+from evopie.config import ROLE_INSTRUCTOR
+
+from evopie.utils import role_required
 
 from . import models
 
@@ -913,20 +916,37 @@ def changeLimitingFactor(qid):
 
         return make_response(response)
 
-@mcq.route('/grades/<int:qid>/weights', methods=['POST'])
+@mcq.route('/grades/<int:qid>/settings', methods=['POST'])
 @login_required
+@role_required(role=ROLE_INSTRUCTOR)
 def changeGradeWeights(qid):
-    if current_user.is_instructor():
-        q = models.Quiz.query.get_or_404(qid)
-        response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
-        if request.json:
-            q.initial_score_weight = int(request.json['initial_score']) / 100
+    q = models.Quiz.query.get_or_404(qid)        
+    if request.is_json:
+        if 'initial_score' in request.json:
+            q.initial_score_weight = int(request.json['initial_score']) / 100 
+        if 'revised_score' in request.json:
             q.revised_score_weight = int(request.json['revised_score']) / 100
+        if 'justification_grade' in request.json:
             q.justification_grade_weight = int(request.json['justification_grade']) / 100
-            q.participation_grade_weight = int(request.json['participation_grade']) / 100
-            models.DB.session.commit()
-
-        return make_response(response)
+        if 'participation_grade' in request.json:
+            q.participation_grade_weight = int(request.json['participation_grade']) / 100 
+        if 'num_justifications_shown' in request.json:
+            q.num_justifications_shown = int(request.json['num_justifications_shown'])  
+        if 'first_quartile_grade' in request.json:
+            q.first_quartile_grade = int(request.json['first_quartile_grade'])
+        if 'second_quartile_grade' in request.json:
+            q.second_quartile_grade = int(request.json['second_quartile_grade'])
+        if 'third_quartile_grade' in request.json:
+            q.third_quartile_grade = int(request.json['third_quartile_grade'])
+        if 'fourth_quartile_grade' in request.json:
+            q.fourth_quartile_grade = int(request.json['fourth_quartile_grade']) 
+        if 'limiting_factor' in request.json:
+            q.limiting_factor = int(request.json['limiting_factor']) / 100
+            attempts = models.QuizAttempt.query.filter_by(quiz_id = qid).all()
+            for a in attempts:
+                a.participation_grade_threshold = round(a.max_likes * q.limiting_factor)
+        models.DB.session.commit()
+    return jsonify(q.dump_as_dict())
 
 @mcq.route('/grades/<int:qid>/initialScoreWeight', methods=['POST'])
 @login_required

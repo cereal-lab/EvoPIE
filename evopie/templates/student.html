@@ -201,29 +201,27 @@
         }
 
         function counterInit( fValue, lValue, counter_value ) {    
-        var progress = $('.progressbar .progress')
-        {% if attempt is not defined %}
-        var lower = Math.round(0.8 * {{ quiz.participation_grade_threshold }});
-        var upper = {{ quiz.participation_grade_threshold }};
-        {% else %}
-        var lower = Math.round(0.8 * {{ attempt.participation_grade_threshold }});
-        var upper = {{ attempt.participation_grade_threshold }};
-        {% endif %}
-        let rate = 100 / upper;
-        $('.counter').text( counter_value );
-        $('.progress').text( counter_value + " likes given (" + lower + " min, " + upper + " max)");
-        progress.css({ 'width': upper * rate + '%' });
-        // progress.innerHTML = counter_value;
+            var progress = $('.progressbar .progress')
+            {% if attempt is not defined %}
+            var lower = 0;
+            var upper = 0;
+            {% else %}
+            var lower = {{ attempt.min_participation_grade_threshold }};
+            var upper = {{ attempt.participation_grade_threshold }};
+            {% endif %}
+            let rate = 100 / upper;
+            $('.counter').text( counter_value );
+            $('.progress').text( counter_value + " likes given (" + lower + " min, " + upper + " max)");
+            progress.css({ 'width': upper * rate + '%' });
+            // progress.innerHTML = counter_value;
 
-        if (counter_value >= lower && counter_value <= upper) {
-            $('.progress').css("background", "#96ff96");
-            $('.progress').css("color", "black");
-        } else {
-            $('.progress').css("background", "rgb(223, 96, 65)");
-            $('.progress').css("color", "white");
-        }
-
-
+            if (counter_value >= lower && counter_value <= upper) {
+                $('.progress').css("background", "#96ff96");
+                $('.progress').css("color", "black");
+            } else {
+                $('.progress').css("background", "rgb(223, 96, 65)");
+                $('.progress').css("color", "white");
+            }
         }
     </script>
 

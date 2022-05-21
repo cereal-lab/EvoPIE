@@ -2,6 +2,7 @@
 # pylint: disable=E1101
 
 from email.policy import default
+import math
 from random import shuffle # to shuffle lists
 from flask_login import UserMixin
 from jinja2 import Markup
@@ -300,6 +301,9 @@ class QuizAttempt(DB.Model):
         "version_id_col": version_id
     }    
 
+    def get_min_participation_grade_threshold(self):
+        return math.floor(0.8 * self.participation_grade_threshold)
+
     def dump_as_dict(self):
         return {    "id" : self.id,
                     "quiz_id" : self.quiz_id,
@@ -312,7 +316,9 @@ class QuizAttempt(DB.Model):
                     "initial_total_score" : self.initial_total_score,
                     "revised_total_score" : self.revised_total_score,
                     "max_likes" : self.max_likes,
-                    "participation_grade_threshold" : self.participation_grade_threshold
+                    "min_participation_grade_threshold" : self.get_min_participation_grade_threshold(),
+                    "participation_grade_threshold" : self.participation_grade_threshold,
+                    "selected_justifications_timestamp" : self.selected_justifications_timestamp
                 }
 
 
