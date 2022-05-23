@@ -17,7 +17,13 @@ from bleach_allowlist import generally_xss_safe, print_attrs, standard_styles
 def sanitize(html):
     result = bleach.clean(html, tags=generally_xss_safe, attributes=print_attrs, styles=standard_styles)
     return result
-    
+
+
+# All TODO #3 issue from models.py are factored in the function below
+# 
+from jinja2 import Markup
+def unescape(str):
+    return Markup(str).unescape()
     
 # Defining a custom jinja2 filter to get rid of \"
 # in JSON for student.html

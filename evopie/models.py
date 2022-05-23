@@ -5,9 +5,9 @@ from email.policy import default
 import math
 from random import shuffle # to shuffle lists
 from flask_login import UserMixin
-from jinja2 import Markup
 from evopie import DB
 from .config import ROLE_INSTRUCTOR, ROLE_STUDENT, ROLE_ADMIN
+from .utils import unescape
 
 import ast
 
@@ -45,17 +45,17 @@ class Question(DB.Model):
     def dump_as_dict(self): # TODO #3 get rid of dump_as_dict as part of this issue
         q = {
             "id" : self.id,
-            "title" : Markup(self.title).unescape(),
-            "stem" : Markup(self.stem).unescape(),
-            "answer" : Markup(self.answer).unescape(),
+            "title" : unescape(self.title),
+            "stem" : unescape(self.stem),
+            "answer" : unescape(self.answer),
             "alternatives" : []
         }
         # NOTE we have to do the above unescapes so that the html code sent by summernote to the server
         # is then rendered as HTML instead of being displayed as an escape string, or rendered
         # with the unescaped symbols but not interpreted as HTML
 
-        q['alternatives'] = [Markup(d.answer).unescape() for d in self.distractors]
-        q['alternatives'].append(Markup(self.answer).unescape())
+        q['alternatives'] = [unescape(d.answer) for d in self.distractors]
+        q['alternatives'].append(unescape(self.answer))
         shuffle(q['alternatives'])
         return q
 
@@ -68,8 +68,8 @@ class Question(DB.Model):
             "alternatives" : []
         }
         # NOTE trying to skip the distractors, eventually we want just their IDs
-        # q['alternatives'] = [Markup(d.answer).unescape() for d in self.distractors]
-        #q['alternatives'].append(Markup(self.answer).unescape())
+        # q['alternatives'] = [unescape(d.answer) for d in self.distractors]
+        #q['alternatives'].append(unescape(self.answer))
         #shuffle(q['alternatives'])
         return q
         
@@ -102,7 +102,7 @@ class Distractor(DB.Model):
         return "<Distractor: id='%d',question_id=%d>" % (self.id, self.question_id)
 
     def dump_as_dict(self): # TODO #3
-        return {"id" : self.id, "answer": Markup(self.answer).unescape(), "justification": Markup(self.justification).unescape()}
+        return {"id" : self.id, "answer": unescape(self.answer), "justification": unescape(self.justification)}
 
     def dump_as_simplified_dict(self):
         return {"id" : self.id, "answer": "", "justification": ""}
@@ -128,22 +128,22 @@ class QuizQuestion(DB.Model):
     # these are the distractors that have been selected, among all available distractors
     # for a given question, to be features in this particular question to appear in a quiz
 
-    def dump_as_dict(self): # TODO #3
+    def dump_as_dict(self):
         result = {  "id" : self.id,
                     "title": self.question.title,
-                    "stem": Markup(self.question.stem).unescape(),
-                    "answer": Markup(self.question.answer).unescape(),
+                    "stem": unescape(self.question.stem),
+                    "answer": unescape(self.question.answer),
                     "alternatives": [] }
 
         tmp1 = [] # list of distractors IDs, -1 for right answer
         tmp2 = [] # list of alternatives, including the right answer
 
         tmp1.append(-1)
-        tmp2.append(Markup(self.question.answer).unescape())
+        tmp2.append(unescape(self.question.answer))
 
         for d in self.distractors:
-            tmp1.append(Markup(d.id).unescape())
-            tmp2.append(Markup(d.answer).unescape())
+            tmp1.append(unescape(d.id))
+            tmp2.append(unescape(d.answer))
 
         #result['alternatives'] = list(zip(tmp1,tmp2))
         # NOTE the above would cause the list to be made of tuples which are not well handled when we are trying to
@@ -230,7 +230,7 @@ class Quiz(DB.Model):
             return True
 
 
-
+    # is the following affected by TODO #3 at all? e.g., field description?
     def dump_as_dict(self):
         questions = [q.dump_as_dict() for q in self.quiz_questions]
         shuffle(questions)
@@ -278,6 +278,7 @@ class QuizAttempt(DB.Model):
     # revised --> start / end
 
     # store students answers to all questions
+    # FIXME instead of JSON lists of IDs we should have used a proper relational model
     initial_responses = DB.Column(DB.String, default="{}") # as json list of distractor_ID or -1 for answer
     revised_responses = DB.Column(DB.String, default="{}") # as json list of distractor_ID or -1 for answer
 
@@ -286,6 +287,7 @@ class QuizAttempt(DB.Model):
 
     # justifications to each possible answer
     justifications = DB.Column(DB.String, default="{}") # json list of text entries
+    # FIXME are we using this or Justification objects?! see below selected_justifications
 
     # score
     initial_scores = DB.Column(DB.String, default="") # as json list of -1 / distractor ID
@@ -304,6 +306,7 @@ class QuizAttempt(DB.Model):
     def get_min_participation_grade_threshold(self):
         return math.floor(0.8 * self.participation_grade_threshold)
 
+    #FIXME check if the following is affected by TODO #3 at all 
     def dump_as_dict(self):
         return {    "id" : self.id,
                     "quiz_id" : self.quiz_id,
@@ -348,7 +351,6 @@ class User(UserMixin, DB.Model):
     password = DB.Column(DB.String)
     role = DB.Column(DB.String, default=ROLE_STUDENT)
     # NOTE for now the roles that are handled are STUDENT (default), INSTRUCTOR, ADMIN
-    # TODO might want to make this a foreign key to a table of roles
     
     # Each user may have authored several quizzes
     quizzes = DB.relationship('Quiz', backref='author', lazy=True)
@@ -405,6 +407,8 @@ class User(UserMixin, DB.Model):
     def get_email(self):
         return self.email
 
+    # again, is this affected by TODO #3 at all?
+    # nope, none of these fields are input via WYSIWIG editor
     def dump_as_dict(self):
         return {    "id" : self.id,
                     "email" : self.email,
@@ -436,6 +440,7 @@ class Justification(DB.Model):
     likes = DB.relationship('Likes4Justifications', backref='justification', lazy='dynamic')
     seen = DB.Column(DB.Integer, nullable = False, default = 0)
 
+    #FIXME is justification affected by TODO #3 at all?
     def dump_as_dict(self):
         return {    "id" : self.id,
                     "quiz_question_id" : self.quiz_question_id,
