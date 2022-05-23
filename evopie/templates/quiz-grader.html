@@ -48,8 +48,9 @@
 
             createWeightSlider(qid, "#sliderTest", weights, updateTable)
             
-            table = $('#gradingtable').DataTable({conditionalPaging: true}); //{ paging: false});
-        
+            table = $('#gradingtable').DataTable(
+                {conditionalPaging: true}); //{ paging: false});
+
             document.querySelector('#limiting_factor').addEventListener('change', onSettingChange(qid, "limiting_factor", false))
 
             document.querySelector('#first_quartile_grade').addEventListener('change', onSettingChange(qid, "first_quartile_grade", updateTable))
@@ -211,7 +212,7 @@
             <td class='text-start align-top'>{{s.last_name | safe}}</td>
             <td class='text-start align-top'>{{s.first_name | safe}}</td>
             <td class='text-start align-top'>{{s.email | safe}}</td>
-            <td>
+            <td data-order="{{s.initial_total_score}}">
                 {%- if s.initial_total_score is none -%}
                 N/A
                 {% else %}
@@ -254,7 +255,7 @@
                 </div>
                 {% endif %}
             </td>
-            <td>
+            <td data-order="{{s.revised_total_score}}">
                 {%- if s.revised_total_score is none -%}
                 N/A
                 {% else %}                
@@ -297,7 +298,7 @@
                 </div>
                 {% endif %}
             </td>
-            <td>
+            <td data-order="{{s.justification_score}}">
                 {%- if s.justification_score is none -%}
                 N/A
                 {% else %}
@@ -363,7 +364,7 @@
                 </div>
                 {% endif %}
             </td>
-            <td>
+            <td data-order="{{s.min_participation_grade_threshold}}">
                 {%- if s.likes_given is none -%}
                 N/A
                 {% else %} 
@@ -375,7 +376,7 @@
                     {% endif %}                                
                 {% endif %}
             </td>
-            <td>
+            <td data-order="{{s.likes_given_count}}">
                 {%- if s.likes_given is none -%}
                 N/A 
                 {% else %}                
@@ -432,7 +433,7 @@
                     </div>
                 {% endif %}
             </td>
-            <td>
+            <td data-order="{{s.likes_received_count }}">
                 {%- if s.likes_received is none -%}
                 N/A
                 {% else %}                
@@ -493,13 +494,13 @@
                     </div>
                 {% endif %}
             </td>
-            <td>
+            <td data-order="{{s.total_score | round(1) }}">
                 <button id="total_score-{{s.id}}" type="button" class="btn btn-primary btn-sm" data-toggle="modal"
                 data-target=".TG-TOTAL-{{s.id}}">
                 {{s.total_score | round(1) }} / {{s.max_total_score | round(1)}}
                 </button>
             </td>
-            <td>
+            <td data-order="{{(s.total_score * 100 / s.max_total_score) | round(0) | int }}">
                 <button id="final_percentage-{{s.id}}" type="button" class="btn btn-primary btn-sm" data-toggle="modal"
                 data-target=".TG-FINAL-{{s.id}}">
                 {{(s.total_score * 100 / s.max_total_score) | round(0) | int }}%
