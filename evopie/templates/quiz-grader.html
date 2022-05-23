@@ -48,8 +48,17 @@
 
             createWeightSlider(qid, "#sliderTest", weights, updateTable)
             
-            table = $('#gradingtable').DataTable({conditionalPaging: true}); //{ paging: false});
-        
+            table = $('#gradingtable').DataTable(
+                {conditionalPaging: true},
+                "columnDefs": [
+                {
+                    "targets": [3, 4, 5, 7, 8, 9, 10],    // I hate that we have to specify the columns by index (very brittle)
+                    "type": "html-num" 
+                }
+            ]
+                
+            ); //{ paging: false});
+
             document.querySelector('#limiting_factor').addEventListener('change', onSettingChange(qid, "limiting_factor", false))
 
             document.querySelector('#first_quartile_grade').addEventListener('change', onSettingChange(qid, "first_quartile_grade", updateTable))
