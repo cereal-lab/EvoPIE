@@ -23,6 +23,7 @@ from random import shuffle
 from evopie.utils import role_required, retry_concurrent_update, find_median
 
 from .config import ROLE_INSTRUCTOR, ROLE_STUDENT, get_k_tournament_size, get_least_seen_slots_num
+from .utils import unescape
 
 import json, random, ast, re
 import numpy as np
@@ -42,7 +43,6 @@ matplotlib.rcParams['ps.fonttype'] = 42
 pages = Blueprint('pages', __name__)
 
 def checkToContinue(str1, index):
-
     if str1[index + 1] == ' ' and str1[index + 2] == '"' and str1[index - 1] == '"' and str1[index - 2].isdigit():
         return True
     return False
@@ -106,12 +106,11 @@ def questions_browser():
     # working on getting rid of the dump_as_dict and instead using Markup(...).unescape when appropriate
     # all_questions = [q.dump_as_dict() for q in models.Question.query.all()]
     all_questions = models.Question.query.all()
-    #TODO #3 Refactor Markup(...).unescape()
-    # NOTE this particular one works without doing the following pass on the data, probably bc it's using only the titles in the list
+    # NOTE TODO #3 this particular one works without doing the following pass on the data, probably bc it's using only the titles in the list
     for q in all_questions:
-        q.title = Markup(q.title).unescape()
-        q.stem = Markup(q.stem).unescape()
-        q.answer = Markup(q.answer).unescape()
+        q.title = unescape(q.title)
+        q.stem = unescape(q.stem)
+        q.answer = unescape(q.answer)
     return render_template('questions-browser.html', all_questions = all_questions)
     # version with pagination below
     #page = request.args.get('page',1, type=int)
@@ -160,12 +159,12 @@ def question_editor(question_id):
     # TODO #3 we replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
     #ds = [d.dump_as_dict() for d in q.distractors]
     #q = q.dump_as_dict()
-    q.title = Markup(q.title).unescape()
-    q.stem = Markup(q.stem).unescape()
-    q.answer = Markup(q.answer).unescape()
+    q.title = unescape(q.title)
+    q.stem = unescape(q.stem)
+    q.answer = unescape(q.answer)
     for d in q.distractors:
-        d.answer = Markup(d.answer).unescape()
-        d.justification = Markup(d.justification).unescape()
+        d.answer = unescape(d.answer)
+        d.justification = unescape(d.justification)
     #return render_template('question-editor.html', all_distractors = ds, question = q)
     return render_template('question-editor.html', all_distractors = q.distractors, question = q)
     
@@ -205,10 +204,9 @@ def quiz_question_editor(quiz_id,quiz_question_id):
         q = models.Question.query.get_or_404(qq.question_id)
         # NOTE we assume that the QuizQuestion already belong to this quiz
         # FIXME we should really ensure that it's the case
-        # TODO #3 Refactor Markup(...).unescape()
         for d in qq.distractors:
-            d.answer = Markup(d.answer).unescape()
-            d.justification = Markup(d.justification).unescape()
+            d.answer = unescape(d.answer)
+            d.justification = unescape(d.justification)
             
     # now edit the QuizQuestion
     #return redirect("/question-editor/" + str(q.id), code=302)
@@ -225,10 +223,9 @@ def quiz_question_selector_1(quiz_id):
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
     questions = models.Question.query.all()
-    # TODO #3 unescaping so that the stem and answer are rendered in jinja2 template with | safe
     for q in questions:
-        q.stem = Markup(q.stem).unescape()
-        q.answer = Markup(q.answer).unescape()
+        q.stem = unescape(q.stem)
+        q.answer = unescape(q.answer)
     return render_template('quiz-question-selector-1.html', quiz_id = quiz_id, available_questions = questions)
 
 
@@ -243,12 +240,11 @@ def quiz_question_selector_2(quiz_id, question_id):
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
     question = models.Question.query.get_or_404(question_id)
-    # TODO #3 unescaping so that the stem and answer are rendered in jinja2 template with | safe
-    question.stem = Markup(question.stem).unescape()
-    question.answer = Markup(question.answer).unescape()
+    question.stem = unescape(question.stem)
+    question.answer = unescape(question.answer)
     for d in question.distractors:
-        d.answer = Markup(d.answer).unescape()
-        d.justification = Markup(d.justification).unescape()
+        d.answer = unescape(d.answer)
+        d.justification = unescape(d.justification)
     
 
     return render_template('quiz-question-selector-2.html', quiz_id=quiz_id, question=question)
@@ -300,15 +296,14 @@ def quiz_editor(quiz_id):
     # TODO #3 we replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
     #q = q.dump_as_dict()
     for qq in q.quiz_questions:
-        qq.question.title = Markup(qq.question.title).unescape()
-        qq.question.stem = Markup(qq.question.stem).unescape()
-        qq.question.answer = Markup(qq.question.answer).unescape()
+        qq.question.title = unescape(qq.question.title)
+        qq.question.stem = unescape(qq.question.stem)
+        qq.question.answer = unescape(qq.question.answer)
         # NOTE we do not have to worry about unescaping the distractors because the quiz-editor 
         # does not render them. However, if we had to do so, remember that we need to add to 
         # each QuizQuestion a field named alternatives that has the answer + distractors unescaped.
     if q.status != "HIDDEN":
         flash("Quiz not editable at this time", "error")
-        #return redirect(url_for('pages.index'))
         return redirect(request.referrer)
     numJustificationsOptions = [num for num in range(1, 11)]
     limitingFactorOptions = [num for num in range(1, 100)]
@@ -569,10 +564,11 @@ def get_student(qid):
     '''
     q = models.Quiz.query.get_or_404(qid)
 
-    # we replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
+    # TODO #3 we replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
     # see lines commented out a ## for originals
     ##quiz_questions = [question.dump_as_dict() for question in q.quiz_questions]
     quiz_questions = q.quiz_questions
+    # FIXME why are we not unescaping above?
 
     # BUG we had to simplify the questions to avoid an escaping problem
     simplified_quiz_questions = [question.dump_as_simplified_dict() for question in q.quiz_questions]    
@@ -581,25 +577,24 @@ def get_student(qid):
     
     ##for qq in quiz_questions:
     ##    for altern in qq["alternatives"]:
-    ##        # experimenting, this works: tmp = jinja2.Markup(quiz_questions[0]["alternatives"][0][1]).unescape()
-    ##        altern[1] = jinja2.Markup(altern[1]).unescape()
+    ##        # experimenting, this works: tmp = unescape(quiz_questions[0]["alternatives"][0][1])
+    ##        altern[1] = unescape(altern[1])
     ##        # nope... altern[1] = jinja2.Markup.escape(altern[1])
-    # TODO #3 
     for qq in quiz_questions:
-        qq.question.title = Markup(qq.question.title).unescape()
-        qq.question.stem = Markup(qq.question.stem).unescape()
-        qq.question.answer = Markup(qq.question.answer).unescape()
+        qq.question.title = unescape(qq.question.title)
+        qq.question.stem = unescape(qq.question.stem)
+        qq.question.answer = unescape(qq.question.answer)
         for d in qq.distractors:
-            d.answer = Markup(d.answer).unescape()
+            d.answer = unescape(d.answer)
         # Preparing the list of alternatives for this question (these are the distractors + answer being displayed in the template)
         # This comes straight from models.py dump_as_dict for QuizQuestion
         tmp1 = [] # list of distractors IDs, -1 for right answer
         tmp2 = [] # list of alternatives, including the right answer
         tmp1.append(-1)
-        tmp2.append(Markup(qq.question.answer).unescape())
+        tmp2.append(unescape(qq.question.answer))
         for d in qq.distractors:
-            tmp1.append(Markup(d.id).unescape()) # FIXME not necessary
-            tmp2.append(Markup(d.answer).unescape())
+            tmp1.append(unescape(d.id)) # FIXME not necessary
+            tmp2.append(unescape(d.answer))
         qq.alternatives = [list(tup) for tup in zip(tmp1,tmp2)]
         shuffle(qq.alternatives)
         # now, each QuizQuestion has an additional field "alternatives"
@@ -628,7 +623,7 @@ def get_student(qid):
     expl = { -1 : "This is the correct answer for this question"}
     for quiz_question in q.quiz_questions:
         for distractor in quiz_question.distractors:
-            expl[distractor.id] = Markup(distractor.justification).unescape()
+            expl[distractor.id] = unescape(distractor.justification)
             
     # Handle different steps
     if a: # step == 2 or SOLUTIONS    
@@ -757,12 +752,12 @@ def get_quiz_statistics(qid):
     quiz_questions = quiz.quiz_questions
     question_ids = set(qu.question_id for qu in quiz_questions)
     plain_questions = models.Question.query.where(models.Question.id.in_(question_ids)).all()
-    questions = {q.id:{**q.dump_as_simplified_dict(), **{attr:Markup(getattr(q, attr)).unescape() 
+    questions = {q.id:{**q.dump_as_simplified_dict(), **{attr:unescape(getattr(q, attr)) 
                                                             for attr in ["stem", "answer", "title"]} } 
                     for q in plain_questions}
 
     plain_distractors = models.Distractor.query.where(models.Distractor.question_id.in_(question_ids)).all()
-    distractors = { qid : {d.id : Markup(d.answer).unescape() for d in ds} 
+    distractors = { qid : {d.id : unescape(d.answer) for d in ds} 
                     for (qid, ds) in groupby(plain_distractors, key = lambda d: d.question_id) } 
 
     plain_attempts = models.QuizAttempt.query.where(models.QuizAttempt.quiz_id == qid).all()
@@ -862,7 +857,7 @@ def get_quiz_statistics(qid):
                         "max_total_score": max_student_score,
                         "initial_responses": {int(k):v for k, v in json.loads(a.initial_responses.replace("'", '"')).items()},
                         "revised_responses": {int(k):v for k, v in json.loads(a.revised_responses.replace("'", '"')).items()},
-                        "justifications": ast.literal_eval(Markup(a.justifications).unescape().replace("\\n", "a").replace('\\"', '\"')),
+                        "justifications": ast.literal_eval(unescape(a.justifications).replace("\\n", "a").replace('\\"', '\"')),
                         "total_percent": (None if student_score is None or max_student_score is None else round(student_score * 100 / max_student_score, 1))}
                         for s in plain_students 
                         if s.id in attempts_map 

@@ -20,7 +20,7 @@ def sanitize(html):
 
 
 # All TODO #3 issue from models.py are factored in the function below
-# 
+# unescaping so that the stem and answer are rendered in jinja2 template with | safe
 from jinja2 import Markup
 def unescape(str):
     return Markup(str).unescape()
