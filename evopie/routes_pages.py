@@ -27,7 +27,6 @@ from .utils import unescape
 
 import json, random, ast, re
 import numpy as np
-CLEANR = re.compile('<.*?>') 
 
 from . import DB, models
 
@@ -41,11 +40,6 @@ matplotlib.rcParams['ps.fonttype'] = 42
 
 
 pages = Blueprint('pages', __name__)
-
-def checkToContinue(str1, index):
-    if str1[index + 1] == ' ' and str1[index + 2] == '"' and str1[index - 1] == '"' and str1[index - 2].isdigit():
-        return True
-    return False
 
 def replaceModified(str):
     str1 = list(str)
@@ -72,15 +66,6 @@ def replaceModified(str):
             str1[j] = "\""
     str = ''.join(str1)
     return str
-    # openColons = [m.start() for m in re.finditer(':', str)]
-    # for i in range(len(openColons)):
-    #     index = openColons[i]
-    #     if checkToContinue(str1, index):
-    #         j = index + 3
-    #         while j < openColons[i + 1] - 7:
-    #             if str1[j] == '"':
-    #                 str1[j] = "'"
-    # return ''.join(str1)
 
 class QuizAttempt:
     justifications = {}
