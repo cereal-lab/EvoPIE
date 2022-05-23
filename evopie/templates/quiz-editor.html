@@ -47,14 +47,6 @@
 
     function submitQuizForm(event){
         // This method only updates an existing quiz' title & description
-        if (checkSum()) {
-            changeInitialScoreWeight();
-            changeRevisedScoreWeight();
-            changeJustificationGradeWeight();
-            changeParticipationGradeWeight();
-        } else {
-            sendToFlashLand("The percentages don't add up to 100%","danger");
-        }
 
         let result = document.querySelector('#quiz_result');
         let title = document.querySelector('#quiz_title');

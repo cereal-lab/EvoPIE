@@ -914,7 +914,7 @@ def changeLimitingFactor(qid):
 @mcq.route('/grades/<int:qid>/settings', methods=['POST'])
 @login_required
 @role_required(role=ROLE_INSTRUCTOR)
-def changeGradeWeights(qid):
+def post_grading_settings(qid):
     q = models.Quiz.query.get_or_404(qid)        
     if request.is_json:
         if 'initial_score' in request.json:
