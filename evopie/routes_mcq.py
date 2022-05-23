@@ -9,20 +9,15 @@ from flask_login import login_required, current_user
 from flask import Markup
 from flask import flash
 from random import shuffle
-import json
-import bleach
 from bleach_allowlist import generally_xss_safe, print_attrs, standard_styles
 from werkzeug.security import generate_password_hash
 from evopie.config import ROLE_INSTRUCTOR
 
-from evopie.utils import role_required
+from evopie.utils import role_required, sanitize
 
 from . import models
 
-# helper method to use instead of directly calling bleach.clean
-def sanitize(html):
-    result = bleach.clean(html, tags=generally_xss_safe, attributes=print_attrs, styles=standard_styles)
-    return result
+
 
 mcq = Blueprint('mcq', __name__)
 
@@ -1107,9 +1102,3 @@ def post_user_password(uid):
 
     return redirect(url_for('pages.users_browser'))
 
-def check(qid):
-    q = models.Quiz.query.get_or_404(qid)
-    total = q.initial_score_weight + q.revised_score_weight + q.justification_grade_weight + q.participation_grade_weight
-    if total > 1:
-        return False
-    return True

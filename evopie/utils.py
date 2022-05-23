@@ -9,8 +9,18 @@ from sqlalchemy.orm.exc import StaleDataError
 
 
 
+# helper method to use instead of directly calling bleach.clean
+import json
+import bleach
+from bleach_allowlist import generally_xss_safe, print_attrs, standard_styles
+
+def sanitize(html):
+    result = bleach.clean(html, tags=generally_xss_safe, attributes=print_attrs, styles=standard_styles)
+    return result
+    
+    
 # Defining a custom jinja2 filter to get rid of \"
-# in JSON for student[1|2].html
+# in JSON for student.html
 import jinja2
 
 @APP.template_filter('unescapeDoubleQuotes')
