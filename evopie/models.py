@@ -338,12 +338,10 @@ relation_questions_vs_attempts = DB.Table('relation_questions_vs_attempts',
    DB.Column('quiz_question_id',DB.Integer, DB.ForeignKey('quiz_question.id'),primary_key=True)
 )
 
-
 instructor_student = DB.Table(
     'InstructorStudent',
-    DB.Column('InstructorStudentId', DB.Integer, primary_key=True),
-    DB.Column('InstructorId', DB.Integer, DB.ForeignKey('User.id')),
-    DB.Column('StudentId', DB.Integer, DB.ForeignKey('User.id'))
+    DB.Column('InstructorId', DB.Integer, DB.ForeignKey('user.id'), primary_key=True),
+    DB.Column('StudentId', DB.Integer, DB.ForeignKey('user.id'), primary_key=True)
 );
 
 class User(UserMixin, DB.Model):
