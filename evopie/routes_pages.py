@@ -963,3 +963,11 @@ def quiz_grader(qid):
                 # justification_grade = stats.justification_scores, total_scores = stats.total_scores, 
                 # max_total_scores = stats.max_total_scores
                 )
+
+@pages.route('/student-list', methods=['GET'])
+@login_required
+@role_required(ROLE_INSTRUCTOR)
+def student_list():
+    print(f'In student_list, current_user: {current_user}, get_id: {current_user.get_id()}')
+    instructor = models.User.query.get_or_404(current_user.get_id())
+    return render_template('student-list.html', students=instructor.students)
