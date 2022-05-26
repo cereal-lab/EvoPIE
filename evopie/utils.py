@@ -53,6 +53,37 @@ def DB_reboot():
 
 
 
+# Invoke with flask DB-multi-instr
+# First run flask DB-reboot
+# adds sample data to be used for testing multi-instr support
+
+@APP.cli.command("DB-multi-instr")
+def DB_multi_instr():
+    from subprocess import check_output
+    import os
+    script_path = os.path.abspath('./testing/MultiInstr')
+    stdout = check_output([os.path.join(script_path, 'setup.sh')], 
+                          cwd=script_path).decode('utf-8')
+    print(stdout)
+    i1, i2, *students = models.User.query.all()
+    print(f'Adding students to instructor 1: {i1}')
+    for student in students[::2]:
+        print(f'\tAdding {student}')
+        i1.students.append(student)
+
+    print(f'Adding students to instructor 2: {i2}')
+    for student in students[1::2]:
+        print(f'\tAdding {student}')
+        i2.students.append(student)
+
+    print(f'\tAdding {students[-1]}')
+    i2.students.append(students[-1])
+    
+    models.DB.session.commit()
+
+
+
+    
 # Invoke with flask DB-populate
 # Empties the table and insert some testing data in the DB.
 # Consider using scripts/TestDB_[setup|step1|step2].sh 
