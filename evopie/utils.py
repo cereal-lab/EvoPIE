@@ -43,6 +43,9 @@ def DB_init():
     models.DB.create_all()
 
 
+@APP.cli.command("p-phc")
+def start_p_phc():
+    pass
 
 # Invoke with flask DB-reboot
 # Tear down the data base and rebuild an empty one.

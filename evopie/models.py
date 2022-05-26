@@ -5,6 +5,7 @@ from email.policy import default
 import math
 from random import shuffle # to shuffle lists
 from flask_login import UserMixin
+from sqlalchemy import ForeignKey
 from evopie import DB
 from .config import ROLE_INSTRUCTOR, ROLE_STUDENT, ROLE_ADMIN
 from .utils import unescape
@@ -181,7 +182,6 @@ relation_questions_vs_quizzes = DB.Table('relation_questions_vs_quizzes',
 )
 
 
-
 class Quiz(DB.Model):
     '''
     A Quiz object is a collection of QuizQuestion objects to be presented as a complete quiz
@@ -199,6 +199,9 @@ class Quiz(DB.Model):
 
     # Each quiz has many QuizAttempts
     quiz_attempts = DB.relationship('QuizAttempt', backref='quiz', lazy=True)
+
+    #Each quiz could have several evo processes 
+    quiz_processes = DB.relationship('EvoProcess', backref='quiz', lazy=True)
 
     title = DB.Column(DB.String)
     description = DB.Column(DB.String)
@@ -449,3 +452,53 @@ class Justification(DB.Model):
                     "justification" : self.justification,
                     "seen" : self.seen,
                 }    
+
+class EvoProcess(DB.Model):
+    '''
+    Defines major settings of evo process, check columns 
+    '''
+    id = DB.Column(DB.Integer, primary_key=True)    
+    quiz_id = DB.Column(DB.Integer, DB.ForeignKey('quiz.id'))
+    start_timestamp = DB.Column(DB.DateTime, nullable=False)
+    touch_timestamp = DB.Column(DB.DateTime, nullable=False)
+    end_timestamp = DB.Column(DB.DateTime) #null for active process
+    init = DB.Column(DB.String, nullable=False) # name of init strategy inside evo module! 
+    mutate = DB.Column(DB.String, nullable=False) # name of mutate strategy inside evo module! 
+    select = DB.Column(DB.String, nullable=False) # name of select strategy inside evo module! 
+    update_score = DB.Column(DB.String, nullable=False) # name of update_score strategy inside evo module! 
+    pop_size = DB.Column(DB.Integer, nullable=False)    
+    pareto_n = DB.Column(DB.Integer) #NOTE: this is very specific param - we can dedicate json column for this 
+    gen = DB.Column(DB.Integer, nullable=False)
+
+    updates = DB.relationship('EvoProcessUpdate', backref='process', lazy=True)
+
+    interactions = DB.relationship('EvoProcessInteractions', backref='process', lazy=True)
+
+    __mapper_args__ = {
+        "version_id_col": touch_timestamp
+    }    
+
+    #TODO: dump_as_dict for view model
+
+class EvoProcessInteractions(DB.Model):
+    '''
+    Preserves evo process state, interaction matrix between students and quizes  
+    '''
+    id = DB.Column(DB.Integer, DB.ForeignKey('evo_process.id'), primary_key=True) #TODO: 
+    cs_id = DB.Column(DB.String, primary_key=True) #candidate solution id, index in DataFrame
+    ind = DB.Column(DB.String, nullable=False)
+    first_gen = DB.Column(DB.Integer, nullable=False)
+    last_gen = DB.Column(DB.Integer, nullable=False)
+    parent = DB.Column(DB.String, DB.ForeignKey('evo_process_interactions.cs_id'), nullable=False)
+    objectives = DB.Column(DB.String) #current set of active objectives for pareto 
+    evaluations = DB.Column(DB.String, nullable=False) #dict with all evaluations 
+
+class EvoProcessUpdate(DB.Model):
+    '''
+    If it happen that at evo process runtime we decide to change params but keep interactions, this table record this 
+    '''
+    id = DB.Column(DB.Integer, DB.ForeignKey('evo_process.id'), primary_key = True)    
+    timestamp = DB.Column(DB.DateTime, primary_key = True)
+    prop_name = DB.Column(DB.String, primary_key = True)
+    from_value = DB.Column(DB.String, nullable = False)
+    to_value = DB.Column(DB.String, nullable = False)

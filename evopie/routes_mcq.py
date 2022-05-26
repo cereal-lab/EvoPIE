@@ -12,6 +12,7 @@ from random import shuffle
 from bleach_allowlist import generally_xss_safe, print_attrs, standard_styles
 from werkzeug.security import generate_password_hash
 from evopie.config import ROLE_INSTRUCTOR
+from evopie.evo import get_evo, start_default_p_phc
 
 from evopie.utils import role_required, sanitize
 
@@ -665,40 +666,25 @@ def put_quizzes(qid):
 
 @mcq.route('/quizzes/<int:qid>/status', methods=['GET'])
 @login_required
+@role_required(role=ROLE_INSTRUCTOR)
 def get_quizzes_status(qid):
     '''
     Returns the status of a given quiz
     '''
-    if not current_user.is_instructor():
-        response     = ({ "message" : "You are not allowed to get quiz status" }, 403, {"Content-Type": "application/json"})
-        return make_response(response)
-
     quiz = models.Quiz.query.get_or_404(qid)
-
-    if not request.json:
-        abort(406, "JSON format required for request") # not acceptable
-
-    response     = (f'{{ "status" : {quiz.status} }}', 403, {"Content-Type": "application/json"})
-    return make_response(response)
-
-
+    return jsonify({"status": quiz.status})
 
 @mcq.route('/quizzes/<int:qid>/status', methods=['POST'])
 @login_required
+@role_required(role=ROLE_INSTRUCTOR)
 def post_quizzes_status(qid):
     '''
     Modifies the status of given quiz
     '''
-    if not current_user.is_instructor():
-        if request.json:
-            response     = ({ "message" : "You are not allowed to get quiz status" }, 403, {"Content-Type": "application/json"})
-            return make_response(response)
-        else:
-            flash("You are not allowed to get quiz status", "postError")
 
     quiz = models.Quiz.query.get_or_404(qid)
 
-    if not request.json:
+    if not request.is_json:
         abort(406, "JSON format required for request") # not acceptable
     new_status = sanitize(request.json['status'])
     # FIXED how about check that the status is actually valid, eh? :)'
@@ -706,6 +692,14 @@ def post_quizzes_status(qid):
     if(quiz.set_status(new_status)):
         response     = ({ "message" : "OK" }, 200, {"Content-Type": "application/json"})
         models.DB.session.commit()
+        # if quiz.status == "STEP1": 
+        #     #starting evo process for quiz 
+        #     start_default_p_phc(quiz)
+        # else: 
+        #     #ending evo process for quiz 
+        #     evo = get_evo(quiz.id)
+        #     if evo is not None: 
+        #         evo.stop()
     else:
         response     = ({ "message" : "Unable to switch to new status" }, 400, {"Content-Type": "application/json"})
     return make_response(response)
@@ -837,6 +831,13 @@ def all_quizzes_take(qid):
                     models.DB.session.add(just)
             models.DB.session.add(attempt)
             models.DB.session.commit()
+
+            evo = get_evo(quiz.id)
+            if evo is not None: 
+                indexed_answers = [(int(q_id), answer) for q_id, answer in initial_responses_dict.items()]
+                indexed_answers.sort(key = lambda x: x[0]) #order by questions
+                _, answers = tuple(zip(*indexed_answers))
+                evo.set_evaluation({"student_id": sid, "result": answers })
 
             response     = ({ "message" : "Quiz attempt recorded in database" }, 200, {"Content-Type": "application/json"})
             # NOTE see previous note about using 204 vs 200
