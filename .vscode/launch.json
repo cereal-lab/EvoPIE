@@ -19,8 +19,7 @@
                 "--host",
                 //"0.0.0.0",
                 "127.0.0.1",
-                "--no-debugger",
-                "--no-reload"
+                "--no-debugger"
             ],
             "jinja" : true
             //"program": "app.py",
