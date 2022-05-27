@@ -65,7 +65,8 @@ def DB_multi_instr():
     stdout = check_output([os.path.join(script_path, 'setup.sh')], 
                           cwd=script_path).decode('utf-8')
     print(stdout)
-    i1, i2, *students = models.User.query.all()
+    # i1, i2, *students = models.User.query.all()
+    i2 = models.User.query.filter_by(email='instructor2@usf.edu').first()
     i2.set_role(models.ROLE_INSTRUCTOR)
     # print(f'Adding students to instructor 1: {i1}')
     # for student in students[::2]:
