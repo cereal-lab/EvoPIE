@@ -42,8 +42,7 @@
                     <th>Last Name</th>
                     <th>First Name</th>
                     <th>Email</th>
-                    <th>Role</th>
-                    <th>Actions</th>
+                    <th>Remove from roster</th>
                 </tr></thead>
                 <tbody>
                     {% for user in students %}
@@ -51,42 +50,8 @@
                         <td class="text-start">{{user.last_name}}</td>
                         <td class="text-start">{{user.first_name}}</td>
                         <td class="text-start">{{user.email}}</td>
-                        <td class="">
-                            <!-- role selector -->
-                            <select id="role{{user.id}}">
-                                <option value="STUDENT"     {% if user.role == 'STUDENT' %} selected {% endif %}>      Student</option>
-                                <option value="INSTRUCTOR"  {% if user.role == 'INSTRUCTOR' %} selected {% endif %}>   Instructor</option>
-                                <option value="ADMIN"       {% if user.role == 'ADMIN' %} selected {% endif %}>        Admin</option>
-                            </select>
-                            <script>
-                                document.querySelector('#role{{user.id}}').addEventListener('change',function(){
-                                    let target_url = '/users/{{user.id}}/role';
-                                    let e = document.querySelector('#role{{user.id}}');
-                                    let selectedValue = e.options[e.selectedIndex].value;
-                                    fetch(target_url,{
-                                        method:         'POST',
-                                        headers:        {'Content-Type' : 'application/json'},
-                                        body:           JSON.stringify({"role" :  selectedValue}),
-                                        credentials:    'same-origin'
-                                    })
-                                    .then(
-                                    response => {
-                                        if(response.ok){
-                                            sendToFlashLand("User Role Updated","success");
-                                            //window.location.reload();
-                                        }else{
-                                            sendToFlashLand("User Role NOT Updated","danger");
-                                            window.location.reload();
-                                        }
-                                    }
-                                    )
-                                    .catch((error) => {
-                                        sendToFlashLand("There was a problem updating the user's role: " + error,"danger");
-                                    })
-                                });
-                            </script>
-                        </td>
                         <td class="text-right text-end">
+                            <!-- TODO: change to remove from roster -->
                             <!-- password switcher -->
                             <a  data-toggle="modal" data-target=".TG-INI-{{user.id}}">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-key" viewBox="0 0 16 16">
