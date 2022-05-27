@@ -11,7 +11,7 @@ source ../Extensive\ Test/TestLib.sh
 
 header 'SIGNING UP INSTRUCTOR & STUDENT ACCOUNTS, THEN LOGIN AS INSTRUCTOR'
 #FIXME for now, we hardcode that user id 1 is an instructor; so we must sign him up first.
-curlit "signed up instructor #1"    "/signup"           '{ "email": "instructor1@usf.edu",   "password": "pwd", "retype": "pwd","firstname": "Phil",    "lastname": "Ventura" }'
+curlit "signed up instructor #1"    "/signup"           '{ "email": "instructor@usf.edu",   "password": "pwd", "retype": "pwd","firstname": "Phil",    "lastname": "Ventura" }'
 curlit "signed up instructor #2"    "/signup"           '{ "email": "instructor2@usf.edu",   "password": "pwd", "retype": "pwd","firstname": "Alessio", "lastname": "Gaspar" }'
 curlit "signed up student #1"       "/signup"           '{ "email": "student1@usf.edu",     "password": "pwd", "retype": "pwd","firstname": "Anakin",   "lastname": "Skywalker" }'
 curlit "signed up student #2"       "/signup"           '{ "email": "student2@usf.edu",     "password": "pwd", "retype": "pwd","firstname": "Ahsoka",   "lastname": "Tano" }'

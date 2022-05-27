@@ -66,18 +66,19 @@ def DB_multi_instr():
                           cwd=script_path).decode('utf-8')
     print(stdout)
     i1, i2, *students = models.User.query.all()
-    print(f'Adding students to instructor 1: {i1}')
-    for student in students[::2]:
-        print(f'\tAdding {student}')
-        i1.students.append(student)
+    i2.set_role(models.ROLE_INSTRUCTOR)
+    # print(f'Adding students to instructor 1: {i1}')
+    # for student in students[::2]:
+    #     print(f'\tAdding {student}')
+    #     i1.students.append(student)
 
-    print(f'Adding students to instructor 2: {i2}')
-    for student in students[1::2]:
-        print(f'\tAdding {student}')
-        i2.students.append(student)
+    # print(f'Adding students to instructor 2: {i2}')
+    # for student in students[1::2]:
+    #     print(f'\tAdding {student}')
+    #     i2.students.append(student)
 
-    print(f'\tAdding {students[-1]}')
-    i2.students.append(students[-1])
+    # print(f'\tAdding {students[-1]}')
+    # i2.students.append(students[-1])
     
     models.DB.session.commit()
 

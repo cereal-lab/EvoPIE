@@ -969,11 +969,20 @@ def quiz_grader(qid):
 @role_required(ROLE_INSTRUCTOR)
 def student_list():
     # print(f'In student_list, current_user: {current_user}, get_id: {current_user.get_id()}')
+    instructor = models.User.query.get_or_404(current_user.get_id())
     if request.method == 'GET':
-        instructor = models.User.query.get_or_404(current_user.get_id())
         return render_template('student-list.html', students=instructor.students)
     elif request.method == 'POST':
         csvfile = request.files['csvfile']
-        csvstring = csvfile.read()
-        print(csvstring)
+        csvstring = csvfile.read().decode('utf-8')
+        for email in [line.strip() for line in csvstring.splitlines()]:
+            # print(email)
+            # find student in DB
+            student = models.User.query.filter_by(email=email).first()
+            if student is None:  # student not in DB
+                # add new User with empty password (needed as sentinel for when they login)
+                student = models.User(email=email)
+            student.instructors.append(instructor)
+            DB.session.add(student)
+        DB.session.commit()
         return redirect(url_for('pages.student_list'))
