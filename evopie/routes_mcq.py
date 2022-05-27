@@ -546,7 +546,7 @@ def post_new_quiz():
     bleached_title = sanitize(title)
     bleached_description = sanitize(description)
 
-    q = models.Quiz(title=bleached_title, description=bleached_description)
+    q = models.Quiz(title=bleached_title, description=bleached_description, author_id=current_user.get_id())
     
     # Adding the questions, based on the questions_id that were submitted
     if 'questions_ids' in request.json:
