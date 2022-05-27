@@ -66,6 +66,10 @@ def post_signup():
     if( retype != password):
         flash('Passwords do not match')
         return redirect(url_for('auth.get_signup'))
+    
+    if password is None or password == '':
+        flash('Password cannot be blank')
+        return redirect(url_for('auth.get_signup'))
         
     # making sure the user does not already exist
     if models.User.query.filter_by(email=email).first():
