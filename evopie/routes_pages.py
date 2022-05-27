@@ -964,10 +964,16 @@ def quiz_grader(qid):
                 # max_total_scores = stats.max_total_scores
                 )
 
-@pages.route('/student-list', methods=['GET'])
+@pages.route('/student-list', methods=['GET', 'POST'])
 @login_required
 @role_required(ROLE_INSTRUCTOR)
 def student_list():
-    print(f'In student_list, current_user: {current_user}, get_id: {current_user.get_id()}')
-    instructor = models.User.query.get_or_404(current_user.get_id())
-    return render_template('student-list.html', students=instructor.students)
+    # print(f'In student_list, current_user: {current_user}, get_id: {current_user.get_id()}')
+    if request.method == 'GET':
+        instructor = models.User.query.get_or_404(current_user.get_id())
+        return render_template('student-list.html', students=instructor.students)
+    elif request.method == 'POST':
+        csvfile = request.files['csvfile']
+        csvstring = csvfile.read()
+        print(csvstring)
+        return redirect(url_for('pages.student_list'))
