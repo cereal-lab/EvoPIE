@@ -9,6 +9,7 @@ from sqlalchemy import ForeignKey
 from evopie import DB
 from .config import ROLE_INSTRUCTOR, ROLE_STUDENT, ROLE_ADMIN
 from .utils import unescape
+from datetime import datetime
 
 import ast
 
@@ -461,44 +462,67 @@ class EvoProcess(DB.Model):
     quiz_id = DB.Column(DB.Integer, DB.ForeignKey('quiz.id'))
     start_timestamp = DB.Column(DB.DateTime, nullable=False)
     touch_timestamp = DB.Column(DB.DateTime, nullable=False)
-    end_timestamp = DB.Column(DB.DateTime) #null for active process
-    init = DB.Column(DB.String, nullable=False) # name of init strategy inside evo module! 
-    mutate = DB.Column(DB.String, nullable=False) # name of mutate strategy inside evo module! 
-    select = DB.Column(DB.String, nullable=False) # name of select strategy inside evo module! 
-    update_score = DB.Column(DB.String, nullable=False) # name of update_score strategy inside evo module! 
-    pop_size = DB.Column(DB.Integer, nullable=False)    
-    pareto_n = DB.Column(DB.Integer) #NOTE: this is very specific param - we can dedicate json column for this 
-    gen = DB.Column(DB.Integer, nullable=False)
+    status = DB.Column(DB.String, nullable=False) #status 'Active', 'Stopped'
+    impl = DB.Column(DB.String, nullable=False) #name of the class
+    impl_state = DB.Column(DB.String, nullable=False) #class instance running state 
+    population = DB.Column(DB.String, nullable=False) #for steady state use one ind in population
+    objectives = DB.Column(DB.String, nullable=False) #one or more (but all) objectives seen in hronological order
+    # init = DB.Column(DB.String, nullable=False) # name of init strategy inside evo module! 
+    # mutate = DB.Column(DB.String, nullable=False) # name of mutate strategy inside evo module! 
+    # select = DB.Column(DB.String, nullable=False) # name of select strategy inside evo module! 
+    # update_score = DB.Column(DB.String, nullable=False) # name of update_score strategy inside evo module! 
+    # ind_id = DB.Column(DB.String, nullable=False) # name of key func strategy inside evo module! 
+        #NOTE: NEVER change ind_id after evo process started - it could lead to "forgeting" of evaluations from genotype archive EvoProcessInteractions and inability to load population 
+        #NOTE: or at least provide backward compatibility
+    # pop_size = DB.Column(DB.Integer, nullable=False)    
+    # pareto_n = DB.Column(DB.Integer) #NOTE: this is very specific param - we can dedicate json column for this 
+    # gen = DB.Column(DB.Integer, nullable=False)
 
-    updates = DB.relationship('EvoProcessUpdate', backref='process', lazy=True)
+    # population = DB.relationship('EvoProcessPopulation', backref='process', lazy=True) 
 
-    interactions = DB.relationship('EvoProcessInteractions', backref='process', lazy=True)
+    # updates = DB.relationship('EvoProcessUpdate', backref='process', lazy=True)
+
+    archive = DB.relationship('EvoProcessArchive', backref='process', 
+                    lazy=True, cascade="save-update, merge, delete, delete-orphan")
 
     __mapper_args__ = {
-        "version_id_col": touch_timestamp
+        "version_id_col": touch_timestamp,
+        'version_id_generator': lambda version: datetime.now()
     }    
 
-    #TODO: dump_as_dict for view model
-
-class EvoProcessInteractions(DB.Model):
+class EvoProcessArchive(DB.Model):
     '''
     Preserves evo process state, interaction matrix between students and quizes  
     '''
     id = DB.Column(DB.Integer, DB.ForeignKey('evo_process.id'), primary_key=True) #TODO: 
-    cs_id = DB.Column(DB.String, primary_key=True) #candidate solution id, index in DataFrame
-    ind = DB.Column(DB.String, nullable=False)
-    first_gen = DB.Column(DB.Integer, nullable=False)
-    last_gen = DB.Column(DB.Integer, nullable=False)
-    parent = DB.Column(DB.String, DB.ForeignKey('evo_process_interactions.cs_id'), nullable=False)
-    objectives = DB.Column(DB.String) #current set of active objectives for pareto 
-    evaluations = DB.Column(DB.String, nullable=False) #dict with all evaluations 
+    genotype_id = DB.Column(DB.Integer, primary_key=True) #interaction index
+    genotype = DB.Column(DB.String, nullable=False)
+    # first_gen = DB.Column(DB.Integer, nullable=False)
+    # last_gen = DB.Column(DB.Integer, nullable=False)
+    # parent = DB.Column(DB.String, DB.ForeignKey('evo_process_interactions.cs_id'), nullable=False)
+    # objectives = DB.Column(DB.String)
+    objectives = DB.Column(DB.String, nullable=False) #dict with all evaluations 
 
-class EvoProcessUpdate(DB.Model):
-    '''
-    If it happen that at evo process runtime we decide to change params but keep interactions, this table record this 
-    '''
-    id = DB.Column(DB.Integer, DB.ForeignKey('evo_process.id'), primary_key = True)    
-    timestamp = DB.Column(DB.DateTime, primary_key = True)
-    prop_name = DB.Column(DB.String, primary_key = True)
-    from_value = DB.Column(DB.String, nullable = False)
-    to_value = DB.Column(DB.String, nullable = False)
+# class EvoProcessPopulation(DB.Model):
+#     '''
+#     Contains population for evolutionary process
+#     '''
+#     id = DB.Column(DB.Integer, DB.ForeignKey('evo_process.id'), primary_key=True)    
+#     pop_id = DB.Column(DB.Integer, primary_key=True) # as ind happens in population list        
+#     parent_id = DB.Column(DB.Integer, nullable=False)  # id in the pop, could be ForeignKey to self but we do not bother
+#     genotype_id = DB.Column(DB.String, nullable=False)
+#     # int_id = DB.Column(DB.Integer, DB.ForeignKey('evo_process.id'), primary_key=True)    
+
+#     __table_args__ = (DB.ForeignKeyConstraint([id, genotype_id],
+#                             [EvoProcessInteractions.id, EvoProcessInteractions.genotype_id]), )    
+
+
+# class EvoProcessUpdate(DB.Model):
+#     '''
+#     If it happen that at evo process runtime we decide to change params but keep interactions, this table record this 
+#     '''
+#     id = DB.Column(DB.Integer, DB.ForeignKey('evo_process.id'), primary_key = True)    
+#     timestamp = DB.Column(DB.DateTime, primary_key = True)
+#     prop_name = DB.Column(DB.String, primary_key = True)
+#     from_value = DB.Column(DB.String, nullable = False)
+#     to_value = DB.Column(DB.String, nullable = False)

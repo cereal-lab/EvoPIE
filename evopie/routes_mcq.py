@@ -8,11 +8,9 @@ from flask import Blueprint
 from flask_login import login_required, current_user
 from flask import Markup
 from flask import flash
-from random import shuffle
-from bleach_allowlist import generally_xss_safe, print_attrs, standard_styles
 from werkzeug.security import generate_password_hash
 from evopie.config import ROLE_INSTRUCTOR
-from evopie.evo import get_evo, start_default_p_phc
+from evopie.evo import get_evo, start_evo, Evaluation
 
 from evopie.utils import role_required, sanitize
 
@@ -690,16 +688,17 @@ def post_quizzes_status(qid):
     # FIXED how about check that the status is actually valid, eh? :)'
     # done in set_status below
     if(quiz.set_status(new_status)):
-        response     = ({ "message" : "OK" }, 200, {"Content-Type": "application/json"})
+        response     = ({ "message" : "OK" }, 200, {"Content-Type": "application/json"})        
         models.DB.session.commit()
-        # if quiz.status == "STEP1": 
-        #     #starting evo process for quiz 
-        #     start_default_p_phc(quiz)
-        # else: 
-        #     #ending evo process for quiz 
-        #     evo = get_evo(quiz.id)
-        #     if evo is not None: 
-        #         evo.stop()
+        if quiz.status == "STEP1": 
+            #starting evo process for quiz 
+            # start_default_p_phc(quiz)
+            start_evo(quiz.id)
+        else: 
+            #ending evo process for quiz 
+            evo = get_evo(quiz.id)
+            if evo is not None: 
+                evo.stop()        
     else:
         response     = ({ "message" : "Unable to switch to new status" }, 400, {"Content-Type": "application/json"})
     return make_response(response)
@@ -834,10 +833,10 @@ def all_quizzes_take(qid):
 
             evo = get_evo(quiz.id)
             if evo is not None: 
-                indexed_answers = [(int(q_id), answer) for q_id, answer in initial_responses_dict.items()]
+                indexed_answers = [(int(q_id), int(answer)) for q_id, answer in initial_responses_dict.items()]
                 indexed_answers.sort(key = lambda x: x[0]) #order by questions
                 _, answers = tuple(zip(*indexed_answers))
-                evo.set_evaluation({"student_id": sid, "result": answers })
+                evo.set_evaluation(Evaluation(evaluator_id=sid, result=answers))
 
             response     = ({ "message" : "Quiz attempt recorded in database" }, 200, {"Content-Type": "application/json"})
             # NOTE see previous note about using 204 vs 200

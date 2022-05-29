@@ -4,11 +4,20 @@ For instructor parameters, check models.py and Quiz table
 '''
 
 #system roles
+
 ROLE_STUDENT = "STUDENT"
 ROLE_INSTRUCTOR = "INSTRUCTOR"
 ROLE_ADMIN = "ADMIN"
 # ROLE_RESEARCHER = "RESEARCHER"
 
+EVO_PROCESS_STATUS_ACTIVE = 'Active'
+EVO_PROCESS_STATUS_STOPPED = 'Stopped'
+p_phc_settings = { "pop_size": 1, "pareto_n": 2, "gene_size": 3, "mut_prob": 0.25}
+# distractor_selection_process, distractor_selecton_settings = (None, {}) #NOTE: use this for default behavior without evo process
+distractor_selection_process, distractor_selecton_settings = ("Default_P_PHC", p_phc_settings)
+
+#-------------------------------------------------------
+#-- Justification selection parameteres
 
 #tournament params
 k_tournament_percent = 10

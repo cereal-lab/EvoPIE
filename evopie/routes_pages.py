@@ -556,7 +556,7 @@ def get_student(qid):
     # FIXME why are we not unescaping above?
 
     # BUG we had to simplify the questions to avoid an escaping problem
-    simplified_quiz_questions = [question.dump_as_simplified_dict() for question in q.quiz_questions]    
+    # simplified_quiz_questions = [question.dump_as_simplified_dict() for question in q.quiz_questions]    
     # PBM - the alternatives for questions show unescaped when taking the quiz
     # SOL - need to unescape them before to pass them to the template
     
@@ -581,7 +581,8 @@ def get_student(qid):
         questions_with_distractors = zip(quiz_questions, selected_distractors)
 
     #unescaping part - left for backward compatibility for now
-    question_model = [  { "alternatives": sorted([(-1, unescape(qq.question.answer)), *[ (d.id, unescape(d.answer)) for d in distractors]], key=lambda x: random.random()),
+    question_model = [  { "id": qq.id, 
+                            "alternatives": sorted([(-1, unescape(qq.question.answer)), *[ (d.id, unescape(d.answer)) for d in distractors]], key=lambda x: random.random()),
                             **{attr:unescape(getattr(qq.question, attr)) for attr in [ "title", "stem", "answer" ]}}
                         for (qq, distractors) in questions_with_distractors ]
     
@@ -689,13 +690,13 @@ def get_student(qid):
         .first()))
             
         # quiz_questions = q.dump_as_dict()['quiz_questions']
-        return render_template('student.html', explanations=expl, quiz=q.dump_as_dict(), simplified_questions=simplified_quiz_questions, \
-            questions=question_model, student=current_user, attempt=a.dump_as_dict(), initial_responses=initial_responses, \
+        return render_template('student.html', explanations=expl, quiz=q.dump_as_dict(),
+            questions=question_model, student=current_user, attempt=a.dump_as_dict(), initial_responses=initial_responses, 
             justifications=selected_justification_map, likes_given = likes_given)
 
     else: # step == 1
 
-        return render_template('student.html', explanations=expl, quiz=q.dump_as_dict(), simplified_questions=simplified_quiz_questions, \
+        return render_template('student.html', explanations=expl, quiz=q.dump_as_dict(),
             questions=question_model, student=current_user)
 
 
