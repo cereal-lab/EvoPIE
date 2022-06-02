@@ -14,7 +14,7 @@ EVO_PROCESS_STATUS_ACTIVE = 'Active'
 EVO_PROCESS_STATUS_STOPPED = 'Stopped'
 p_phc_settings = { "pop_size": 1, "pareto_n": 2, "gene_size": 3, "mut_prob": 0.25}
 # distractor_selection_process, distractor_selecton_settings = (None, {}) #NOTE: use this for default behavior without evo process
-distractor_selection_process, distractor_selecton_settings = ("Default_P_PHC", p_phc_settings)
+distractor_selection_process, distractor_selecton_settings = ("P_PHC", p_phc_settings)
 
 #-------------------------------------------------------
 #-- Justification selection parameteres
