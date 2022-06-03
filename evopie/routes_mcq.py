@@ -40,18 +40,11 @@ def get_all_questions():
 
 @mcq.route('/questions', methods=['POST'])
 @login_required
+@role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to create questions")
 def post_new_question():
     '''
     Add a question and its answer to the database.
     '''
-    if not current_user.is_instructor():
-        if request.json:
-            response     = ({ "message" : "You are not allowed to create questions" }, 403, {"Content-Type": "application/json"})
-            return make_response(response)
-        else:
-            flash("You are not allowed to create questions", "postError")
-            return redirect(request.referrer)
-
     if request.json:
         title = request.json['title']
         stem = request.json['stem']
@@ -92,13 +85,10 @@ def post_new_question():
     models.DB.session.commit()
 
     if request.json:
-        response = ({ "message" : "Question & answer added to database" }, 201, {"Content-Type": "application/json"})
-        return make_response(response)
+        return jsonify({ "message" : "Question & answer added to database", "id": q.id }), 201
     else:
         flash("Question successfully added to database.", "shiny")
-        return redirect(request.referrer)
-
-    
+        return redirect(request.referrer)    
 
 @mcq.route('/questions/<int:question_id>', methods=['GET'])
 @login_required
@@ -124,16 +114,13 @@ def get_question(question_id):
 
 @mcq.route('/questions/<int:question_id>', methods=['PUT'])
 @login_required
+@role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to modify questions")
 def put_question(question_id):
     '''
     Update a given question.
     This method may be called by post_new_question if we detect a POST request
     coming from an HTML form that really wanted to send us a PUT.
     '''
-    if not current_user.is_instructor():
-        response     = ({ "message" : "You are not allowed to modify questions" }, 403, {"Content-Type": "application/json"})
-        return make_response(response)
-
     # validation - All of the quizzes containing question_id must be HIDDEN to be able to update
     for quiz in models.Quiz.query.all():
         for qq in quiz.quiz_questions:
@@ -221,19 +208,11 @@ def get_distractors_for_question(question_id):
 
 @mcq.route('/questions/<int:question_id>/distractors', methods=['POST'])
 @login_required
+@role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to create distrators")
 def post_new_distractor_for_question(question_id):
     '''
     Add a distractor to the specified question.
     '''
-    if not current_user.is_instructor():
-        if request.json:
-            response     = ({ "message" : "You are not allowed to create distrators" }, 403, {"Content-Type": "application/json"})
-            return make_response(response)
-        else:
-            flash("You are not allowed to create distrators", "postError")
-            return redirect(request.referrer)
-
-
     # validation - All of the quizzes containing question_id must be HIDDEN to be able to add distractor
     # FIXED - not true, the quizzes refer to QuizQuestions which, when added to a Quiz, are characterised
     # by a selection of the available Distractors for their corresponding Question. 
@@ -267,17 +246,15 @@ def post_new_distractor_for_question(question_id):
     escaped_justification = Markup.escape(justification)
     escaped_justification = sanitize(escaped_justification)
 
-    q.distractors.append(models.Distractor(answer=escaped_answer,justification=escaped_justification,question_id=q.id))
+    new_distractor = models.Distractor(answer=escaped_answer,justification=escaped_justification,question_id=q.id)
+    q.distractors.append(new_distractor)
     models.DB.session.commit()
     
-    if request.json:
-        response = ({ "message" : "Distractor added to Question in database" }, 201, {"Content-Type": "application/json"})
-        return make_response(response)
+    if request.is_json:
+        return jsonify({ "message" : "Distractor added to Question in database", "id": new_distractor.id }), 201
     else:
         flash("Distractor successfully added to database.", "shiny")
         return redirect(request.referrer)
-
-
 
 @mcq.route('/distractors/<int:distractor_id>', methods=['GET'])
 @login_required
@@ -293,11 +270,8 @@ def get_distractor(distractor_id):
 
 @mcq.route('/distractors/<int:distractor_id>', methods=['PUT','POST'])
 @login_required
+@role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to modify distractors")
 def put_distractor(distractor_id):
-    if not current_user.is_instructor():
-        response     = ({ "message" : "You are not allowed to modify distractors" }, 403, {"Content-Type": "application/json"})
-        return make_response(response)
-
     # validation - All of the quizzes containing a question that distractor_id is related to must be HIDDEN to be able to update
     for quiz in models.Quiz.query.all():
         for qq in quiz.quiz_questions:
@@ -520,18 +494,11 @@ def put_quiz_questions(qq_id):
 
 @mcq.route('/quizzes', methods=['POST'])
 @login_required
+@role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to create quizzes")
 def post_new_quiz():
     '''
     Create a new quiz
     '''
-    if not current_user.is_instructor():
-        if request.json:
-            response     = ({ "message" : "You are not allowed to create quizzes" }, 403, {"Content-Type": "application/json"})
-            return make_response(response)
-        else:
-            flash("You are not allowed to create quizzes", "postError")
-            return redirect(request.referrer)
-
     title = request.json['title']
     description = request.json['description']
 
@@ -556,8 +523,7 @@ def post_new_quiz():
     models.DB.session.add(q)
     models.DB.session.commit()
 
-    response = ({ "message" : "Quiz added to database" }, 201, {"Content-Type": "application/json"})
-    return make_response(response)
+    return jsonify({ "message" : "Quiz added to database", "id": q.id }), 201
 
 
 

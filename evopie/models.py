@@ -467,20 +467,6 @@ class EvoProcess(DB.Model):
     impl_state = DB.Column(DB.String, nullable=False) #class instance running state 
     population = DB.Column(DB.String, nullable=False) #for steady state use one ind in population
     objectives = DB.Column(DB.String, nullable=False) #one or more (but all) objectives seen in hronological order
-    # init = DB.Column(DB.String, nullable=False) # name of init strategy inside evo module! 
-    # mutate = DB.Column(DB.String, nullable=False) # name of mutate strategy inside evo module! 
-    # select = DB.Column(DB.String, nullable=False) # name of select strategy inside evo module! 
-    # update_score = DB.Column(DB.String, nullable=False) # name of update_score strategy inside evo module! 
-    # ind_id = DB.Column(DB.String, nullable=False) # name of key func strategy inside evo module! 
-        #NOTE: NEVER change ind_id after evo process started - it could lead to "forgeting" of evaluations from genotype archive EvoProcessInteractions and inability to load population 
-        #NOTE: or at least provide backward compatibility
-    # pop_size = DB.Column(DB.Integer, nullable=False)    
-    # pareto_n = DB.Column(DB.Integer) #NOTE: this is very specific param - we can dedicate json column for this 
-    # gen = DB.Column(DB.Integer, nullable=False)
-
-    # population = DB.relationship('EvoProcessPopulation', backref='process', lazy=True) 
-
-    # updates = DB.relationship('EvoProcessUpdate', backref='process', lazy=True)
 
     archive = DB.relationship('EvoProcessArchive', backref='process', 
                     lazy=True, cascade="save-update, merge, delete, delete-orphan")
@@ -497,32 +483,15 @@ class EvoProcessArchive(DB.Model):
     id = DB.Column(DB.Integer, DB.ForeignKey('evo_process.id'), primary_key=True) #TODO: 
     genotype_id = DB.Column(DB.Integer, primary_key=True) #interaction index
     genotype = DB.Column(DB.String, nullable=False)
-    # first_gen = DB.Column(DB.Integer, nullable=False)
-    # last_gen = DB.Column(DB.Integer, nullable=False)
-    # parent = DB.Column(DB.String, DB.ForeignKey('evo_process_interactions.cs_id'), nullable=False)
-    # objectives = DB.Column(DB.String)
     objectives = DB.Column(DB.String, nullable=False) #dict with all evaluations 
 
-# class EvoProcessPopulation(DB.Model):
-#     '''
-#     Contains population for evolutionary process
-#     '''
-#     id = DB.Column(DB.Integer, DB.ForeignKey('evo_process.id'), primary_key=True)    
-#     pop_id = DB.Column(DB.Integer, primary_key=True) # as ind happens in population list        
-#     parent_id = DB.Column(DB.Integer, nullable=False)  # id in the pop, could be ForeignKey to self but we do not bother
-#     genotype_id = DB.Column(DB.String, nullable=False)
-#     # int_id = DB.Column(DB.Integer, DB.ForeignKey('evo_process.id'), primary_key=True)    
-
-#     __table_args__ = (DB.ForeignKeyConstraint([id, genotype_id],
-#                             [EvoProcessInteractions.id, EvoProcessInteractions.genotype_id]), )    
-
-
-# class EvoProcessUpdate(DB.Model):
-#     '''
-#     If it happen that at evo process runtime we decide to change params but keep interactions, this table record this 
-#     '''
-#     id = DB.Column(DB.Integer, DB.ForeignKey('evo_process.id'), primary_key = True)    
-#     timestamp = DB.Column(DB.DateTime, primary_key = True)
-#     prop_name = DB.Column(DB.String, primary_key = True)
-#     from_value = DB.Column(DB.String, nullable = False)
-#     to_value = DB.Column(DB.String, nullable = False)
+class StudentKnowledge(DB.Model):
+    '''
+    Simulates student knowledge 
+    NOTE: we do not use here correct answers but chances of distractors to deceive student
+    NOTE: we do not emulate how distractors work together here 
+    By default ideal student is assumed - student will pick correct answer 
+    '''
+    student_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'), primary_key=True)    
+    distractor_id = DB.Column(DB.Integer, DB.ForeignKey('distractor.id'), primary_key=True) # as ind happens in population list        
+    chance_to_select = DB.Column(DB.Float, nullable=False)  # chance that student picks this distractor - note that for all 

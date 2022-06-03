@@ -3,6 +3,8 @@
 
 # The following are flask custom commands; 
 import flask_login
+
+from evopie.config import ROLE_STUDENT
 from . import models, APP # get also DB from there
 import click
 from sqlalchemy.orm.exc import StaleDataError
@@ -41,11 +43,6 @@ def unescape_double_quotes(s):
 @APP.cli.command("DB-init")
 def DB_init():
     models.DB.create_all()
-
-
-@APP.cli.command("p-phc")
-def start_p_phc():
-    pass
 
 # Invoke with flask DB-reboot
 # Tear down the data base and rebuild an empty one.
@@ -114,7 +111,7 @@ def DB_populate():
     models.DB.session.commit()
 
 
-from flask import flash, redirect, url_for, request, abort
+from flask import flash, jsonify, redirect, url_for, request, abort
 from flask_login import current_user
 
 from functools import wraps
@@ -163,6 +160,8 @@ def role_required(role, redirect_route='login', redirect_message="You are not au
                     if redirect_message is not None: 
                         flash(redirect_message)                    
                     return redirect(url_for(redirect_route, next=request.url))
+                elif request.accept_mimetypes.accept_json or request.is_json:
+                    return jsonify({"message": redirect_message}), 403
                 else: 
                     return abort(403)
             return f(*args, **kwargs)            
@@ -184,3 +183,81 @@ def retry_concurrent_update(f):
                 models.DB.session.rollback()
         return res 
     return decorated_function
+
+from werkzeug.test import TestResponse
+import sys
+def throw_on_http_fail(resp: TestResponse):
+    if resp.status_code >= 400:            
+        APP.logger.error(f"[{resp.request.path}] failed for input {resp.request.json}:\n {resp.get_data(as_text=True)}")
+        sys.exit(1)
+    return resp.json
+
+from flask.cli import AppGroup
+
+quiz_cli = AppGroup('quiz')
+student_cli = AppGroup('student') #responsible for student simulation
+
+@quiz_cli.command("init")
+@click.option('-nq', '--num-questions', required = True, type = int)
+@click.option('-nd', '--num-distractors', required = True, type = int)
+def start_quiz_init(num_questions, num_distractors):
+    ''' Creates instructor, quiz, students for further testing 
+        Note: flask app should be running
+    '''
+    instructor = {"email":"i@usf.edu", "firstname":"I", "lastname": "I", "password":"pwd"}
+    def build_quiz(i, questions):
+        return { "title": f"Quiz {i}", "description": "Test quiz", "questions_ids": questions}
+    def build_question(i):
+        return { "title": f"Question {i}", "stem": f"Question {i} Stem?", "answer": f"a{i}"}
+    def build_distractor(i, question):
+        return { "answer": f"d{i}/q{question}", "justification": f"d{i}/q{question} just"}
+    with APP.test_client(use_cookies=True) as c: #instructor session
+        throw_on_http_fail(c.post("/signup", json={**instructor, "retype":instructor["password"]}))
+        throw_on_http_fail(c.post("/login",json=instructor))
+        from sqlalchemy import func
+        qids = []
+        for _ in range(num_questions):
+            q = build_question("X")
+            dids = []
+            resp = throw_on_http_fail(c.post("/questions", json=q))
+            qid = resp["id"]
+            qids.append(qid)
+            q = build_question(qid)
+            throw_on_http_fail(c.put(f"/questions/{qid}", json=q))
+            for _ in range(num_distractors):
+                d = build_distractor("X", qid)
+                resp = throw_on_http_fail(c.post(f"/questions/{qid}/distractors", json=d))
+                did = resp["id"]
+                dids.append(did)
+                d = build_distractor(did, qid)
+                throw_on_http_fail(c.put(f"/distractors/{did}", json=d))
+            throw_on_http_fail(c.post("/quizquestions", json={ "qid": str(qid), "distractors_ids": dids}))
+        quiz = build_quiz("X", qids)
+        resp = throw_on_http_fail(c.post("/quizzes", json=quiz))
+        quiz_id = resp["id"]
+        quiz = build_quiz(quiz_id, qids)
+        throw_on_http_fail(c.put(f"/quizzes/{quiz_id}", json=quiz))
+        APP.logger.info(f"Quiz with id {quiz_id} was created successfully!")
+
+@student_cli.command("knows")
+@click.option('-s', '--student', type = int)
+@click.option('-d', '--distractor', type = int)
+@click.option('-c', '--chance', required = True, type = float)
+def add_student_knowledge(student, distractor, chance):
+    student_ids = [ student ]
+    if student is None: 
+        # assuming all students 
+        student_ids_plain = models.User.query.filter_by(role = ROLE_STUDENT).with_entities(models.User.id)
+        student_ids = [s.id for s in student_ids_plain]
+    distractor_ids = [ distractor ]
+    if distractor is None: 
+        distractor_ids_plain = models.Distractor.query.with_entities(models.Distractor.id)
+        distractor_ids = [d.id for d in distractor_ids_plain]
+     #TODO: consider to do bulk ops: https://docs.sqlalchemy.org/en/14/orm/persistence_techniques.html#bulk-operations
+    for sid in student_ids:
+        for did in distractor_ids:
+            models.DB.session.add(models.StudentKnowledge(student_id = sid, distractor_id = did, chance_to_select = chance))            
+    models.DB.commit()
+
+APP.cli.add_command(quiz_cli)
+APP.cli.add_command(student_cli)
