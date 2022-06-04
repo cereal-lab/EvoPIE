@@ -571,20 +571,12 @@ def get_student(qid):
     distractor_per_question = {q_id: ds for q_id, ds in groupby(plain_distractors, key = lambda d: d.question_id)}    
     distractor_map = {d.id:d for d in plain_distractors}
 
-    evo = get_evo(q.id)
-    if evo is None: #by default when no evo process - we pick all distractors selected by instructor
-        questions_with_distractors = [(qq, distractor_per_question.get(qq.id, [])) for qq in quiz_questions]
-    else: #rely on evo engine for selection of distractors
-        selected_distractor_ids = evo.get_for_evaluation(current_user.id)
-        selected_distractors = [ [distractor_map[d_id] for d_id in question_distractor_ids if d_id in distractor_map] 
-                                    for question_distractor_ids in selected_distractor_ids]
-        questions_with_distractors = zip(quiz_questions, selected_distractors)
-
     #unescaping part - left for backward compatibility for now
-    question_model = [  { "id": qq.id, 
-                            "alternatives": sorted([(-1, unescape(qq.question.answer)), *[ (d.id, unescape(d.answer)) for d in distractors]], key=lambda x: random.random()),
-                            **{attr:unescape(getattr(qq.question, attr)) for attr in [ "title", "stem", "answer" ]}}
-                        for (qq, distractors) in questions_with_distractors ]
+    def build_question_model(questions_with_distractors):
+        return [ { "id": qq.id, 
+                    "alternatives": sorted([(-1, unescape(qq.question.answer)), *[ (d.id, unescape(d.answer)) for d in distractors]], key=lambda x: random.random()),
+                    **{attr:unescape(getattr(qq.question, attr)) for attr in [ "title", "stem", "answer" ]}}
+                    for (qq, distractors) in questions_with_distractors ]
     
     # determine which step of the peer instruction the student is in
     a = models.QuizAttempt.query.filter_by(student_id=current_user.id).filter_by(quiz_id=qid).first()
@@ -604,13 +596,6 @@ def get_student(qid):
     if a and q.status == "STEP2" and a.revised_responses != "{}":
         flash("You already submitted your answers for both step 1 and step 2. You are done with this quiz.", "error")
         return redirect(request.referrer) #return redirect(url_for('pages.index'))
-
-
-    # finding the reference justifications for each distractor
-    expl = { -1 : "This is the correct answer for this question"}
-    for _, distractors in questions_with_distractors:
-        for distractor in distractors:
-            expl[distractor.id] = unescape(distractor.justification)
             
     # Handle different steps
     if a: # step == 2 or SOLUTIONS    
@@ -688,16 +673,35 @@ def get_student(qid):
         .filter(models.QuizAttempt.student_id == current_user.id)\
         .order_by(collate(models.User.last_name, 'NOCASE'))\
         .first()))
-            
+
+        #TODO: questions_with_distractors should be taken from QuizAttempt 
+        questions_with_distractors = None
+
+        # finding the reference justifications for each distractor
+        expl = { -1: "This is the correct answer for this question",
+                **{distractor.id:unescape(distractor.justification)
+                        for _, distractors in questions_with_distractors
+                        for distractor in distractors }}
+
         # quiz_questions = q.dump_as_dict()['quiz_questions']
         return render_template('student.html', explanations=expl, quiz=q.dump_as_dict(),
             questions=question_model, student=current_user, attempt=a.dump_as_dict(), initial_responses=initial_responses, 
             justifications=selected_justification_map, likes_given = likes_given)
 
     else: # step == 1
-
-        return render_template('student.html', explanations=expl, quiz=q.dump_as_dict(),
-            questions=question_model, student=current_user)
+        evo = get_evo(q.id)
+        if evo is None: #by default when no evo process - we pick all distractors selected by instructor
+            questions_with_distractors = [(qq, distractor_per_question.get(qq.id, [])) for qq in quiz_questions]
+        else: #rely on evo engine for selection of distractors
+            selected_distractor_ids = evo.get_for_evaluation(current_user.id)
+            selected_distractors = [ [distractor_map[d_id] for d_id in question_distractor_ids if d_id in distractor_map] 
+                                        for question_distractor_ids in selected_distractor_ids]
+            questions_with_distractors = zip(quiz_questions, selected_distractors)
+        question_model = build_question_model(questions_with_distractors)
+        #TODO: save to QuizAttempt 
+        if request.accept_mimetypes.accept_json:
+            return jsonify({"questions":question_model})
+        return render_template('student.html', quiz=q.dump_as_dict(), questions=question_model, student=current_user)
 
 
 @pages.route('/users/', methods=['GET'])

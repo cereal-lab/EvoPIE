@@ -10,7 +10,7 @@ from flask import Markup
 from flask import flash
 from werkzeug.security import generate_password_hash
 from evopie.config import ROLE_INSTRUCTOR
-from evopie.evo import get_evo, start_evo, Evaluation
+from evopie.evo import get_evo, start_evo, stop_evo, Evaluation
 
 from evopie.utils import role_required, sanitize
 
@@ -662,9 +662,7 @@ def post_quizzes_status(qid):
             start_evo(quiz.id)
         else: 
             #ending evo process for quiz 
-            evo = get_evo(quiz.id)
-            if evo is not None: 
-                evo.stop()        
+            stop_evo(quiz.id)
     else:
         response     = ({ "message" : "Unable to switch to new status" }, 400, {"Content-Type": "application/json"})
     return make_response(response)
@@ -742,7 +740,7 @@ def all_quizzes_take(qid):
         if step1:
             # validate that all required information was sent
             # BUG if the keys are missing we crash
-            if request.json['initial_responses'] is None or request.json['justifications'] is None:
+            if 'initial_responses' not in request.json or 'justifications' not in request.json:
                 abort(400, "Unable to submit quiz response due to missing data") # bad request
 
             # Being in step 1 means that the quiz has not been already attempted

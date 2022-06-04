@@ -45,6 +45,39 @@
                 "-nd",
                 "5"
             ]
+        },
+        {
+            "name": "CLI: student init",
+            "type": "python",
+            "request": "launch",
+            "module" : "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1"
+            },
+            "args" : [
+                "student",
+                "init",
+                "-ns", "10",
+                "-i", "testing/output.csv",
+            ]
+        },
+        {
+            "name": "CLI: quiz run",
+            "type": "python",
+            "request": "launch",
+            "module" : "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1"
+            },
+            "args" : [
+                "quiz",
+                "run",
+                "-q", "1"
+            ]
         }        
     ]
 }

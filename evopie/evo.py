@@ -202,7 +202,7 @@ class Serializable(ABC):
             evo = gl[evo_process.impl](serializer = serializer, quiz_id = evo_process.quiz_id, archive = archive, 
                     population = population, objectives = objectives, **impl_state)
             return evo
-        except Any as e: 
+        except Exception as e: 
             APP.logger.error(f"[evo-load] cannot load process {evo_process}. {e}")
             return None
 
@@ -268,7 +268,7 @@ class PHC(EvolutionaryProcess, InteractiveEvaluation, ABC):
                             self.update_fitness(ind, eval)
                         del self.evaluator_coevaluation_groups[eval.evaluator_id]
                         self.compare(coevaluation_group_id, eval_group)
-                except Any as e: 
+                except Exception as e: 
                     APP.logger.error(f"[{self.__class__.__name__}] error on evaluation of quiz {self.quiz_id}: {e}. Ignored: {self.waiting_evaluations}")
                 self.waiting_evaluations = []
                 gen_was_evaluated = len(self.coevaluation_groups) == 0 #group is treated as evaluated when removed  from this dict
@@ -287,12 +287,7 @@ class PHC(EvolutionaryProcess, InteractiveEvaluation, ABC):
 
     def on_iteration_end(self):
         ''' Derived classes could add logic to be executed on eval iteration start boundary'''
-        if self.stopped:
-            try:                            
-                self.serializer.to_store(quiz_id, self)
-                APP.logger.info(f"[{self.__class__.__name__}] stopped quiz {self.quiz_id} evo")
-            except Any as e: 
-                APP.logger.error(f"[{self.__class__.__name__}] error on stopping quiz {self.quiz_id}: {e}")
+        pass
 
     def on_generation_end(self):
         ''' Derived classes could add logic to be executed on generation end boundary'''
@@ -357,8 +352,10 @@ class P_PHC(PHC, Serializable):
                                     for genotype_id, evals in self.archive.loc[eval_group.inds, eval_group.objs].iterrows()}
             parent = eval_group.inds[0]
             parent_genotype_evaluation = genotype_evaluations[parent]
+            # possible_winners = [ child for child in eval_group.inds[1:]
+            #                         if (genotype_evaluations[child] == parent_genotype_evaluation).all() or not((genotype_evaluations[child] <= parent_genotype_evaluation).all()) ] #Pareto check
             possible_winners = [ child for child in eval_group.inds[1:]
-                                    if not((genotype_evaluations[child] <= parent_genotype_evaluation).all()) ] #Pareto check
+                                    if (genotype_evaluations[child] >= parent_genotype_evaluation).all() ] #Pareto check
             if len(possible_winners) > 0:
                 winner = random.choice(possible_winners)
                 self.population[eval_group_id] = winner #winner takes place of a parent
@@ -432,9 +429,15 @@ class P_PHC(PHC, Serializable):
 #NOTE: no bound is given for this state - possibly limit number of elems and give HTTP 429 - too many requests
 quiz_evo_processes = {}
 
+def get_evo(quiz_id): 
+    return quiz_evo_processes.get(quiz_id, None)
+
 def start_evo(*quiz_ids):
     evos = sql_evo_serializer.from_store(quiz_ids)
     for quiz_id in quiz_ids:  
+        if quiz_id in quiz_evo_processes:
+            APP.logger.info(f"Quiz {quiz_id} already has evo process")
+            continue
         evo = None 
         if quiz_id in evos: 
             evo = Serializable.load(evos[quiz_id], sql_evo_serializer)
@@ -446,8 +449,11 @@ def start_evo(*quiz_ids):
             evo.start()
             quiz_evo_processes[quiz_id] = evo
     
-def get_evo(quiz_id): 
-    return quiz_evo_processes.get(quiz_id, None)
+def stop_evo(quiz_id):
+    evo = get_evo(quiz_id)
+    if evo is not None: 
+        evo.stop()     
+        del quiz_evo_processes[quiz_id]
 
 def init_evo(): 
     ''' should be executed at system start to start quizes evo processes from db table '''
