@@ -145,7 +145,7 @@ def find_median(sorted_list):
 
     return median, indices    
 
-def role_required(role, redirect_route='login', redirect_message="You are not authorized to access specified page"):
+def role_required(role, redirect_route='login', redirect_message="You are not authorized to access specified page", category="message"):
     '''
     Sepcifies what role is needed: student or instructor
     Parameters
@@ -158,7 +158,7 @@ def role_required(role, redirect_route='login', redirect_message="You are not au
             if current_user.role != role:
                 if request.accept_mimetypes.accept_html: 
                     if redirect_message is not None: 
-                        flash(redirect_message)                    
+                        flash(redirect_message, category)                    
                     return redirect(url_for(redirect_route, next=request.url))
                 elif request.accept_mimetypes.accept_json or request.is_json:
                     return jsonify({"message": redirect_message}), 403

@@ -9,7 +9,7 @@ from flask_login import login_required, current_user
 from flask import Markup
 from flask import flash
 from werkzeug.security import generate_password_hash
-from evopie.config import ROLE_INSTRUCTOR
+from evopie.config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT
 from evopie.evo import get_evo, start_evo, stop_evo, Evaluation
 
 from evopie.utils import role_required, sanitize
@@ -671,18 +671,8 @@ def post_quizzes_status(qid):
 
 @mcq.route('/quizzes/<int:qid>/take', methods=['GET', 'POST'])
 @login_required
+@role_required(ROLE_STUDENT, redirect_route='pages.index', redirect_message="You are not allowed to take quizzes", category="postError")
 def all_quizzes_take(qid):
-    '''
-    This is the route that will determine whether the student is taking the 
-    quiz for the first time, or is coming back to view peers' feedback.
-    '''
-    if not current_user.is_student():
-        if request.json:
-            response     = ({ "message" : "You are not allowed to take quizzes" }, 403, {"Content-Type": "application/json"})
-            return make_response(response)
-        else:
-            flash("You are not allowed to take quizzes", "postError") #FIXME this error category probably needs to change
-            return redirect(url_for('pages.index'))
 
     quiz = models.Quiz.query.get_or_404(qid)
     
@@ -709,8 +699,8 @@ def all_quizzes_take(qid):
         response     = ({ "message" : "Quiz not accessible at this time" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
     
-    step1 = (quiz.status == "STEP1" and attempt is None)
-    step2 = (quiz.status == "STEP2" and attempt is not None)
+    step1 = (quiz.status == "STEP1" and ((attempt is None) or (attempt.status == QUIZ_ATTEMPT_STEP1)))
+    step2 = (quiz.status == "STEP2" and ((attempt is not None) and (attempt.status == QUIZ_ATTEMPT_STEP2)))
 
     # sanity check
     if step1 == step2:
@@ -745,11 +735,13 @@ def all_quizzes_take(qid):
 
             # Being in step 1 means that the quiz has not been already attempted
             # i.e., QuizAttempt object for this quiz & student combination does not already exist
-            if attempt is not None: # NOTE should never happen
-                abort(400, "Unable to submit quiz, already existing attempt previously submitted") # bad request
+            # if attempt is not None: # NOTE should never happen
+            #     abort(400, "Unable to submit quiz, already existing attempt previously submitted") # bad request
 
             # so we make a brand new one!
-            attempt = models.QuizAttempt(quiz_id=quiz.id, student_id=sid)
+            if attempt is None:
+                attempt = models.QuizAttempt(quiz_id=quiz.id, student_id=sid, selected_distractors='[]') #unknown distractor set 
+            attempt.status = QUIZ_ATTEMPT_STEP2
             
             # extract from request the dictionary of question_id : distractor_ID (or None if correct answer)
             initial_responses_dict = request.json['initial_responses']
@@ -814,6 +806,8 @@ def all_quizzes_take(qid):
             
             if attempt is None:
                 abort(404)
+
+            attempt.status = QUIZ_ATTEMPT_SOLUTIONS
     
             #TODO only get answers to all questions; no justifications needed, regardless of quiz mode
             #       Select one of the two students whose answers + justifications were seen as the most useful

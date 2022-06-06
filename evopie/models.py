@@ -300,6 +300,8 @@ class QuizAttempt(DB.Model):
     selected_justifications_timestamp = DB.Column(DB.DateTime, nullable=True)
     max_likes = DB.Column(DB.Integer, default = -99)
     participation_grade_threshold = DB.Column(DB.Integer, default = 10)    
+    status = DB.Column(DB.String, nullable=False)
+    selected_distractors = DB.Column(DB.String, nullable=False)
 
     selected_justifications = DB.relationship('Justification', secondary=attempt_justifications, lazy=True)
 
@@ -325,7 +327,8 @@ class QuizAttempt(DB.Model):
                     "max_likes" : self.max_likes,
                     "min_participation_grade_threshold" : self.get_min_participation_grade_threshold(),
                     "participation_grade_threshold" : self.participation_grade_threshold,
-                    "selected_justifications_timestamp" : self.selected_justifications_timestamp
+                    "selected_justifications_timestamp" : self.selected_justifications_timestamp,
+                    "status": self.status
                 }
 
 

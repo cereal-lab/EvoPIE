@@ -22,7 +22,7 @@ from evopie.evo import get_evo
 
 from evopie.utils import role_required, retry_concurrent_update, find_median
 
-from .config import ROLE_INSTRUCTOR, ROLE_STUDENT, get_k_tournament_size, get_least_seen_slots_num
+from .config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_STEP1, QUIZ_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT, get_k_tournament_size, get_least_seen_slots_num
 from .utils import unescape
 
 import json, random, ast, re
@@ -499,7 +499,7 @@ def get_justification_distribution(quiz_id):
     attempt_quality_attr = request.args.get("attempt_quality", "initial_total_score")   
     def attempt_quality(attempt):
         return getattr(attempt, attempt_quality_attr)    
-    attempts = models.QuizAttempt.query.filter_by(quiz_id=quiz_id).all() # assuming one per student for now 
+    attempts = models.QuizAttempt.query.filter(models.QuizAttempt.quiz_id == quiz_id, models.QuizAttempt.status != QUIZ_ATTEMPT_STEP1).all() # assuming one per student for now 
     quiz_attempt_ids = set(a.id for a in attempts)
     student_attempts = {a.student_id: a for a in attempts} #TODO: one attempt per student per quiz currently 
     # attempt_map = {a.id:a for a in attempts}
@@ -549,6 +549,10 @@ def get_student(qid):
     '''
     q = models.Quiz.query.get_or_404(qid)
 
+    if q.status == "HIDDEN":
+        flash("Quiz not accessible at this time", "error")
+        return redirect(request.referrer) #return redirect(url_for('pages.index'))
+
     # TODO #3 we replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
     # see lines commented out a ## for originals
     ##quiz_questions = [question.dump_as_dict() for question in q.quiz_questions]
@@ -572,7 +576,10 @@ def get_student(qid):
     distractor_map = {d.id:d for d in plain_distractors}
 
     #unescaping part - left for backward compatibility for now
-    def build_question_model(questions_with_distractors):
+    def build_question_model(selected_distractor_ids):
+        selected_distractors = [ [distractor_map[d_id] for d_id in question_distractor_ids if d_id in distractor_map] 
+                                    for question_distractor_ids in selected_distractor_ids]
+        questions_with_distractors = zip(quiz_questions, selected_distractors)
         return [ { "id": qq.id, 
                     "alternatives": sorted([(-1, unescape(qq.question.answer)), *[ (d.id, unescape(d.answer)) for d in distractors]], key=lambda x: random.random()),
                     **{attr:unescape(getattr(qq.question, attr)) for attr in [ "title", "stem", "answer" ]}}
@@ -580,25 +587,41 @@ def get_student(qid):
     
     # determine which step of the peer instruction the student is in
     a = models.QuizAttempt.query.filter_by(student_id=current_user.id).filter_by(quiz_id=qid).first()
-    
-    if q.status == "HIDDEN":
-        flash("Quiz not accessible at this time", "error")
-        return redirect(request.referrer) #return redirect(url_for('pages.index'))
-
-    if a and q.status == "STEP1":
-        flash("You already submitted your answers for step 1 of this quiz. Wait for the instructor to open step 2 for everyone.", "error")
-        return redirect(request.referrer) #return redirect(url_for('pages.index'))
-
-    if not a and q.status == "STEP2":
+    #we create QuizAttempt if not exist
+    if (not a or a.status == QUIZ_ATTEMPT_STEP1) and (q.status != QUIZ_STEP1):
         flash("You did not submit your answers for step 1 of this quiz. Because of that, you may not participate in step 2.", "error")
         return redirect(request.referrer) #return redirect(url_for('pages.index'))
-
-    if a and q.status == "STEP2" and a.revised_responses != "{}":
-        flash("You already submitted your answers for both step 1 and step 2. You are done with this quiz.", "error")
+    elif a is None: #very first access
+        evo = get_evo(q.id)
+        if evo is None: #by default when no evo process - we pick all distractors selected by instructor
+            selected_distractor_ids = [[d.id for d in distractor_per_question.get(qq.id, [])] for qq in quiz_questions]
+        else: #rely on evo engine for selection of distractors
+            selected_distractor_ids = evo.get_for_evaluation(current_user.id)        
+            selected_distractor_ids = [list(ds) for ds in selected_distractor_ids]
+        a = models.QuizAttempt(quiz_id=qid, student_id=current_user.id, status = QUIZ_ATTEMPT_STEP1, selected_distractors=json.dumps(selected_distractor_ids))
+        models.DB.session.add(a)
+        models.DB.session.commit()
+        question_model = build_question_model(selected_distractor_ids)
+        if request.accept_mimetypes.accept_html:            
+            return render_template('student.html', quiz=q.dump_as_dict(), questions=question_model, student=current_user)
+        return jsonify({"questions":question_model})
+    elif a.status == QUIZ_ATTEMPT_STEP1:
+        #load existing in db distractors 
+        selected_distractor_ids = json.loads(a.selected_distractors)
+        question_model = build_question_model(selected_distractor_ids)
+        if request.accept_mimetypes.accept_html:            
+            return render_template('student.html', quiz=q.dump_as_dict(), questions=question_model, student=current_user)
+        return jsonify({"questions":question_model})
+    elif a.status == QUIZ_ATTEMPT_STEP2 and q.status == QUIZ_STEP1:
+        flash("You already submitted your answers for step 1 of this quiz. Wait for the instructor to open step 2 for everyone.", "error")
         return redirect(request.referrer) #return redirect(url_for('pages.index'))
-            
-    # Handle different steps
-    if a: # step == 2 or SOLUTIONS    
+    elif a.status == QUIZ_ATTEMPT_STEP1 and q.status == QUIZ_STEP2:
+        flash("You did not submit your answers for step 1 of this quiz. Because of that, you may not participate in step 2.", "error")
+        return redirect(request.referrer) #return redirect(url_for('pages.index'))
+    elif a.status == QUIZ_ATTEMPT_SOLUTIONS and q.status == QUIZ_STEP2 and a.revised_responses != "{}":
+        flash("You already submitted your answers for both step 1 and step 2. You are done with this quiz.", "error")
+        return redirect(request.referrer) #return redirect(url_for('pages.index'))            
+    elif a.status == QUIZ_ATTEMPT_STEP2 or a.status == QUIZ_ATTEMPT_SOLUTIONS:
         if a.selected_justifications_timestamp is None: #attempt justifications were not initialized yet
             # retrieve the peers' justifications for each question  
             possible_justifications = get_possible_justifications(q)
@@ -614,7 +637,7 @@ def get_student(qid):
             #                     fallback_policy = select_random_justification) ))
 
             student_ids = set(j.student_id for (_, d) in possible_justifications.items() for (_, js) in d.items() for j in js)
-            attempts = models.QuizAttempt.query.filter_by(quiz_id = qid).where(models.QuizAttempt.student_id.in_(student_ids)).all()
+            attempts = models.QuizAttempt.query.filter_by(quiz_id = qid).where(models.QuizAttempt.student_id.in_(student_ids), models.QuizAttempt.status != QUIZ_ATTEMPT_STEP1).all()
             student_attempts = {a.student_id:a for a in attempts}
 
             def get_justification_fitness(justification):
@@ -670,38 +693,24 @@ def get_student(qid):
         
         likes_given = len(LikesGiven(models.QuizAttempt.query.join(models.User)\
         .filter(models.QuizAttempt.quiz_id == qid)\
-        .filter(models.QuizAttempt.student_id == current_user.id)\
+        .filter(models.QuizAttempt.student_id == current_user.id, models.QuizAttempt.status != QUIZ_ATTEMPT_STEP1)\
         .order_by(collate(models.User.last_name, 'NOCASE'))\
         .first()))
 
         #TODO: questions_with_distractors should be taken from QuizAttempt 
-        questions_with_distractors = None
+        selected_distractor_ids = json.loads(a.selected_distractors)
+        question_model = build_question_model(selected_distractor_ids)
 
         # finding the reference justifications for each distractor
         expl = { -1: "This is the correct answer for this question",
-                **{distractor.id:unescape(distractor.justification)
-                        for _, distractors in questions_with_distractors
-                        for distractor in distractors }}
+                **{did.id:unescape(distractor_map[did].justification) if did in distractor_map else ''
+                        for dids in selected_distractor_ids
+                        for did in dids }}
 
         # quiz_questions = q.dump_as_dict()['quiz_questions']
         return render_template('student.html', explanations=expl, quiz=q.dump_as_dict(),
             questions=question_model, student=current_user, attempt=a.dump_as_dict(), initial_responses=initial_responses, 
             justifications=selected_justification_map, likes_given = likes_given)
-
-    else: # step == 1
-        evo = get_evo(q.id)
-        if evo is None: #by default when no evo process - we pick all distractors selected by instructor
-            questions_with_distractors = [(qq, distractor_per_question.get(qq.id, [])) for qq in quiz_questions]
-        else: #rely on evo engine for selection of distractors
-            selected_distractor_ids = evo.get_for_evaluation(current_user.id)
-            selected_distractors = [ [distractor_map[d_id] for d_id in question_distractor_ids if d_id in distractor_map] 
-                                        for question_distractor_ids in selected_distractor_ids]
-            questions_with_distractors = zip(quiz_questions, selected_distractors)
-        question_model = build_question_model(questions_with_distractors)
-        #TODO: save to QuizAttempt 
-        if request.accept_mimetypes.accept_json:
-            return jsonify({"questions":question_model})
-        return render_template('student.html', quiz=q.dump_as_dict(), questions=question_model, student=current_user)
 
 
 @pages.route('/users/', methods=['GET'])
@@ -751,7 +760,7 @@ def get_quiz_statistics(qid):
     distractors = { qid : {d.id : unescape(d.answer) for d in ds} 
                     for (qid, ds) in groupby(plain_distractors, key = lambda d: d.question_id) } 
 
-    plain_attempts = models.QuizAttempt.query.where(models.QuizAttempt.quiz_id == qid).all()
+    plain_attempts = models.QuizAttempt.query.where(models.QuizAttempt.quiz_id == qid, models.QuizAttempt.status != QUIZ_ATTEMPT_STEP1).all()
 
     stats = QuizStats(quiz.dump_as_dict(), questions, distractors, students = [])
 

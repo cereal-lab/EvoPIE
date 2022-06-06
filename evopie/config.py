@@ -3,6 +3,11 @@ Module were we put all research algo parameters.
 For instructor parameters, check models.py and Quiz table
 '''
 
+#quiz attempt states 
+QUIZ_ATTEMPT_STEP1 = QUIZ_STEP1 = "STEP1"
+QUIZ_ATTEMPT_STEP2 = QUIZ_STEP2 = "STEP2"
+QUIZ_ATTEMPT_SOLUTIONS = QUIZ_SOLUTIONS = "SOLUTIONS"
+
 #system roles
 
 ROLE_STUDENT = "STUDENT"
