@@ -11,8 +11,10 @@ from pandas import DataFrame
 from evopie import APP, models
 from evopie.utils import groupby
 from abc import ABC, abstractmethod
-from evopie.config import EVO_PROCESS_STATUS_ACTIVE, distractor_selection_process, distractor_selecton_settings
+from evopie.config import EVO_PROCESS_STATUS_ACTIVE
+import evopie.config
 from dataclasses import dataclass
+from numpy import unique
 
 @dataclass 
 class Evaluation:
@@ -27,6 +29,8 @@ class CoevaluationGroup:
 @dataclass
 class Genotype: #NOTE: we need this wrapper because pandas goes crazy if you provide to it just lists
     g: Any
+    def __repr__(self) -> str:
+        return self.g.__repr__()
 
 class EvoSerializer:
     def to_store(self, process: models.EvoProcess) -> None:
@@ -46,11 +50,22 @@ class SqlEvoSerializer(Thread, EvoSerializer):
         self.daemon = True 
         self.evo_states: 'dict[int, models.EvoProcess]' = {} #per each quiz separate evo state
         self.ready_to_write = Condition()
+        self.dumped = Condition()
+        self.stopped = False
+
+    def stop(self):
+        with self.ready_to_write:
+            self.stopped = True 
+            self.ready_to_write.notify()
+
+    def wait_dump(self, timeout):
+        with self.dumped:
+            self.dumped.wait(timeout)
 
     def run(self):
         with self.ready_to_write:
             while True:            
-                self.ready_to_write.wait_for(predicate=lambda: len(self.evo_states) > 0)            
+                self.ready_to_write.wait_for(predicate=lambda: (len(self.evo_states) > 0) or self.stopped)
                 with APP.app_context():            
                     evo_processes = models.EvoProcess.query.where(models.EvoProcess.quiz_id.in_(self.evo_states.keys()), models.EvoProcess.status == EVO_PROCESS_STATUS_ACTIVE).all()
                     evo_processes_map = {p.quiz_id: p for p in evo_processes}
@@ -75,6 +90,10 @@ class SqlEvoSerializer(Thread, EvoSerializer):
                                                     for a in evo_state.archive ]
                     models.DB.session.commit()                
                     self.evo_states = {}
+                    with self.dumped: #NOTE: potential palce for deadlocks - two locks are aquired
+                        self.dumped.notify_all()
+                if self.stopped:
+                    return
 
     def to_store(self, evo_process):
         with self.ready_to_write:
@@ -324,6 +343,7 @@ class P_PHC(PHC, Serializable):
         PHC.__init__(self, **kwargs)
         Serializable.__init__(self, **kwargs)
         self.pareto_n: int = kwargs.get("pareto_n", 2)
+        self.child_n: int = kwargs.get("child_n", 1)
         self.gene_size: int = kwargs.get("gene_size", 3)
         self.mut_prob: float = kwargs.get("mut_prob", 0.25)
         self.distractors_per_question = kwargs.get("distractors_per_question", [])                   
@@ -352,10 +372,21 @@ class P_PHC(PHC, Serializable):
                                     for genotype_id, evals in self.archive.loc[eval_group.inds, eval_group.objs].iterrows()}
             parent = eval_group.inds[0]
             parent_genotype_evaluation = genotype_evaluations[parent]
-            # possible_winners = [ child for child in eval_group.inds[1:]
-            #                         if (genotype_evaluations[child] == parent_genotype_evaluation).all() or not((genotype_evaluations[child] <= parent_genotype_evaluation).all()) ] #Pareto check
             possible_winners = [ child for child in eval_group.inds[1:]
-                                    if (genotype_evaluations[child] >= parent_genotype_evaluation).all() ] #Pareto check
+                                    if (genotype_evaluations[child] == parent_genotype_evaluation).all() or not((genotype_evaluations[child] <= parent_genotype_evaluation).all()) ] #Pareto check
+            
+            # possible_winners = [ child for child in eval_group.inds[1:]
+            #                         if (genotype_evaluations[child] >= parent_genotype_evaluation).all() ] #Pareto check
+            
+            # better_children = [ child for child in eval_group.inds[1:]
+            #                         if not((genotype_evaluations[child] == parent_genotype_evaluation).all()) and (genotype_evaluations[child] >= parent_genotype_evaluation).all() ] #Pareto check
+            # if any(better_children):
+            #     for i, ind in enumerate(self.population):
+            #         if ind == parent:
+            #             self.population[i] = None
+            # for child in possible_winners:
+            #     self.population.append(child)
+
             if len(possible_winners) > 0:
                 winner = random.choice(possible_winners)
                 self.population[eval_group_id] = winner #winner takes place of a parent
@@ -375,31 +406,37 @@ class P_PHC(PHC, Serializable):
         return ind 
 
     def mutate(self, parent_id): 
-        genotype = self.get_genotype(parent_id)
-        tries = 10
-        while tries > 0:
-            child = []
-            for genes, distractors in zip(genotype, self.distractors_per_question):
-                d_set = set(distractors)
-                group = []
-                for g in genes:
-                    # possibilities = list(d_set - set([g]))
-                    possibilities = list(d_set) #NOTE: prev line is mroe restrictive - tries to differ each gene
-                    if len(possibilities) == 0:
-                        d = g
-                    else: 
-                        d = random.choice(possibilities)
-                    d_set.remove(d)
-                    group.append(d)
-                child.append(sorted(group))
-            child_id = self.add_genotype_to_archive(child)
-            if child_id != parent_id:
-                return [ child_id ]
-            tries -= 1
-        return []
+        genotype = self.get_genotype(parent_id)        
+        children = []
+        for _ in range(self.child_n):
+            tries = 10
+            while tries > 0:
+                child = []
+                for genes, distractors in zip(genotype, self.distractors_per_question):
+                    d_set = set(distractors)
+                    group = []
+                    for g in genes:
+                        # possibilities = list(d_set - set([g]))
+                        possibilities = list(d_set) #NOTE: prev line is mroe restrictive - tries to differ each gene
+                        if len(possibilities) == 0:
+                            d = g
+                        else: 
+                            d = random.choice(possibilities)
+                        d_set.remove(d)
+                        group.append(d)
+                    child.append(sorted(group))
+                child_id = self.add_genotype_to_archive(child)
+                if child_id != parent_id:
+                    children.append(child_id)
+                    break
+                tries -= 1
+        return children
 
     def select(self, evaluator_id):
-        return random.choice(list(self.coevaluation_groups.keys()))
+        ''' Policy what evaluation group to prioritize 
+            Random, rotate (round-robin), greedy 
+        '''
+        return random.choice(list(self.coevaluation_groups.keys()))        
 
     def update_fitness(self, ind, eval):  
         cur_score = self.archive.loc[ind, eval.evaluator_id]
@@ -413,13 +450,19 @@ class P_PHC(PHC, Serializable):
 
     def on_iteration_end(self):
         ''' For each iteraton preserves data into store '''
-        self.save(pop_size = self.pop_size, gen = self.gen,
-                    coevaluation_groups = {id: {"inds": g.inds, "objs": g.objs} for id, g in self.coevaluation_groups.items()}, 
-                    evaluator_coevaluation_groups = self.evaluator_coevaluation_groups,
-                    gene_size = self.gene_size, mut_prob = self.mut_prob, pareto_n = self.pareto_n)
+        # self.save(pop_size = self.pop_size, gen = self.gen,
+        #             coevaluation_groups = {id: {"inds": g.inds, "objs": g.objs} for id, g in self.coevaluation_groups.items()}, 
+        #             evaluator_coevaluation_groups = self.evaluator_coevaluation_groups,
+        #             gene_size = self.gene_size, mut_prob = self.mut_prob, pareto_n = self.pareto_n, child_n = self.child_n)
+        pass 
 
     def on_generation_end(self):
         ''' Updates distractor pools - available distractors for each questions '''
+        # self.population = [int(i) for i in unique([p for p in self.population if p is not None])]
+        self.save(pop_size = self.pop_size, gen = self.gen,
+                    coevaluation_groups = {id: {"inds": g.inds, "objs": g.objs} for id, g in self.coevaluation_groups.items()}, 
+                    evaluator_coevaluation_groups = self.evaluator_coevaluation_groups,
+                    gene_size = self.gene_size, mut_prob = self.mut_prob, pareto_n = self.pareto_n, child_n = self.child_n)
         self.distractors_per_question = self.init_distractor_pools()
 
     def repr_adapter(self, ind_genotypes):
@@ -429,7 +472,7 @@ class P_PHC(PHC, Serializable):
 #NOTE: no bound is given for this state - possibly limit number of elems and give HTTP 429 - too many requests
 quiz_evo_processes = {}
 
-def get_evo(quiz_id): 
+def get_evo(quiz_id) -> EvolutionaryProcess: 
     return quiz_evo_processes.get(quiz_id, None)
 
 def start_evo(*quiz_ids):
@@ -441,10 +484,10 @@ def start_evo(*quiz_ids):
         evo = None 
         if quiz_id in evos: 
             evo = Serializable.load(evos[quiz_id], sql_evo_serializer)
-        elif distractor_selection_process is not None:
+        elif evopie.config.distractor_selection_process is not None:
             g = globals()
-            if distractor_selection_process in g: 
-                evo = g[distractor_selection_process](serializer=sql_evo_serializer, quiz_id=quiz_id, **distractor_selecton_settings)            
+            if evopie.config.distractor_selection_process in g: 
+                evo = g[evopie.config.distractor_selection_process](serializer=sql_evo_serializer, quiz_id=quiz_id, **evopie.config.distractor_selecton_settings)            
         if evo is not None: 
             evo.start()
             quiz_evo_processes[quiz_id] = evo
@@ -465,4 +508,4 @@ def init_evo():
         APP.logger.info("[init_evo] no evo processes to start")
     start_evo(*evo_quiz_ids)
         
-init_evo() # evo init process        
+APP.before_first_request(init_evo) # evo init process        

@@ -101,3 +101,4 @@ def load_user(user_id):
 login_manager.init_app(APP)
 
 from . import utils
+from . import cli

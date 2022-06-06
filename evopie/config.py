@@ -12,7 +12,9 @@ ROLE_ADMIN = "ADMIN"
 
 EVO_PROCESS_STATUS_ACTIVE = 'Active'
 EVO_PROCESS_STATUS_STOPPED = 'Stopped'
-p_phc_settings = { "pop_size": 1, "pareto_n": 2, "gene_size": 3, "mut_prob": 0.25}
+p_phc_settings = { "pop_size": 1, "pareto_n": 2, "child_n": 1, "gene_size": 3, "mut_prob": 0.25}
+#p_phc_settings = { "pop_size": 3, "pareto_n": 2, "child_n": 2, "gene_size": 1, "mut_prob": 1}
+
 # distractor_selection_process, distractor_selecton_settings = (None, {}) #NOTE: use this for default behavior without evo process
 distractor_selection_process, distractor_selecton_settings = ("P_PHC", p_phc_settings)
 
