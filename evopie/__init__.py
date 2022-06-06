@@ -8,6 +8,7 @@ APP.config['SECRET_KEY'] = '9OLWxND4o83j4K4iuopO' #FIXME replace this by an ENV 
 APP.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///DB_quizlib.sqlite'
 APP.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 APP.config['FLASK_ADMIN_SWATCH'] = 'cerulean' # set optional bootswatch theme for flask_admin
+# APP.config["SQLALCHEMY_ECHO"] = True #change to true to see logs of sql requests
 
 DB = SQLAlchemy(APP)
 
@@ -100,5 +101,4 @@ def load_user(user_id):
 login_manager.init_app(APP)
 
 from . import utils
-
-# APP.config["SQLALCHEMY_ECHO"] = False #change to true to see logs of sql requests
+from . import cli

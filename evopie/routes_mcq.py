@@ -8,10 +8,9 @@ from flask import Blueprint
 from flask_login import login_required, current_user
 from flask import Markup
 from flask import flash
-from random import shuffle
-from bleach_allowlist import generally_xss_safe, print_attrs, standard_styles
 from werkzeug.security import generate_password_hash
 from evopie.config import ROLE_INSTRUCTOR
+from evopie.evo import get_evo, start_evo, stop_evo, Evaluation
 
 from evopie.utils import role_required, sanitize
 
@@ -41,18 +40,11 @@ def get_all_questions():
 
 @mcq.route('/questions', methods=['POST'])
 @login_required
+@role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to create questions")
 def post_new_question():
     '''
     Add a question and its answer to the database.
     '''
-    if not current_user.is_instructor():
-        if request.json:
-            response     = ({ "message" : "You are not allowed to create questions" }, 403, {"Content-Type": "application/json"})
-            return make_response(response)
-        else:
-            flash("You are not allowed to create questions", "postError")
-            return redirect(request.referrer)
-
     if request.json:
         title = request.json['title']
         stem = request.json['stem']
@@ -93,13 +85,10 @@ def post_new_question():
     models.DB.session.commit()
 
     if request.json:
-        response = ({ "message" : "Question & answer added to database" }, 201, {"Content-Type": "application/json"})
-        return make_response(response)
+        return jsonify({ "message" : "Question & answer added to database", "id": q.id }), 201
     else:
         flash("Question successfully added to database.", "shiny")
-        return redirect(request.referrer)
-
-    
+        return redirect(request.referrer)    
 
 @mcq.route('/questions/<int:question_id>', methods=['GET'])
 @login_required
@@ -125,16 +114,13 @@ def get_question(question_id):
 
 @mcq.route('/questions/<int:question_id>', methods=['PUT'])
 @login_required
+@role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to modify questions")
 def put_question(question_id):
     '''
     Update a given question.
     This method may be called by post_new_question if we detect a POST request
     coming from an HTML form that really wanted to send us a PUT.
     '''
-    if not current_user.is_instructor():
-        response     = ({ "message" : "You are not allowed to modify questions" }, 403, {"Content-Type": "application/json"})
-        return make_response(response)
-
     # validation - All of the quizzes containing question_id must be HIDDEN to be able to update
     for quiz in models.Quiz.query.all():
         for qq in quiz.quiz_questions:
@@ -222,19 +208,11 @@ def get_distractors_for_question(question_id):
 
 @mcq.route('/questions/<int:question_id>/distractors', methods=['POST'])
 @login_required
+@role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to create distrators")
 def post_new_distractor_for_question(question_id):
     '''
     Add a distractor to the specified question.
     '''
-    if not current_user.is_instructor():
-        if request.json:
-            response     = ({ "message" : "You are not allowed to create distrators" }, 403, {"Content-Type": "application/json"})
-            return make_response(response)
-        else:
-            flash("You are not allowed to create distrators", "postError")
-            return redirect(request.referrer)
-
-
     # validation - All of the quizzes containing question_id must be HIDDEN to be able to add distractor
     # FIXED - not true, the quizzes refer to QuizQuestions which, when added to a Quiz, are characterised
     # by a selection of the available Distractors for their corresponding Question. 
@@ -268,17 +246,15 @@ def post_new_distractor_for_question(question_id):
     escaped_justification = Markup.escape(justification)
     escaped_justification = sanitize(escaped_justification)
 
-    q.distractors.append(models.Distractor(answer=escaped_answer,justification=escaped_justification,question_id=q.id))
+    new_distractor = models.Distractor(answer=escaped_answer,justification=escaped_justification,question_id=q.id)
+    q.distractors.append(new_distractor)
     models.DB.session.commit()
     
-    if request.json:
-        response = ({ "message" : "Distractor added to Question in database" }, 201, {"Content-Type": "application/json"})
-        return make_response(response)
+    if request.is_json:
+        return jsonify({ "message" : "Distractor added to Question in database", "id": new_distractor.id }), 201
     else:
         flash("Distractor successfully added to database.", "shiny")
         return redirect(request.referrer)
-
-
 
 @mcq.route('/distractors/<int:distractor_id>', methods=['GET'])
 @login_required
@@ -294,11 +270,8 @@ def get_distractor(distractor_id):
 
 @mcq.route('/distractors/<int:distractor_id>', methods=['PUT','POST'])
 @login_required
+@role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to modify distractors")
 def put_distractor(distractor_id):
-    if not current_user.is_instructor():
-        response     = ({ "message" : "You are not allowed to modify distractors" }, 403, {"Content-Type": "application/json"})
-        return make_response(response)
-
     # validation - All of the quizzes containing a question that distractor_id is related to must be HIDDEN to be able to update
     for quiz in models.Quiz.query.all():
         for qq in quiz.quiz_questions:
@@ -521,18 +494,11 @@ def put_quiz_questions(qq_id):
 
 @mcq.route('/quizzes', methods=['POST'])
 @login_required
+@role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to create quizzes")
 def post_new_quiz():
     '''
     Create a new quiz
     '''
-    if not current_user.is_instructor():
-        if request.json:
-            response     = ({ "message" : "You are not allowed to create quizzes" }, 403, {"Content-Type": "application/json"})
-            return make_response(response)
-        else:
-            flash("You are not allowed to create quizzes", "postError")
-            return redirect(request.referrer)
-
     title = request.json['title']
     description = request.json['description']
 
@@ -557,8 +523,7 @@ def post_new_quiz():
     models.DB.session.add(q)
     models.DB.session.commit()
 
-    response = ({ "message" : "Quiz added to database" }, 201, {"Content-Type": "application/json"})
-    return make_response(response)
+    return jsonify({ "message" : "Quiz added to database", "id": q.id }), 201
 
 
 
@@ -665,47 +630,39 @@ def put_quizzes(qid):
 
 @mcq.route('/quizzes/<int:qid>/status', methods=['GET'])
 @login_required
+@role_required(role=ROLE_INSTRUCTOR)
 def get_quizzes_status(qid):
     '''
     Returns the status of a given quiz
     '''
-    if not current_user.is_instructor():
-        response     = ({ "message" : "You are not allowed to get quiz status" }, 403, {"Content-Type": "application/json"})
-        return make_response(response)
-
     quiz = models.Quiz.query.get_or_404(qid)
-
-    if not request.json:
-        abort(406, "JSON format required for request") # not acceptable
-
-    response     = (f'{{ "status" : {quiz.status} }}', 403, {"Content-Type": "application/json"})
-    return make_response(response)
-
-
+    return jsonify({"status": quiz.status})
 
 @mcq.route('/quizzes/<int:qid>/status', methods=['POST'])
 @login_required
+@role_required(role=ROLE_INSTRUCTOR)
 def post_quizzes_status(qid):
     '''
     Modifies the status of given quiz
     '''
-    if not current_user.is_instructor():
-        if request.json:
-            response     = ({ "message" : "You are not allowed to get quiz status" }, 403, {"Content-Type": "application/json"})
-            return make_response(response)
-        else:
-            flash("You are not allowed to get quiz status", "postError")
 
     quiz = models.Quiz.query.get_or_404(qid)
 
-    if not request.json:
+    if not request.is_json:
         abort(406, "JSON format required for request") # not acceptable
     new_status = sanitize(request.json['status'])
     # FIXED how about check that the status is actually valid, eh? :)'
     # done in set_status below
     if(quiz.set_status(new_status)):
-        response     = ({ "message" : "OK" }, 200, {"Content-Type": "application/json"})
+        response     = ({ "message" : "OK" }, 200, {"Content-Type": "application/json"})        
         models.DB.session.commit()
+        if quiz.status == "STEP1": 
+            #starting evo process for quiz 
+            # start_default_p_phc(quiz)
+            start_evo(quiz.id)
+        else: 
+            #ending evo process for quiz 
+            stop_evo(quiz.id)
     else:
         response     = ({ "message" : "Unable to switch to new status" }, 400, {"Content-Type": "application/json"})
     return make_response(response)
@@ -783,7 +740,7 @@ def all_quizzes_take(qid):
         if step1:
             # validate that all required information was sent
             # BUG if the keys are missing we crash
-            if request.json['initial_responses'] is None or request.json['justifications'] is None:
+            if 'initial_responses' not in request.json or 'justifications' not in request.json:
                 abort(400, "Unable to submit quiz response due to missing data") # bad request
 
             # Being in step 1 means that the quiz has not been already attempted
@@ -837,6 +794,13 @@ def all_quizzes_take(qid):
                     models.DB.session.add(just)
             models.DB.session.add(attempt)
             models.DB.session.commit()
+
+            evo = get_evo(quiz.id)
+            if evo is not None: 
+                indexed_answers = [(int(q_id), int(answer)) for q_id, answer in initial_responses_dict.items()]
+                indexed_answers.sort(key = lambda x: x[0]) #order by questions
+                _, answers = tuple(zip(*indexed_answers))
+                evo.set_evaluation(Evaluation(evaluator_id=sid, result=answers))
 
             response     = ({ "message" : "Quiz attempt recorded in database" }, 200, {"Content-Type": "application/json"})
             # NOTE see previous note about using 204 vs 200

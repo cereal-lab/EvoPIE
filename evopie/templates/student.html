@@ -74,7 +74,6 @@
 
     <script>
         function submitQuiz(){
-            var all_questions = '{{ simplified_questions|tojson }}';
             // TODO BUG to avoid parse error in the JSON, modify this so as to not 
             // pass the text of the questions since we are not using it and just using
             // the questions / distractors IDs
@@ -85,7 +84,7 @@
             //var dom = parser.parseFromString('<!doctype html><body>' + all_questions, 'text/html');
             //var usable = dom.body.textContent;
             //var json_data = JSON.parse(usable);
-            var json_data = JSON.parse(all_questions);
+            var json_data = JSON.parse('{{ questions|tojson }}');
             
             var post_data;
 
@@ -304,8 +303,8 @@
         {% set nquestion.value = nquestion.value + 1 %}
         <div class="card bg-light m-3 mx-auto content" style="width: 75%">
             <div class="card-body" bg-light>
-                <h1 class="card-title">Question #{{nquestion.value}} - {{q.question.title |safe|unescapeDoubleQuotes}}</h1>
-                <p class="card-text">{{q.question.stem|safe|unescapeDoubleQuotes}}</p>
+                <h1 class="card-title">Question #{{nquestion.value}} - {{q.title |safe|unescapeDoubleQuotes}}</h1>
+                <p class="card-text">{{q.stem|safe|unescapeDoubleQuotes}}</p>
                 
                 {% if attempt is defined %}
                     <dl>

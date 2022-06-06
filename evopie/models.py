@@ -5,9 +5,11 @@ from email.policy import default
 import math
 from random import shuffle # to shuffle lists
 from flask_login import UserMixin
+from sqlalchemy import ForeignKey
 from evopie import DB
 from .config import ROLE_INSTRUCTOR, ROLE_STUDENT, ROLE_ADMIN
 from .utils import unescape
+from datetime import datetime
 
 import ast
 
@@ -181,7 +183,6 @@ relation_questions_vs_quizzes = DB.Table('relation_questions_vs_quizzes',
 )
 
 
-
 class Quiz(DB.Model):
     '''
     A Quiz object is a collection of QuizQuestion objects to be presented as a complete quiz
@@ -199,6 +200,9 @@ class Quiz(DB.Model):
 
     # Each quiz has many QuizAttempts
     quiz_attempts = DB.relationship('QuizAttempt', backref='quiz', lazy=True)
+
+    #Each quiz could have several evo processes 
+    quiz_processes = DB.relationship('EvoProcess', backref='quiz', lazy=True)
 
     title = DB.Column(DB.String)
     description = DB.Column(DB.String)
@@ -449,3 +453,45 @@ class Justification(DB.Model):
                     "justification" : self.justification,
                     "seen" : self.seen,
                 }    
+
+class EvoProcess(DB.Model):
+    '''
+    Defines major settings of evo process, check columns 
+    '''
+    id = DB.Column(DB.Integer, primary_key=True)    
+    quiz_id = DB.Column(DB.Integer, DB.ForeignKey('quiz.id'))
+    start_timestamp = DB.Column(DB.DateTime, nullable=False)
+    touch_timestamp = DB.Column(DB.DateTime, nullable=False)
+    status = DB.Column(DB.String, nullable=False) #status 'Active', 'Stopped'
+    impl = DB.Column(DB.String, nullable=False) #name of the class
+    impl_state = DB.Column(DB.String, nullable=False) #class instance running state 
+    population = DB.Column(DB.String, nullable=False) #for steady state use one ind in population
+    objectives = DB.Column(DB.String, nullable=False) #one or more (but all) objectives seen in hronological order
+
+    archive = DB.relationship('EvoProcessArchive', backref='process', 
+                    lazy=True, cascade="save-update, merge, delete, delete-orphan")
+
+    __mapper_args__ = {
+        "version_id_col": touch_timestamp,
+        'version_id_generator': lambda version: datetime.now()
+    }    
+
+class EvoProcessArchive(DB.Model):
+    '''
+    Preserves evo process state, interaction matrix between students and quizes  
+    '''
+    id = DB.Column(DB.Integer, DB.ForeignKey('evo_process.id'), primary_key=True) #TODO: 
+    genotype_id = DB.Column(DB.Integer, primary_key=True) #interaction index
+    genotype = DB.Column(DB.String, nullable=False)
+    objectives = DB.Column(DB.String, nullable=False) #dict with all evaluations 
+
+class StudentKnowledge(DB.Model):
+    '''
+    Simulates student knowledge 
+    NOTE: we do not use here correct answers but chances of distractors to deceive student
+    NOTE: we do not emulate how distractors work together here 
+    By default ideal student is assumed - student will pick correct answer 
+    '''
+    student_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'), primary_key=True)    
+    distractor_id = DB.Column(DB.Integer, DB.ForeignKey('distractor.id'), primary_key=True) # as ind happens in population list        
+    chance_to_select = DB.Column(DB.Float, nullable=False)  # chance that student picks this distractor - note that for all 
