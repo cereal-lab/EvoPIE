@@ -71,6 +71,7 @@ function createSlider(selector, {values, maxValue, cb}) {
         handle.sl_pos = pos;
         handle.style.left = (pos - handleWidth / 2) + "px"; //we use absolute positioning
     }
+    handleStack = []
     let handles = values.map(({value, step, label, tip}, i) => {
         let handle = document.createElement("div")
         handle.classList.add("slider-handle")
@@ -80,18 +81,17 @@ function createSlider(selector, {values, maxValue, cb}) {
         handle.sl_tip = tip;     
         handle.sl_value = value;   
         handle.addEventListener("mousedown", (e) => {
-            if ((e.button != 0) || activeHandle) return;
+            if ((e.button != 0) || activeHandle) return;            
+            handleStack = handleStack.filter(h => h != handle)
+            handleStack.push(handle)
+            handleStack.forEach((h, i) => h.style['z-index'] = (45 + i))
             handle.classList.add("active")
             activeHandle = handle
         })
-        handle.addEventListener("mouseup", (e) => {
-            if (e.button != 0) return;
-            handle.classList.remove("active")
-            activeHandle = null
-        }) 
         holder.appendChild(handle)
         return handle
     })
+    handleStack = handles
     handles.forEach((handle, i) => {
         if (typeof(handles[i-1]) != "undefined") { //not first handle
             handle.sl_prev = handles[i-1]
@@ -103,6 +103,11 @@ function createSlider(selector, {values, maxValue, cb}) {
         handle.sl_i = i
         setHandlePos(handle, handle.sl_value, true)
     })
+    holder.addEventListener("mouseup", (e) => {
+        if ((e.button != 0) || !activeHandle) return;
+        activeHandle.classList.remove("active")
+        activeHandle = null
+    }) 
     holder.addEventListener("mousemove", (e) => {
         if (!activeHandle || (activeHandle == e.target)) return; 
         let pos = e.offsetX;

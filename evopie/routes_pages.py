@@ -835,9 +835,11 @@ def get_quiz_statistics(qid):
         attempt_grades, max_grades, weights = tuple(zip(*grade_parts)) #unzip 
         # weights should sum up to 100 - so in case when some of grades are not available - we rescale 
         total_weights = sum(weights) 
+        total_weights = 1 if total_weights == 0 else total_weights
         weights = [ w / total_weights for w in weights ]
         total_scores[sid] = sum(w * g for w, g in zip(weights, attempt_grades))
         max_total_scores[sid] = sum(w * g for w, g in zip(weights, max_grades))
+        max_total_scores[sid] = 1 if max_total_scores[sid] == 0 else max_total_scores[sid]
     
     plain_students = models.User.query.where(models.User.id.in_(student_ids)).order_by(collate(models.User.last_name, 'NOCASE')).all()
     stats.students = [{**a.dump_as_dict(), **s.dump_as_dict(), 
