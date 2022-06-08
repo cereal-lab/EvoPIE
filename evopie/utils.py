@@ -2,17 +2,12 @@
 # pylint: disable=E1101
 
 # The following are flask custom commands; 
-from random import shuffle, choice, random
-from pandas import DataFrame
-import pandas
 
 from evopie.config import EVO_PROCESS_STATUS_ACTIVE, EVO_PROCESS_STATUS_STOPPED, ROLE_STUDENT
 from . import models, APP # get also DB from there
-import click
 from sqlalchemy.orm.exc import StaleDataError
 
 # helper method to use instead of directly calling bleach.clean
-import json
 import bleach
 from bleach_allowlist import generally_xss_safe, print_attrs, standard_styles
 
@@ -34,9 +29,7 @@ import jinja2
 @APP.template_filter('unescapeDoubleQuotes')
 def unescape_double_quotes(s): 
     return s.replace('\\"','\"')
-    
-    
-    
+
 # Invoke with flask DB-init
 # Initialize the DB but without first dropping it.
 # NOTE Not used in a while, consider removing.
@@ -145,7 +138,7 @@ def find_median(sorted_list):
 
     return median, indices    
 
-def role_required(role, redirect_route='login', redirect_message="You are not authorized to access specified page", category="message"):
+def role_required(role, redirect_to_referrer = False, redirect_route='login', redirect_message="You are not authorized to access specified page", category="message"):
     '''
     Sepcifies what role is needed: student or instructor
     Parameters
@@ -159,7 +152,7 @@ def role_required(role, redirect_route='login', redirect_message="You are not au
                 if request.accept_mimetypes.accept_html: 
                     if redirect_message is not None: 
                         flash(redirect_message, category)                    
-                    return redirect(url_for(redirect_route, next=request.url))
+                    return redirect(request.referrer if redirect_to_referrer else url_for(redirect_route, next=request.url))
                 elif request.accept_mimetypes.accept_json or request.is_json:
                     return jsonify({"message": redirect_message}), 403
                 else: 

@@ -19,6 +19,54 @@ from evopie import models
 from flask_login import current_user
 from flask import request, redirect, url_for
 
+#custom route converters - allows us to avoid unnecessary validations each time
+from werkzeug.routing import IntegerConverter, ValidationError
+class QuizConverter(IntegerConverter):
+
+    def to_python(self, value):
+        quiz_id = super().to_python(value)
+        quiz = models.Quiz.query.filter_by(id = quiz_id).first()
+        if quiz is None:
+            raise ValidationError #will try next route
+        return quiz
+
+    def to_url(self, quiz):
+        return super().to_url(quiz.id if isinstance(quiz, models.Quiz) else quiz) #treat quiz as id itself 
+
+from collections import namedtuple
+
+class QuizWithAttemptConverter(QuizConverter):
+
+    def to_python(self, quiz_id):
+        quiz = super().to_python(quiz_id)
+        attempt = models.QuizAttempt.query.filter_by(quiz_id = quiz_id, student_id = current_user.id).first()
+        if attempt is None: 
+            raise ValidationError #will try next route
+        return namedtuple('Quiz_Attempt', ['quiz', 'attempt'])(quiz, attempt)
+
+    def to_url(self, quiz_attempt):
+        if isinstance(quiz_attempt, tuple) and isinstance(quiz_attempt[0], models.Quiz):
+            return super().to_url(quiz_attempt[0])
+        if isinstance(quiz_attempt, models.Quiz):
+            return super().to_url(quiz_attempt)
+        return super().to_url(quiz_attempt) #quiz_attempt can be int at start
+
+class QuizAttemptConverter(IntegerConverter):
+
+    def to_python(self, value):
+        quiz_id = super().to_python(value)
+        attempt = models.QuizAttempt.query.filter_by(quiz_id = quiz_id, student_id = current_user.id).first()
+        if attempt is None: 
+            raise ValidationError #will try next route
+        return attempt
+
+    def to_url(self, attempt):
+        return super().to_url(attempt.quiz_id if isinstance(attempt, models.QuizAttempt) else attempt) #treat quiz as id itself     
+        
+APP.url_map.converters['quiz'] = QuizConverter
+APP.url_map.converters['attempt'] = QuizAttemptConverter
+APP.url_map.converters['qa'] = QuizWithAttemptConverter
+
 class ProtectedAdminIndexView(AdminIndexView):
     def is_accessible(self):
         id = current_user.get_id()

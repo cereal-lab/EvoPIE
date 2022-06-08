@@ -346,7 +346,7 @@ class P_PHC(PHC, Serializable):
         self.child_n: int = kwargs.get("child_n", 1)
         self.gene_size: int = kwargs.get("gene_size", 3)
         self.mut_prob: float = kwargs.get("mut_prob", 0.25)
-        self.distractors_per_question = kwargs.get("distractors_per_question", [])                   
+        self.distractors_per_question = kwargs.get("distractors_per_question", {})                   
 
     def init_distractor_pools(self):
         if self.quiz_id is None:
@@ -358,7 +358,7 @@ class P_PHC(PHC, Serializable):
             question_ids = [ q.id for q in questions ]
             distractors = models.Distractor.query.where(models.Distractor.question_id.in_(question_ids)).with_entities(models.Distractor.id, models.Distractor.question_id)
             distractor_map = { q_id: [ d.id for d in ds ] for q_id, ds in groupby(distractors, key=lambda d: d.question_id) }
-            return [ distractor_map.get(q.id, []) for q in questions ]
+            return {q.id: distractor_map.get(q.id, []) for q in questions }
 
     def init_population(self):
         if len(self.distractors_per_question) == 0:
@@ -394,14 +394,14 @@ class P_PHC(PHC, Serializable):
 
     def init(self):
         genotype = []
-        for distractors in self.distractors_per_question:
+        for qid, distractors in self.distractors_per_question.items():
             d_set = set(distractors)
             group = []
             for _ in range(min(len(d_set), self.gene_size)):
                 d = random.choice(list(d_set))
                 d_set.remove(d)
                 group.append(d)
-            genotype.append(sorted(group))
+            genotype.append((qid, sorted(group)))
         ind = self.add_genotype_to_archive(genotype)
         return ind 
 
@@ -412,7 +412,8 @@ class P_PHC(PHC, Serializable):
             tries = 10
             while tries > 0:
                 child = []
-                for genes, distractors in zip(genotype, self.distractors_per_question):
+                for qid, genes in genotype: #here we do not evolve qids yet
+                    distractors = self.distractors_per_question.get(qid, [])
                     d_set = set(distractors)
                     group = []
                     for g in genes:
@@ -424,7 +425,7 @@ class P_PHC(PHC, Serializable):
                             d = random.choice(possibilities)
                         d_set.remove(d)
                         group.append(d)
-                    child.append(sorted(group))
+                    child.append((qid, sorted(group)))
                 child_id = self.add_genotype_to_archive(child)
                 if child_id != parent_id:
                     children.append(child_id)
@@ -442,10 +443,11 @@ class P_PHC(PHC, Serializable):
         cur_score = self.archive.loc[ind, eval.evaluator_id]
         cur_score = 0 if cur_score is None else cur_score
         ind_genotype = self.get_genotype(ind)
-        for gene, answer in zip(ind_genotype, eval.result): #result - list where for each question we provide some data                        
-            for deception in gene:
-                if deception == answer:
-                    cur_score += 1
+        for qid, genes in ind_genotype: #result - dict where for each question we provide some data                        
+            if qid in eval.result:
+                for deception in genes:
+                    if deception == eval.result[qid]:
+                        cur_score += 1
         self.archive.loc[ind, eval.evaluator_id] = cur_score
 
     def on_iteration_end(self):
@@ -466,7 +468,8 @@ class P_PHC(PHC, Serializable):
         self.distractors_per_question = self.init_distractor_pools()
 
     def repr_adapter(self, ind_genotypes):
-        return [set(d for ds in q_ds for d in ds) for q_ds in zip(*ind_genotypes)]
+        return [ (qid, [int(d) for d in unique([d for _, d in ds])]) for qid, ds in groupby(((qid, d) for ind in ind_genotypes for (qid, ds) in ind for d in ds), key=lambda x: x[0])]
+        # return [set(d for ds in q_ds for d in ds) for q_ds in zip(*ind_genotypes)]
 
 #this is global state across all requests
 #NOTE: no bound is given for this state - possibly limit number of elems and give HTTP 429 - too many requests

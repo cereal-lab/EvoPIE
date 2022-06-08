@@ -17,12 +17,11 @@ from pandas import DataFrame
 from sqlalchemy import not_
 from sqlalchemy.sql import collate
 from flask import Markup
-import random
 from evopie.evo import get_evo
 
 from evopie.utils import role_required, retry_concurrent_update, find_median
 
-from .config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_STEP1, QUIZ_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT, get_k_tournament_size, get_least_seen_slots_num
+from .config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_HIDDEN, QUIZ_STEP1, QUIZ_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT, get_k_tournament_size, get_least_seen_slots_num
 from .utils import unescape
 
 import json, random, ast, re
@@ -537,6 +536,24 @@ def get_justification_distribution(quiz_id):
     finally:
         plt.close(figure)
 
+def get_or_create_attempt(quiz_id, quiz_questions, distractor_per_question):
+    attempt = models.QuizAttempt.query.filter_by(student_id=current_user.id, quiz_id=quiz_id).first()
+    if attempt is None: #first visit 
+        evo = get_evo(quiz_id)
+        if evo is None: #by default when no evo process - we pick all distractors selected by instructor
+            selected_distractor_ids = [{"question_id": qq.id, "alternatives": [d.id for d in distractor_per_question.get(qq.id, [])] } 
+                                        for qq in quiz_questions]
+        else: #rely on evo engine for selection of distractors
+            selected_distractor_ids = [{"question_id": qid, "alternatives": ds} 
+                                        for qid, ds in evo.get_for_evaluation(current_user.id)]
+        for question_alternatives in selected_distractor_ids:
+            question_alternatives["alternatives"].append(-1) #add correct answer 
+            random.shuffle(question_alternatives["alternatives"]) #shuffle each question alternatives
+        attempt = models.QuizAttempt(quiz_id=quiz_id, student_id=current_user.id, status = QUIZ_ATTEMPT_STEP1, alternatives=selected_distractor_ids)
+        models.DB.session.add(attempt)
+        models.DB.session.commit()
+    return attempt
+
 @pages.route('/student/<int:qid>', methods=['GET'])
 @login_required
 @role_required(role=ROLE_STUDENT, redirect_route='pages.index', redirect_message="You are not allowed to take this quiz")
@@ -549,7 +566,7 @@ def get_student(qid):
     '''
     q = models.Quiz.query.get_or_404(qid)
 
-    if q.status == "HIDDEN":
+    if q.status == QUIZ_HIDDEN:
         flash("Quiz not accessible at this time", "error")
         return redirect(request.referrer) #return redirect(url_for('pages.index'))
 
@@ -576,142 +593,139 @@ def get_student(qid):
     distractor_map = {d.id:d for d in plain_distractors}
 
     #unescaping part - left for backward compatibility for now
-    def build_question_model(selected_distractor_ids):
-        selected_distractors = [ [distractor_map[d_id] for d_id in question_distractor_ids if d_id in distractor_map] 
-                                    for question_distractor_ids in selected_distractor_ids]
-        questions_with_distractors = zip(quiz_questions, selected_distractors)
-        return [ { "id": qq.id, 
-                    "alternatives": sorted([(-1, unescape(qq.question.answer)), *[ (d.id, unescape(d.answer)) for d in distractors]], key=lambda x: random.random()),
-                    **{attr:unescape(getattr(qq.question, attr)) for attr in [ "title", "stem", "answer" ]}}
-                    for (qq, distractors) in questions_with_distractors ]
     
-    # determine which step of the peer instruction the student is in
-    a = models.QuizAttempt.query.filter_by(student_id=current_user.id).filter_by(quiz_id=qid).first()
+    attempt = get_or_create_attempt(qid, quiz_questions, distractor_per_question)
+    question_ids = attempt.alternatives_map.keys()
+    distractor_ids = [did for _, ds in attempt.alternatives_map.items() for did in ds]
+
+    justifications = models.Justification.query.where(models.Justification.quiz_question_id.in_(question_ids), models.Justification.distractor_id.in_(distractor_ids), models.Justification.student_id == current_user.id).all()
+    justification_map = {qid:{j.distractor_id:j for j in js} for qid, js in groupby(justifications, key=lambda x:x.quiz_question_id)}
+
+    question_model = [ { "id": qq.id, 
+                        "alternatives": [ unescape(distractor_map[alternative].answer) if alternative in distractor_map else unescape(qq.question.answer) 
+                                                for alternative in alternatives["alternatives"]
+                                                if alternative in distractor_map or alternative == -1],
+                        "choice": next((i for i, d in enumerate(alternatives["alternatives"]) if d == attempt.initial_responses.get(str(qq.id), None)), -1), 
+                        "justifications": {a:js[did].justification for a, did in enumerate(alternatives["alternatives"]) if did in js},
+                        **{attr:unescape(getattr(qq.question, attr)) for attr in [ "title", "stem", "answer" ]}}
+                        for (qq, alternatives) in zip(quiz_questions, attempt.alternatives) 
+                        for js in [justification_map.get(qq.id, {})]]
+
+    quiz_model = { "id" : q.id, "title" : q.title, "description" : q.description } #we do not need any other fields from dump_as_dict
+    #NOTE: dump_as_dict causes additional db requests due to rendering related entities.
+
+
     #we create QuizAttempt if not exist
-    if (not a or a.status == QUIZ_ATTEMPT_STEP1) and (q.status != QUIZ_STEP1):
+    if (attempt.status == QUIZ_ATTEMPT_STEP1) and (q.status != QUIZ_STEP1):
         flash("You did not submit your answers for step 1 of this quiz. Because of that, you may not participate in step 2.", "error")
         return redirect(request.referrer) #return redirect(url_for('pages.index'))
-    elif a is None: #very first access
-        evo = get_evo(q.id)
-        if evo is None: #by default when no evo process - we pick all distractors selected by instructor
-            selected_distractor_ids = [[d.id for d in distractor_per_question.get(qq.id, [])] for qq in quiz_questions]
-        else: #rely on evo engine for selection of distractors
-            selected_distractor_ids = evo.get_for_evaluation(current_user.id)        
-            selected_distractor_ids = [list(ds) for ds in selected_distractor_ids]
-        a = models.QuizAttempt(quiz_id=qid, student_id=current_user.id, status = QUIZ_ATTEMPT_STEP1, selected_distractors=json.dumps(selected_distractor_ids))
-        models.DB.session.add(a)
-        models.DB.session.commit()
-        question_model = build_question_model(selected_distractor_ids)
-        if request.accept_mimetypes.accept_html:            
-            return render_template('student.html', quiz=q.dump_as_dict(), questions=question_model, student=current_user)
-        return jsonify({"questions":question_model})
-    elif a.status == QUIZ_ATTEMPT_STEP1:
+    if attempt.status == QUIZ_ATTEMPT_STEP1:
         #load existing in db distractors 
-        selected_distractor_ids = json.loads(a.selected_distractors)
-        question_model = build_question_model(selected_distractor_ids)
         if request.accept_mimetypes.accept_html:            
-            return render_template('student.html', quiz=q.dump_as_dict(), questions=question_model, student=current_user)
+            return render_template('step1.html', quiz=quiz_model, questions=question_model)
         return jsonify({"questions":question_model})
-    elif a.status == QUIZ_ATTEMPT_STEP2 and q.status == QUIZ_STEP1:
+    if attempt.status == QUIZ_ATTEMPT_STEP2 and q.status == QUIZ_STEP1:
         flash("You already submitted your answers for step 1 of this quiz. Wait for the instructor to open step 2 for everyone.", "error")
         return redirect(request.referrer) #return redirect(url_for('pages.index'))
-    elif a.status == QUIZ_ATTEMPT_STEP1 and q.status == QUIZ_STEP2:
+    if attempt.status == QUIZ_ATTEMPT_STEP1 and q.status == QUIZ_STEP2:
         flash("You did not submit your answers for step 1 of this quiz. Because of that, you may not participate in step 2.", "error")
         return redirect(request.referrer) #return redirect(url_for('pages.index'))
-    elif a.status == QUIZ_ATTEMPT_SOLUTIONS and q.status == QUIZ_STEP2 and a.revised_responses != "{}":
+    if attempt.status == QUIZ_ATTEMPT_SOLUTIONS and q.status == QUIZ_STEP2 and attempt.revised_responses != "{}":
         flash("You already submitted your answers for both step 1 and step 2. You are done with this quiz.", "error")
         return redirect(request.referrer) #return redirect(url_for('pages.index'))            
-    elif a.status == QUIZ_ATTEMPT_STEP2 or a.status == QUIZ_ATTEMPT_SOLUTIONS:
-        if a.selected_justifications_timestamp is None: #attempt justifications were not initialized yet
-            # retrieve the peers' justifications for each question  
-            possible_justifications = get_possible_justifications(q)
+    #if attempt.status == QUIZ_ATTEMPT_STEP2 or attempt.status == QUIZ_ATTEMPT_SOLUTIONS:
+    if attempt.selected_justifications_timestamp is None: #attempt justifications were not initialized yet
+        # retrieve the peers' justifications for each question  
+        possible_justifications = get_possible_justifications(q)
 
-            # This is where we apply the peer selection policy
-            # selected_justification_map = select_justifications(possible_justifications, q.num_justifications_shown, \
-            #     selection_policy = \
-            #         not_seen_justification_and(not_seen_n_times=1, \
-            #             not_seen_policy = select_random_justification, \
-            #             fallback_policy = \
-            #                 not_seen_justification_and(not_seen_n_times=2, \
-            #                     not_seen_policy = select_random_justification, \
-            #                     fallback_policy = select_random_justification) ))
+        # This is where we apply the peer selection policy
+        # selected_justification_map = select_justifications(possible_justifications, q.num_justifications_shown, \
+        #     selection_policy = \
+        #         not_seen_justification_and(not_seen_n_times=1, \
+        #             not_seen_policy = select_random_justification, \
+        #             fallback_policy = \
+        #                 not_seen_justification_and(not_seen_n_times=2, \
+        #                     not_seen_policy = select_random_justification, \
+        #                     fallback_policy = select_random_justification) ))
 
-            student_ids = set(j.student_id for (_, d) in possible_justifications.items() for (_, js) in d.items() for j in js)
-            attempts = models.QuizAttempt.query.filter_by(quiz_id = qid).where(models.QuizAttempt.student_id.in_(student_ids), models.QuizAttempt.status != QUIZ_ATTEMPT_STEP1).all()
-            student_attempts = {a.student_id:a for a in attempts}
+        student_ids = set(j.student_id for (_, d) in possible_justifications.items() for (_, js) in d.items() for j in js)
+        attempts = models.QuizAttempt.query.filter_by(quiz_id = qid).where(models.QuizAttempt.student_id.in_(student_ids), models.QuizAttempt.status != QUIZ_ATTEMPT_STEP1).all()
+        student_attempts = {a.student_id:a for a in attempts}
 
-            def get_justification_fitness(justification):
-                return student_attempts[justification.student_id].initial_total_score
+        def get_justification_fitness(justification):
+            return student_attempts[justification.student_id].initial_total_score
 
-            # selected_justification_map = select_justifications(possible_justifications, q.num_justifications_shown, \
-            #     selection_policy = \
-            #         not_seen_justification_and(not_seen_n_times=1, \
-            #             not_seen_policy = select_random_justification, \
-            #             fallback_policy = tournament(7, fitness=get_justification_fitness)))       
-            #
-                
-            # selected_justification_map = select_justifications(possible_justifications, q.num_justifications_shown, \
-            #     selection_policy = \
-            #         not_seen_justification_and(not_seen_n_times=1, \
-            #             not_seen_policy = select_random_justification, \
-            #             fallback_policy = epsilon_greedy(0.25, \
-            #                 best_policy=select_random_justification, \
-            #                 fallback_policy=select_random_justification, \
-            #                 fitness=get_justification_fitness)))
+        # selected_justification_map = select_justifications(possible_justifications, q.num_justifications_shown, \
+        #     selection_policy = \
+        #         not_seen_justification_and(not_seen_n_times=1, \
+        #             not_seen_policy = select_random_justification, \
+        #             fallback_policy = tournament(7, fitness=get_justification_fitness)))       
+        #
+            
+        # selected_justification_map = select_justifications(possible_justifications, q.num_justifications_shown, \
+        #     selection_policy = \
+        #         not_seen_justification_and(not_seen_n_times=1, \
+        #             not_seen_policy = select_random_justification, \
+        #             fallback_policy = epsilon_greedy(0.25, \
+        #                 best_policy=select_random_justification, \
+        #                 fallback_policy=select_random_justification, \
+        #                 fitness=get_justification_fitness)))
 
-            num_in_group = get_least_seen_slots_num(q.num_justifications_shown)
-            selected_justification_map = select_justifications(possible_justifications, q.num_justifications_shown, \
-                selection_policy = j_slot_group_till(num_in_group,\
-                    in_group_policy=j_least_seen(j_random), \
-                    out_group_policy=\
-                        j_tournament(get_k_tournament_size, fitness=get_justification_fitness)))
-                        # j_e_greedy(0.2, fitness=get_justification_fitness, best_policy=j_random, other_policy=j_random)))
-                        # j_fitness_proportional(fitness=get_justification_fitness)))
+        num_in_group = get_least_seen_slots_num(q.num_justifications_shown)
+        selected_justification_map = select_justifications(possible_justifications, q.num_justifications_shown, \
+            selection_policy = j_slot_group_till(num_in_group,\
+                in_group_policy=j_least_seen(j_random), \
+                out_group_policy=\
+                    j_tournament(get_k_tournament_size, fitness=get_justification_fitness)))
+                    # j_e_greedy(0.2, fitness=get_justification_fitness, best_policy=j_random, other_policy=j_random)))
+                    # j_fitness_proportional(fitness=get_justification_fitness)))
 
-            a.selected_justifications.extend(j for d in selected_justification_map.values() for js in d.values() for j in js)
+        attempt.selected_justifications.extend(j for d in selected_justification_map.values() for js in d.values() for j in js)
 
-            a.max_likes = sum(len(js) for d in selected_justification_map.values() for js in d.values())
-            a.participation_grade_threshold = round(a.max_likes * q.limiting_factor)
-            #Idea: put another select to check if we have someting for this attempt id 
-            a.selected_justifications_timestamp = datetime.now()
-            models.DB.session.commit()
-        else: 
-            #justification list to map
-            # selected_justification_map = {}
-            selected_justifications = a.selected_justifications #here db query for selected justififcations
-            quiz_question_ids = set(str(j.quiz_question_id) for j in selected_justifications)
-            distractor_ids = set(str(j.distractor_id) for j in selected_justifications)
-            selected_justification_map = {qid:{did:[] for did in distractor_ids} for qid in quiz_question_ids}
-            for j in selected_justifications:
-                selected_justification_map[str(j.quiz_question_id)][str(j.distractor_id)].append(j)
-        initial_responses = [] 
+        attempt.max_likes = sum(len(js) for d in selected_justification_map.values() for js in d.values())
+        attempt.participation_grade_threshold = round(attempt.max_likes * q.limiting_factor)
+        #Idea: put another select to check if we have someting for this attempt id 
+        attempt.selected_justifications_timestamp = datetime.now()
+        models.DB.session.commit()
+    else: 
+        #justification list to map
+        # selected_justification_map = {}
+        selected_justifications = attempt.selected_justifications #here db query for selected justififcations
+        quiz_question_ids = set(str(j.quiz_question_id) for j in selected_justifications)
+        distractor_ids = set(str(j.distractor_id) for j in selected_justifications)
+        selected_justification_map = {qid:{did:[] for did in distractor_ids} for qid in quiz_question_ids}
+        for j in selected_justifications:
+            selected_justification_map[str(j.quiz_question_id)][str(j.distractor_id)].append(j)
+    
+    likes_given = len(LikesGiven(models.QuizAttempt.query.join(models.User)\
+                    .filter(models.QuizAttempt.quiz_id == qid)\
+                    .filter(models.QuizAttempt.student_id == current_user.id, models.QuizAttempt.status != QUIZ_ATTEMPT_STEP1)\
+                    .order_by(collate(models.User.last_name, 'NOCASE'))\
+                    .first()))
 
-        # FIXME TODO figure out how the JSON got messed up in the first place, then fix it instead of the ugly patch below
-        asdict = json.loads(a.initial_responses.replace("'",'"'))
-        for k in asdict:
-            initial_responses.append(asdict[k])
-        
-        likes_given = len(LikesGiven(models.QuizAttempt.query.join(models.User)\
-        .filter(models.QuizAttempt.quiz_id == qid)\
-        .filter(models.QuizAttempt.student_id == current_user.id, models.QuizAttempt.status != QUIZ_ATTEMPT_STEP1)\
-        .order_by(collate(models.User.last_name, 'NOCASE'))\
-        .first()))
+    #TODO: questions_with_distractors should be taken from QuizAttempt 
 
-        #TODO: questions_with_distractors should be taken from QuizAttempt 
-        selected_distractor_ids = json.loads(a.selected_distractors)
-        question_model = build_question_model(selected_distractor_ids)
+    # finding the reference justifications for each distractor
+    expl = { -1: "This is the correct answer for this question",
+            **{alternative:unescape(distractor_map[alternative].justification)
+                    for question_alternatives in attempt.alternatives
+                    for alternative in question_alternatives
+                    if alternative in distractor_map }}
 
-        # finding the reference justifications for each distractor
-        expl = { -1: "This is the correct answer for this question",
-                **{did.id:unescape(distractor_map[did].justification) if did in distractor_map else ''
-                        for dids in selected_distractor_ids
-                        for did in dids }}
+    # quiz_questions = q.dump_as_dict()['quiz_questions']
+    template_name = "solutions.html" if attempt.status == QUIZ_ATTEMPT_SOLUTIONS else 'step2.html'
+    return render_template(template_name, explanations=expl, quiz=quiz_model,
+        questions=question_model, attempt=attempt.dump_as_dict(),
+        justifications=selected_justification_map, likes_given = likes_given)
 
-        # quiz_questions = q.dump_as_dict()['quiz_questions']
-        return render_template('student.html', explanations=expl, quiz=q.dump_as_dict(),
-            questions=question_model, student=current_user, attempt=a.dump_as_dict(), initial_responses=initial_responses, 
-            justifications=selected_justification_map, likes_given = likes_given)
 
+@pages.route('/student/<int:qid>', methods=['POST'])
+@login_required
+@role_required(role=ROLE_STUDENT, redirect_route='pages.index', redirect_message="You are not allowed to take this quiz")
+@retry_concurrent_update
+def save_quiz_attempt(qid):
+    #TODO: validation and redirect to quiz index
+    pass 
 
 @pages.route('/users/', methods=['GET'])
 @login_required
@@ -822,9 +836,9 @@ def get_quiz_statistics(qid):
     for attempt in plain_attempts:    
         sid = attempt.student_id
         grade_parts = []
-        if attempt.initial_scores != '':
+        if len(attempt.initial_scores) > 0:
             grade_parts.append((attempt.initial_total_score, num_questions, quiz.initial_score_weight))
-        if attempt.revised_scores != '': #at step2 when revised scores are known
+        if len(attempt.revised_scores) > 0: #at step2 when revised scores are known
             grade_parts.append((attempt.revised_total_score, num_questions, quiz.revised_score_weight))
         if sid in justification_scores:
             grade_parts.append((justification_scores[sid], max_justfication_grade, quiz.justification_grade_weight))
@@ -857,7 +871,7 @@ def get_quiz_statistics(qid):
                         "participation_score": int(participation_scores[s.id]) if s.id in participation_scores else None,
                         "total_score": student_score,
                         "max_total_score": max_student_score,
-                        "initial_responses": {int(k):v for k, v in json.loads(a.initial_responses.replace("'", '"')).items()},
+                        "initial_responses": {int(k):v for k, v in a.initial_responses.items()},
                         "revised_responses": {int(k):v for k, v in json.loads(a.revised_responses.replace("'", '"')).items()},
                         "justifications": ast.literal_eval(unescape(a.justifications).replace("\\n", "a").replace('\\"', '\"')),
                         "total_percent": (None if student_score is None or max_student_score is None else round(student_score * 100 / max_student_score, 1))}

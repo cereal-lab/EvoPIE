@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+
+{% block title %}EvoPIE{% endblock %}
+
+{% block content %}
+
+    <script>
+        const quizId = "{{quiz.id}}";
+
+        /** Saves quiz state: answers and justifications */
+        const saveAnswers = async () => {
+            const form = new FormData(document.getElementById("quizForm"))
+            const data = {};
+            for (const [name, value] of form.entries()) {
+                if (name.startsWith("question_")) data[name.split("_")[1]] = parseInt(value)
+            }
+            const {} = await fetchJson(`/quizzes/${quizId}/answers`, {
+                method: 'PUT',
+                headers: {'Content-Type' : 'application/json'},
+                body: JSON.stringify(data),
+                credentials: 'same-origin'
+            })            
+        }
+
+        const saveJustification = async (ev) => {                    
+            const questionId = ev.target.dataset.questionId;
+            const altId = parseInt(ev.target.dataset.altId);
+            const data = { [questionId]: [{"alternative_id":altId, "justification":ev.target.value}] };
+            const {} = await fetchJson(`/quizzes/${quizId}/justifications`, {
+                method: 'PUT',
+                headers: {'Content-Type' : 'application/json'},
+                body: JSON.stringify(data),
+                credentials: 'same-origin'
+            })               
+        }
+
+        $(() => {
+            $("#quizForm textarea.summernote")
+                .on("summernote.change", (ev) => {
+                    ev.target.dataset.state = "changed";
+                })
+                .on("summernote.blur", async (ev) => {
+                    if (ev.target.dataset.state == "changed") {                        
+                        await saveJustification(ev)
+                        ev.target.dataset.state = "";
+                    }
+                })
+        })
+
+        const submitForm = async () => {
+            await saveAnswers()  //save answers one more time. NOTE: probably this is not necessary to do            
+        }
+
+        const submitQuiz = async () => {
+            var json_data = JSON.parse('{{ questions|tojson }}');
+            
+            var post_data = { "initial_responses" : {}, "justifications" : {}};
+            
+
+            for (var i = 0 ; i < json_data.length ; i++){
+                var question = json_data[i];
+                var name = "question_" + question["id"]; // radio group has name based on question ID
+                var elements = document.getElementsByName(name);
+                
+                var distractor_id = 0; // distractor id of the selected alternative
+                
+                for(var j=0 ; j < elements.length ; j++)
+                    if(elements[j].checked)
+                        distractor_id = elements[j].value;
+
+                var justifications = {};
+                for(var j = 0 ; j < question.alternatives.length; j++){
+                    var alternative = question.alternatives[j];
+                    var target_id = "alternative_" + question["id"] + "_" + alternative[0] + "_justify";
+                    var tmpstr = document.getElementById(target_id).value;
+                    if(tmpstr.length > 0){
+                        tmpstr = JSON.stringify(tmpstr);
+                        justifications[alternative[0]] = tmpstr.substring(1,tmpstr.length-1);
+                    }
+                    // NOTE the above JSON.stringify returns a string in a string ""....."" so we remove the outer "s
+                    // TODO BUG this probably needs to be done for all WYSIWIG fields; e.g., title / stem / answer
+                    //TODO check that every non-selected alternative has a justification
+                }
+                post_data["initial_responses"][question["id"]] = distractor_id;
+                post_data["justifications"][question["id"]] = justifications;
+            }
+            
+            try {
+                const response = await fetch('/quizzes/' + quizId + "/take", {
+                    method:         'POST',
+                    headers:        {'Content-Type' : 'application/json'},
+                    body:           JSON.stringify(post_data),
+                    credentials:    'same-origin'
+                });
+
+                if (response.ok){
+                    sendToFlashLand("Quiz submitted!","success");
+                    window.location.href = what_is_next;
+                } else{
+                    const { message = "Unknown error" } = await response.json();
+                    sendToFlashLand(message, "danger");
+                }
+            } catch (error) {
+                sendToFlashLand("There was a problem with your submission: " + error, "danger");
+                window.location.href = what_is_next;
+            }
+        }
+
+    </script>
+
+    <div class="jumbotron jumbotron-fluid">
+        <div class="container">
+
+            <h1 class="display-4">Step 1 - {{quiz.title|safe}}</h1>
+
+            <p class="lead">
+                Hello, {{current_user.first_name}} {{current_user.last_name}} ({{current_user.email}}). 
+                Welcome to STEP 1 of this quiz.
+            </p>      
+
+            <p class="lead">
+                <h2>About this quiz:</h2>
+                {{quiz.description | safe}}
+            </p>
+
+            <p class="lead">
+                <p>
+                    <h2>How to take Step 1 of the quiz:</h2>
+                    In order to receive any credit at all for your quiz, make sure that you: 
+                    <ul>
+                        <li>Select 1 solution for each question below.</li>
+                        <li>Provide a meaningful justification of <b>why</b> you think that <b>the alternatives
+                            that you did not select are incorrect</b>.</li>
+                    </ul>
+                </p>
+            </p>
+            <p class="lead"><p>
+                Scroll down to the bottom of the page for instructions on how to submit this quiz once you are done.
+            </p></p>
+        </div>
+    </div>
+
+    <form id="quizForm" method="post" onsubmit="submitForm()">
+        {% for q in questions %}
+            <div class="card bg-light m-3 mx-auto content" style="width: 75%">
+                <div class="card-body" bg-light>
+                    <h1 class="card-title">Question #{{loop.index}} - {{q.title |safe|unescapeDoubleQuotes}}</h1>
+                    <p class="card-text">{{q.stem|safe|unescapeDoubleQuotes}}</p>
+                                    
+                    <div class="list-group list-group-flush">
+                    
+                    {% for answer in q.alternatives %}
+                        <div class="list-group-item border border-primaryrounded updateSize" style="height:fit-content">
+                            <div class="form-group">
+                                <div class="form-check">                                                        
+                                    <label class="form-check-label">
+                                        <input type="radio" onchange="saveAnswers(event)" {% if (loop.index0 == q.choice) -%} checked="checked" {%- endif %}
+                                            name="question_{{q.id}}" value="{{loop.index0}}"
+                                            class="form-check-input" />                                                                        
+                                        {{ answer | safe | unescapeDoubleQuotes }}
+                                    </label>
+                                    <div class="reveal-if-not-selected">
+                                        <p>
+                                            Explain below why you did not select this alternative, leave blank if you did.
+                                        </p>
+                                        <textarea class="summernote form-control"
+                                            data-question-id="{{q.id}}" data-alt-id="{{loop.index0}}"
+                                            name="justification_{{q.id}}_{{loop.index0}}"
+                                            rows="3" onchange="alert('test')"
+                                            placeholder="">{{ q.justifications.get(loop.index0, '') }}</textarea>                                   
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+
+        <div class="card bg-light m-3 mx-auto" style="width: 75%">
+            <div class="card-body" bg-light>   <p class="lead"><p>
+                <table>
+                    <tr>
+                        <td>
+                            <button class="btn btn-danger" type="submit">Submit Quiz</button>
+                        </td>
+                        <td style="padding:1em;">
+                            When you are done taking the quiz, press this button. Remember: you may close this page
+                            then come back later to re-open the quiz, however, once you submit, you will not be available
+                            to reopen this quiz.
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </form>
+
+{% endblock %}

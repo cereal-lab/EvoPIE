@@ -2,6 +2,7 @@
 # pylint: disable=E1101
 
 from email.policy import default
+from functools import cached_property
 import math
 from random import shuffle # to shuffle lists
 from flask_login import UserMixin
@@ -17,7 +18,33 @@ import ast
 # Refer to docs/DB diagram - yyyy-mm-dd.png for a snapshot of the DB diagram.
 # Alternatively, run DBeaver on the sqlite file (that is where the png comes from).
 
+#https://docs.sqlalchemy.org/en/14/core/custom_types.html#marshal-json-strings
+from sqlalchemy.types import TypeDecorator, VARCHAR
+from sqlalchemy.ext.mutable import MutableDict, MutableList
+import json
 
+class JSONString(TypeDecorator):
+    """Represents an immutable structure as a json-encoded string.
+    Usage::
+        JSONEncodedDict(255)
+    """
+    impl = VARCHAR
+
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is not None:
+            value = json.dumps(value)
+
+        return value
+
+    def process_result_value(self, value, dialect):
+        if value is not None:
+            value = json.loads(value)
+        return value
+
+JSONEncodedMutableDict = MutableDict.as_mutable(JSONString)
+JSONEncodedMutableList = MutableList.as_mutable(JSONString)
 
 class Question(DB.Model):
     '''
@@ -277,37 +304,48 @@ class QuizAttempt(DB.Model):
     # each QuizAttempt refers to exactly 1 student
     student_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'))
 
-    # time stamps
-    # initial --> start / end
-    # revised --> start / end
-
     # store students answers to all questions
     # FIXME instead of JSON lists of IDs we should have used a proper relational model
-    initial_responses = DB.Column(DB.String, default="{}") # as json list of distractor_ID or -1 for answer
-    revised_responses = DB.Column(DB.String, default="{}") # as json list of distractor_ID or -1 for answer
-
-    initial_total_score = DB.Column(DB.Integer, default=0)
-    revised_total_score = DB.Column(DB.Integer, default=0)
+    initial_responses = DB.Column(JSONEncodedMutableDict, default={}) # as json list of distractor_ID or -1 for answer
+    revised_responses = DB.Column(JSONEncodedMutableDict, default={}) # as json list of distractor_ID or -1 for answer
 
     # justifications to each possible answer
-    justifications = DB.Column(DB.String, default="{}") # json list of text entries
+    justifications = DB.Column(JSONEncodedMutableDict, default={}) # json list of text entries
     # FIXME are we using this or Justification objects?! see below selected_justifications
 
     # score
-    initial_scores = DB.Column(DB.String, default="") # as json list of -1 / distractor ID
-    revised_scores = DB.Column(DB.String, default="") # as json list of -1 / distractor ID    
     version_id = DB.Column(DB.Integer, nullable=False)
     selected_justifications_timestamp = DB.Column(DB.DateTime, nullable=True)
     max_likes = DB.Column(DB.Integer, default = -99)
     participation_grade_threshold = DB.Column(DB.Integer, default = 10)    
     status = DB.Column(DB.String, nullable=False)
-    selected_distractors = DB.Column(DB.String, nullable=False)
+    alternatives = DB.Column(JSONEncodedMutableList, nullable=False, default="[]")
 
     selected_justifications = DB.relationship('Justification', secondary=attempt_justifications, lazy=True)
 
     __mapper_args__ = {
         "version_id_col": version_id
     }    
+
+    @cached_property
+    def alternatives_map(self):
+        return {alt["question_id"]:alt["alternatives"] for alt in self.alternatives } 
+
+    @cached_property
+    def initial_scores(self):
+        return {qid: 1 if answer < 0 else 0 for qid, answer in self.initial_responses.items()}
+    
+    @cached_property
+    def initial_total_score(self):
+        return sum(self.initial_scores.values())
+
+    @cached_property
+    def revised_scores(self):
+        return {qid: 1 if answer < 0 else 0 for qid, answer in self.revised_responses.items()}
+    
+    @cached_property
+    def revised_total_score(self):
+        return sum(self.revised_scores.values())
 
     def get_min_participation_grade_threshold(self):
         return math.floor(0.8 * self.participation_grade_threshold)
