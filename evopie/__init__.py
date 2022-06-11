@@ -20,6 +20,8 @@ from flask_login import current_user
 from flask import request, redirect, url_for
 
 #custom route converters - allows us to avoid unnecessary validations each time
+#NOTE: detauch could happen if any hook tries to do with app
+#https://stackoverflow.com/questions/19818082/how-does-a-sqlalchemy-object-get-detached
 from werkzeug.routing import IntegerConverter, ValidationError
 class QuizConverter(IntegerConverter):
 

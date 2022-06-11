@@ -12,7 +12,7 @@ from werkzeug.security import generate_password_hash
 from evopie.config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT
 from evopie.evo import get_evo, start_evo, stop_evo, Evaluation
 
-from evopie.utils import groupby, role_required, sanitize
+from evopie.utils import groupby, role_required, sanitize, unmime, validate_quiz_attempt_step
 
 from . import models
 
@@ -843,39 +843,39 @@ def get_quiz_justifications(q):
     js = models.Justification.query.where(models.Justification.distractor_id.in_(dids), student_id = current_user.id).all()
     return {"justifications":[j.dump_as_dict() for j in js]}
 
-@mcq.route('/quizzes/<attempt:attempt>/answers', methods=['PUT'])
+@mcq.route('/quizzes/<qa:q>/answers', methods=['PUT'])
 @login_required
-def answer_questions(attempt):
-    if not request.is_json: 
-        return {"message": "Json answer was expected"}, 400            
-    if attempt.status == QUIZ_ATTEMPT_STEP1:        
-        responses = attempt.initial_responses
-    else: 
-        responses = attempt.revised_responses
+@validate_quiz_attempt_step(quiz_attempt_param = "q")
+@unmime(type_converters={"*":lambda x: int(x)})
+def answer_questions(q, body):
+    _, attempt = q
 
-    for question_id, answer in request.json.items(): # json should be map of questionId: id of option selected
-        qid = int(question_id)
+    for qid, answer in body.items(): # body should be map of questionId: id of option selected
         if qid in attempt.alternatives_map and answer >= 0 and answer < len(attempt.alternatives_map[qid]):
-            responses[qid] = attempt.alternatives_map[qid][answer]
+            attempt.step_responses[qid] = attempt.alternatives_map[qid][answer]
     
     models.DB.session.commit()
     return {"message": "Quiz answers were saved"}
 
-@mcq.route('/quizzes/<attempt:attempt>/justifications', methods=['PUT', 'DELETE'])
+@mcq.route('/quizzes/<qa:q>/justifications', methods=['PUT', 'DELETE'])
 @login_required
-def justify_alternative_selection(attempt):
+@validate_quiz_attempt_step(quiz_attempt_param = "q")
+@unmime()
+def justify_alternative_selection(q, body):
     ''' Creates or saves justification into database
         NOTE: alterantive_id is not distractor id, but id as it appearch on UI - for security reasons
         TODO: security checks that student has access to specified quiz - multiinstractor support should provide this
-    '''    
-    #NOTE: json should be in form {'<qid>': [just1, just2, ..]} where just1 is {'altid':<id>, 'just':<text>}
+        NOTE: body should be in form {'<qid>': {'<altId>':<text>}}
+    '''        
+    _, attempt = q
 
-    new_justifications = {(qid, distractor_id):j.get("justification", "")
-        for question_id, justifications in request.json.items()
-        for qid in [ int(question_id) ]
+    new_justifications = {(int(qid), distractor_id):justification
+        for qid, alt_js in body.items()
         for alternatives in [ attempt.alternatives_map[qid] ]
-        for j in justifications
-        for distractor_id in [ alternatives[j.get("alternative_id", None)] ] }
+        for alt_id, justification in alt_js.items()
+        for aid in [int(alt_id)]
+        if aid >= 0 and aid < len(alternatives)        
+        for distractor_id in [ alternatives[aid] ] }
 
     question_ids, distractor_ids = zip(*new_justifications.keys())
 
@@ -883,38 +883,44 @@ def justify_alternative_selection(attempt):
     justifications = {(j.quiz_question_id, j.distractor_id):j for j in justifications_plain if (j.quiz_question_id, j.distractor_id) in new_justifications }
     if request.method == 'DELETE':
         for j in justifications.values():
-            models.DB.session.delete(j)
+            models.DB.session.delete(j)    
         models.DB.session.commit()
-        return {"message": "Justifications were deleted"}, 200 #TODO: add ids of deleted entities or entities themselves
-    # if request.method == 'GET':
-    #     return {qid:[{"alternative_id": aid, "justification": js_map.get(did, '')} 
-    #                     for aid, did in enumerate(attempt.alternatives_map[qid])] 
-    #                 for qid, js in groupby(justifications.values(), key = lambda j: j.quiz_question_id) 
-    #                 if qid in attempt.alternatives_map
-    #                 for js_map in [dict(groupby(js, key=lambda j:j.distractor_id))]
-    #                 }
+        return {"message": "Justifications were deleted"} #TODO: add ids of deleted entities or entities themselves
     for (qid, did), new_j in new_justifications.items():
         if (qid, did) in justifications:
-            justifications[(qid, did)].justification = new_j
-        else: 
+            if new_j == '':
+                models.DB.session.delete(justifications[(qid, did)])    
+            else:
+                justifications[(qid, did)].justification = new_j
+        elif new_j != '': 
             justification = models.Justification(quiz_question_id = qid, distractor_id = did, student_id = current_user.id, justification = new_j)
             models.DB.session.add(justification)
-    models.DB.session.commit()
-    return {"message": "Justifications were saved"}, 200 #TODO: return ids of created entities
+    models.DB.session.commit() #after this point all ids for added_justifications were assigned 
+    return {"message": "Justifications were saved" } #TODO: return ids of created entities
 
-@mcq.route('/justification/<int:justification_id>/<action>', methods=['PUT'])
+@mcq.route('/quizzes/<qa:q>/justifications/like', methods=['PUT'])
 @login_required
-def like_justification(justification_id, action):
-    just = models.Justification.query.filter_by(id=justification_id).first_or_404()
-    if action == 'like':
-        current_user.like_justification(just)
-        models.DB.session.commit()
-    if action == 'unlike':
-        current_user.unlike_justification(just)
-        models.DB.session.commit()
-    response     = ({ "message" : "ok with no contents to send back" }, 204, {"Content-Type": "application/json"})
-    return make_response(response)
-    #redirect(request.referrer)
+@validate_quiz_attempt_step(quiz_attempt_param = "q", required_step=QUIZ_ATTEMPT_STEP2)
+@unmime(type_converters={"*": lambda x: x == 1}) #1 means like, 0 - unlike
+def like_justifications(q, body):
+    _, attempt = q 
+    
+    jids = set(j.id for j in attempt.selected_justifications)
+
+    present_likes = models.Likes4Justifications.query.where(models.Likes4Justifications.student_id == current_user.id,
+        models.Likes4Justifications.justification_id.in_(jids)).all()
+
+    present_likes_map = {str(l.justification_id):l for l in present_likes}
+
+    for jid, is_liked in body.items():
+        if is_liked and jid not in present_likes_map:
+            models.DB.session.add(models.Likes4Justifications(student_id = current_user.id, justification_id = int(jid)))
+        elif not is_liked and jid in present_likes_map:
+            models.DB.session.delete(present_likes_map[jid])
+    
+    models.DB.session.commit()
+
+    return { "message" : "ok with no contents to send back" }
 
 @mcq.route('/users/<int:uid>/role', methods=['POST'])
 @login_required

@@ -1,5 +1,5 @@
 from evopie import APP
-from evopie.utils import DB_init, DB_populate
+from evopie.cli import DB_init, DB_populate
 
 # Winthrop testing page ...
 import evopie.datadashboard.dashboard_landing

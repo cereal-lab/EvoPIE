@@ -3,7 +3,7 @@
 
 # The following are flask custom commands; 
 
-from evopie.config import EVO_PROCESS_STATUS_ACTIVE, EVO_PROCESS_STATUS_STOPPED, ROLE_STUDENT
+from evopie.config import EVO_PROCESS_STATUS_ACTIVE, EVO_PROCESS_STATUS_STOPPED, QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, ROLE_STUDENT
 from . import models, APP # get also DB from there
 from sqlalchemy.orm.exc import StaleDataError
 
@@ -30,81 +30,7 @@ import jinja2
 def unescape_double_quotes(s): 
     return s.replace('\\"','\"')
 
-# Invoke with flask DB-init
-# Initialize the DB but without first dropping it.
-# NOTE Not used in a while, consider removing.
-@APP.cli.command("DB-init")
-def DB_init():
-    models.DB.create_all()
-
-# Invoke with flask DB-reboot
-# Tear down the data base and rebuild an empty one.
-@APP.cli.command("DB-reboot")
-def DB_reboot():
-    models.DB.drop_all()
-    models.DB.create_all()
-
-
-
-# Invoke with flask DB-populate
-# Empties the table and insert some testing data in the DB.
-# Consider using scripts/TestDB_[setup|step1|step2].sh 
-@APP.cli.command("DB-populate")
-def DB_populate():
-    '''
-        Just populating the DB with some mock quizzes
-    '''
-    # For some reason Flask restarts the app when we launch it with
-    # pipenv run python app.py
-    # as a result, we populate twice and get too many quizzes / distractors
-    # let's fix this by deleting all data from the tables first
-    models.Question.query.delete()
-    models.Distractor.query.delete()
-    models.DB.session.commit() # don't forget to commit or the DB will be locked
-
-    all_mcqs = [
-            models.Question(title=u'Sir Lancelot and the bridge keeper, part 1',
-                            stem=u'What... is your name?',
-                            answer=u'Sir Lancelot of Camelot'),
-            models.Question(title=u'Sir Lancelot and the bridge keeper, part 2',
-                            stem=u'What... is your quest?',
-                            answer=u'To seek the holy grail'),
-            models.Question(title=u'Sir Lancelot and the bridge keeper, part 3',
-                            stem=u'What... is your favorite colour?',
-                            answer=u'Blue')
-    ]
-
-    models.DB.session.add_all(all_mcqs)
-    models.DB.session.commit()
-    # need to commit right now; if not, the qid below will not be added in the distractors table's rows
-
-    qid=all_mcqs[0].id
-    some_distractors = [
-        models.Distractor(question_id=qid,answer=u'Sir Galahad of Camelot'),
-        models.Distractor(question_id=qid,answer=u'Sir Arthur of Camelot'),
-        models.Distractor(question_id=qid,answer=u'Sir Bevedere of Camelot'),
-        models.Distractor(question_id=qid,answer=u'Sir Robin of Camelot'),
-    ]
-
-    qid=all_mcqs[1].id
-    more_distractors = [
-        models.Distractor(question_id=qid,answer=u'To bravely run away'),
-        models.Distractor(question_id=qid,answer=u'To spank Zoot'),
-        models.Distractor(question_id=qid,answer=u'To find a shrubbery')
-    ]
-
-    qid=all_mcqs[2].id
-    yet_more_distractors = [
-        models.Distractor(question_id=qid,answer=u'Green'),
-        models.Distractor(question_id=qid,answer=u'Red'),
-        models.Distractor(question_id=qid,answer=u'Yellow')
-    ]
-
-    models.DB.session.add_all(some_distractors + more_distractors + yet_more_distractors)
-    models.DB.session.commit()
-
-
-from flask import flash, jsonify, redirect, url_for, request, abort
+from flask import flash, g, jsonify, redirect, url_for, request, abort
 from flask_login import current_user
 
 from functools import wraps
@@ -168,6 +94,9 @@ def retry_concurrent_update(f):
     '''
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        if "inside_retry_concurrent" in g:
+            return f(*args, **kwargs)        
+        g.inside_retry_concurrent = True            
         while True: #exit this loop if no StaleDataError: https://docs.sqlalchemy.org/en/14/orm/versioning.html   
             try:
                 res = f(*args, **kwargs)            
@@ -176,3 +105,90 @@ def retry_concurrent_update(f):
                 models.DB.session.rollback()
         return res 
     return decorated_function
+
+def validate_quiz_attempt_step(quiz_attempt_param, required_step = None):
+    '''
+    Check that view_args quiz and attempt has consistent state. 
+    Otherwise return either redirect to pages index with flash or json which forces redirect.
+    '''
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if "quiz_attempt_validated" in g:
+                return f(*args, **kwargs)        
+            g.quiz_attempt_validated = True            
+            quiz, attempt = request.view_args[quiz_attempt_param]
+            shortcut = False 
+            if required_step is not None and attempt.status != required_step: 
+                flash("Cannot perform action. Quiz attempt is not on required quiz step")
+                shortcut = True 
+            elif attempt.status == QUIZ_ATTEMPT_STEP1 and quiz.status != QUIZ_STEP1:
+                flash("Quiz step1 is not available anymore") #saves msg to cookie
+                shortcut = True 
+            elif attempt.status == QUIZ_ATTEMPT_STEP2 and quiz.status != QUIZ_STEP2:
+                flash("Quiz step2 is not available anymore") #saves msg to cookie
+                shortcut = True 
+            elif attempt.status == QUIZ_ATTEMPT_SOLUTIONS and quiz.status != QUIZ_SOLUTIONS:
+                flash("Quiz solutions are not available yet") #saves msg to cookie
+                shortcut = True 
+            if shortcut:
+                if request.accept_mimetypes.accept_html:
+                    return redirect(url_for("pages.index"))
+                else: 
+                    return jsonify({"redirect": url_for("pages.index")})
+            return f(*args, **kwargs)            
+        return decorated_function
+    return decorator
+
+def param_to_dict(n, v, d = {}, type_converters = {}, delim = '_'):
+    '''
+    Converts flat dict to tree using delim as edge in hierarchy
+    Example: a.b.0.test --> {"a":{"b":{"0":{"test":...}}}} 
+    '''
+    cur = d     
+    converter = type_converters
+    path = n.split(delim)
+    for path_elem in path[:-1]:
+        converter = converter.get(path_elem, converter.get("*", {}))
+        cur = cur.setdefault(path_elem, {})        
+    converter = converter.get(path[-1], converter.get("*", {}))
+    cur[path[-1]] = converter(v) if callable(converter) else v
+    return d
+
+def unmime(delim = '_', type_converters = {}):
+    '''
+    Normalizes request.form and request.json and provides it as body parameter of endpoint 
+    Normalization of json is trivial. For form parameter names are normalized with param_to_dict
+    '''
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):    
+            if "unmimed" in g:
+                return f(*args, **kwargs)        
+            g.unmimed = True
+            if request.is_json:
+                body = request.json
+            else: 
+                body = {}
+                for name, value in request.form.items():
+                    param_to_dict(name, value, d = body, delim = delim, type_converters = type_converters)            
+            orig_res = res = f(*args, **kwargs, body=body)
+            if type(res) == tuple:
+                res, status = res[0:2]
+            else:
+                status = 200
+            if type(res) == dict:
+                #converting dict back to html for form
+                if request.is_json: #NOTE: works only for requests with body - more careful login for GET is necessary - or use accept headers
+                    return orig_res
+                else:
+                    if res["message"]: 
+                        flash_area = "error" if status >= 400 else "message"
+                        flash(res["message"], flash_area)
+                    if res["redirect"]:
+                        return redirect(res["redirect"])
+                    else:
+                        return redirect(url_for("pages.index"))
+            return orig_res
+        return decorated_function
+    return decorator

@@ -25,10 +25,6 @@
     transition: all .3s;
   }
 
-.expandable-content {
-  display: none;
-}
-
 .bar {
   display: flex;
   flex-direction: row;

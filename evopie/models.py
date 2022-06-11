@@ -8,7 +8,7 @@ from random import shuffle # to shuffle lists
 from flask_login import UserMixin
 from sqlalchemy import ForeignKey
 from evopie import DB
-from .config import ROLE_INSTRUCTOR, ROLE_STUDENT, ROLE_ADMIN
+from .config import QUIZ_ATTEMPT_STEP1, ROLE_INSTRUCTOR, ROLE_STUDENT, ROLE_ADMIN
 from .utils import unescape
 from datetime import datetime
 
@@ -309,10 +309,6 @@ class QuizAttempt(DB.Model):
     initial_responses = DB.Column(JSONEncodedMutableDict, default={}) # as json list of distractor_ID or -1 for answer
     revised_responses = DB.Column(JSONEncodedMutableDict, default={}) # as json list of distractor_ID or -1 for answer
 
-    # justifications to each possible answer
-    justifications = DB.Column(JSONEncodedMutableDict, default={}) # json list of text entries
-    # FIXME are we using this or Justification objects?! see below selected_justifications
-
     # score
     version_id = DB.Column(DB.Integer, nullable=False)
     selected_justifications_timestamp = DB.Column(DB.DateTime, nullable=True)
@@ -320,7 +316,7 @@ class QuizAttempt(DB.Model):
     participation_grade_threshold = DB.Column(DB.Integer, default = 10)    
     status = DB.Column(DB.String, nullable=False)
     alternatives = DB.Column(JSONEncodedMutableList, nullable=False, default="[]")
-
+    
     selected_justifications = DB.relationship('Justification', secondary=attempt_justifications, lazy=True)
 
     __mapper_args__ = {
@@ -328,8 +324,12 @@ class QuizAttempt(DB.Model):
     }    
 
     @cached_property
+    def step_responses(self):
+        return self.initial_responses if self.status == QUIZ_ATTEMPT_STEP1 else self.revised_responses
+
+    @cached_property
     def alternatives_map(self):
-        return {alt["question_id"]:alt["alternatives"] for alt in self.alternatives } 
+        return {str(alt["question_id"]):alt["alternatives"] for alt in self.alternatives } 
 
     @cached_property
     def initial_scores(self):
@@ -355,9 +355,9 @@ class QuizAttempt(DB.Model):
         return {    "id" : self.id,
                     "quiz_id" : self.quiz_id,
                     "student_id" : self.student_id,
+                    "step_responses" : self.step_responses,
                     "initial_responses" : self.initial_responses,
                     "revised_responses" : self.revised_responses,
-                    "justifications" : self.justifications,
                     "initial_scores" : self.initial_scores,
                     "revised_scores" : self.revised_scores,
                     "initial_total_score" : self.initial_total_score,
@@ -428,29 +428,8 @@ class User(UserMixin, DB.Model):
         return f'<{self.last_name}, {self.first_name}, {self.id}>'
 
     # Like / Dislike Feature
-    liked_justifications =DB.relationship('Likes4Justifications', foreign_keys='Likes4Justifications.student_id',
+    liked_justifications = DB.relationship('Likes4Justifications', foreign_keys='Likes4Justifications.student_id',
         backref='student', lazy='dynamic')
-
-    def like_justification(self, justification): 
-        if not self.has_liked_justification(justification) and not self.id == justification.student_id:
-            like = Likes4Justifications(student_id=self.id, justification_id=justification.id)
-            DB.session.add(like)
-            DB.session.commit()
-
-    def unlike_justification(self, justification): 
-        if self.has_liked_justification(justification) and not self.id == justification.student_id:
-            Likes4Justifications.query.filter_by(
-                student_id=self.id,
-                justification_id=justification.id).delete()
-            DB.session.commit()
-
-    def has_liked_justification(self, justification):
-        return Likes4Justifications.query.filter(
-            Likes4Justifications.student_id == self.id,
-            Likes4Justifications.justification_id == justification.id).count() > 0
-    
-    def get_email(self):
-        return self.email
 
     # again, is this affected by TODO #3 at all?
     # nope, none of these fields are input via WYSIWIG editor
@@ -465,11 +444,8 @@ class User(UserMixin, DB.Model):
 
 
 class Likes4Justifications(DB.Model):
-    id = DB.Column(DB.Integer, primary_key=True)
-    student_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'))
-    justification_id = DB.Column(DB.Integer, DB.ForeignKey('justification.id'))
-
-
+    student_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'), primary_key=True)
+    justification_id = DB.Column(DB.Integer, DB.ForeignKey('justification.id'), primary_key=True)
 
 class Justification(DB.Model):
     '''
@@ -481,6 +457,7 @@ class Justification(DB.Model):
     quiz_question_id = DB.Column(DB.Integer, DB.ForeignKey('quiz_question.id'), nullable=False)
     distractor_id = DB.Column(DB.Integer, DB.ForeignKey('distractor.id'), nullable=False)
     student_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'), nullable=False)
+    ready = DB.Column(DB.Boolean, nullable=False, default=False) #ready is False when student still working on justification on step1
     justification = DB.Column(DB.String) # FIXME do we allow duplicates like empty strings?
     likes = DB.relationship('Likes4Justifications', backref='justification', lazy='dynamic')
     seen = DB.Column(DB.Integer, nullable = False, default = 0)

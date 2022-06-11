@@ -68,9 +68,9 @@ const createWeightSlider = (qid, sliderId, weights, cb, step1WeightElId = "step1
 function sendToFlashLand(message, type) {
     var target = document.getElementById('flashland')
     var data = document.createElement('div')
-    data.innerHTML = '<div class="alert alert-' + type + ' alert-dismissible fade show" role="alert">' 
+    data.innerHTML = '<div class="alert mb-1 py-1 alert-' + type + ' alert-dismissible fade show" role="alert">' 
         + message 
-        + '<button type="button" class="btn-close" data-dismiss="alert" aria-label="Close"></button></div>'
+        + '<button type="button" class="small py-2 btn-close" data-dismiss="alert" aria-label="Close"></button></div>'
     target.append(data)
 }
 
@@ -100,4 +100,21 @@ const debounce = (func, timeout = 300) => {
       clearTimeout(timer);
       timer = setTimeout(async () => { await func(...args); }, timeout);
     };
+}
+
+const buildQuizSaver = (quizId, quizFormId) => {
+    const saveAnswers = async () => {
+        const form = new FormData(document.getElementById(quizFormId))
+        const data = {};
+        for (const [name, value] of form.entries()) {
+            if (name.startsWith("question_")) data[name.split("_")[1]] = parseInt(value)
+        }
+        const {} = await fetchJson(`/quizzes/${quizId}/answers`, {
+            method: 'PUT',
+            headers: {'Content-Type' : 'application/json'},
+            body: JSON.stringify(data),
+            credentials: 'same-origin'
+        })            
+    }
+    return saveAnswers
 }

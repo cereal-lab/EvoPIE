@@ -502,13 +502,17 @@ def stop_evo(quiz_id):
         del quiz_evo_processes[quiz_id]
 
 def init_evo(): 
-    ''' should be executed at system start to start quizes evo processes from db table '''
-    sql_evo_serializer.start()
-    with APP.app_context():
-        evo_quiz_ids_q = models.Quiz.query.where(models.Quiz.status == 'STEP1').with_entities(models.Quiz.id)
-        evo_quiz_ids = [ q.id for q in evo_quiz_ids_q ]
-    if len(evo_quiz_ids) == 0:
-        APP.logger.info("[init_evo] no evo processes to start")
-    start_evo(*evo_quiz_ids)
+    ''' should be executed at system start to start quizes evo processes from db table '''    
+    def target(): #NOTE: this should be done in separate thread because with APP.app_context will detouch any entities of current db session. Session is connected to running thread
+        sql_evo_serializer.start()
+        with APP.app_context():
+            evo_quiz_ids_q = models.Quiz.query.where(models.Quiz.status == 'STEP1').with_entities(models.Quiz.id)
+            evo_quiz_ids = [ q.id for q in evo_quiz_ids_q ]
+        if len(evo_quiz_ids) == 0:
+            APP.logger.info("[init_evo] no evo processes to start")
+        start_evo(*evo_quiz_ids)        
+    init_thread = Thread(target=target)
+    init_thread.start()
+
         
 APP.before_first_request(init_evo) # evo init process        
