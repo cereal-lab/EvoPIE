@@ -1,6 +1,7 @@
 import json
 from random import choice, random, shuffle
 import click
+from flask import g
 from pandas import DataFrame
 import pandas
 from werkzeug.test import TestResponse
@@ -268,45 +269,51 @@ def simulate_quiz(quiz, instructor, password, algo, algo_params, rnd, answer_wei
         models.DB.session.commit()
         if rnd:
             shuffle(students)
-        for student in students:
-            with APP.test_client(use_cookies=True) as c:
-                resp = throw_on_http_fail(c.post("/login", json={"email": student.email, "password": "pwd"}))
+        ids_emails = [(student.id, student.email) for student in students]
+        for (sid, email) in ids_emails:
+            with APP.app_context(), APP.test_client(use_cookies=True) as c:
+                resp = throw_on_http_fail(c.post("/login", json={"email": email, "password": "pwd"}))
                 if "id" not in resp:
                     continue #ignore non-default students
                 resp = throw_on_http_fail(c.get(f"/student/{quiz}", headers={"Accept": "application/json"}))            
-                questions = {str(q["id"]):[a[0] for a in q["alternatives"] if a[0] != -1] for q in resp["questions"]}
-                student_knowledge = knowledge.get(student.id, {})
+                # questions = {str(q["id"]):[a[0] for a in q["alternatives"] if a[0] != -1] for q in resp["questions"]}
+
+                attempt = models.QuizAttempt.query.where(models.QuizAttempt.quiz_id == quiz, models.QuizAttempt.student_id == sid).first()
+
+                student_knowledge = knowledge.get(sid, {})
                 student_knowledge[-1] = answer_weight
                 # initial_responses = {qid:str(choice(known_distractors)) if any(known_distractors) else "-1" 
                 #                         for qid, distractors in questions.items() 
                 #                         for known_distractors in [[d for d in distractors if d in student_knowledge and random() < student_knowledge[d] ]]}
 
-                initial_responses = {qid:str(ds[selected_d_index])
-                                        for qid, distractors in questions.items() 
-                                        for ds in [[-1, *[d for d in distractors if d in student_knowledge and student_knowledge[d] > 0]]] 
-                                        for weights in [[student_knowledge[d] for d in ds]]
+                initial_responses = {qid:ds[selected_d_index][0]
+                                        for qid, distractors in attempt.alternatives_map.items() 
+                                        for ds in [[(alt, d) for alt, d in enumerate(distractors) if d in student_knowledge]] 
+                                        for weights in [[student_knowledge[d] for _, d in ds]]
                                         for sums in [np.cumsum(weights)]
                                         for level in [(random() * sums[-1])]
                                         for selected_d_index in [next((i for i, s in enumerate(sums) if s > level), 0)]}
-                justifications = {}
-                resp = throw_on_http_fail(c.post(f"/student/{quiz}", json={"initial_responses": initial_responses, "justifications": justifications}))
-                #NOTE: no justifications in this run 
-        #TODO: get_evo(quiz)     
-        evo = get_evo(quiz)
-        if evo is None:
-            sys.stdout.write(f"[{run_idx + 1}/{n_times}] Quiz {quiz} finished\n")            
-        else:
-            evo.stop()
-            evo.join()
-            sql_evo_serializer.wait_dump(timeout=5)  #wait for db data dump
-            evo.archive["p"] = 0
-            evo.archive.loc[-1, ['g', 'p']] = [f"-1, {answer_weight}", 0]
-            evo.archive["p"] = evo.archive["p"].astype(int)            
-            for ind in evo.population:
-                evo.archive.loc[ind, "p"] = 1        
-            if output is not None: 
-                evo.archive.to_csv(output.format(run_idx))    
-            sys.stdout.write(f"[{run_idx + 1}/{n_times}] Quiz {quiz} finished\n{evo.archive}\n")
+                
+                justifications = {qid:{str(altid):f"j_for_{did}" for altid, did in enumerate(alternatives) if altid != initial_responses[qid]} 
+                                    for qid, alternatives in attempt.alternatives_map.items()}
+                resp = throw_on_http_fail(c.post(f"/student/{quiz}", json={"question": initial_responses, "justification": justifications}))
+
+        with APP.app_context():     
+            evo = get_evo(quiz)
+            if evo is None:
+                sys.stdout.write(f"[{run_idx + 1}/{n_times}] Quiz {quiz} finished\n")            
+            else:
+                evo.stop()
+                evo.join()
+                sql_evo_serializer.wait_dump(timeout=5)  #wait for db data dump
+                evo.archive["p"] = 0
+                evo.archive.loc[-1, ['g', 'p']] = [f"-1, {answer_weight}", 0]
+                evo.archive["p"] = evo.archive["p"].astype(int)            
+                for ind in evo.population:
+                    evo.archive.loc[ind, "p"] = 1        
+                if output is not None: 
+                    evo.archive.to_csv(output.format(run_idx))    
+                sys.stdout.write(f"[{run_idx + 1}/{n_times}] Quiz {quiz} finished\n{evo.archive}\n")
             
 
 @quiz_cli.command("export")

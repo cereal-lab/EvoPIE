@@ -22,10 +22,6 @@ from jinja2 import Markup
 def unescape(str):
     return Markup(str).unescape()
     
-# Defining a custom jinja2 filter to get rid of \"
-# in JSON for student.html
-import jinja2
-
 @APP.template_filter('unescapeDoubleQuotes')
 def unescape_double_quotes(s): 
     return s.replace('\\"','\"')
@@ -168,6 +164,22 @@ def unmime(delim = '_', type_converters = {}):
             g.unmimed = True
             if request.is_json:
                 body = request.json
+                #NOTE: next code was existed  only due to json type conversions in Extensive tests - better to fix tests
+                # body = dict(request.json)
+                # def convert_values(cur, conv):
+                #     for k, v in conv.items():
+                #         if k == "*":
+                #             for ck, cv in cur.items():
+                #                 if callable(v):
+                #                     cur[ck] = v(cv)
+                #                 else:
+                #                     convert_values(cv, v)       
+                #         elif k in cur:
+                #             if callable(v):
+                #                 cur[k] = v(cur[k])
+                #             else:
+                #                 convert_values(cur[k], v)                               
+                # convert_values(body, type_converters)                 
             else: 
                 body = {}
                 for name, value in request.form.items():

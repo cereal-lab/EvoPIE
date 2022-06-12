@@ -877,6 +877,9 @@ def justify_alternative_selection(q, body):
         if aid >= 0 and aid < len(alternatives)        
         for distractor_id in [ alternatives[aid] ] }
 
+    if len(new_justifications) == 0: 
+        return {"message": "Justifications were saved" }
+
     question_ids, distractor_ids = zip(*new_justifications.keys())
 
     justifications_plain = models.Justification.query.where(models.Justification.quiz_question_id.in_(question_ids), models.Justification.distractor_id.in_(distractor_ids), models.Justification.student_id == current_user.id).all()    

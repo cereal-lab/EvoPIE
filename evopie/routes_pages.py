@@ -22,7 +22,7 @@ from evopie.routes_mcq import answer_questions, justify_alternative_selection
 
 from evopie.utils import role_required, retry_concurrent_update, find_median
 
-from .config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_HIDDEN, QUIZ_STEP1, QUIZ_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT, get_attempt_next_step, get_k_tournament_size, get_least_seen_slots_num
+from .config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_HIDDEN, QUIZ_STEP1, QUIZ_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT, SHUFFLE_ALTERNATIVES, get_attempt_next_step, get_k_tournament_size, get_least_seen_slots_num
 from .utils import unescape, unmime, validate_quiz_attempt_step
 
 import json, random, ast, re
@@ -525,7 +525,8 @@ def get_or_create_attempt(quiz_id, quiz_questions, distractor_per_question):
                                         for qid, ds in evo.get_for_evaluation(current_user.id)]
         for question_alternatives in selected_distractor_ids:
             question_alternatives["alternatives"].append(-1) #add correct answer 
-            random.shuffle(question_alternatives["alternatives"]) #shuffle each question alternatives
+            if SHUFFLE_ALTERNATIVES:
+                random.shuffle(question_alternatives["alternatives"]) #shuffle each question alternatives
         attempt = models.QuizAttempt(quiz_id=quiz_id, student_id=current_user.id, status = QUIZ_ATTEMPT_STEP1, alternatives=selected_distractor_ids)
         models.DB.session.add(attempt)
         models.DB.session.commit()
@@ -808,7 +809,7 @@ def get_quiz_statistics(qid):
     justification_map = {j.id:j.dump_as_dict() for j in plain_justifications}
 
     plain_likes = models.Likes4Justifications.query.where(models.Likes4Justifications.student_id.in_(student_ids)).all()
-    likes_given = { **{ a.student_id: [] for a in plain_attempts if a.revised_scores != ''  },
+    likes_given = { **{ a.student_id: [] for a in plain_attempts if a.status == QUIZ_ATTEMPT_SOLUTIONS  },
                     **{ student_id: [justification_map[l.justification_id] for l in student_likes if l.justification_id in justification_map] 
                         for student_id, student_likes in groupby(plain_likes, key = lambda like: like.student_id) }}
     
@@ -819,7 +820,7 @@ def get_quiz_statistics(qid):
                 for given_likes_by_o in [likes_given.get(o.student_id, [])]
                 for participation_threshold_of_o in [ quiz.limiting_factor * o.max_likes ]
                 for justifications_liked_by_o_to_a in [sum(1 for j in given_likes_by_o if j["student_id"] == a.student_id)]]]
-        if len(parts) > 0 or a.revised_scores != ''}            
+        if len(parts) > 0 or a.status == QUIZ_ATTEMPT_SOLUTIONS}            
         
     def decide_grades(quiz, score, ranges):
         for (r, quartile) in zip(ranges, [quiz.fourth_quartile_grade, quiz.third_quartile_grade, quiz.second_quartile_grade]):
@@ -843,7 +844,7 @@ def get_quiz_statistics(qid):
                                 "num_likes": len(list(students_who_like))}
                         for justification_id, students_who_like in groupby(plain_likes, key = lambda like: like.justification_id) 
                         if justification_id in justification_map]
-    likes_received = {**{ a.student_id: [] for a in plain_attempts if a.revised_scores != ''  },
+    likes_received = {**{ a.student_id: [] for a in plain_attempts if a.status != QUIZ_ATTEMPT_STEP1  },
                         **{student_id: list(js) for student_id, js in groupby(student_justifications, key=lambda j: j["student_id"])}}
     
     justification_like_count = {student_id:{j["justification"]:j["num_likes"] for j in student_js} for student_id, student_js in likes_received.items()}
@@ -857,9 +858,9 @@ def get_quiz_statistics(qid):
     for attempt in plain_attempts:    
         sid = attempt.student_id
         grade_parts = []
-        if len(attempt.initial_scores) > 0:
+        if len(attempt.initial_responses) > 0:
             grade_parts.append((attempt.initial_total_score, num_questions, quiz.initial_score_weight))
-        if len(attempt.revised_scores) > 0: #at step2 when revised scores are known
+        if attempt.status == QUIZ_ATTEMPT_SOLUTIONS:
             grade_parts.append((attempt.revised_total_score, num_questions, quiz.revised_score_weight))
         if sid in justification_scores:
             grade_parts.append((justification_scores[sid], max_justfication_grade, quiz.justification_grade_weight))
@@ -885,14 +886,14 @@ def get_quiz_statistics(qid):
                         "likes_given": likes_given.get(s.id, None),
                         "likes_given_count": len(likes_given[s.id]) if s.id in likes_given else None,
                         "like_score": like_scores.get(s.id, None),
-                        "initial_total_score": a.initial_total_score if a.initial_scores != '' else None,
-                        "revised_total_score": a.revised_total_score if a.revised_scores != '' else None,
+                        "initial_total_score": a.initial_total_score if len(a.initial_responses) > 0 else None,
+                        "revised_total_score": a.revised_total_score if a.status == QUIZ_ATTEMPT_SOLUTIONS else None,
                         "justification_score": justification_scores.get(s.id, None),
                         "likes_received": likes_received.get(s.id, None),
                         "likes_received_count": sum(j["num_likes"] for j in likes_received[s.id]) if s.id in likes_received else None,
                         "justification_like_count": justification_like_count.get(s.id, {}),
-                        "min_participation_grade_threshold": int(a.get_min_participation_grade_threshold()) if a.revised_scores != '' else None,
-                        "participation_grade_threshold": int(a.participation_grade_threshold) if a.revised_scores != '' else None,
+                        "min_participation_grade_threshold": int(a.get_min_participation_grade_threshold()) if a.status == QUIZ_ATTEMPT_SOLUTIONS else None,
+                        "participation_grade_threshold": int(a.participation_grade_threshold) if a.status == QUIZ_ATTEMPT_SOLUTIONS else None,
                         "participation_score": int(participation_scores[s.id]) if s.id in participation_scores else None,
                         "total_score": student_score,
                         "max_total_score": max_student_score,
