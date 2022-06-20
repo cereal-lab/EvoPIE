@@ -8,7 +8,7 @@ from random import shuffle # to shuffle lists
 from flask_login import UserMixin
 from sqlalchemy import ForeignKey
 from evopie import DB
-from .config import QUIZ_ATTEMPT_STEP1, ROLE_INSTRUCTOR, ROLE_STUDENT, ROLE_ADMIN
+from .config import QUIZ_ATTEMPT_STEP1, QUIZ_STEP1, ROLE_INSTRUCTOR, ROLE_STUDENT, ROLE_ADMIN
 from .utils import unescape
 from datetime import datetime
 
@@ -511,5 +511,7 @@ class StudentKnowledge(DB.Model):
     By default ideal student is assumed - student will pick correct answer 
     '''
     student_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'), primary_key=True)    
-    distractor_id = DB.Column(DB.Integer, DB.ForeignKey('distractor.id'), primary_key=True) # as ind happens in population list        
-    chance_to_select = DB.Column(DB.Float, nullable=False)  # chance that student picks this distractor - note that for all 
+    question_id = DB.Column(DB.Integer, primary_key=True)
+    distractor_id = DB.Column(DB.Integer, primary_key=True) #-1 - correct answer
+    step_id = DB.Column(DB.Integer, primary_key=True)
+    chance = DB.Column(DB.Float, nullable=False)  # chance that student picks this option

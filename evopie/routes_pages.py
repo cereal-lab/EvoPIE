@@ -9,7 +9,7 @@ import io
 from math import exp
 from mimetypes import init
 from operator import not_
-from flask import jsonify, abort, request, Response, render_template, redirect, url_for, make_response, send_file
+from flask import g, jsonify, abort, request, Response, render_template, redirect, url_for, make_response, send_file
 from flask import Blueprint
 from flask_login import login_required, current_user
 from flask import flash
@@ -22,7 +22,7 @@ from evopie.routes_mcq import answer_questions, justify_alternative_selection
 
 from evopie.utils import role_required, retry_concurrent_update, find_median
 
-from .config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_HIDDEN, QUIZ_STEP1, QUIZ_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT, SHUFFLE_ALTERNATIVES, get_attempt_next_step, get_k_tournament_size, get_least_seen_slots_num
+from .config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_HIDDEN, QUIZ_STEP1, QUIZ_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT, get_attempt_next_step, get_k_tournament_size, get_least_seen_slots_num
 from .utils import unescape, unmime, validate_quiz_attempt_step
 
 import json, random, ast, re
@@ -525,8 +525,7 @@ def get_or_create_attempt(quiz_id, quiz_questions, distractor_per_question):
                                         for qid, ds in evo.get_for_evaluation(current_user.id)]
         for question_alternatives in selected_distractor_ids:
             question_alternatives["alternatives"].append(-1) #add correct answer 
-            if SHUFFLE_ALTERNATIVES:
-                random.shuffle(question_alternatives["alternatives"]) #shuffle each question alternatives
+            random.shuffle(question_alternatives["alternatives"]) #shuffle each question alternatives
         attempt = models.QuizAttempt(quiz_id=quiz_id, student_id=current_user.id, status = QUIZ_ATTEMPT_STEP1, alternatives=selected_distractor_ids)
         models.DB.session.add(attempt)
         models.DB.session.commit()

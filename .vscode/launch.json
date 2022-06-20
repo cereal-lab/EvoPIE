@@ -59,9 +59,29 @@
                 "student",
                 "init",
                 "-ns", "10",
-                "-i", "testing/output.csv",
+                "-i", "testing/students.csv",
+                "-k {\"did\":1,\"chance\":1}",
+                "-k {\"did\":2,\"chance\":[1,0.5]}",
+                "-k {\"qid\":3,\"chance\":[0.4,0.2]}",
+                "-k {\"sid\":4,\"chance\":[0.3,0.15]}",
+                // "-i", "testing/output.csv",
             ]
         },
+        {
+            "name": "CLI: student export",
+            "type": "python",
+            "request": "launch",
+            "module" : "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1"
+            },
+            "args" : [
+                "student",
+                "export",
+            ]
+        },        
         {
             "name": "CLI: quiz run",
             "type": "python",
@@ -75,7 +95,8 @@
             "args" : [
                 "quiz",
                 "run",
-                "-q", "1"                
+                "-q", "1",
+                "-s", "STEP1",
             ]
         }        
     ]

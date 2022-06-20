@@ -9,7 +9,8 @@ import sys
 import numpy as np
 
 from evopie import APP, models
-from evopie.config import EVO_PROCESS_STATUS_ACTIVE, EVO_PROCESS_STATUS_STOPPED, ROLE_STUDENT
+from evopie.config import EVO_PROCESS_STATUS_ACTIVE, EVO_PROCESS_STATUS_STOPPED, QUIZ_ATTEMPT_STEP1, QUIZ_STEP1, QUIZ_STEP2, ROLE_STUDENT
+from evopie.routes_pages import index
 from evopie.utils import groupby
 from evopie.evo import get_evo, sql_evo_serializer, Serializable
 
@@ -146,16 +147,16 @@ def start_quiz_init(instructor, num_questions, num_distractors):
 @click.option('-i', '--input')
 @click.option('-o', '--output') #csv file to output with student email and id 
 @click.option('-kr', '--knowledge-replace', is_flag=True)
-@click.option('-k', '--knows', multiple=True, nargs=2, type=(int,float))
+@click.option('-k', '--knows', multiple=True) #should be json representation
 def start_quiz_init(num_students, input, output, email_format, knows, knowledge_replace):
     if input is None and num_students is None: 
         sys.stderr.write("Either --input or --num-students should be provided")
         sys.exit(1)
     def build_student(i):
         return {"email": email_format.format(i), "firstname":"S", "lastname": "S", "password":"pwd"}        
-    input_students = None 
-    # import numpy as np
-    knows_map = {}
+
+    input_students = None     
+    knows_map_input = {}
     if input is not None:
         columns = {"firstname": "", "lastname": "", "password": "pwd"}
         input_students = pandas.read_csv(input)
@@ -163,12 +164,58 @@ def start_quiz_init(num_students, input, output, email_format, knows, knowledge_
             if column not in input_students:
                 input_students[column] = columns[column]
         input_students.dropna(subset=["email"])
-        input_students[["firstname", "lastname", "password"]].fillna(columns)    
-    for (did, chance) in knows:
-        knows_map[did] = chance
-    distractors = list(knows_map.keys())
-    distractor_columns = [f'd_{d}' for d in distractors]
-    students = DataFrame(columns=["email", "id", "created", *distractor_columns])    
+        input_students[["firstname", "lastname", "password"]].fillna(columns)  
+        for sid in input_students.index:
+            s = input_students.loc[sid]
+            for c in input_students.columns:
+                if c.startswith("d_") and s[c]:
+                    qid, did, step = (int(id) for id in c.split("_")[1:])
+                    knows_map_input.setdefault(s["email"], {}).setdefault(qid, {}).setdefault(did, [np.nan, np.nan])[step - 1] = s[c]
+    knows = [json.loads(k) for k in knows]  #NOTE: expected format {'sid':<opt, by default all>, 'qid':<opt, by default all>, 'did':<opt, by default all>, choice:num or [step1_c, step2_c] }
+    knows_map_args = {sid: {qid: {k.get("did", "*"):k["chance"] if type(k["chance"]) == list else [k["chance"], k["chance"]] 
+                        for k in qks } for qid, qks in groupby(sks, key = lambda x: x.get("qid", "*")) } 
+                    for sid, sks in groupby(knows, key = lambda x: x.get("sid", "*"))}    
+        
+    distractor_map = None
+    with_wild_did = [(qid, qks) for sks in knows_map_args.values() for qid, qks in sks.items() if qid != "*" and "*" in qks]
+    if len(with_wild_did) > 0: #remove wild dids 
+        if not distractor_map:
+            distractor_ids = models.Distractor.query.with_entities(models.Distractor.id, models.Distractor.question_id)
+            distractor_map = {qid:set(d.id for d in qds) for qid, qds in groupby(distractor_ids, key = lambda x: x.question_id) }
+        for (qid, qks) in with_wild_did:
+            for did in distractor_map.get(qid, []):
+                qks.setdefault(did, list(qks["*"]))
+            del qks["*"]    
+    
+    with_wild_qid = [(sid, sks) for sid, sks in knows_map_args.items() if "*" in sks]    
+    if len(with_wild_qid) > 0: #remove wildcard for qid        
+        if not distractor_map:
+            distractor_ids = models.Distractor.query.with_entities(models.Distractor.id, models.Distractor.question_id)
+            distractor_map = {qid:set(d.id for d in qds) for qid, qds in groupby(distractor_ids, key = lambda x: x.question_id) }                
+        new_knows = {}
+        for sid, sks in with_wild_qid:            
+            new_sks = new_knows.setdefault(sid, {})
+            qks = sks["*"]
+            for qid, dids in distractor_map.items():
+                if "*" in qks: #for all distractors
+                    for did in dids:
+                        new_sks.setdefault(qid, {}).setdefault(did, qks["*"])
+                for did, dks in qks.items():
+                    if did in dids:
+                        new_sks.setdefault(qid, {}).setdefault(did, dks)
+        for sid, sks in new_knows.items():
+            for qid, qks in sks.items():
+                for did, dks in qks.items():
+                    knows_map_args.setdefault(sid, {}).setdefault(qid, {}).setdefault(did, dks)
+        for _, sks in with_wild_qid: 
+            del sks["*"]
+
+    knows_map = {**knows_map_input, **knows_map_args}        
+    students = DataFrame(columns=["email", "id", "created"])    
+
+    distractor_column_order = list(sorted(set([ (i+1, qid, did) for skn in knows_map.values() for qid, qkn in skn.items() for did, dkn in qkn.items() for i, _ in enumerate(dkn)])))
+    distractor_columns = [f'd_{q}_{d}_{step}' for step, q, d in distractor_column_order]
+
     with APP.test_client(use_cookies=True) as c:
         def create_student(student):
             resp = throw_on_http_fail(c.post("/signup", json={**student, "retype": student["password"]}), status=300)
@@ -176,14 +223,9 @@ def start_quiz_init(num_students, input, output, email_format, knows, knowledge_
             #NOTE: we ignore the fact that student is already present in the system - status_code for existing user is 200 with "redirect" in resp
             resp = throw_on_http_fail(c.post("/login", json={**student}))
             student_id = resp["id"]
-            students.loc[student_id, [ "email", "id", "created", *distractor_columns ]] = [student["email"], student_id, was_created, *[knows_map[d] for d in distractors]]            
-            if input_students is not None:
-                for _, student in input_students[input_students["email"] == student["email"]].iterrows():
-                    for column in student[student.notnull()].index:
-                        if column.startswith('d_'):
-                            # did = int(column.split('_')[1])
-                            if column not in students.columns or students.isna().loc[student_id, column]:
-                                students.loc[student_id, column] = student[column]                            
+            student_knowledge = {**knows_map_input.get(student_id, {}), **knows_map_input.get(student["email"], {}), **knows_map_args.get("*", {}), **knows_map_args.get(student_id, {}), **knows_map_args.get(student["email"], {})}
+            distractors = {(i+1, qid, did):chance for qid, qks in student_knowledge.items() for did, dks in qks.items() for i, chance in enumerate(dks)}
+            students.loc[student_id, [ "email", "id", "created", *distractor_columns ]] = [student["email"], student_id, was_created, *[distractors[kid] if kid in distractors else np.nan for kid in distractor_column_order]]
 
         if input_students is not None: 
             for _, student in input_students.iterrows():
@@ -199,17 +241,22 @@ def start_quiz_init(num_students, input, output, email_format, knows, knowledge_
         present_knowledge = {}
     else:
         present_plain = present_knowledge_query.all()
-        present_knowledge = {kid:ks[0] for kid, ks in groupby(present_plain, key=lambda k: (k.student_id, k.distractor_id))}
+        present_knowledge = {kid:ks[0] for kid, ks in groupby(present_plain, key=lambda k: (k.student_id, k.question_id, k.distractor_id, k.step_id))}
     for _, student in students.iterrows(): 
         for c in student[student.notnull()].index:
             if c.startswith("d_"):    
-                distractor_id = int(c.split('_')[1])
-                knowledge_id = student.id, distractor_id
+                question_id, distractor_id, step_id = [int(x) for x in c.split('_')[1:]]
+                knowledge_id = student.id, question_id, distractor_id, step_id
                 if knowledge_id in present_knowledge:
-                    present_knowledge[knowledge_id].chance_to_select = student[c]
+                    present_knowledge[knowledge_id].chance = student[c]
                 else:
-                    k = models.StudentKnowledge(student_id=student.id, distractor_id=distractor_id, chance_to_select = student[c])
+                    k = models.StudentKnowledge(student_id=student.id, question_id = question_id, distractor_id=distractor_id, step_id = step_id, chance = student[c])
                     models.DB.session.add(k) 
+    for (sid, qid, did, step), v in present_knowledge.items():
+        if sid in students.index: 
+            column = f'd_{qid}_{did}_{step}'
+            if np.isnan(students.loc[sid, column]):
+                students.loc[sid, column] = v.chance
     models.DB.session.commit()
     if output is not None:
         students.to_csv(output, index=False)    
@@ -222,51 +269,51 @@ def start_quiz_init(num_students, input, output, email_format, knows, knowledge_
 def export_student_knowledge(output): 
     students = models.User.query.where(models.User.role == ROLE_STUDENT).all()
     knowledge = models.StudentKnowledge.query.all()
-    knowledge_map = {sid:{f'd_{k.distractor_id}':k.chance_to_select for k in ks} for sid, ks in groupby(knowledge, key=lambda k: k.student_id) }
-    distractor_columns = [ f'd_{did}' for did in sorted(list(set([ k.distractor_id for k in knowledge ]))) ]
+    ids = list(sorted(set([ (k.step_id, k.question_id, k.distractor_id) for k in knowledge ])))
+    knowledge_map = {sid:{f'd_{k.question_id}_{k.distractor_id}_{k.step_id}':k.chance for k in ks} for sid, ks in groupby(knowledge, key=lambda k: k.student_id) }
+    distractor_columns = [ f'd_{qid}_{did}_{step}' for step, qid, did in ids ]
     df = DataFrame(columns=['email', 'id', *distractor_columns])
     for s in students:
         df.loc[s.id, ['email', 'id']] = [s.email, s.id]
-        for did, chance in knowledge_map.get(s.id, {}).items():
-            df.loc[s.id, did] = chance
+        skn = knowledge_map.get(s.id, {})
+        for (step, qid, did) in ids:
+            column_name = f'd_{qid}_{did}_{step}'
+            if column_name in skn:
+                df.loc[s.id, column_name] = skn[column_name]
     if output is not None: 
         df.to_csv(output, index=False)
     sys.stdout.write(f"Exported knowledge:\n{df}\n")
 
+KNOWLEDGE_SELECTION_CHANCE = "KNOWLEDGE_SELECTION_CHANCE"
+KNOWLEDGE_SELECTION_WEIGHT = "KNOWLEDGE_SELECTION_WEIGHT"
+
 @quiz_cli.command("run")
 @click.option('-q', '--quiz', type=int, required=True)
+@click.option('-s', '--step', default = [QUIZ_STEP1], multiple=True)
 @click.option('-n', '--n-times', type=int, default=1)
+@click.option('-kns', '--knowledge-selection', default = KNOWLEDGE_SELECTION_WEIGHT)
 @click.option('-i', '--instructor', default='i@usf.edu') #evo algo to use
 @click.option('-p', '--password', default='pwd') #evo algo to use
 @click.option('--algo') #evo algo to use
 @click.option('--algo-params') #json settings of algo
 @click.option('--rnd', is_flag=True) #randomize student order
-@click.option('-aw', '--answer-weight', type=float, default=1) #randomize student order
 @click.option('-o', '--output')
-def simulate_quiz(quiz, instructor, password, algo, algo_params, rnd, answer_weight, n_times, output):    
+def simulate_quiz(quiz, instructor, password, algo, algo_params, rnd, n_times, output, step, knowledge_selection):    
     import evopie.config
-    for run_idx in range(n_times):
-        if algo is not None:         
-            evopie.config.distractor_selection_process = algo 
-        if algo_params is not None: 
-            evopie.config.distractor_selecton_settings = json.loads(algo_params)
-        #close prev evo process
-        existing_evo = models.EvoProcess.query.where(models.EvoProcess.quiz_id == quiz, models.EvoProcess.status == EVO_PROCESS_STATUS_ACTIVE).all()
-        for evo in existing_evo:
-            evo.status = EVO_PROCESS_STATUS_STOPPED    
-        models.DB.session.commit()    
-        with APP.test_client(use_cookies=True) as c: #instructor session
-            throw_on_http_fail(c.post("/login",json={"email": instructor, "password": password}))
-            throw_on_http_fail(c.post(f"/quizzes/{quiz}/status", json={ "status" : "HIDDEN" })) #stop in memory evo process
-            throw_on_http_fail(c.post(f"/quizzes/{quiz}/status", json={ "status" : "STEP1" }))
-            # evo process started 
-        k_plain = models.StudentKnowledge.query.all() #TODO: students should be per instructor eventually 
-        knowledge = {student_id: {k.distractor_id:k.chance_to_select for k in ks} for student_id, ks in groupby(k_plain, key=lambda k: k.student_id) }
+    if algo is not None:         
+        evopie.config.distractor_selection_process = algo 
+    if algo_params is not None: 
+        evopie.config.distractor_selecton_settings = json.loads(algo_params)
+
+    def simulate_step(step):
+        k_plain = models.StudentKnowledge.query.where(models.StudentKnowledge.step_id == step).all() #TODO: students should be per instructor eventually 
+        knowledge = {student_id: { str(qid): {did: [x.chance for x in sorted(dks, key = lambda x: x.step_id)] for did, dks in groupby(qks, key=lambda x: x.distractor_id) } for qid, qks in groupby(ks, key=lambda x: x.question_id)} for student_id, ks in groupby(k_plain, key=lambda k: k.student_id) }
         students_plain = models.User.query.filter_by(role=ROLE_STUDENT).all()
         students = list(students_plain) #[s.id for s in students_plain]
         student_ids = set([s.id for s in students])
-        models.QuizAttempt.query.where(models.QuizAttempt.student_id.in_(student_ids), models.QuizAttempt.quiz_id == quiz).delete()
-        models.DB.session.commit()
+        if step == 1:
+            models.QuizAttempt.query.where(models.QuizAttempt.student_id.in_(student_ids), models.QuizAttempt.quiz_id == quiz).delete()
+            models.DB.session.commit()
         if rnd:
             shuffle(students)
         ids_emails = [(student.id, student.email) for student in students]
@@ -275,46 +322,73 @@ def simulate_quiz(quiz, instructor, password, algo, algo_params, rnd, answer_wei
                 resp = throw_on_http_fail(c.post("/login", json={"email": email, "password": "pwd"}))
                 if "id" not in resp:
                     continue #ignore non-default students
-                resp = throw_on_http_fail(c.get(f"/student/{quiz}", headers={"Accept": "application/json"}))            
-                # questions = {str(q["id"]):[a[0] for a in q["alternatives"] if a[0] != -1] for q in resp["questions"]}
+                resp = throw_on_http_fail(c.get(f"/student/{quiz}", headers={"Accept": "application/json"}))
 
                 attempt = models.QuizAttempt.query.where(models.QuizAttempt.quiz_id == quiz, models.QuizAttempt.student_id == sid).first()
 
                 student_knowledge = knowledge.get(sid, {})
-                student_knowledge[-1] = answer_weight
-                # initial_responses = {qid:str(choice(known_distractors)) if any(known_distractors) else "-1" 
-                #                         for qid, distractors in questions.items() 
-                #                         for known_distractors in [[d for d in distractors if d in student_knowledge and random() < student_knowledge[d] ]]}
+                if knowledge_selection == KNOWLEDGE_SELECTION_CHANCE:
+                    responses = {qid:choice(known_distractors) if any(known_distractors) else -1
+                                            for qid, distractors in attempt.alternatives_map.items() 
+                                            for qskn in [student_knowledge.get(qid, {}) ]
+                                            for known_distractors in [[d for d in distractors if d in qskn and random() < qskn[d][step-1] ]]}
+                elif knowledge_selection == KNOWLEDGE_SELECTION_WEIGHT:
+                    responses = {qid:ds[selected_d_index][0] if selected_d_index else -1
+                                            for qid, distractors in attempt.alternatives_map.items() 
+                                            for qskn in [student_knowledge.get(qid, {}) ]
+                                            for ds in [[(alt, d) for alt, d in enumerate(distractors) if d in qskn]] 
+                                            for weights in [[qskn[d][step-1] for _, d in ds]]
+                                            for sums in [np.cumsum(weights)]
+                                            for level in [(random() * sums[-1]) if len(sums) > 0 else None]
+                                            for selected_d_index in [next((i for i, s in enumerate(sums) if s > level), None)]}
+                else: 
+                    responses = {}
 
-                initial_responses = {qid:ds[selected_d_index][0]
-                                        for qid, distractors in attempt.alternatives_map.items() 
-                                        for ds in [[(alt, d) for alt, d in enumerate(distractors) if d in student_knowledge]] 
-                                        for weights in [[student_knowledge[d] for _, d in ds]]
-                                        for sums in [np.cumsum(weights)]
-                                        for level in [(random() * sums[-1])]
-                                        for selected_d_index in [next((i for i, s in enumerate(sums) if s > level), 0)]}
-                
-                justifications = {qid:{str(altid):f"j_for_{did}" for altid, did in enumerate(alternatives) if altid != initial_responses[qid]} 
-                                    for qid, alternatives in attempt.alternatives_map.items()}
-                resp = throw_on_http_fail(c.post(f"/student/{quiz}", json={"question": initial_responses, "justification": justifications}))
+                json = {"question": responses}
+                if step == 1:
+                    json["justification"] = {qid:{str(altid):f"q{qid}_o{altid}_d{did}" 
+                                                for altid, did in enumerate(alternatives) if altid != responses.get(qid, None)} 
+                                                for qid, alternatives in attempt.alternatives_map.items()}
+                resp = throw_on_http_fail(c.post(f"/student/{quiz}", json=json))
+        
+    for run_idx in range(n_times):
+        #close prev evo process
+        if QUIZ_STEP1 in step:
+            existing_evo = models.EvoProcess.query.where(models.EvoProcess.quiz_id == quiz, models.EvoProcess.status == EVO_PROCESS_STATUS_ACTIVE).all()
+            for evo in existing_evo:
+                evo.status = EVO_PROCESS_STATUS_STOPPED    
+            models.DB.session.commit()    
+            with APP.app_context(), APP.test_client(use_cookies=True) as c: #instructor session
+                throw_on_http_fail(c.post("/login",json={"email": instructor, "password": password}))
+                throw_on_http_fail(c.post(f"/quizzes/{quiz}/status", json={ "status" : "HIDDEN" })) #stop in memory evo process
+                throw_on_http_fail(c.post(f"/quizzes/{quiz}/status", json={ "status" : "STEP1" }))
+                # evo process started 
 
-        with APP.app_context():     
-            evo = get_evo(quiz)
-            if evo is None:
-                sys.stdout.write(f"[{run_idx + 1}/{n_times}] Quiz {quiz} finished\n")            
-            else:
-                evo.stop()
-                evo.join()
-                sql_evo_serializer.wait_dump(timeout=5)  #wait for db data dump
-                evo.archive["p"] = 0
-                evo.archive.loc[-1, ['g', 'p']] = [f"-1, {answer_weight}", 0]
-                evo.archive["p"] = evo.archive["p"].astype(int)            
-                for ind in evo.population:
-                    evo.archive.loc[ind, "p"] = 1        
-                if output is not None: 
-                    evo.archive.to_csv(output.format(run_idx))    
-                sys.stdout.write(f"[{run_idx + 1}/{n_times}] Quiz {quiz} finished\n{evo.archive}\n")
-            
+            simulate_step(1)
+
+            with APP.app_context():     
+                evo = get_evo(quiz)
+                if evo is None:
+                    sys.stdout.write(f"[{run_idx + 1}/{n_times}] Quiz {quiz} finished\n")            
+                else:
+                    evo.stop()
+                    evo.join()
+                    sql_evo_serializer.wait_dump(timeout=5)  #wait for db data dump
+                    evo.archive["p"] = 0
+                    evo.archive["p"] = evo.archive["p"].astype(int)            
+                    for ind in evo.population:
+                        evo.archive.loc[ind, "p"] = 1        
+                    if output is not None: 
+                        evo.archive.to_csv(output.format(run_idx))    
+                    sys.stdout.write(f"[{run_idx + 1}/{n_times}] Step1 quiz {quiz} finished\n{evo.archive}\n")
+        if QUIZ_STEP2 in step: 
+            with APP.app_context(), APP.test_client(use_cookies=True) as c: #instructor session
+                throw_on_http_fail(c.post("/login",json={"email": instructor, "password": password}))
+                throw_on_http_fail(c.post(f"/quizzes/{quiz}/status", json={ "status" : "STEP2" }))
+
+            simulate_step(2)            
+
+            sys.stdout.write(f"[{run_idx + 1}/{n_times}] Step2 Quiz {quiz} finished\n{evo.archive}\n")
 
 @quiz_cli.command("export")
 @click.option('-q', '--quiz', type=int, required=True)
