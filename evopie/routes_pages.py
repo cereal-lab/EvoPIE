@@ -309,7 +309,7 @@ def get_possible_justifications(attempt):
     dids = set(did for _, alternatives in attempt.alternatives_map.items() for did in alternatives)
     did_positions = {(int(qid), did):aid for qid, alternatives in attempt.alternatives_map.items() for aid, did in enumerate(alternatives)}
     justification_plain = models.Justification.query.where(models.Justification.quiz_question_id.in_(qids), 
-            models.Justification.quiz_question_id.in_(dids), models.Justification.ready==True,
+            models.Justification.distractor_id.in_(dids), models.Justification.ready==True,
             not_(models.Justification.student_id == current_user.id),
             not_(models.Justification.justification==""), not_(models.Justification.justification=="<br>"),
             not_(models.Justification.justification=="<p><br></p>"), not_(models.Justification.justification=="<p></p>")).all()

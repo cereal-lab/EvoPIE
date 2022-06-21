@@ -16,7 +16,7 @@ from evopie.evo import get_evo, sql_evo_serializer, Serializable
 
 def throw_on_http_fail(resp: TestResponse, status: int = 400):
     if resp.status_code >= status:            
-        sys.stderr.write(f"[{resp.request.path}] failed for input {resp.request.json}:\n {resp.get_data(as_text=True)}")
+        sys.stderr.write(f"[{resp.request.path}] failed:\n {resp.get_data(as_text=True)}")
         sys.exit(1)
     return resp.json
 
@@ -328,16 +328,19 @@ def simulate_quiz(quiz, instructor, password, algo, algo_params, rnd, n_times, o
 
                 student_knowledge = knowledge.get(sid, {})
                 if knowledge_selection == KNOWLEDGE_SELECTION_CHANCE:
-                    responses = {qid:choice(known_distractors) if any(known_distractors) else -1
+                    responses = {qid:choice(known_distractors)
                                             for qid, distractors in attempt.alternatives_map.items() 
-                                            for qskn in [student_knowledge.get(qid, {}) ]
-                                            for known_distractors in [[d for d in distractors if d in qskn and random() < qskn[d][step-1] ]]}
+                                            for qskn in [student_knowledge.get(qid, {-1:[1,1]}) ]
+                                            for ds_distr in [[(alt, qskn[d]) for alt, d in enumerate(distractors) if d in qskn and (step-1) < len(qskn[d])]] 
+                                            for ds in [ds_distr if any(ds_distr) else [(alt, [1,1]) for alt, d in enumerate(distractors) if d == -1]]
+                                            for known_distractors in [[alt for alt, w in ds if random() < w[step-1] ]]}
                 elif knowledge_selection == KNOWLEDGE_SELECTION_WEIGHT:
-                    responses = {qid:ds[selected_d_index][0] if selected_d_index else -1
+                    responses = {qid:ds[selected_d_index][0]
                                             for qid, distractors in attempt.alternatives_map.items() 
-                                            for qskn in [student_knowledge.get(qid, {}) ]
-                                            for ds in [[(alt, d) for alt, d in enumerate(distractors) if d in qskn]] 
-                                            for weights in [[qskn[d][step-1] for _, d in ds]]
+                                            for qskn in [student_knowledge.get(qid, {-1:[1,1]}) ]
+                                            for ds_distr in [[(alt, qskn[d]) for alt, d in enumerate(distractors) if d in qskn and (step-1) < len(qskn[d])]] 
+                                            for ds in [ds_distr if any(ds_distr) else [(alt, [1,1]) for alt, d in enumerate(distractors) if d == -1]]
+                                            for weights in [[w[step-1] for _, w in ds]]
                                             for sums in [np.cumsum(weights)]
                                             for level in [(random() * sums[-1]) if len(sums) > 0 else None]
                                             for selected_d_index in [next((i for i, s in enumerate(sums) if s > level), None)]}
@@ -388,7 +391,7 @@ def simulate_quiz(quiz, instructor, password, algo, algo_params, rnd, n_times, o
 
             simulate_step(2)            
 
-            sys.stdout.write(f"[{run_idx + 1}/{n_times}] Step2 Quiz {quiz} finished\n{evo.archive}\n")
+            sys.stdout.write(f"[{run_idx + 1}/{n_times}] Step2 Quiz {quiz} finished\n")
 
 @quiz_cli.command("export")
 @click.option('-q', '--quiz', type=int, required=True)
