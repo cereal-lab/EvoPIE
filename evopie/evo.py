@@ -356,7 +356,9 @@ class P_PHC(PHC, Serializable):
             q = models.Quiz.query.get_or_404(self.quiz_id)
             questions = q.quiz_questions
             question_ids = [ q.id for q in questions ]
-            distractors = models.Distractor.query.where(models.Distractor.question_id.in_(question_ids)).with_entities(models.Distractor.id, models.Distractor.question_id)
+            quiz_question_distractors = models.DB.session.query(models.quiz_questions_hub).where(models.quiz_questions_hub.c.quiz_question_id.in_(question_ids)).all()
+            distractor_ids = [d.distractor_id for d in quiz_question_distractors]
+            distractors = models.Distractor.query.where(models.Distractor.id.in_(distractor_ids)).with_entities(models.Distractor.id, models.Distractor.question_id)
             distractor_map = { q_id: [ d.id for d in ds ] for q_id, ds in groupby(distractors, key=lambda d: d.question_id) }
             return {q.id: distractor_map.get(q.id, []) for q in questions }
 

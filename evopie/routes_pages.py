@@ -562,8 +562,10 @@ def get_quiz(q):
     ##        altern[1] = unescape(altern[1])
     ##        # nope... altern[1] = jinja2.Markup.escape(altern[1])
 
-    question_ids = set(q.id for q in quiz_questions)
-    plain_distractors = models.Distractor.query.where(models.Distractor.question_id.in_(question_ids))
+    question_ids = set(q.id for q in quiz_questions)    
+    quiz_question_distractors = models.DB.session.query(models.quiz_questions_hub).where(models.quiz_questions_hub.c.quiz_question_id.in_(question_ids)).all()
+    distractor_ids = [d.distractor_id for d in quiz_question_distractors]
+    plain_distractors = models.Distractor.query.where(models.Distractor.id.in_(distractor_ids))
     distractor_per_question = {q_id: ds for q_id, ds in groupby(plain_distractors, key = lambda d: d.question_id)}    
     distractor_map = {d.id:d for d in plain_distractors}
 
@@ -732,8 +734,12 @@ def save_quiz_attempt(q, body):
                     js_map[qdid].ready = True #justification could be used by student on next step
 
         #justifications were validated - we delete unnecessary justifications (for selected answers)
-        for j in js_to_delete:
-            models.DB.session.delete(j)
+        if g.allow_justification_for_selected:
+            for qdid in js_map:
+                js_map[qdid].ready = True #for testing purpose
+        else:
+            for j in js_to_delete:
+                models.DB.session.delete(j)
 
         attempt.revised_responses = attempt.initial_responses
 
@@ -790,7 +796,9 @@ def get_quiz_statistics(qid):
                                                             for attr in ["stem", "answer", "title"]} } 
                     for q in plain_questions}
 
-    plain_distractors = models.Distractor.query.where(models.Distractor.question_id.in_(question_ids)).all()
+    quiz_question_distractors = models.DB.session.query(models.quiz_questions_hub).where(models.quiz_questions_hub.c.quiz_question_id.in_(question_ids)).all()
+    distractor_ids = [d.distractor_id for d in quiz_question_distractors]
+    plain_distractors = models.Distractor.query.where(models.Distractor.id.in_(distractor_ids)).all()
     distractors = { qid : {d.id : unescape(d.answer) for d in ds} 
                     for (qid, ds) in groupby(plain_distractors, key = lambda d: d.question_id) } 
 

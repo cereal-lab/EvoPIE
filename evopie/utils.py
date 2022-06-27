@@ -41,6 +41,20 @@ def groupby(iterable, key=lambda x: x):
         res[k].append(el)
     return res.items()
 
+def unpack_key(key, knows):
+    ''' Allows to flatten 'sid': [1,2,3] to several records with 'sid': 1, 'sid':2, 'sid': 3
+        It does same for qid and did 
+    '''
+    return [k2 for k in knows 
+                for ks in [[{**k, key: i} for i in k[key]] 
+                            if type(k.get(key, "*")) == list else 
+                            [{**k, key: i} for i in range(k[key]["range"][0], k[key]["range"][1] + 1)] #NOTE: json "range":[2,3] is mapped to call range(2,4)
+                            if type(k.get(key, "*")) == dict and "range" in k[key] else
+                            [{**k, key: i} for r in k[key]["ranges"] for rg in [r if type(r) == list else [r, r]] for i in range(rg[0], rg[1] + 1)]
+                            if type(k.get(key, "*")) == dict and "ranges" in k[key] else
+                            [k]] 
+                for k2 in ks]    
+
 def find_median(sorted_list):
     if len(sorted_list) == 0: return None, []
     indices = []

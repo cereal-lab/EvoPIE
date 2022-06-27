@@ -3,7 +3,7 @@
 # Dynamic classes like scoped_session are caught by pylint as not having any
 # of the members they end up featuring at runtime. This is a way to tell pylint to let it be
 
-from flask import jsonify, abort, request, Response, render_template, redirect, url_for, make_response
+from flask import g, jsonify, abort, request, Response, render_template, redirect, url_for, make_response
 from flask import Blueprint
 from flask_login import login_required, current_user
 from flask import Markup
@@ -889,6 +889,7 @@ def justify_alternative_selection(q, body):
             models.DB.session.delete(j)    
         models.DB.session.commit()
         return {"message": "Justifications were deleted"} #TODO: add ids of deleted entities or entities themselves
+    # resp_added_just_ids = {}
     for (qid, did), new_j in new_justifications.items():
         if (qid, did) in justifications:
             if new_j == '':
@@ -897,8 +898,10 @@ def justify_alternative_selection(q, body):
                 justifications[(qid, did)].justification = new_j
         elif new_j != '': 
             justification = models.Justification(quiz_question_id = qid, distractor_id = did, student_id = current_user.id, justification = new_j)
+            # resp_added_just_ids.setdefault(str(justification.quiz_question_id), {})[str(justification.distractor_id)] = justification
             models.DB.session.add(justification)
     models.DB.session.commit() #after this point all ids for added_justifications were assigned 
+    # resp_added_just_ids = {qid:{did:j.id for did, j in qjs.items()} for qid, qjs in resp_added_just_ids.items()}
     return {"message": "Justifications were saved" } #TODO: return ids of created entities
 
 @mcq.route('/quizzes/<qa:q>/justifications/like', methods=['PUT'])
@@ -908,15 +911,19 @@ def justify_alternative_selection(q, body):
 def like_justifications(q, body):
     _, attempt = q 
     
-    jids = set(j.id for j in attempt.selected_justifications)
-
-    present_likes = models.Likes4Justifications.query.where(models.Likes4Justifications.student_id == current_user.id,
-        models.Likes4Justifications.justification_id.in_(jids)).all()
-
-    present_likes_map = {str(l.justification_id):l for l in present_likes}
+    if g.ignore_selected_justifications: #disablces validation of ids 
+        present_likes = models.Likes4Justifications.query.where(models.Likes4Justifications.student_id == current_user.id).all()
+        present_likes_map = {str(l.justification_id):l for l in present_likes}   
+        valid_jid = lambda jid: True     
+    else: 
+        jids = set(j.id for j in attempt.selected_justifications)
+        present_likes = models.Likes4Justifications.query.where(models.Likes4Justifications.student_id == current_user.id,
+            models.Likes4Justifications.justification_id.in_(jids)).all()
+        present_likes_map = {str(l.justification_id):l for l in present_likes}
+        valid_jid = lambda jid: int(jid) in jids
 
     for jid, is_liked in body.items():
-        if is_liked and jid not in present_likes_map:
+        if is_liked and jid not in present_likes_map and valid_jid(jid):
             models.DB.session.add(models.Likes4Justifications(student_id = current_user.id, justification_id = int(jid)))
         elif not is_liked and jid in present_likes_map:
             models.DB.session.delete(present_likes_map[jid])
