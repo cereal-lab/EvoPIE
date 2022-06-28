@@ -148,12 +148,13 @@ def start_quiz_init(instructor, num_questions, num_distractors, question_distrac
 
 @student_cli.command("init")
 @click.option('-ns', '--num-students', type = int)
+@click.option('--exclude-id', type = int, multiple=True)
 @click.option('-ef', '--email-format', default="s{}@usf.edu")
 @click.option('-i', '--input')
 @click.option('-o', '--output') #csv file to output with student email and id 
 @click.option('-kr', '--knowledge-replace', is_flag=True)
 @click.option('-k', '--knows', multiple=True) #should be json representation
-def start_quiz_init(num_students, input, output, email_format, knows, knowledge_replace):
+def start_quiz_init(num_students, exclude_id, input, output, email_format, knows, knowledge_replace):
     if input is None and num_students is None: 
         sys.stderr.write("Either --input or --num-students should be provided")
         sys.exit(1)
@@ -191,7 +192,7 @@ def start_quiz_init(num_students, input, output, email_format, knows, knowledge_
                 if acc[i] < 0:
                     acc[i] = k["chance"]
         return acc 
-    knows_map_args = {sid: {qid: {did: reduce(dks_reducton, dks, [-1,-1])
+    knows_map_args = {email_format.format(sid): {qid: {did: reduce(dks_reducton, dks, [-1,-1])
                         for did, dks in groupby(qks, key = lambda x: x.get("did", "*")) } 
                         for qid, qks in groupby(sks, key = lambda x: x.get("qid", "*")) } 
                         for sid, sks in groupby(knows_unpacked, key = lambda x: x.get("sid", "*"))}    
@@ -252,6 +253,8 @@ def start_quiz_init(num_students, input, output, email_format, knows, knowledge_
                 create_student(student)
         if num_students is not None:
             for i in range(num_students):
+                if (i+1) in exclude_id:
+                    continue
                 student = build_student(i + 1)
                 create_student(student)
     student_ids = set(students["id"])
@@ -321,7 +324,8 @@ KNOWLEDGE_SELECTION_WEIGHT = "KNOWLEDGE_SELECTION_WEIGHT"
 @click.option('-o', '--output')
 @click.option('-l', '--likes', multiple=True)
 @click.option('--justify-response', is_flag=True)
-def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n_times, output, step, knowledge_selection, likes, justify_response):    
+@click.option('-ef', '--email-format', default="s{}@usf.edu")
+def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n_times, output, step, knowledge_selection, likes, justify_response, email_format):    
     import evopie.config
     if no_algo:
         evopie.config.distractor_selection_process = None
@@ -357,7 +361,7 @@ def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n
             #NOTE: no support for wildcard * for likes 
             likes_json = [json.loads(k) for k in likes]
             likes_unpacked = unpack_key("jid", unpack_key("sid", likes_json))
-            likes_map = {sid:{str(l["jid"]):True for l in slikes} for sid, slikes in groupby(likes_unpacked, key = lambda x: x["sid"])}        
+            likes_map = {email_format.format(sid):{str(l["jid"]):True for l in slikes} for sid, slikes in groupby(likes_unpacked, key = lambda x: x["sid"])}        
         for (sid, email) in ids_emails:
             with APP.test_client(use_cookies=True) as c:
                 with APP.app_context():
@@ -395,10 +399,10 @@ def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n
                     json_resp["justification"] = {qid:{str(altid):f"s{sid}_q{qid}_o{altid}_d{did}" 
                                                 for altid, did in enumerate(alternatives) if altid != responses.get(qid, None) or justify_response }
                                                 for qid, alternatives in attempt.alternatives_map.items()}
-                elif step == 2 and sid in likes_map:
+                elif step == 2 and email in likes_map:
                     with APP.app_context():
                         g.ignore_selected_justifications = True
-                        resp = throw_on_http_fail(c.put(f"/quizzes/{quiz}/justifications/like", json=likes_map[sid]))
+                        resp = throw_on_http_fail(c.put(f"/quizzes/{quiz}/justifications/like", json=likes_map[email]))
                 with APP.app_context():
                     g.allow_justification_for_selected = True #do not delete justifications for selection
                     resp = throw_on_http_fail(c.post(f"/student/{quiz}", json=json_resp))
