@@ -1,3 +1,8 @@
 {
-    "python.pythonPath": "/home/alessio/.local/share/virtualenvs/EvoPIE-Cso4X4m3/bin/python"
+    "python.pythonPath": "/home/alessio/.local/share/virtualenvs/EvoPIE-Cso4X4m3/bin/python",
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true
 }

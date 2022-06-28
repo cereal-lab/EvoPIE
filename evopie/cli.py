@@ -493,11 +493,12 @@ def get_quiz_result(quiz, output, instructor, password, expected, diff_o):
                 for sid, columns in joined.loc[joined[expected_column] != joined[actual_column], [ expected_column, actual_column ]].iterrows():
                     diff.loc[expected_frame.loc[sid, "Email"], c] = f"{columns[actual_column]} | {columns[expected_column]}"
             if diff.empty:
-                sys.stdout.write(f"SUCCESS: actual matches expected csv\n")       
+                sys.stdout.write(f"SUCCESS: actual matches expected csv\n")
             else: 
                 if diff_o:
                     diff.to_csv(diff_o)
-                sys.stdout.write(f"FAILED, diff:\n{diff}\n")   
+                sys.stderr.write(f"FAILED, diff:\n{diff}\n")   
+                sys.exit(1)
 
 
 
