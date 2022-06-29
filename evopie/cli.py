@@ -179,6 +179,9 @@ def start_quiz_init(num_students, exclude_id, input, output, email_format, knows
                     knows_map_input.setdefault(s["email"], {}).setdefault(qid, {}).setdefault(did, [np.nan, np.nan])[step - 1] = s[c]
     knows = [json.loads(k) for k in knows]  #NOTE: expected format {'sid':<opt, by default all>, 'qid':<opt, by default all>, 'did':<opt, by default all>, choice:num or [step1_c, step2_c] }
     knows_unpacked = unpack_key('did', unpack_key('qid', unpack_key('sid', knows)))
+    #NOTE: if step is provided - the knowledge will not be passed to next steps 
+    #NOTE: otherwise if chance is a list - elements are treated as chances for each step sequentially
+    #NOTE: otherwise chance defines value for all steps
     def dks_reducton(acc, k):
         ''' adds chances from simple knows record '''
         if "step" in k:
