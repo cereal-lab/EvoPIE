@@ -34,7 +34,7 @@ def process_axes(axes):
         axis_candidates = axis[0]
         axis_res.append(axis_candidates)
         for point in axis[1:]: 
-            axis_candidates = (*axis_candidates, *point)
+            axis_candidates = [*axis_candidates, *point]
             axis_res.append(axis_candidates)
     return res 
 
@@ -223,7 +223,7 @@ def synth_deca_coords_complex(candidates: 'list[int]', dims: int, num_tests: int
     return (axes, spanned)
 
 # This version generates spanned points separately
-def synth_deca_axes(candidates: 'list[int]', dims: int, num_axis_points: int, axis_chance = 0.25, collapse_chance = 0.25, split_chance = 0.25, migration_chance = 0.25, min_iterations = 20, max_reduce_iterations = 1000): 
+def synth_deca_axes_complex(candidates: 'list[int]', dims: int, num_axis_points: int, axis_chance = 0.25, collapse_chance = 0.25, split_chance = 0.25, migration_chance = 0.25, min_iterations = 20, max_reduce_iterations = 1000): 
     ''' Routine to generate synthetic coordinate system at random based on given students and number of dimensions 
         Returns list of test cases (axis, spanned)    
         axis is list, one el for axis, with list of candidates failed the test
@@ -301,6 +301,50 @@ def synth_deca_spanned(axes, num_spanned):
         spanned = []
     return spanned
 
+import numpy as np
+import numpy.typing as npt
+
+def synth_deca_axes(candidates: npt.ArrayLike, dims: 'list[int]'): 
+    assert len(dims) > 0
+    assert len(candidates) >= len(dims) #number of dimansions could not be bigger than number of candidates
+    assert all(dim > 0 for dim in dims)    
+
+    np.random.shuffle(candidates)
+    total_points_num = np.sum(dims)
+    candidate_split_indexes = np.sort(np.concatenate([[0], np.random.choice(len(candidates), size=total_points_num, replace=False), [len(candidates)]]))
+    candidate_slices = np.lib.stride_tricks.sliding_window_view(candidate_split_indexes, 2) #slices     
+    all_points = [candidates[slice[0]:slice[1]] for slice in candidate_slices]
+    print(f"Splits of points {candidate_slices}.\nCandidates: {candidates}.\nPoints: {all_points}")
+    all_points.pop(0) #ignore candidates outside space
+    axes_split_ends = np.cumsum(dims)
+    axes_splits = zip(axes_split_ends - dims, axes_split_ends)
+    axes = [all_points[split[0]:split[1]] for split in axes_splits]
+    return axes 
+
+    # point_candidate_counts = np.ones(total_points_num)
+    # next_points_requirements = point_candidate_counts[::-1].cumsum()[::-1] - point_candidate_counts
+
+    # axis_candidates = [] 
+    # for dim_id, dim in enumerate(dims):
+    #     other_dims_required_count = sum(dims[dim_id+1:])
+    #     dim_count = random.randint(dim, len(candidates) - other_dims_required_count)
+    #     axis_candidates.append(candidates[:dim_count])
+    #     candidates = candidates[dim_count:]
+    # axes = []
+    # for cs, dim in zip(axis_candidates, dims):
+    #     random.shuffle(cs)
+    #     buckets = [[c] for c in cs[:dim]]        
+    #     for c in cs[dim:]: 
+    #         random.choice(buckets).append(c)
+    #     axes.append(buckets)
+
+    # return process_axes(axes)
+
+    # # buckets = [[] for _ in dims]
+
+    # # for c in candidates
+
+synth_deca_axes([1,2,3,4,5,6,7,8,9,10], (2,3))
 
 # axes = synth_deca_axes([1,2,3,4,5,6,7,8,9,10], 3, 3, min_iterations = 100) 
 # p_axes = process_axes(axes)
