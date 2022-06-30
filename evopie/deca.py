@@ -51,6 +51,7 @@ def synth_deca_coords_biased(candidates: 'list[int]', dims: int, num_tests: int)
         Returns list of test cases
         Example: ([[{1}], [{2}]], [({1}, {2})])  == (axis, spanned)    
         Spanned points are expressed through axis  
+        [[10, 9], [1]] -> [10, 9], [10, 9, 1]
     '''
     assert len(candidates) >= dims #number of dimansions could not be bigger than number of candidates
     assert num_tests >= dims
@@ -311,6 +312,7 @@ def synth_deca_axes(candidates: npt.ArrayLike, dims: 'list[int]'):
 
     np.random.shuffle(candidates)
     total_points_num = np.sum(dims)
+    # s1 | s2 | s3  s4 s5 | ... ... sn
     candidate_split_indexes = np.sort(np.concatenate([[0], np.random.choice(len(candidates), size=total_points_num, replace=False), [len(candidates)]]))
     candidate_slices = np.lib.stride_tricks.sliding_window_view(candidate_split_indexes, 2) #slices     
     all_points = [candidates[slice[0]:slice[1]] for slice in candidate_slices]
@@ -319,7 +321,7 @@ def synth_deca_axes(candidates: npt.ArrayLike, dims: 'list[int]'):
     axes_split_ends = np.cumsum(dims)
     axes_splits = zip(axes_split_ends - dims, axes_split_ends)
     axes = [all_points[split[0]:split[1]] for split in axes_splits]
-    return axes 
+    return process_axes(axes)
 
     # point_candidate_counts = np.ones(total_points_num)
     # next_points_requirements = point_candidate_counts[::-1].cumsum()[::-1] - point_candidate_counts
@@ -344,8 +346,67 @@ def synth_deca_axes(candidates: npt.ArrayLike, dims: 'list[int]'):
 
     # # for c in candidates
 
-synth_deca_axes([1,2,3,4,5,6,7,8,9,10], (2,3))
+#Considerations about relationship between distructors and selected candidates:
+# s1: q1: -1 2* 3 4 q2: -1 5 6 7* --> 1
+# s2: q1: -1 2 3* 4 q2: -1 5 6 7* --> 2
+# a1: [[6, 10, 1], [6, 10, 1, 8, 9]],  a2: [[2, 3], [2, 3, 4, 7], [2, 3, 4, 7, 5]]
+# 1. Distractors for same question (2 3 4) could not trick same student at once. So student with id x could be in CF set of only one of them
+#    But tests on one axis share candidates in their CF sets. Therefore distractors of one question could only be placed on different axis
+# 2. Distractors for different questions (say 2, 7) could fail same students and be placed on same axis. 
+#   More: one test could correspond to two different distractors 
+# 3. Some distractors could be absent in deca space - they do not trick any students.  
+# 4. Conclusion Axes are treated as independent distractors. If test is present in deca space - at least one distractor should exist with specified behavior
+# 5. Num of questions for axes should be at least max(dims) because each point on axis correspond to different question's distractor
+# 6. Spanned point contains in its CF-sets students from all dimensions - this point could not belong to quesion to which axis points belong
+def gen_test_distractor_mapping(axes): #NOTE: no spanned for now
+    ''' Generates mapping of distractor id to corresponding position in the DECA space '''
+    num_questions = np.max([len(axis) for axis in axes]) #We deduce number of quiz question by max points on dimension (with psanned picture changes)
+    #we would like to have minimal number of quesions from axes 
+    #num of distractors on one question: 
+    #   1. > len(axes) - some distractors do not trick students at all - easy distractors - not represented on axes (non-informative distractors)
+    #   2. == len(axes) - each distractor of question is informative - they are independent
+    #   3. < len(axes) - other questions provide new insights - questions are independent 
+    # we always could generate some number of noniformative distractors for each questions - therefore this routing works only with informative distractors 
+    # We also ignore non-informative (trivial) questions here. They also could be added
+    # So number of informative distractors per question should be from [1, len(axes)].
+    questions = [[] for _ in range(num_questions)]
+    possible_question = [qid for qid in range(num_questions)]    
+    for axis_id, axis in enumerate(axes):
+        np.random.shuffle(possible_question)
+        total_points_num = len(axis)
+        candidates = possible_question
+        # point_questions = [[question] for question in candidates[:total_points_num]]
+        # | q3 q4 -> p1 at axis | q5 -> p2 at axis | q6 q7 | ... qn
+        # | q1 | q2 | q3 
+        candidate_split_indexes = np.sort(np.concatenate([[0], np.random.choice(len(candidates), size=total_points_num, replace=False), [len(candidates)]]))
+        candidate_slices = np.lib.stride_tricks.sliding_window_view(candidate_split_indexes, 2) #slices     
+        point_questions = [candidates[slice[0]:slice[1]] for slice in candidate_slices]
+        print(f"Splits of points {candidate_slices}.\nAxis: {axis}\nCandidates: {candidates}.\nQuestions: {point_questions}")
+        # print(f"Axis: {axis}\nCandidates: {candidates}.\nQuestions: {point_questions}")
+        point_questions.pop(0) #first slice is dedicated to ignored questions for this axis
+        for point_id, qids in enumerate(point_questions):
+            for qid in qids:
+                questions[qid].append((axis_id, point_id))
 
+    return questions
+    # for _ in range(num_questions):
+    #     num_distractors = np.random.randint(1, len(axes) + 1)
+
+def gen_test_distractor_mapping_knowledge(axes, test_distractor_mapping, question_distractors): 
+    ''' Generates knowledge in format similar to cli student init -k flag. Use this to init StudentKnowledge database 
+        question_distractors specify possible distractors for each question - used to assign knowledge to specific distractors
+        It is list of {qid, dids} qid is used to assign question id to sequential test_distractor_mapping. dids are used with same purpose
+        question_distractors["dids"] is list of distractor ids. For informative duplicate, element of the list should be the list itself with dids
+        For example {"qid":3, "dids":[[11,12],13]} will correspond distractors 11,12 to same deca test in mapping
+    '''
+    knowledge = [ {"sid": axes[pos[0]][pos[1]], "qid": ids["qid"], "did": did, "chance": 1} 
+                    for q, ids in zip(test_distractor_mapping, question_distractors) 
+                    for pos, did in zip(q, ids["dids"])]
+    return knowledge
+
+#axes = synth_deca_axes([1,2,3,4,5,6,7,8,9,10], (3,3,2,2))
+#test_distractor_mapping = gen_test_distractor_mapping(axes)
+#kn = gen_test_distractor_mapping_knowledge(axes, test_distractor_mapping, question_distractors = [{"qid":2,"dids":[5,6,7,8]},{"qid":4,"dids":[13,14]},{"qid":5,"dids":[19,20]}])
 # axes = synth_deca_axes([1,2,3,4,5,6,7,8,9,10], 3, 3, min_iterations = 100) 
 # p_axes = process_axes(axes)
 # spanned = synth_deca_spanned(p_axes, 10)
@@ -353,3 +414,10 @@ synth_deca_axes([1,2,3,4,5,6,7,8,9,10], (2,3))
 # flatten_spanned(p_spanned)
 # synth_deca_coords([1,2,3,4,5,6,7,8,9,10], 3, 10)    
 # synth_deca_coords([1,2,3,4,5,6,7,8,9,10], 3, 8, axis_chance = 0.5, collapse_chance = 0.4, split_chance = 0.1) 
+
+
+# def get_test_question_mapping(axes):
+#     ''' Considers each DECA test as quiz question or several of them '''
+#     num_questions = sum() #again, we consider minimal number of questions 
+
+#gen_test_distractor_mapping(axes)
