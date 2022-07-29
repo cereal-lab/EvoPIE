@@ -515,3 +515,4 @@ class StudentKnowledge(DB.Model):
     distractor_id = DB.Column(DB.Integer, primary_key=True) #-1 - correct answer
     step_id = DB.Column(DB.Integer, primary_key=True)
     chance = DB.Column(DB.Float, nullable=False)  # chance that student picks this option
+    # meta = DB.Column(JSONEncodedMutableDict, nullable=True) #used to store DECA info 

@@ -1,7 +1,11 @@
 from functools import reduce
 from io import StringIO
+from itertools import product
 import json
+from ntpath import join
+import os
 from random import choice, random, shuffle
+from time import time
 import click
 from flask import g
 from pandas import DataFrame
@@ -10,7 +14,7 @@ from werkzeug.test import TestResponse
 import sys
 import numpy as np
 
-from evopie import APP, models
+from evopie import APP, deca, models
 from evopie.config import EVO_PROCESS_STATUS_ACTIVE, EVO_PROCESS_STATUS_STOPPED, QUIZ_ATTEMPT_STEP1, QUIZ_STEP1, QUIZ_STEP2, ROLE_STUDENT
 from evopie.utils import groupby, unpack_key
 from evopie.evo import get_evo, sql_evo_serializer, Serializable
@@ -96,6 +100,7 @@ from flask.cli import AppGroup
 
 quiz_cli = AppGroup('quiz')
 student_cli = AppGroup('student') #responsible for student simulation
+deca_cli = AppGroup('deca')
 
 @quiz_cli.command("init")
 @click.option('-i', '--instructor', default='i@usf.edu')
@@ -146,23 +151,64 @@ def start_quiz_init(instructor, num_questions, num_distractors, question_distrac
         throw_on_http_fail(c.put(f"/quizzes/{quiz_id}", json=quiz))
         sys.stdout.write(f"Quiz with id {quiz_id} was created successfully:\n{distractor_map}\n")
 
+@deca_cli.command("init")
+@click.option('-q', '--quiz', type = int, required = True)
+@click.option('-o', '--output') #folder were we should put generated spaces
+@click.option('--fmt', default='space-{}.json') #folder were we should put generated spaces
+@click.option('-a', "--axis", multiple=True, type = int, required=True) #generate knowledge from deca axes
+@click.option('--spanned', type=int, default=0)
+@click.option('--best-students-percent', type=float, default=0)
+@click.option('--spanned-geometric-p', type=float, default=0.75)
+@click.option('--noninfo', type=float, default=0)
+@click.option('-n', type=int, default=1) #number of spaces to create
+@click.option("--random-seed", type=int) #seed
+@click.option("--timeout", default=1000000, type=int)
+def create_deca_space(quiz, output, fmt, axis, spanned, best_students_percent, n, random_seed, spanned_geometric_p, noninfo, timeout):
+
+    rnd = np.random.RandomState(random_seed) #here random_seed is None if not specified therefore we reassign it on next line
+    random_seed = int(rnd.get_state()[1][0])
+    sys.stdout.write(f"Generate DECA with random seed SEED: {random_seed}\n")
+    
+    # students = np.unique((input_students["email"].to_list() if input_students else []) + ([email_format.format(i + 1) for i in range(num_students)] if num_students else [])).tolist()
+    with APP.app_context():
+        students = models.User.query.where(models.User.role == ROLE_STUDENT).with_entities(models.User.email)
+        emails = [s.email for s in students]
+
+    with APP.app_context():
+        quiz = models.Quiz.query.get(quiz)
+        quiz_questions = quiz.quiz_questions
+        question_ids = set(q.id for q in quiz_questions)    
+        quiz_question_distractors = models.DB.session.query(models.quiz_questions_hub).where(models.quiz_questions_hub.c.quiz_question_id.in_(question_ids)).all()
+        #NOTE: for additional validation we also could check that distractors exist in Distractor tables
+        question_distractors = [ (q.quiz_question_id, q.distractor_id) for q in quiz_question_distractors ]
+        #NOTE: quiz also should be used to connect instructor to generated students and namespace them from other students
+
+    for i in range(n):
+        space = deca.gen_deca_space(emails, tuple(axis), spanned, best_students_percent, spanned_geometric_p, timeout=timeout, rnd = rnd)
+        space = deca.gen_test_distractor_mapping(space, question_distractors, noninformative_percent=noninfo, rnd = rnd)
+        space['meta'] = {'id': i, 'rnd': random_seed}
+        # knowledge = deca.gen_test_distractor_mapping_knowledge(space)
+        print(f"---\n{space}\n")
+        if output:
+            file_name = os.path.join(output, fmt.format(i))
+            with open(file_name, 'w') as f: 
+                space['spanned'] = [{"pos": spanned_id, "point": point} for spanned_id, point in space['spanned'].items() ]
+                f.write(json.dumps(space, indent=4))
+
 @student_cli.command("init")
 @click.option('-ns', '--num-students', type = int)
 @click.option('--exclude-id', type = int, multiple=True)
 @click.option('-ef', '--email-format', default="s{}@usf.edu")
 @click.option('-i', '--input')
-@click.option('-o', '--output') #csv file to output with student email and id 
-@click.option('-kr', '--knowledge-replace', is_flag=True)
-@click.option('-k', '--knows', multiple=True) #should be json representation
-def start_quiz_init(num_students, exclude_id, input, output, email_format, knows, knowledge_replace):
+@click.option('-o', '--output') #csv file to output with student email, id
+def init_students(num_students, exclude_id, input, output, email_format):
     if input is None and num_students is None: 
-        sys.stderr.write("Either --input or --num-students should be provided")
+        sys.stderr.write("Either  ")
         sys.exit(1)
     def build_student(i):
         return {"email": email_format.format(i), "firstname":"S", "lastname": "S", "password":"pwd"}        
 
     input_students = None     
-    knows_map_input = {}
     if input is not None:
         columns = {"firstname": "", "lastname": "", "password": "pwd"}
         input_students = pandas.read_csv(input)
@@ -171,14 +217,70 @@ def start_quiz_init(num_students, exclude_id, input, output, email_format, knows
                 input_students[column] = columns[column]
         input_students.dropna(subset=["email"])
         input_students[["firstname", "lastname", "password"]].fillna(columns)  
+                
+    students = DataFrame(columns=["email", "id", "created"])    
+
+    with APP.test_client(use_cookies=True) as c:
+        def create_student(student):
+            resp = throw_on_http_fail(c.post("/signup", json={**student, "retype": student["password"]}), status=300)
+            was_created = "id" in resp
+            #NOTE: we ignore the fact that student is already present in the system - status_code for existing user is 200 with "redirect" in resp
+            resp = throw_on_http_fail(c.post("/login", json={**student}))
+            student_id = resp["id"]
+            students.loc[student_id, [ "email", "id", "created" ]] = [ student["email"], student_id, was_created ]
+
+        if input_students is not None: 
+            for _, student in input_students.iterrows():
+                create_student(student)
+        if num_students is not None:
+            for i in range(num_students):
+                if (i+1) in exclude_id:
+                    continue
+                student = build_student(i + 1)
+                create_student(student)
+    student_ids = set(students["id"])
+    models.StudentKnowledge.query.where(models.StudentKnowledge.student_id.in_(student_ids)).delete()
+    models.DB.session.commit()
+    if output is not None:
+        students.to_csv(output, index=False)    
+        sys.stdout.write(f"Students were saved to {output}:\n {students}\n")
+    else: 
+        sys.stdout.write(f"Students were created:\n {students}\n")
+
+@student_cli.command("knows")
+# @click.option('-q', '--quiz', type = int, required = True)
+@click.option('-ef', '--email-format', default="s{}@usf.edu")
+@click.option('-i', '--input')
+@click.option('-o', '--output') #csv file to output with student email, id, knowledge
+@click.option('-kr', '--knowledge-replace', is_flag=True)
+@click.option('-k', '--knows', multiple=True) #should be json representation
+@click.option("--deca-input") #json file where we take deca parameters from, ignored if deca-axis is provided
+# @click.option("--deca-output") #json file where we output generated deca parameters
+# @click.option("--deca-spanned")
+def init_knowledge(input, output, email_format, knows, knowledge_replace, deca_input):
+    # def build_student(i):
+    #     return {"email": email_format.format(i), "firstname":"S", "lastname": "S", "password":"pwd"}        
+
+    # with APP.app_context():
+    #     quiz = models.Quiz.query.get(quiz)
+    #     quiz_questions = quiz.quiz_questions
+    #     question_ids = set(q.id for q in quiz_questions)    
+    #     quiz_question_distractors = models.DB.session.query(models.quiz_questions_hub).where(models.quiz_questions_hub.c.quiz_question_id.in_(question_ids)).all()
+    #     #NOTE: for additional validation we also could check that distractors exist in Distractor tables
+    #     question_distractors = {qid:[q.distractor_id for q in qds] for qid, qds in groupby(quiz_question_distractors, key = lambda x: x.quiz_question_id)}
+    #     #NOTE: quiz also should be used to connect instructor to generated students and namespace them from other students
+
+    knows_map_input = {}
+    if input is not None:
+        input_students = pandas.read_csv(input)
+        input_students.dropna(subset=["email"])
         for sid in input_students.index:
             s = input_students.loc[sid]
             for c in input_students.columns:
                 if c.startswith("d_") and s[c]:
                     qid, did, step = (int(id) for id in c.split("_")[1:])
                     knows_map_input.setdefault(s["email"], {}).setdefault(qid, {}).setdefault(did, [np.nan, np.nan])[step - 1] = s[c]
-    knows = [json.loads(k) for k in knows]  #NOTE: expected format {'sid':<opt, by default all>, 'qid':<opt, by default all>, 'did':<opt, by default all>, choice:num or [step1_c, step2_c] }
-    knows_unpacked = unpack_key('did', unpack_key('qid', unpack_key('sid', knows)))
+    
     #NOTE: if step is provided - the knowledge will not be passed to next steps 
     #NOTE: otherwise if chance is a list - elements are treated as chances for each step sequentially
     #NOTE: otherwise chance defines value for all steps
@@ -195,6 +297,24 @@ def start_quiz_init(num_students, exclude_id, input, output, email_format, knows
                 if acc[i] < 0:
                     acc[i] = k["chance"]
         return acc 
+
+    knows_map_deca = {} 
+    if deca_input:
+        with open(deca_input, 'r') as deca_input_json_file:
+            deca_input_json_str = "\n".join(deca_input_json_file.readlines())
+            space = json.loads(deca_input_json_str)
+            space["spanned"] = {tuple([(axis_id, pos_id) for [axis_id, pos_id] in spanned["pos"]]):spanned["point"] for spanned in space["spanned"]}
+            knows_map_deca_plain = deca.gen_test_distractor_mapping_knowledge(space)
+            knows_unpacked = unpack_key('did', unpack_key('qid', unpack_key('sid', knows_map_deca_plain)))
+            knows_map_deca = {sid: {qid: {did: reduce(dks_reducton, dks, [-1,-1])
+                                for did, dks in groupby(qks, key = lambda x: x.get("did", "*")) } 
+                                for qid, qks in groupby(sks, key = lambda x: x.get("qid", "*")) } 
+                                for sid, sks in groupby(knows_unpacked, key = lambda x: x.get("sid", "*"))} 
+        
+
+    knows = [json.loads(k) for k in knows]  #NOTE: expected format {'sid':<opt, by default all>, 'qid':<opt, by default all>, 'did':<opt, by default all>, choice:num or [step1_c, step2_c] }
+    knows_unpacked = unpack_key('did', unpack_key('qid', unpack_key('sid', knows)))
+
     knows_map_args = {email_format.format(sid): {qid: {did: reduce(dks_reducton, dks, [-1,-1])
                         for did, dks in groupby(qks, key = lambda x: x.get("did", "*")) } 
                         for qid, qks in groupby(sks, key = lambda x: x.get("qid", "*")) } 
@@ -234,32 +354,38 @@ def start_quiz_init(num_students, exclude_id, input, output, email_format, knows
         for _, sks in with_wild_qid: 
             del sks["*"]
 
-    knows_map = {**knows_map_input, **knows_map_args}        
-    students = DataFrame(columns=["email", "id", "created"])    
+    knows_map = {**knows_map_input, **knows_map_deca, **knows_map_args}        
+    students = DataFrame(columns=["email", "id"])    
 
     distractor_column_order = list(sorted(set([ (i+1, qid, did) for skn in knows_map.values() for qid, qkn in skn.items() for did, dkn in qkn.items() for i, chance in enumerate(dkn) if chance > 0])))
     distractor_columns = [f'd_{q}_{d}_{step}' for step, q, d in distractor_column_order]
 
     with APP.test_client(use_cookies=True) as c:
-        def create_student(student):
-            resp = throw_on_http_fail(c.post("/signup", json={**student, "retype": student["password"]}), status=300)
-            was_created = "id" in resp
-            #NOTE: we ignore the fact that student is already present in the system - status_code for existing user is 200 with "redirect" in resp
-            resp = throw_on_http_fail(c.post("/login", json={**student}))
-            student_id = resp["id"]
-            student_knowledge = {**knows_map_input.get(student_id, {}), **knows_map_input.get(student["email"], {}), **knows_map_args.get("*", {}), **knows_map_args.get(student_id, {}), **knows_map_args.get(student["email"], {})}
-            distractors = {(i+1, qid, did):chance for qid, qks in student_knowledge.items() for did, dks in qks.items() for i, chance in enumerate(dks) if chance > 0}
-            students.loc[student_id, [ "email", "id", "created", *distractor_columns ]] = [student["email"], student_id, was_created, *[distractors[kid] if kid in distractors else np.nan for kid in distractor_column_order]]
+        all_students = models.User.query.where(models.User.role == ROLE_STUDENT).with_entities(models.User.email, models.User.id)
+        email_to_id = {}
+        id_to_email = {}
+        for s in all_students:
+            email_to_id[s.email] = s.id 
+            id_to_email[s.id] = s.email
+        def init_knowledge_from_map(knowledge_map):
+            def add_to_students(email, student_id, student_knowledge):
+                distractors = {(i+1, qid, did):chance for qid, qks in student_knowledge.items() for did, dks in qks.items() for i, chance in enumerate(dks) if chance > 0}
+                students.loc[student_id, [ "email", "id", *distractor_columns ]] = [email, student_id, *[distractors[kid] if kid in distractors else np.nan for kid in distractor_column_order]]                
+            if "*" in knowledge_map:
+                for student_id, email in id_to_email.items():
+                    add_to_students(email, student_id, knowledge_map["*"])
+            for student_id, student_knowledge in knowledge_map.items():
+                if student_id in id_to_email:
+                    email = id_to_email[student_id]
+                    add_to_students(email, student_id, student_knowledge)
+            for student_email, student_knowledge in knowledge_map.items():
+                if student_email in email_to_id:
+                    student_id = email_to_id[student_email]
+                    add_to_students(student_email, student_id, student_knowledge)
+        init_knowledge_from_map(knows_map_input)
+        init_knowledge_from_map(knows_map_deca)
+        init_knowledge_from_map(knows_map_args)
 
-        if input_students is not None: 
-            for _, student in input_students.iterrows():
-                create_student(student)
-        if num_students is not None:
-            for i in range(num_students):
-                if (i+1) in exclude_id:
-                    continue
-                student = build_student(i + 1)
-                create_student(student)
     student_ids = set(students["id"])
     present_knowledge_query = models.StudentKnowledge.query.where(models.StudentKnowledge.student_id.in_(student_ids))
     if knowledge_replace: 
@@ -324,11 +450,12 @@ KNOWLEDGE_SELECTION_WEIGHT = "KNOWLEDGE_SELECTION_WEIGHT"
 @click.option('--algo') #evo algo to use
 @click.option('--algo-params') #json settings of algo
 @click.option('--rnd', is_flag=True) #randomize student order
-@click.option('-o', '--output')
+@click.option('--archive-output')
+@click.option('--evo-output')
 @click.option('-l', '--likes', multiple=True)
 @click.option('--justify-response', is_flag=True)
 @click.option('-ef', '--email-format', default="s{}@usf.edu")
-def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n_times, output, step, knowledge_selection, likes, justify_response, email_format):    
+def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n_times, archive_output, evo_output, step, knowledge_selection, likes, justify_response, email_format):    
     import evopie.config
     if no_algo:
         evopie.config.distractor_selection_process = None
@@ -428,7 +555,7 @@ def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n
             with APP.app_context():     
                 evo = get_evo(quiz)
                 if evo is None:
-                    sys.stdout.write(f"[{run_idx + 1}/{n_times}] Quiz {quiz} finished\n")            
+                    sys.stdout.write(f"[{run_idx + 1}/{n_times}] Step1 quiz {quiz} finished\n")            
                 else:
                     evo.stop()
                     evo.join()
@@ -437,8 +564,20 @@ def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n
                     evo.archive["p"] = evo.archive["p"].astype(int)            
                     for ind in evo.population:
                         evo.archive.loc[ind, "p"] = 1        
-                    if output is not None: 
-                        evo.archive.to_csv(output.format(run_idx))    
+                    if archive_output is not None: 
+                        evo.archive.to_csv(archive_output.format(run_idx))  
+                    evo_state = evo.get_state()
+                    population = evo.get_population_genotypes()
+                    population_distractors = evo.get_population_distractors()
+                    search_space_size = evo.get_search_space_size()
+                    explored_search_space_size = evo.get_explored_search_space_size()
+                    sys.stdout.write(f"EVO algo: {evo.__class__}\nEVO settings: {evo_state}\nEVO population: {population}\n")
+                    if evo_output: 
+                        with open(evo_output, 'w') as evo_output_json_file:
+                            evo_output_json_file.write(json.dumps({"algo": evo.__class__.__name__, "settings":evo_state, 
+                                                        "population":population, "population_distractors": population_distractors, 
+                                                        "explored_search_space_size": explored_search_space_size, 
+                                                        "search_space_size": search_space_size}, indent=4))
                     sys.stdout.write(f"[{run_idx + 1}/{n_times}] Step1 quiz {quiz} finished\n{evo.archive}\n")
         if QUIZ_STEP2 in step: 
             with APP.app_context(), APP.test_client(use_cookies=True) as c: #instructor session
@@ -448,6 +587,37 @@ def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n
             simulate_step(2)            
 
             sys.stdout.write(f"[{run_idx + 1}/{n_times}] Step2 Quiz {quiz} finished\n")
+
+@deca_cli.command("result")
+@click.option('--algo-input', required=True)
+@click.option('--deca-space', required=True)
+@click.option('-p', '--params', multiple=True) #params to take from algo-input json and put into final dataFrame
+@click.option('-io', '--input_output')
+def calc_deca_metrics(algo_input, deca_space, params, input_output):
+    with open(algo_input, 'r') as f:
+        algo_results = json.loads("\n".join(f.readlines()))
+    with open(deca_space, 'r') as f:
+        space = json.loads("\n".join(f.readlines()))
+        space["spanned"] = {tuple([(axis_id, pos_id) for [axis_id, pos_id] in spanned["pos"]]):spanned["point"] for spanned in space["spanned"]}
+    population_distractors = algo_results["population_distractors"]
+    metrics_map = {"algo":algo_input,"deca": deca_space, **{p:algo_results.get(p, np.nan) for p in params},
+                    **deca.dimension_coverage(space, population_distractors),
+                    **deca.avg_rank_of_repr(space, population_distractors),
+                    **deca.redundancy(space, population_distractors),
+                    **deca.duplication(space, population_distractors),
+                    **deca.noninformative(space, population_distractors)}
+    try:
+        metrics = pandas.read_csv(input_output)
+        # exisingMetric = metrics[(metrics["algo"] == algo_input) & (metrics["deca"] == deca_space)]
+        # if len(exisingMetric) == 0:
+        metrics.loc[len(metrics.index), list(metrics_map.keys())] = list(metrics_map.values())
+        # else:         
+        #     exisingMetric[list(metrics_map.keys())] = list(metrics_map.values())
+    except FileNotFoundError:
+        metrics = DataFrame([metrics_map])
+    metrics.to_csv(input_output, index=False)   
+    submetrics = metrics[["dim_coverage", "arr", "population_redundancy", "population_duplication", "noninfo"]]
+    sys.stdout.write(f"Metrics:\n{submetrics}\n")
 
 @quiz_cli.command("export")
 @click.option('-q', '--quiz', type=int, required=True)
@@ -504,7 +674,49 @@ def get_quiz_result(quiz, output, instructor, password, expected, diff_o):
                 sys.exit(1)
 
 
-
+@deca_cli.command("init-many")
+@click.option('-nq', '--num-questions', required = True, type = int)
+@click.option('-nd', '--num-distractors', required = True, type = int)
+@click.option('-ns', '--num-students', required = True, type = int)
+@click.option('-an', '--axes-number', multiple=True, required=True, type = int)
+@click.option('-as', '--axes-size', multiple=True, required=True, type = int)
+@click.option('--num-spaces', default=1, type = int)
+@click.option('--num-spanned', multiple=True, type = int)
+@click.option('--best-students-percent', multiple=True, type = float)
+@click.option('--noninfo', multiple=True, type = float)
+@click.option("-of", "--output-folder", default="deca-spaces")
+@click.option("--random-seed", type=int)
+@click.option("--timeout", default = 1000000, type = int)
+def init_experiment(num_questions, num_distractors, num_students, axes_number, axes_size, num_spaces, num_spanned, best_students_percent, noninfo, output_folder, timeout, random_seed): 
+    if len(num_spanned) == 0: 
+        num_spanned.append(0)
+    if len(best_students_percent) == 0:
+        best_students_percent.append(0)
+    if len(noninfo) == 0:
+        noninfo.append(0)
+    runner = APP.test_cli_runner()
+    res = runner.invoke(args=["DB-reboot"])
+    assert res.exit_code == 0
+    res = runner.invoke(args=["quiz", "init", "-nq", num_questions, "-nd", num_distractors ])
+    assert res.exit_code == 0
+    print(res.stdout)
+    res = runner.invoke(args=["student", "init", "-ns", num_students ])
+    assert res.exit_code == 0
+    print(res.stdout)
+    os.makedirs(output_folder, exist_ok=True)
+    dims = [dim for num_axes in axes_number for dim in product(*[ axes_size for _ in range(num_axes) ]) ]
+    rnd = np.random.RandomState(random_seed)
+    for dim, spanned, bsp, ni in product(dims, num_spanned, best_students_percent, noninfo): 
+        a_param = [p for a in dim for p in ["-a", a]]
+        axes_str = "_".join([str(a) for a in dim ])
+        spanned_str = "s_" + str(spanned)
+        res = runner.invoke(args=["deca", "init", "-q", 1, "-o", output_folder, *a_param, "--spanned", spanned, "--spanned-geometric-p", 0.8, 
+                                    "--best-students-percent", bsp, "--noninfo", ni, "-n", num_spaces, 
+                                    '--fmt', 'space-' + axes_str + '-' + spanned_str + '-{}.json',
+                                    "--timeout", timeout, "--random-seed", rnd.randint(1000) ])
+        assert res.exit_code == 0
+        print(f"Generated {num_spaces} spaces for dims {dim} and spanned {spanned}, best students {bsp}, noninfo {ni}")
 
 APP.cli.add_command(quiz_cli)
 APP.cli.add_command(student_cli)
+APP.cli.add_command(deca_cli)

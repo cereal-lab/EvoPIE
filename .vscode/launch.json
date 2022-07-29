@@ -57,7 +57,7 @@
             },
             "args" : [
                 "student",
-                "init",
+                "init", "-q", "1",
                 "-ns", "20", "--exclude-id", "12", "-kr",
                 // "-i", "testing/students.csv",
                 // "-k {\"did\":1,\"chance\":1}",
@@ -137,6 +137,87 @@
                 "--expected", "testing/Extensive Test/LF_50%_Likes_15_to_19_QP_1_3_5_10_Weights_40%_30%_20%_10%.csv",
                 "--diff-o", "testing/diff-o.csv"
             ]
-        }
+        },
+        {
+            "name": "CLI: quiz run deca-pphc",
+            "type": "python",
+            "request": "launch",
+            "module" : "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1"
+            },
+            "args" : [
+                "quiz",
+                "run",
+                "-q", "1",
+                "-s", "STEP1",
+                "--algo", "P_PHC", "--algo-params", "{ \"pop_size\": 1, \"pareto_n\": 2, \"child_n\": 1, \"gene_size\": 3}",
+                "--evo-output", "algo/pphc-1-2-1-3.json", "--archive-output", "algo/pphc-1-2-1-3-archive.csv"
+            ]
+        },
+        {
+            "name": "CLI: deca init",
+            "type": "python",
+            "request": "launch",
+            "module" : "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1"
+            },
+            "args" : [
+                "deca",
+                "init", "-q", "1",
+                "-o", "deca-spaces",
+                "-a", "2", "-a", "3", "--spanned", "1", "--best-students-percent", "0.1", "--spanned-geometric-p", "0.8",
+                "--noninfo", "0.1", "-n", "3"
+            ]
+        },
+        {
+            "name": "CLI: deca result",
+            "type": "python",
+            "request": "launch",
+            "module" : "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1"
+            },
+            "args" : [
+                "deca",
+                "result",
+                "--algo-input", "algo/pphc-1-2-1-3.json",
+                "--deca-space", "deca-spaces/space-0.json",
+                "-p", "explored_search_space_size",
+                "-p", "search_space_size",
+                "-io", "results/pphc-1-2-1-3-on-space-0.csv"
+            ]
+        },
+        {
+            "name": "CLI: deca init-many",
+            "type": "python",
+            "request": "launch",
+            "module" : "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1"
+            },
+            "args" : [
+                "deca",
+                "init-many",
+                "-nq", "4",
+                "-nd", "25",
+                "-ns", "100",
+                "-an", "2", "-an", "3", "-an", "4", "-an", "5", "-an", "6", "-an", "7", "-an", "8", "-an", "9", "-an", "10",
+                "-as", "1", "-as", "2",  "-as", "3", "-as", "4",  "-as", "5",
+                "--num-spanned", "0", "--num-spanned", "1", "--num-spanned", "2", "--num-spanned", "3", "--num-spanned", "5", "--num-spanned", "10", "--num-spanned", "20",
+                "--num-spaces", "30", 
+                "--best-students-percent", "0.3", 
+                "--noninfo", "0.3"
+            ]
+        }                
     ]
 }

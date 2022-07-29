@@ -10,3 +10,9 @@ gradebook-downloaded.csv
 evopie/evo.md
 testing/diff-o.csv
 testing/students.csv
+deca-spaces/*
+results/*
+algo/*
+testing/archive.csv
+testing/deca.json
+testing/evo.json

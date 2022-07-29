@@ -3,7 +3,8 @@ Implementation of evolutionary processes
 '''
 from datetime import datetime
 import json
-import random
+from math import comb, prod
+import numpy as np
 from threading import Thread, Condition
 from typing import Any, Iterable
 from pandas import DataFrame  
@@ -124,6 +125,8 @@ class EvolutionaryProcess(Thread, ABC):
         self.archive: DataFrame = kwargs.get("archive", DataFrame(columns=['g']))
         self.archive[["g"]] = self.archive[["g"]].astype(object)
         self.gen: int = kwargs.get("gen", 0)
+        self.rnd = np.random.RandomState(kwargs.get("seed", None))
+        self.seed = int(self.rnd.get_state()[1][0])
 
     def add_genotype_to_archive(self, genotype):
         genotype_obj = Genotype(genotype)
@@ -135,8 +138,22 @@ class EvolutionaryProcess(Thread, ABC):
             self.archive.loc[id, 'g'] = genotype_obj
             return id
 
+    def get_explored_search_space_size(self):
+        return len(self.archive)
+
+    @abstractmethod
+    def get_search_space_size(self):
+        pass
+
     def get_genotype(self, genotype_id): 
         return self.archive.loc[genotype_id, 'g'].g
+
+    def get_population_genotypes(self):
+        return [self.get_genotype(genotype_id) for genotype_id in self.population]
+
+    @abstractmethod
+    def get_population_distractors(self):
+        pass 
 
     @abstractmethod
     def run(self):
@@ -184,6 +201,9 @@ class EvolutionaryProcess(Thread, ABC):
     def update_fitness(self, ind: int, evaluation: Evaluation) -> None:
         ''' updates individual fitness '''
         pass
+
+    def get_state(self):
+        return { "pop_size": len(self.population), "gen": self.gen, "seed": self.seed }
 
 class Serializable(ABC):
 
@@ -336,7 +356,7 @@ class PHC(EvolutionaryProcess, InteractiveEvaluation, ABC):
         '''
         with self.on_new_evaluation:
             self.waiting_evaluations.append(evaluation)
-            self.on_new_evaluation.notify()            
+            self.on_new_evaluation.notify() 
 
 class P_PHC(PHC, Serializable):
     def __init__(self, **kwargs):
@@ -345,8 +365,11 @@ class P_PHC(PHC, Serializable):
         self.pareto_n: int = kwargs.get("pareto_n", 2)
         self.child_n: int = kwargs.get("child_n", 1)
         self.gene_size: int = kwargs.get("gene_size", 3)
-        self.mut_prob: float = kwargs.get("mut_prob", 0.25)
-        self.distractors_per_question = kwargs.get("distractors_per_question", {})                   
+        self.distractors_per_question = kwargs.get("distractors_per_question", {})   
+
+    def get_state(self):
+        return { **super().get_state(),
+                    "gene_size": self.gene_size, "pareto_n": self.pareto_n, "child_n": self.child_n }                        
 
     def init_distractor_pools(self):
         if self.quiz_id is None:
@@ -374,9 +397,12 @@ class P_PHC(PHC, Serializable):
                                     for genotype_id, evals in self.archive.loc[eval_group.inds, eval_group.objs].iterrows()}
             parent = eval_group.inds[0]
             parent_genotype_evaluation = genotype_evaluations[parent]
+            # possible_winners = [ child for child in eval_group.inds[1:]
+            #                         if (genotype_evaluations[child] == parent_genotype_evaluation).all() or not((genotype_evaluations[child] <= parent_genotype_evaluation).all()) ] #Pareto check
+
             possible_winners = [ child for child in eval_group.inds[1:]
-                                    if (genotype_evaluations[child] == parent_genotype_evaluation).all() or not((genotype_evaluations[child] <= parent_genotype_evaluation).all()) ] #Pareto check
-            
+                                    if not((genotype_evaluations[child] == parent_genotype_evaluation).all()) and (genotype_evaluations[child] >= parent_genotype_evaluation).all() ] #Pareto check
+
             # possible_winners = [ child for child in eval_group.inds[1:]
             #                         if (genotype_evaluations[child] >= parent_genotype_evaluation).all() ] #Pareto check
             
@@ -390,7 +416,7 @@ class P_PHC(PHC, Serializable):
             #     self.population.append(child)
 
             if len(possible_winners) > 0:
-                winner = random.choice(possible_winners)
+                winner = int(self.rnd.choice(possible_winners)) #NOTE: we have this cast due to bugged behaviour of numpy - it returns winner of type np.int64, not int - fails on json step
                 self.population[eval_group_id] = winner #winner takes place of a parent
             del self.coevaluation_groups[eval_group_id]
 
@@ -400,7 +426,7 @@ class P_PHC(PHC, Serializable):
             d_set = set(distractors)
             group = []
             for _ in range(min(len(d_set), self.gene_size)):
-                d = random.choice(list(d_set))
+                d = int(self.rnd.choice(list(d_set))) #NOTE: cast is important here - see comment above
                 d_set.remove(d)
                 group.append(d)
             genotype.append((qid, sorted(group)))
@@ -424,7 +450,7 @@ class P_PHC(PHC, Serializable):
                         if len(possibilities) == 0:
                             d = g
                         else: 
-                            d = random.choice(possibilities)
+                            d = int(self.rnd.choice(possibilities)) #NOTE: cast is important
                         d_set.remove(d)
                         group.append(d)
                     child.append((qid, sorted(group)))
@@ -439,7 +465,7 @@ class P_PHC(PHC, Serializable):
         ''' Policy what evaluation group to prioritize 
             Random, rotate (round-robin), greedy 
         '''
-        return random.choice(list(self.coevaluation_groups.keys()))        
+        return int(self.rnd.choice(list(self.coevaluation_groups.keys())))
 
     def update_fitness(self, ind, eval):  
         cur_score = self.archive.loc[ind, eval.evaluator_id]
@@ -457,7 +483,7 @@ class P_PHC(PHC, Serializable):
         # self.save(pop_size = self.pop_size, gen = self.gen,
         #             coevaluation_groups = {id: {"inds": g.inds, "objs": g.objs} for id, g in self.coevaluation_groups.items()}, 
         #             evaluator_coevaluation_groups = self.evaluator_coevaluation_groups,
-        #             gene_size = self.gene_size, mut_prob = self.mut_prob, pareto_n = self.pareto_n, child_n = self.child_n)
+        #             gene_size = self.gene_size, pareto_n = self.pareto_n, child_n = self.child_n)
         pass 
 
     def on_generation_end(self):
@@ -466,12 +492,19 @@ class P_PHC(PHC, Serializable):
         self.save(pop_size = self.pop_size, gen = self.gen,
                     coevaluation_groups = {id: {"inds": g.inds, "objs": g.objs} for id, g in self.coevaluation_groups.items()}, 
                     evaluator_coevaluation_groups = self.evaluator_coevaluation_groups,
-                    gene_size = self.gene_size, mut_prob = self.mut_prob, pareto_n = self.pareto_n, child_n = self.child_n)
+                    gene_size = self.gene_size, pareto_n = self.pareto_n, child_n = self.child_n, seed = self.seed)
         self.distractors_per_question = self.init_distractor_pools()
 
     def repr_adapter(self, ind_genotypes):
         return [ (qid, [int(d) for d in unique([d for _, d in ds])]) for qid, ds in groupby(((qid, d) for ind in ind_genotypes for (qid, ds) in ind for d in ds), key=lambda x: x[0])]
         # return [set(d for ds in q_ds for d in ds) for q_ds in zip(*ind_genotypes)]
+
+    def get_population_distractors(self):
+        population = self.get_population_genotypes()           
+        return [d for genotype in population for (_, dids) in genotype for d in dids ]
+
+    def get_search_space_size(self):
+        return prod([ comb(len(dids), self.gene_size) for _, dids in self.distractors_per_question.items()])
 
 #this is global state across all requests
 #NOTE: no bound is given for this state - possibly limit number of elems and give HTTP 429 - too many requests
