@@ -1,11 +1,8 @@
 from functools import reduce
 from io import StringIO
-from itertools import product
+from itertools import combinations_with_replacement, product
 import json
-from ntpath import join
 import os
-from random import choice, random, shuffle
-from time import time
 import click
 from flask import g
 from pandas import DataFrame
@@ -455,8 +452,10 @@ KNOWLEDGE_SELECTION_WEIGHT = "KNOWLEDGE_SELECTION_WEIGHT"
 @click.option('-l', '--likes', multiple=True)
 @click.option('--justify-response', is_flag=True)
 @click.option('-ef', '--email-format', default="s{}@usf.edu")
-def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n_times, archive_output, evo_output, step, knowledge_selection, likes, justify_response, email_format):    
+@click.option('--random-seed', type=int)
+def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n_times, archive_output, evo_output, step, knowledge_selection, likes, justify_response, email_format, random_seed):    
     import evopie.config
+    rnd = np.random.RandomState(random_seed)
     if no_algo:
         evopie.config.distractor_selection_process = None
         evopie.config.distractor_selecton_settings = {}
@@ -479,7 +478,7 @@ def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n
             models.Likes4Justifications.query.where(models.Likes4Justifications.student_id.in_(student_ids)).delete()
             models.DB.session.commit()
         if rnd:
-            shuffle(students)
+            rnd.shuffle(students)
         ids_emails = [(student.id, student.email) for student in students]
         # if step == 1:
         #     #additional justifications
@@ -504,12 +503,12 @@ def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n
 
                 student_knowledge = knowledge.get(sid, {})
                 if knowledge_selection == KNOWLEDGE_SELECTION_CHANCE:
-                    responses = {qid:choice(known_distractors)
+                    responses = {qid:rnd.choice(known_distractors)
                                             for qid, distractors in attempt.alternatives_map.items() 
                                             for qskn in [student_knowledge.get(qid, {-1:1}) ]
                                             for ds_distr in [[(alt, qskn[d]) for alt, d in enumerate(distractors) if d in qskn]] 
                                             for ds in [ds_distr if any(ds_distr) else [(alt, 1) for alt, d in enumerate(distractors) if d == -1]]
-                                            for known_distractors in [[alt for alt, w in ds if random() < w ]]}
+                                            for known_distractors in [[alt for alt, w in ds if rnd.rand() < w ]]}
                 elif knowledge_selection == KNOWLEDGE_SELECTION_WEIGHT:
                     responses = {qid:ds[selected_d_index][0]
                                             for qid, distractors in attempt.alternatives_map.items() 
@@ -518,7 +517,7 @@ def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n
                                             for ds in [ds_distr if any(ds_distr) else [(alt,1) for alt, d in enumerate(distractors) if d == -1]]
                                             for weights in [[w for _, w in ds]]
                                             for sums in [np.cumsum(weights)]
-                                            for level in [(random() * sums[-1]) if len(sums) > 0 else None]
+                                            for level in [(rnd.rand() * sums[-1]) if len(sums) > 0 else None]
                                             for selected_d_index in [next((i for i, s in enumerate(sums) if s > level), None)]}
                 else: 
                     responses = {}
@@ -540,9 +539,11 @@ def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n
     for run_idx in range(n_times):
         #close prev evo process
         if QUIZ_STEP1 in step:
-            existing_evo = models.EvoProcess.query.where(models.EvoProcess.quiz_id == quiz, models.EvoProcess.status == EVO_PROCESS_STATUS_ACTIVE).all()
-            for evo in existing_evo:
-                evo.status = EVO_PROCESS_STATUS_STOPPED    
+            models.EvoProcessArchive.query.delete()
+            models.EvoProcess.query.delete()            
+            # existing_evo = models.EvoProcess.query.where(models.EvoProcess.quiz_id == quiz, models.EvoProcess.status == EVO_PROCESS_STATUS_ACTIVE).all()
+            # for evo in existing_evo:
+            #     evo.status = EVO_PROCESS_STATUS_STOPPED    
             models.DB.session.commit()    
             with APP.app_context(), APP.test_client(use_cookies=True) as c: #instructor session
                 throw_on_http_fail(c.post("/login",json={"email": instructor, "password": password}))
@@ -704,7 +705,7 @@ def init_experiment(num_questions, num_distractors, num_students, axes_number, a
     assert res.exit_code == 0
     print(res.stdout)
     os.makedirs(output_folder, exist_ok=True)
-    dims = [dim for num_axes in axes_number for dim in product(*[ axes_size for _ in range(num_axes) ]) ]
+    dims = [dim for num_axes in axes_number for dim in combinations_with_replacement(axes_size, num_axes) ]
     rnd = np.random.RandomState(random_seed)
     for dim, spanned, bsp, ni in product(dims, num_spanned, best_students_percent, noninfo): 
         a_param = [p for a in dim for p in ["-a", a]]
@@ -716,6 +717,67 @@ def init_experiment(num_questions, num_distractors, num_students, axes_number, a
                                     "--timeout", timeout, "--random-seed", rnd.randint(1000) ])
         assert res.exit_code == 0
         print(f"Generated {num_spaces} spaces for dims {dim} and spanned {spanned}, best students {bsp}, noninfo {ni}")
+
+@quiz_cli.command("deca-experiment")
+@click.option("--deca-input", required = True)
+@click.option("--algo-folder", default="algo")
+@click.option("--results-folder", default="results")
+@click.option("--algo", multiple=True, required = True)
+@click.option("--random-seed", type=int)
+@click.option("--num-runs", type=int, default = 1)
+def run_experiment(deca_input, algo, algo_folder, random_seed, results_folder, num_runs):    
+    runner = APP.test_cli_runner()
+    res = runner.invoke(args=["student", "knows", "-kr", "--deca-input", deca_input ])
+    assert res.exit_code == 0
+    os.makedirs(algo_folder, exist_ok=True)
+    os.makedirs(results_folder, exist_ok=True)
+    rnd = np.random.RandomState(random_seed)
+    deca_space_id = os.path.splitext(os.path.basename(deca_input))[0]
+    for a in algo: 
+        algo_with_params = json.loads(a)
+        algo_display_name = algo_with_params["id"]
+        algo_name = algo_with_params["algo"]
+        del algo_with_params["algo"]
+        del algo_with_params["id"]
+        for i in range(num_runs):
+            #NOTE: if it is important to preserve each run algo results - change names of files bellow to include i inside it 
+            #currently only last run is preserved and archive is ignored        
+            algo_with_params["seed"] = rnd.randint(1000) #init seed of pphc
+            algo_file_name = os.path.join(algo_folder, algo_display_name)
+            run_random_seed = rnd.randint(1000) #init seed of quiz run
+            print(f"Start run {i} of {algo_file_name} on {deca_space_id}")
+            res = runner.invoke(args=["quiz", "run", "-q", 1, "-s", "STEP1", "--algo", algo_name, "--algo-params", json.dumps(algo_with_params),
+                                        "--evo-output", f"{algo_file_name}.json", "--random-seed", run_random_seed ])
+            if res.exit_code != 0:
+                print(res.stdout)
+            assert res.exit_code == 0
+            print(f"Analysing run {i} of {algo_file_name} on {deca_space_id}")
+            res = runner.invoke(args=["deca", "result", "--algo-input", f"{algo_file_name}.json", "--deca-space", deca_input, 
+                                        "-p", "explored_search_space_size", "-p", "search_space_size", "-io", os.path.join(results_folder, f"{algo_display_name}-on-{deca_space_id}.csv")])
+            if res.exit_code != 0:
+                print(res.stdout)            
+            assert res.exit_code == 0
+            print(f"Finished run {i} of {algo_file_name} on {deca_space_id}")
+
+@quiz_cli.command("deca-experiments")
+@click.option("--deca-spaces", default="deca-spaces")
+@click.option("--algo-folder", default="algo")
+@click.option("--results-folder", default="results")
+@click.option("--algo", multiple=True, required = True)
+@click.option("--random-seed", type=int)
+@click.option("--num-runs", type=int, default = 1)
+def run_experiment(deca_spaces, algo, algo_folder, random_seed, results_folder, num_runs):  
+    runner = APP.test_cli_runner() 
+    for file_name in os.listdir(deca_spaces):        
+        deca_input = os.path.join(deca_spaces, file_name)
+        print(f"--- Working with space {deca_input} ---")
+        res = runner.invoke(args=["quiz", "deca-experiment", "--deca-input", deca_input, "--algo-folder", algo_folder,
+                                    "--results-folder", results_folder, *[p for a in algo for p in ["--algo", a]], 
+                                    "--random-seed", random_seed, "--num-runs", num_runs ])
+        if res.exit_code != 0:
+            print(res.stdout)        
+        assert res.exit_code == 0
+        print(res.stdout)        
 
 APP.cli.add_command(quiz_cli)
 APP.cli.add_command(student_cli)
