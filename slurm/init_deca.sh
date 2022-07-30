@@ -1,7 +1,7 @@
 #!/bin/bash 
 #SBATCH --job-name=deca-spaces
 #SBATCH --time=12:00:00
-#SBATCH --output=$WORK/evopie/deca-spaces-%a.out
+#SBATCH --output=deca-spaces-%a.out
 #SBATCH --mem=4G
 #SBATCH --array=2-10
 
@@ -17,3 +17,4 @@ pipenv run flask deca init-many -ns 100 -nq 4 -nd 25 \
     --noninfo 0.3 \
     --timeout 1000 --random-seed 17 \
     --output-folder $WORK/evopie/data-$SLURM_ARRAY_TASK_ID/deca-spaces
+
