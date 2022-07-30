@@ -1,3 +1,4 @@
+#!/bin/bash
 set -e
 if [ $# -eq 1 ]; then 
     export EVOPIE_DATABASE_URI=sqlite:///$1
