@@ -705,7 +705,8 @@ def init_experiment(num_questions, num_distractors, num_students, axes_number, a
     assert res.exit_code == 0
     print(res.stdout)
     os.makedirs(output_folder, exist_ok=True)
-    dims = [dim for num_axes in axes_number for dim in combinations_with_replacement(axes_size, num_axes) ]
+    # dims = [dim for num_axes in axes_number for dim in combinations_with_replacement(axes_size, num_axes) ]
+    dims = [ [ sz for _ in range(num_axes) ] for sz in axes_size for num_axes in axes_number ]
     rnd = np.random.RandomState(random_seed)
     for dim, spanned, bsp, ni in product(dims, num_spanned, best_students_percent, noninfo): 
         a_param = [p for a in dim for p in ["-a", a]]

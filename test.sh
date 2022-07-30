@@ -1,4 +1,8 @@
 set -e
+if [ $# -eq 1 ]; then 
+    export EVOPIE_DATABASE_URI=sqlite:///$1
+    echo $EVOPIE_DATABASE_URI
+fi
 flask DB-reboot
 flask quiz init -nq 5 -nd 4 -qd '{"2":[5,6,7],"3":[9,10,11],"4":[13,14,16]}'
 
