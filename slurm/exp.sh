@@ -1,7 +1,7 @@
 #!/bin/bash 
-#SBATCH --job-name=deca-spaces
+#SBATCH --job-name=deca-vs-pphc
 #SBATCH --time=24:00:00
-#SBATCH --output=deca-spaces-%a.out
+#SBATCH --output=deca-vs-pphc-%a.out
 #SBATCH --mem=8G
 #SBATCH --array=2-10
 
