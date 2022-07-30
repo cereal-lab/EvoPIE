@@ -455,7 +455,7 @@ KNOWLEDGE_SELECTION_WEIGHT = "KNOWLEDGE_SELECTION_WEIGHT"
 @click.option('--random-seed', type=int)
 def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n_times, archive_output, evo_output, step, knowledge_selection, likes, justify_response, email_format, random_seed):    
     import evopie.config
-    rnd = np.random.RandomState(random_seed)
+    rnd_state = np.random.RandomState(random_seed)
     if no_algo:
         evopie.config.distractor_selection_process = None
         evopie.config.distractor_selecton_settings = {}
@@ -478,7 +478,7 @@ def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n
             models.Likes4Justifications.query.where(models.Likes4Justifications.student_id.in_(student_ids)).delete()
             models.DB.session.commit()
         if rnd:
-            rnd.shuffle(students)
+            rnd_state.shuffle(students)
         ids_emails = [(student.id, student.email) for student in students]
         # if step == 1:
         #     #additional justifications
@@ -503,12 +503,12 @@ def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n
 
                 student_knowledge = knowledge.get(sid, {})
                 if knowledge_selection == KNOWLEDGE_SELECTION_CHANCE:
-                    responses = {qid:rnd.choice(known_distractors)
+                    responses = {qid:rnd_state.choice(known_distractors)
                                             for qid, distractors in attempt.alternatives_map.items() 
                                             for qskn in [student_knowledge.get(qid, {-1:1}) ]
                                             for ds_distr in [[(alt, qskn[d]) for alt, d in enumerate(distractors) if d in qskn]] 
                                             for ds in [ds_distr if any(ds_distr) else [(alt, 1) for alt, d in enumerate(distractors) if d == -1]]
-                                            for known_distractors in [[alt for alt, w in ds if rnd.rand() < w ]]}
+                                            for known_distractors in [[alt for alt, w in ds if rnd_state.rand() < w ]]}
                 elif knowledge_selection == KNOWLEDGE_SELECTION_WEIGHT:
                     responses = {qid:ds[selected_d_index][0]
                                             for qid, distractors in attempt.alternatives_map.items() 
@@ -517,7 +517,7 @@ def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n
                                             for ds in [ds_distr if any(ds_distr) else [(alt,1) for alt, d in enumerate(distractors) if d == -1]]
                                             for weights in [[w for _, w in ds]]
                                             for sums in [np.cumsum(weights)]
-                                            for level in [(rnd.rand() * sums[-1]) if len(sums) > 0 else None]
+                                            for level in [(rnd_state.rand() * sums[-1]) if len(sums) > 0 else None]
                                             for selected_d_index in [next((i for i, s in enumerate(sums) if s > level), None)]}
                 else: 
                     responses = {}
