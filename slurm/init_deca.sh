@@ -5,6 +5,7 @@
 #SBATCH --mem=4G
 #SBATCH --array=2-10
 
+echo "Creating spaces in $WORK/evopie/data-$SLURM_ARRAY_TASK_ID"
 mkdir -p $WORK/evopie/data-$SLURM_ARRAY_TASK_ID
 export EVOPIE_DATABASE_URI=sqlite:///$WORK/evopie/data-$SLURM_ARRAY_TASK_ID/db.sqlite
 pipenv run flask deca init-many -ns 100 -nq 4 -nd 25 \
