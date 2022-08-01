@@ -1,12 +1,12 @@
 #!/bin/bash 
 #SBATCH --job-name=deca-vs-pphc
-#SBATCH --time=24:00:00
+#SBATCH --time=72:00:00
 #SBATCH --output=deca-vs-pphc-%a.out
 #SBATCH --mem=8G
 #SBATCH --array=2-10
 
 cd ~/evopie 
-echo "Workign in $WORK/evopie/data-$SLURM_ARRAY_TASK_ID"
+echo "Working in $WORK/evopie/data-$SLURM_ARRAY_TASK_ID"
 export EVOPIE_DATABASE_URI=sqlite:///$WORK/evopie/data-$SLURM_ARRAY_TASK_ID/db.sqlite
 export PYTHONPATH=$(pipenv run which python)
 pipenv run flask quiz deca-experiments \

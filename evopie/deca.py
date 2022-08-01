@@ -1,6 +1,7 @@
 ''' Module to work with DECA  '''
 
 from dataclasses import dataclass
+import json
 import numpy as np
 import numpy.typing as npt
 from pandas import DataFrame, MultiIndex
@@ -342,6 +343,16 @@ def noninformative(space, population_distractors):
     ''' percent of population that is not represented by axes or spanned (in space['zero']) '''
     noninfo = [did for _, did in space['zero']['dids'] if did in population_distractors]
     return { 'noninfo': len(noninfo) / len(population_distractors) }
+
+def load_space_from_json(json_str):
+    space = json.loads(json_str)
+    space["spanned"] = {tuple([(axis_id, pos_id) for [axis_id, pos_id] in spanned["pos"]]):spanned["point"] for spanned in space["spanned"]}
+    space["axes"] = {int(axis_id):{int(point_id):point for point_id, point in points.items() } for axis_id, points in space["axes"].items()} 
+    return space 
+
+def save_space_to_json(space):
+    space['spanned'] = [{"pos": spanned_id, "point": point} for spanned_id, point in space['spanned'].items() ]
+    return json.dumps(space, indent=4)
 
 # noninformative(space, [5,6,14])
 

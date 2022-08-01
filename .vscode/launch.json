@@ -191,10 +191,10 @@
                 "deca",
                 "result",
                 "--algo-input", "algo/pphc-1-2-1-3.json",
-                "--deca-space", "deca-spaces/space-0.json",
+                "--deca-space", "deca-spaces/space-1_1_1_1_1_1_1_1-s_20-3.json",
                 "-p", "explored_search_space_size",
                 "-p", "search_space_size",
-                "-io", "results/pphc-1-2-1-3-on-space-0.csv"
+                "-io", "results/x.csv"
             ]
         },
         {
@@ -220,6 +220,28 @@
                 "--best-students-percent", "0.3", 
                 "--noninfo", "0.3"
             ]
-        }                
+        },
+        {
+            "name": "CLI: quiz post-process",
+            "type": "python",
+            "request": "launch",
+            "module" : "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1"
+            },
+            "args" : [
+                "quiz",
+                "post-process",
+                "--result-folder", "data/data-8/results",
+                "--figure-folder", "figures",
+                "--file-name-pattern", ".*_20-\\d+.csv",
+                "-p", "dim_coverage_with_spanned", "--group-by-space"
+            ]
+        }
     ]
 }
+
+// --result-folder data/data-2/results --figure-folder figures --file-name-pattern '.*_0-\d+.csv' \
+//   -p population_duplication --group-by-space

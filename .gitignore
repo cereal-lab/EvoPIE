@@ -16,3 +16,5 @@ algo/*
 testing/archive.csv
 testing/deca.json
 testing/evo.json
+data
+figures

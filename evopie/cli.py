@@ -5,11 +5,12 @@ import json
 import os
 import click
 from flask import g
-from pandas import DataFrame
+from pandas import DataFrame, Series
 import pandas
 from werkzeug.test import TestResponse
 import sys
 import numpy as np
+import matplotlib.pyplot as plt
 
 from evopie import APP, deca, models
 from evopie.config import EVO_PROCESS_STATUS_ACTIVE, EVO_PROCESS_STATUS_STOPPED, QUIZ_ATTEMPT_STEP1, QUIZ_STEP1, QUIZ_STEP2, ROLE_STUDENT
@@ -189,8 +190,7 @@ def create_deca_space(quiz, output, fmt, axis, spanned, best_students_percent, n
         if output:
             file_name = os.path.join(output, fmt.format(i))
             with open(file_name, 'w') as f: 
-                space['spanned'] = [{"pos": spanned_id, "point": point} for spanned_id, point in space['spanned'].items() ]
-                f.write(json.dumps(space, indent=4))
+                f.write(deca.save_space_to_json(space))
 
 @student_cli.command("init")
 @click.option('-ns', '--num-students', type = int)
@@ -299,8 +299,7 @@ def init_knowledge(input, output, email_format, knows, knowledge_replace, deca_i
     if deca_input:
         with open(deca_input, 'r') as deca_input_json_file:
             deca_input_json_str = "\n".join(deca_input_json_file.readlines())
-            space = json.loads(deca_input_json_str)
-            space["spanned"] = {tuple([(axis_id, pos_id) for [axis_id, pos_id] in spanned["pos"]]):spanned["point"] for spanned in space["spanned"]}
+            space = deca.load_space_from_json(deca_input_json_str)
             knows_map_deca_plain = deca.gen_test_distractor_mapping_knowledge(space)
             knows_unpacked = unpack_key('did', unpack_key('qid', unpack_key('sid', knows_map_deca_plain)))
             knows_map_deca = {sid: {qid: {did: reduce(dks_reducton, dks, [-1,-1])
@@ -598,8 +597,7 @@ def calc_deca_metrics(algo_input, deca_space, params, input_output):
     with open(algo_input, 'r') as f:
         algo_results = json.loads("\n".join(f.readlines()))
     with open(deca_space, 'r') as f:
-        space = json.loads("\n".join(f.readlines()))
-        space["spanned"] = {tuple([(axis_id, pos_id) for [axis_id, pos_id] in spanned["pos"]]):spanned["point"] for spanned in space["spanned"]}
+        space = deca.load_space_from_json("\n".join(f.readlines()))
     population_distractors = algo_results["population_distractors"]
     metrics_map = {"algo":algo_input,"deca": deca_space, **{p:algo_results.get(p, np.nan) for p in params},
                     **deca.dimension_coverage(space, population_distractors),
@@ -779,6 +777,61 @@ def run_experiment(deca_spaces, algo, algo_folder, random_seed, results_folder, 
             print(res.stdout)        
         assert res.exit_code == 0
         print(res.stdout)        
+
+@quiz_cli.command("post-process")        
+@click.option("--result-folder", required=True)
+@click.option("--figure-folder", required=True)
+@click.option("-p", "--param", multiple=True, required=True)
+@click.option("--file-name-pattern")
+@click.option("--group-by-space", is_flag = True)
+def post_process(result_folder, figure_folder, param, file_name_pattern, group_by_space):
+    import re
+    pattern = re.compile(file_name_pattern)
+    frames_data = {}    
+    def get_space_params(file_name):
+        [axes, spanned, i] = file_name.split('-on-')[1].split('-')[1:4]
+        dims = tuple([int(d) for d in axes.split('_')])
+        sp = int(spanned.split('s_')[1])
+        if group_by_space:
+            return dims, sp, ''
+        return dims, sp, int(i.split(".")[0])
+    
+    for file in os.listdir(result_folder):        
+        if not pattern.match(file): 
+            continue
+        dims, sp, i = get_space_params(file)
+        # file_id = f"{len(dims)} {sp} {i}"
+        # file_id = f"{dims} {sp} {i}"
+        file_frame = pandas.read_csv(os.path.join(result_folder, file))
+        for c in file_frame.columns:
+            if c in param:
+                file_data = file_frame[c].to_list()
+                print(f'Debug {(dims, sp, i)} and {file_data}')
+                frames_data.setdefault(c, []).append(((dims, sp, i), file_data))
+            # if c in param:
+            #     f = frames.setdefault(c, DataFrame())
+            #     f[(dims, sp, i)] = file_frame[c]
+            #     f.astype('float')        
+    frames = {}
+    for param, values_group in frames_data.items():
+        f = frames.setdefault(param, DataFrame()) 
+        for space, g in groupby(values_group, key = lambda x: x[0]):            
+            f[space] = Series([v2 for v in g for v2 in v[1]])
+            f.astype('float')
+        # print(f'Debug {param} and {f}')
+    for param, frame in frames.items():
+        sorting_values = sorted(frame.columns, key = lambda c: (-frame[c].median(), *c[0], c[1], c[2]))        
+        frame = frame.reindex(sorting_values, axis=1)
+        frame.rename(columns = lambda c: f"{c[0]} {c[1]} {c[2]}".strip(), inplace=True)
+        stats = DataFrame({"mean": frame.mean(), "std": frame.std() })
+        # print(f"Frame\n{frame}\n-----------")
+        print(f"{param} stats:\n{stats}\n--------")
+        boxplot = frame.boxplot(figsize=(12, 7), column = list(frame.columns), fontsize='small')        
+        boxplot.set_xticklabels(boxplot.get_xticklabels(), rotation=-60)
+        fig = boxplot.get_figure()  
+        fig.set_tight_layout(True)      
+        fig.savefig(os.path.join(figure_folder, f"{param}.png"), format='png')
+        plt.close(fig)
 
 APP.cli.add_command(quiz_cli)
 APP.cli.add_command(student_cli)
