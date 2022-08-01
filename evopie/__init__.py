@@ -1,3 +1,4 @@
+import logging
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
@@ -9,6 +10,7 @@ APP.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('EVOPIE_DATABASE_URI', 'sqlite
 APP.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 APP.config['FLASK_ADMIN_SWATCH'] = 'cerulean' # set optional bootswatch theme for flask_admin
 # APP.config["SQLALCHEMY_ECHO"] = True #change to true to see logs of sql requests
+logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
 DB = SQLAlchemy(APP)
 

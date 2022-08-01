@@ -4,6 +4,7 @@ Implementation of evolutionary processes
 from datetime import datetime
 import json
 from math import comb, prod
+import sys
 import numpy as np
 from threading import Thread, Condition
 from typing import Any, Iterable
@@ -67,32 +68,35 @@ class SqlEvoSerializer(Thread, EvoSerializer):
         with self.ready_to_write:
             while True:            
                 self.ready_to_write.wait_for(predicate=lambda: (len(self.evo_states) > 0) or self.stopped)
-                with APP.app_context():            
-                    evo_processes = models.EvoProcess.query.where(models.EvoProcess.quiz_id.in_(self.evo_states.keys()), models.EvoProcess.status == EVO_PROCESS_STATUS_ACTIVE).all()
-                    evo_processes_map = {p.quiz_id: p for p in evo_processes}
-                    for quiz_id, evo_state in self.evo_states.items():                    
-                        if quiz_id in evo_processes_map: #update with new parameters 
-                            evo_process = evo_processes_map[quiz_id]
-                            evo_process.impl = evo_state.impl
-                            evo_process.impl_state = evo_state.impl_state
-                            evo_process.population = evo_state.population
-                            evo_process.objectives = evo_state.objectives
-                        else: #insert new record  
-                            evo_process = models.EvoProcess(quiz_id=quiz_id,
-                                            start_timestamp = datetime.now(),
-                                            status = EVO_PROCESS_STATUS_ACTIVE,
-                                            impl = evo_state.impl,
-                                            impl_state = evo_state.impl_state,
-                                            population = evo_state.population,
-                                            objectives = evo_state.objectives)
-                            models.DB.session.add(evo_process)            
-                        evo_process.archive = [ models.EvoProcessArchive(genotype_id = a.genotype_id, 
-                                                    genotype = a.genotype, objectives = a.objectives) 
-                                                    for a in evo_state.archive ]
-                    models.DB.session.commit()                
+                try:
+                    with APP.app_context():            
+                        evo_processes = models.EvoProcess.query.where(models.EvoProcess.quiz_id.in_(self.evo_states.keys()), models.EvoProcess.status == EVO_PROCESS_STATUS_ACTIVE).all()
+                        evo_processes_map = {p.quiz_id: p for p in evo_processes}
+                        for quiz_id, evo_state in self.evo_states.items():                    
+                            if quiz_id in evo_processes_map: #update with new parameters 
+                                evo_process = evo_processes_map[quiz_id]
+                                evo_process.impl = evo_state.impl
+                                evo_process.impl_state = evo_state.impl_state
+                                evo_process.population = evo_state.population
+                                evo_process.objectives = evo_state.objectives
+                            else: #insert new record  
+                                evo_process = models.EvoProcess(quiz_id=quiz_id,
+                                                start_timestamp = datetime.now(),
+                                                status = EVO_PROCESS_STATUS_ACTIVE,
+                                                impl = evo_state.impl,
+                                                impl_state = evo_state.impl_state,
+                                                population = evo_state.population,
+                                                objectives = evo_state.objectives)
+                                models.DB.session.add(evo_process)            
+                            evo_process.archive = [ models.EvoProcessArchive(genotype_id = a.genotype_id, 
+                                                        genotype = a.genotype, objectives = a.objectives) 
+                                                        for a in evo_state.archive ]
+                        models.DB.session.commit()                
                     self.evo_states = {}
-                    with self.dumped: #NOTE: potential palce for deadlocks - two locks are aquired
+                    with self.dumped: #NOTE: potential place for deadlocks - two locks are aquired
                         self.dumped.notify_all()
+                except Exception as e: 
+                    sys.stderr.write(f"[SqlEvoSerializer] error ignored: {e}")
                 if self.stopped:
                     return
 
