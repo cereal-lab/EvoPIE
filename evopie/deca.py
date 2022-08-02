@@ -299,8 +299,11 @@ def avg_rank_of_repr(space, population_distractors):
                                                                         for point_id, point in points.items() 
                                                                         for _, did in point['dids'] 
                                                                         if did in population_distractors], key = lambda x: x[0])}
-    arr = np.average([axes_rank.get(axis_id, 0) / len(space['axes'][axis_id]) for axis_id in space['axes']])
-    arr_with_spanned = np.average([max([axes_rank.get(axis_id, 0), spanned_ranks.get(axis_id, 0)]) / len(space['axes'][axis_id]) for axis_id in space['axes']])
+    arr_axes = [axes_rank[axis_id] / len(space['axes'][axis_id]) for axis_id in space['axes'] if axis_id in axes_rank]
+    arr = np.average(arr_axes) if len(arr_axes) > 0 else 0 
+    arr_with_spanned_axes = [max([axes_rank.get(axis_id, 0), spanned_ranks.get(axis_id, 0)]) / len(space['axes'][axis_id]) 
+                                for axis_id in space['axes'] if axis_id in axes_rank or axis_id in spanned_ranks]
+    arr_with_spanned = np.average(arr_with_spanned_axes) if len(arr_with_spanned_axes) > 0 else 0 
     return {"arr": arr, "arr_with_spanned": arr_with_spanned}
 
 # avg_rank_of_repr(space, [5,6,14])
