@@ -465,20 +465,21 @@ def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n
             evopie.config.distractor_selecton_settings = json.loads(algo_params)
 
     def simulate_step(step):
-        k_plain = models.StudentKnowledge.query.where(models.StudentKnowledge.step_id == step).all() #TODO: students should be per instructor eventually 
-        knowledge = {student_id: { str(qid): {x.distractor_id: x.chance for x in qks} for qid, qks in groupby(ks, key=lambda x: x.question_id)} for student_id, ks in groupby(k_plain, key=lambda k: k.student_id) }
-        students_plain = models.User.query.filter_by(role=ROLE_STUDENT).all()
-        students = list(students_plain) #[s.id for s in students_plain]
-        student_ids = set([s.id for s in students])
-        if step == 1:
-            models.QuizAttempt.query.where(models.QuizAttempt.student_id.in_(student_ids), models.QuizAttempt.quiz_id == quiz).delete()
-            models.DB.session.commit()
-        elif step == 2:
-            models.Likes4Justifications.query.where(models.Likes4Justifications.student_id.in_(student_ids)).delete()
-            models.DB.session.commit()
-        if rnd:
-            rnd_state.shuffle(students)
-        ids_emails = [(student.id, student.email) for student in students]
+        with APP.app_context():
+            k_plain = models.StudentKnowledge.query.where(models.StudentKnowledge.step_id == step).all() #TODO: students should be per instructor eventually 
+            knowledge = {student_id: { str(qid): {x.distractor_id: x.chance for x in qks} for qid, qks in groupby(ks, key=lambda x: x.question_id)} for student_id, ks in groupby(k_plain, key=lambda k: k.student_id) }
+            students_plain = models.User.query.filter_by(role=ROLE_STUDENT).all()
+            students = list(students_plain) #[s.id for s in students_plain]
+            student_ids = set([s.id for s in students])
+            if step == 1:
+                models.QuizAttempt.query.where(models.QuizAttempt.student_id.in_(student_ids), models.QuizAttempt.quiz_id == quiz).delete()
+                models.DB.session.commit()
+            elif step == 2:
+                models.Likes4Justifications.query.where(models.Likes4Justifications.student_id.in_(student_ids)).delete()
+                models.DB.session.commit()
+            if rnd:
+                rnd_state.shuffle(students)
+            ids_emails = [(student.id, student.email) for student in students]
         # if step == 1:
         #     #additional justifications
         #     justifications_json = [json.loads(j) for j in justifications]
@@ -498,7 +499,8 @@ def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n
                         continue #ignore non-default students
                     resp = throw_on_http_fail(c.get(f"/student/{quiz}", headers={"Accept": "application/json"}))
 
-                attempt = models.QuizAttempt.query.where(models.QuizAttempt.quiz_id == quiz, models.QuizAttempt.student_id == sid).first()
+                with APP.app_context():
+                    attempt = models.QuizAttempt.query.where(models.QuizAttempt.quiz_id == quiz, models.QuizAttempt.student_id == sid).first()
 
                 student_knowledge = knowledge.get(sid, {})
                 if knowledge_selection == KNOWLEDGE_SELECTION_CHANCE:
@@ -538,12 +540,13 @@ def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n
     for run_idx in range(n_times):
         #close prev evo process
         if QUIZ_STEP1 in step:
-            models.EvoProcessArchive.query.delete()
-            models.EvoProcess.query.delete()            
-            # existing_evo = models.EvoProcess.query.where(models.EvoProcess.quiz_id == quiz, models.EvoProcess.status == EVO_PROCESS_STATUS_ACTIVE).all()
-            # for evo in existing_evo:
-            #     evo.status = EVO_PROCESS_STATUS_STOPPED    
-            models.DB.session.commit()    
+            with APP.app_context():
+                models.EvoProcessArchive.query.delete()
+                models.EvoProcess.query.delete()            
+                # existing_evo = models.EvoProcess.query.where(models.EvoProcess.quiz_id == quiz, models.EvoProcess.status == EVO_PROCESS_STATUS_ACTIVE).all()
+                # for evo in existing_evo:
+                #     evo.status = EVO_PROCESS_STATUS_STOPPED    
+                models.DB.session.commit()    
             with APP.app_context(), APP.test_client(use_cookies=True) as c: #instructor session
                 throw_on_http_fail(c.post("/login",json={"email": instructor, "password": password}))
                 throw_on_http_fail(c.post(f"/quizzes/{quiz}/status", json={ "status" : "HIDDEN" })) #stop in memory evo process
@@ -747,8 +750,8 @@ def run_experiment(deca_input, algo, algo_folder, random_seed, results_folder, n
             print(f"Start run {i} of {algo_file_name} on {deca_space_id}")
             res = runner.invoke(args=["quiz", "run", "-q", 1, "-s", "STEP1", "--algo", algo_name, "--algo-params", json.dumps(algo_with_params),
                                         "--evo-output", f"{algo_file_name}.json", "--random-seed", run_random_seed ])
-            if res.exit_code != 0:
-                print(res.stdout)
+            # if res.exit_code != 0:
+            print(res.stdout)
             assert res.exit_code == 0
             print(f"Analysing run {i} of {algo_file_name} on {deca_space_id}")
             res = runner.invoke(args=["deca", "result", "--algo-input", f"{algo_file_name}.json", "--deca-space", deca_input, 
@@ -773,10 +776,8 @@ def run_experiment(deca_spaces, algo, algo_folder, random_seed, results_folder, 
         res = runner.invoke(args=["quiz", "deca-experiment", "--deca-input", deca_input, "--algo-folder", algo_folder,
                                     "--results-folder", results_folder, *[p for a in algo for p in ["--algo", a]], 
                                     "--random-seed", random_seed, "--num-runs", num_runs ])
-        if res.exit_code != 0:
-            print(res.stdout)        
-        assert res.exit_code == 0
         print(res.stdout)        
+        assert res.exit_code == 0
 
 @quiz_cli.command("post-process")        
 @click.option("--result-folder", required=True)
