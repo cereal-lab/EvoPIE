@@ -750,8 +750,8 @@ def run_experiment(deca_input, algo, algo_folder, random_seed, results_folder, n
             print(f"Start run {i} of {algo_file_name} on {deca_space_id}")
             res = runner.invoke(args=["quiz", "run", "-q", 1, "-s", "STEP1", "--algo", algo_name, "--algo-params", json.dumps(algo_with_params),
                                         "--evo-output", f"{algo_file_name}.json", "--random-seed", run_random_seed ])
-            # if res.exit_code != 0:
-            print(res.stdout)
+            if res.exit_code != 0:
+                print(res.stdout)
             assert res.exit_code == 0
             print(f"Analysing run {i} of {algo_file_name} on {deca_space_id}")
             res = runner.invoke(args=["deca", "result", "--algo-input", f"{algo_file_name}.json", "--deca-space", deca_input, 
@@ -776,7 +776,8 @@ def run_experiment(deca_spaces, algo, algo_folder, random_seed, results_folder, 
         res = runner.invoke(args=["quiz", "deca-experiment", "--deca-input", deca_input, "--algo-folder", algo_folder,
                                     "--results-folder", results_folder, *[p for a in algo for p in ["--algo", a]], 
                                     "--random-seed", random_seed, "--num-runs", num_runs ])
-        print(res.stdout)        
+        if res.exit_code != 0:
+            print(res.stdout)        
         assert res.exit_code == 0
 
 @quiz_cli.command("post-process")        

@@ -10,7 +10,12 @@ APP.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('EVOPIE_DATABASE_URI', 'sqlite
 APP.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 APP.config['FLASK_ADMIN_SWATCH'] = 'cerulean' # set optional bootswatch theme for flask_admin
 APP.config["SQLALCHEMY_ECHO"] = True #change to true to see logs of sql requests
-# logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+db_log_file_name = os.getenv('EVOPIE_DATABASE_LOG')
+if db_log_file_name:
+    db_file_logger = logging.FileHandler(db_log_file_name)
+    db_file_logger.setLevel(logging.INFO)
+    db_file_logger.emit(logging.LogRecord(db_file_logger.name, logging.INFO, "", 0, f"DB file: {APP.config['SQLALCHEMY_DATABASE_URI']}", None, None))
+    logging.getLogger('sqlalchemy.engine').addHandler(db_file_logger)
 
 DB = SQLAlchemy(APP)
 
