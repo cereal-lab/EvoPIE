@@ -6,13 +6,17 @@ import os
 
 APP = Flask(__name__)
 APP.config['SECRET_KEY'] = '9OLWxND4o83j4K4iuopO' #FIXME replace this by an ENV variable
-APP.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('EVOPIE_DATABASE_URI', 'sqlite:///DB_quizlib.sqlite')
+ #NOTE: timeout allows to avoid database is locked - it is workaround
+APP.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('EVOPIE_DATABASE_URI', 'sqlite:///DB_quizlib.sqlite') + "?timeout=20"
 APP.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 APP.config['FLASK_ADMIN_SWATCH'] = 'cerulean' # set optional bootswatch theme for flask_admin
 APP.config["SQLALCHEMY_ECHO"] = True #change to true to see logs of sql requests
 db_log_file_name = os.getenv('EVOPIE_DATABASE_LOG')
 if db_log_file_name:
+    formatter = logging.Formatter(fmt='%(asctime)s %(message)s',
+                                  datefmt='[%Y-%m-%d %H:%M:%S]')    
     db_file_logger = logging.FileHandler(db_log_file_name)
+    db_file_logger.setFormatter(formatter)
     db_file_logger.setLevel(logging.INFO)
     db_file_logger.emit(logging.LogRecord(db_file_logger.name, logging.INFO, "", 0, f"DB file: {APP.config['SQLALCHEMY_DATABASE_URI']}", None, None))
     logging.getLogger('sqlalchemy.engine').addHandler(db_file_logger)

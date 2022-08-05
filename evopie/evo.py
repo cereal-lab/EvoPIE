@@ -5,6 +5,7 @@ from datetime import datetime
 import json
 from math import comb, prod
 import sys
+from time import sleep
 import numpy as np
 from threading import Thread, Condition
 from typing import Any, Iterable
@@ -90,7 +91,11 @@ class SqlEvoSerializer(Thread, EvoSerializer):
                                 models.DB.session.add(evo_process)            
                             evo_process.archive = [ models.EvoProcessArchive(genotype_id = a.genotype_id, 
                                                         genotype = a.genotype, objectives = a.objectives) 
-                                                        for a in evo_state.archive ]
+                                                        for a in evo_state.archive ] 
+                        # sleep(5) #This is for testing database is locked error - this could lock student write operations
+                        # https://docs.sqlalchemy.org/en/14/dialects/sqlite.html#database-locking-behavior-concurrency
+                        # https://stackoverflow.com/questions/13895176/sqlalchemy-and-sqlite-database-is-locked          
+                        # current solution is to increase timeout of file lock              
                         models.DB.session.commit()                
                     self.evo_states = {}
                     with self.dumped: #NOTE: potential place for deadlocks - two locks are aquired
