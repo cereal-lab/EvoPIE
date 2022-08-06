@@ -8,7 +8,7 @@
 cd ~/evopie 
 echo "Working in $WORK/evopie/data-$SLURM_ARRAY_TASK_ID"
 export EVOPIE_DATABASE_URI=sqlite:///$WORK/evopie/data-$SLURM_ARRAY_TASK_ID/db.sqlite
-export EVOPIE_DATABASE_LOG=$WORK/evopie/data-$SLURM_ARRAY_TASK_ID/db.log
+# export EVOPIE_DATABASE_LOG=$WORK/evopie/data-$SLURM_ARRAY_TASK_ID/db.log
 export PYTHONPATH=$(pipenv run which python)
 pipenv run flask quiz deca-experiments \
     --deca-spaces $WORK/evopie/data-$SLURM_ARRAY_TASK_ID/deca-spaces \
