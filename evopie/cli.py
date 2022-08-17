@@ -820,19 +820,112 @@ def post_process(result_folder, figure_folder, param, file_name_pattern, group_b
             f[space] = Series([v2 for v in g for v2 in v[1]])
             f.astype('float')
         # print(f'Debug {param} and {f}')
+    stats_frames = []
     for param, frame in frames.items():
-        sorting_values = sorted(frame.columns, key = lambda c: (-frame[c].median(), *c[0], c[1], c[2]))        
+        sorting_values = sorted(frame.columns, key = lambda c: (*c[0], c[1], c[2]))        
         frame = frame.reindex(sorting_values, axis=1)
         frame.rename(columns = lambda c: f"{c[0]} {c[1]} {c[2]}".strip(), inplace=True)
-        stats = DataFrame({"mean": frame.mean(), "std": frame.std() })
-        # print(f"Frame\n{frame}\n-----------")
-        print(f"{param} stats:\n{stats}\n--------")
+        mn = frame.mean()
+        std = frame.std()
+        clr = ((0.3 + mn * 0.7) if param in ['dim_coverage', 'arr'] else (1 - mn * 0.7)).round(2).astype(str)
+        stats = DataFrame({param: "cellcolor[rgb]{" + clr + "," + clr + "," + clr + "}" + mn.round(2).astype(str) + " ± " + std.round(2).astype(str) })
+        stats_frames.append(stats)
+        # print(f"Frame\n{frame}\n-----------")        
         boxplot = frame.boxplot(figsize=(12, 7), column = list(frame.columns), fontsize='small')        
         boxplot.set_xticklabels(boxplot.get_xticklabels(), rotation=-60)
         fig = boxplot.get_figure()  
         fig.set_tight_layout(True)      
         fig.savefig(os.path.join(figure_folder, f"{param}.png"), format='png')
         plt.close(fig)
+    stats = pandas.concat(stats_frames, axis=1)
+    latex_table = stats.to_latex().replace("cellcolor[rgb]\\{", "\\cellcolor[rgb]{").replace("\\}", "}")
+    print(f"Stats:\n{latex_table}\n--------")
+
+@quiz_cli.command("plot-metric-vs-num-of-dims")
+@click.option("-p", "--param", required=True)        
+@click.option("-pt", "--param-title")  
+@click.option("--data-folder", required=True)
+@click.option("--path-suffix", required=True)
+@click.option("--figure-folder", required=True)
+@click.option("--file-name-pattern")
+@click.option("--fixate-range", is_flag=True)
+def post_process(data_folder, path_suffix, figure_folder, param, param_title, file_name_pattern, fixate_range):
+    import re
+    pattern = re.compile(file_name_pattern)
+    frames_data = {}    
+    def get_space_params(file_name):
+        [axes, spanned] = file_name.split('-on-')[1].split('-')[1:3]
+        dims = tuple([int(d) for d in axes.split('_')])
+        # sp = int(spanned.split('s_')[1])
+        return dims[0]
+    
+    for dim_data_dir in os.listdir(data_folder): 
+        num_dims = int(dim_data_dir.split('-')[1])
+        file_path = os.path.join(data_folder, dim_data_dir, path_suffix)
+        for file in os.listdir(file_path):
+            if not pattern.match(file): 
+                continue
+            # print(file)
+            dim_size = get_space_params(file)
+            # file_id = f"{len(dims)} {sp} {i}"
+            # file_id = f"{dims} {sp} {i}"
+            file_frame = pandas.read_csv(os.path.join(file_path, file))
+            file_data = file_frame[param].to_list()
+            frames_data.setdefault(dim_size, {}).setdefault(num_dims, []).extend(file_data)
+    frames = { dim_size: DataFrame(data = df) for dim_size, df in frames_data.items() }
+    frames = {dim_size: frame.reindex(sorted(frame.columns, key = lambda c: int(c)), axis=1) for dim_size, frame in frames.items() }  
+    sorted_dim_sizes = sorted(frames.keys())  
+    frames_list = []
+    markers = ["o", "s", "x"]
+    legend = []
+    for dim_size_id, dim_size in enumerate(sorted_dim_sizes):
+        frame = frames[dim_size]
+        mn = frame.mean()
+        std = frame.std()
+        clr = ((0.3 + mn * 0.7) if param in ['dim_coverage', 'arr'] else (1 - mn * 0.7)).round(2).astype(str)
+        frames_list.append(DataFrame({dim_size: "cellcolor[rgb]{" + clr + "," + clr + "," + clr + "}" + mn.round(2).astype(str) + " ± " + std.round(2).astype(str)}))
+        #drawing plot
+        legend.append(f"Axis size {dim_size}")
+        plot = mn.plot(xlabel="Number of DECA axes", ylabel=param_title, marker = markers[dim_size_id], fontsize = 16)  
+        # boxplot.set_xticklabels(boxplot.get_xticklabels(), rotation=-60)
+    if fixate_range:
+        plot.set_ylim([0, 1.05])
+    legend = plot.legend(legend, fontsize=16)
+    plot.xaxis.label.set_fontsize(18)
+    plot.yaxis.label.set_fontsize(18)
+    fig = plot.get_figure()  
+    fig.set_tight_layout(True)      
+    fig.savefig(os.path.join(figure_folder, f"{param}.png"), format='png')
+    plt.close(fig)
+    stat_frame = pandas.concat(frames_list, axis=1) 
+    latex_table = stat_frame.to_latex().replace("cellcolor[rgb]\\{", "\\cellcolor[rgb]{").replace("\\}", "}")
+    print(f"Frame:\n{latex_table}\n")    
+    # for param, values_group in frames_data.items():
+    #     f = frames.setdefault(param, DataFrame()) 
+    #     for space, g in groupby(values_group, key = lambda x: x[0]):            
+    #         f[space] = Series([v2 for v in g for v2 in v[1]])
+    #         f.astype('float')
+    #     # print(f'Debug {param} and {f}')
+    # stats_frames = []
+    # for param, frame in frames.items():
+    #     sorting_values = sorted(frame.columns, key = lambda c: (*c[0], c[1], c[2]))        
+    #     frame = frame.reindex(sorting_values, axis=1)
+    #     frame.rename(columns = lambda c: f"{c[0]} {c[1]} {c[2]}".strip(), inplace=True)
+    #     mn = frame.mean()
+    #     std = frame.std()
+    #     clr = ((0.3 + mn * 0.7) if param in ['dim_coverage', 'arr'] else (1 - mn * 0.7)).round(2).astype(str)
+    #     stats = DataFrame({param: "cellcolor[rgb]{" + clr + "," + clr + "," + clr + "}" + mn.round(2).astype(str) + " ± " + std.round(2).astype(str) })
+    #     stats_frames.append(stats)
+    #     # print(f"Frame\n{frame}\n-----------")        
+    #     boxplot = frame.boxplot(figsize=(12, 7), column = list(frame.columns), fontsize='small')        
+    #     boxplot.set_xticklabels(boxplot.get_xticklabels(), rotation=-60)
+    #     fig = boxplot.get_figure()  
+    #     fig.set_tight_layout(True)      
+    #     fig.savefig(os.path.join(figure_folder, f"{param}.png"), format='png')
+    #     plt.close(fig)
+    # stats = pandas.concat(stats_frames, axis=1)
+    # latex_table = stats.to_latex().replace("cellcolor[rgb]\\{", "\\cellcolor[rgb]{").replace("\\}", "}")
+    # print(f"Stats:\n{latex_table}\n--------")    
 
 APP.cli.add_command(quiz_cli)
 APP.cli.add_command(student_cli)

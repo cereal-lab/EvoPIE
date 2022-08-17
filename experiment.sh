@@ -2,10 +2,16 @@ set -e
 pipenv shell 
 flask DB-reboot
 flask quiz init -nq 4 -nd 25 #search space size
+
+flask quiz init -nq 2 -nd 10
 # TODO - estimate search space size 
 # TODO - estimate sampled number of individuals 
 
 # flask student init -ns 100
+
+flask student init -ns 20
+
+# flask student knows -kr -ef 's{}@usf.edu' -k '{"sid":{"range":[1,10]},"qid":1,"did":4,"step":1,"chance":1}' -k '{"sid":{"range":[1,20]},"qid":1,"did":8,"step":1,"chance":1}' -k '{"sid":{"range":[11,20]},"qid":2,"did":12,"step":1,"chance":1}' -k '{"sid":{"range":[1,20]},"qid":2,"did":16,"step":1,"chance":1}'
 
 # flask deca init -q 1 -o deca-spaces -a 2 -a 3 --spanned 1 --best-students-percent 0.1 --spanned-geometric-p 0.8 --noninfo 0.1 -n 1
 flask deca init-many -ns 100 -nq 4 -nd 25 \
@@ -43,3 +49,64 @@ flask quiz post-process --result-folder data/data-8/results --figure-folder figu
 
 flask quiz post-process --result-folder data/data-2/results --figure-folder figures --file-name-pattern '.*_0-\d+.csv' \
   -p population_duplication --group-by-space
+
+
+flask quiz post-process --result-folder data/data-2022-08-08/data-2/results --figure-folder figures --file-name-pattern '.*_0-\d+.csv' \
+  -p dim_coverage -p dim_coverage_with_spanned -p arr -p arr_with_spanned -p population_redundancy -p deca_redundancy -p num_spanned \
+  -p deca_duplication -p population_duplication -p noninfo
+
+flask quiz post-process --result-folder data/data-2022-08-08/data-2/results --figure-folder figures --file-name-pattern '.*_0-\d+.csv' \
+  -p dim_coverage -p arr -p population_duplication -p noninfo  
+
+flask quiz post-process --result-folder data/data-2022-08-08/data-10/results --figure-folder figures --file-name-pattern '.*_0-\d+.csv' \
+  -p dim_coverage -p arr -p population_duplication -p noninfo  
+
+flask quiz plot-metric-vs-num-of-dims -p dim_coverage --data-folder data/data-2022-08-08 --path-suffix results --figure-folder figures --file-name-pattern '.*-s_0-\d+.csv' \
+  -p dim_coverage -pt 'Dimension coverage'
+
+flask quiz plot-metric-vs-num-of-dims -p dim_coverage --data-folder data/data-2022-08-08 --path-suffix results --figure-folder figures --file-name-pattern '.*-s_0-\d+.csv' \
+  -p arr -pt 'Average rank of representatives'
+
+flask quiz plot-metric-vs-num-of-dims -p dim_coverage --data-folder data/data-2022-08-08 --path-suffix results --figure-folder figures --file-name-pattern '.*-s_0-\d+.csv' \
+  -p noninfo -pt 'Non-informativeness'  
+
+flask quiz post-process --result-folder data/data-2022-08-08/data-5/results --figure-folder figures --file-name-pattern '.*_2-\d+.csv' \
+  -p dim_coverage -p arr -p population_redundancy -p population_duplication -p noninfo  
+
+flask quiz post-process --result-folder data/data-2022-08-08/data-10/results --figure-folder figures --file-name-pattern '.*_2-\d+.csv' \
+  -p dim_coverage -p arr -p population_redundancy -p population_duplication -p noninfo     
+
+flask quiz post-process --result-folder data/data-2022-08-08/data-2/results --figure-folder figures --file-name-pattern '.*_20-\d+.csv' \
+  -p dim_coverage -p arr -p population_redundancy -p population_duplication -p noninfo      
+
+
+flask quiz plot-metric-vs-num-of-dims -p dim_coverage --data-folder data/data-2022-08-08 --path-suffix results --figure-folder figures --file-name-pattern '.*-s_2-\d+.csv' \
+  -p dim_coverage -pt 'Dimension coverage'
+
+flask quiz plot-metric-vs-num-of-dims -p dim_coverage --data-folder data/data-2022-08-08 --path-suffix results --figure-folder figures --file-name-pattern '.*-s_2-\d+.csv' \
+  -p arr -pt 'Average rank of representatives'
+
+flask quiz plot-metric-vs-num-of-dims -p dim_coverage --data-folder data/data-2022-08-08 --path-suffix results --figure-folder figures --file-name-pattern '.*-s_2-\d+.csv' \
+  -p population_redundancy -pt 'Redundancy'  --fixate-range
+
+flask quiz plot-metric-vs-num-of-dims -p dim_coverage --data-folder data/data-2022-08-08 --path-suffix results --figure-folder figures --file-name-pattern '.*-s_2-\d+.csv' \
+  -p population_duplication -pt 'Duplication' --fixate-range
+
+flask quiz plot-metric-vs-num-of-dims -p dim_coverage --data-folder data/data-2022-08-08 --path-suffix results --figure-folder figures --file-name-pattern '.*-s_2-\d+.csv' \
+  -p noninfo -pt 'Non-informativeness'  --fixate-range
+
+
+flask quiz plot-metric-vs-num-of-dims -p dim_coverage --data-folder data/data-2022-08-08 --path-suffix results --figure-folder figures --file-name-pattern '.*-s_20-\d+.csv' \
+  -p dim_coverage -pt 'Dimension coverage'
+
+flask quiz plot-metric-vs-num-of-dims -p dim_coverage --data-folder data/data-2022-08-08 --path-suffix results --figure-folder figures --file-name-pattern '.*-s_20-\d+.csv' \
+  -p arr -pt 'Average rank of representatives' --fixate-range
+
+flask quiz plot-metric-vs-num-of-dims -p dim_coverage --data-folder data/data-2022-08-08 --path-suffix results --figure-folder figures --file-name-pattern '.*-s_20-\d+.csv' \
+  -p population_redundancy -pt 'Redundancy'  --fixate-range
+
+flask quiz plot-metric-vs-num-of-dims -p dim_coverage --data-folder data/data-2022-08-08 --path-suffix results --figure-folder figures --file-name-pattern '.*-s_20-\d+.csv' \
+  -p population_duplication -pt 'Duplication' --fixate-range
+
+flask quiz plot-metric-vs-num-of-dims -p dim_coverage --data-folder data/data-2022-08-08 --path-suffix results --figure-folder figures --file-name-pattern '.*-s_20-\d+.csv' \
+  -p noninfo -pt 'Non-informativeness'  --fixate-range  

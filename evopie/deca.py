@@ -313,7 +313,7 @@ def redundancy(space, population_distractors):
     '''
     population_spanned_distractors = [did for _, point in space['spanned'].items() for _, did in point['dids'] if did in population_distractors]
     pop_r = len(population_spanned_distractors) / len(population_distractors) 
-    deca_r = len(space['spanned']) / (len(space['spanned']) + sum([len(points) for points in space["axes"].values()]) + len(space["zero"]["dids"]))
+    deca_r = len(space['spanned']) / (len(space['spanned']) + sum([len(points) for points in space["axes"].values()]))
     return {"population_redundancy":pop_r, "deca_redundancy":deca_r, 'num_spanned': len(space['spanned']) }
 
 # redundancy(space, [5,6,14])
