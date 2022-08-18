@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% import 'widgets.html' as w %}
+
+{% block title %}EvoPIE{% endblock %}
+
+{% block content %}
+    <style>
+        .reveal-if-not-selected {
+            opacity: 1;
+            max-height: 100px;
+            overflow: visible;
+            padding: 10px 20px;
+            display: inline;
+        }
+        input[type="radio"]:checked ~ .reveal-if-not-selected {
+            opacity: 0;
+            max-height: 0;
+            overflow: hidden;
+            display: none;                
+        }
+    </style>
+    <script>
+        const quizId = "{{quiz.id}}";
+
+        const saveAnswers = buildQuizSaver(quizId, "quizForm")
+
+        const saveJustifications = async (justifications) => {
+            const {} = await fetchJson(`/quizzes/${quizId}/justifications`, {
+                method: 'PUT',
+                headers: {'Content-Type' : 'application/json'},
+                body: JSON.stringify(justifications),
+                credentials: 'same-origin'
+            })             
+        }
+        
+        const saveJustification = async (ev) => {                    
+            const questionId = ev.target.dataset.questionId;
+            const altId = parseInt(ev.target.dataset.altId);
+            const isEmpty = $(ev.target).summernote("isEmpty")
+            const justifications = { [questionId]: { [altId]: isEmpty ? "" : ev.target.value } };
+            await saveJustifications(justifications)
+        }
+
+        const submitForm = () => {
+            $("#quizForm textarea.summernote").each(function () {
+                if ($(this).summernote("isEmpty")) $(this).val("")
+            })
+        }
+
+        $(() => {
+            $("#quizForm textarea.summernote")
+                .on("summernote.change", (ev) => {
+                    ev.target.dataset.state = "changed";
+                })
+                .on("summernote.blur", async (ev) => {
+                    if (ev.target.dataset.state == "changed") {                        
+                        await saveJustification(ev)
+                        ev.target.dataset.state = "";
+                    }
+                })
+        })
+
+    </script>
+
+    <div class="jumbotron jumbotron-fluid">
+        <div class="container">
+
+            <h1 class="display-4">Step 1 - {{quiz.title|safe}}</h1>
+
+            <p class="lead">
+                Hello, {{current_user.first_name}} {{current_user.last_name}} ({{current_user.email}}). 
+                Welcome to STEP 1 of this quiz.
+            </p>      
+
+            <p class="lead">
+                <h2>About this quiz:</h2>
+                {{quiz.description | safe}}
+            </p>
+
+            <p class="lead">
+                <p>
+                    <h2>How to take Step 1 of the quiz:</h2>
+                    In order to receive any credit at all for your quiz, make sure that you: 
+                    <ul>
+                        <li>Select 1 solution for each question below.</li>
+                        <li>Provide a meaningful justification of <b>why</b> you think that <b>the alternatives
+                            that you did not select are incorrect</b>.</li>
+                    </ul>
+                </p>
+            </p>
+            <p class="lead"><p>
+                Scroll down to the bottom of the page for instructions on how to submit this quiz once you are done.
+            </p></p>
+        </div>
+    </div>
+
+    <form id="quizForm" method="post" onsubmit="submitForm()">
+        {% for q in questions %}
+            <div class="card bg-light m-3 mx-auto content" style="width: 75%">
+                <div class="card-body" bg-light>
+                    <h1 class="card-title">Question #{{loop.index}} - {{q.title |safe|unescapeDoubleQuotes}}</h1>
+                    <p class="card-text">{{q.stem|safe|unescapeDoubleQuotes}}</p>
+                                    
+                    <div class="list-group list-group-flush">
+                    
+                    {% for answer in q.alternatives %}
+                        <div class="list-group-item border border-primaryrounded updateSize" style="height:fit-content">
+                            <div class="form-group">
+                                <div class="form-check">    
+                                    {{ w.question_option(q, loop.index0, answer) }}
+                                    <div class="reveal-if-not-selected">
+                                        <p>Explain below why you did not select this alternative, leave blank if you did.</p>
+                                        <textarea class="summernote form-control"
+                                            data-question-id="{{q.id}}" data-alt-id="{{loop.index0}}"
+                                            name="justification_{{q.id}}_{{loop.index0}}"
+                                            rows="3" onchange="alert('test')"
+                                            placeholder="">{{ q.justifications.get(loop.index0, '') }}</textarea>                                   
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+
+        {{ w.submit_quiz_button() }}
+    </form>
+
+{% endblock %}

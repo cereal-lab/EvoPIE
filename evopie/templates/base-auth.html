@@ -10,21 +10,6 @@
                 crossorigin="anonymous">
         <link   rel="stylesheet" 
                 href="{{ url_for('static', filename='basestyle.css') }}">
-        <style>
-            .reveal-if-not-selected {
-                opacity: 1;
-                max-height: 100px;
-                overflow: visible;
-                padding: 10px 20px;
-                display: inline;
-            }
-            input[type="radio"]:checked ~ .reveal-if-not-selected {
-                opacity: 0;
-                max-height: 0;
-                overflow: hidden;
-                display: none;                
-            }
-        </style>
          <!--
         <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
         watch out for compatibility w/ summernote

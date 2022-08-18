@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% import 'widgets.html' as w %}
+
+{% block title %}EvoPIE{% endblock %}
+
+{% block content %}
+
+    <div class="jumbotron jumbotron-fluid">
+        <div class="container">
+            <h1 class="display-4">Solutions - {{quiz.title | safe }}</h1>
+            <p class="lead">
+                Hello, {{current_user.first_name}} {{current_user.last_name}} ({{current_user.email}}). 
+                Here are the answers to this quiz with instructor justifications.
+            </p>
+
+            <p class="lead">
+                <h2>About this quiz:</h2>
+                {{quiz.description | safe}}
+            </p>
+        </div>
+    </div>
+
+    {% for q in questions %}
+        <div class="card bg-light m-3 mx-auto content" style="width: 75%">
+            <div class="card-body" bg-light>
+                <h1 class="card-title">Question #{{loop.index}} - {{q.title |safe|unescapeDoubleQuotes}}</h1>
+                <p class="card-text">{{q.stem|safe|unescapeDoubleQuotes}}</p>
+                
+                <dl>
+                    <dt>Your answer is pre-selected below</dt>
+                </dl>
+                
+                <div class="list-group list-group-flush">
+                
+                {% for answer in q.alternatives %}
+                {% set explanation = explanations[q.id|string][loop.index0|string] %}
+                    <div class="list-group-item border border-primaryrounded updateSize"  style="height:fit-content">
+                        <div class="form-group">
+                            <div class="form-check {% if explanation.is_correct -%} bg-warning {%- endif -%}">                            
+                                {{ w.question_option(q, loop.index0, answer, disabled=True) }}
+                                
+                                <div class = "justificationsContainer">
+                                    <table class="expandable-content table">                                        
+                                        <tr>
+                                            <td class='text-start'>
+                                                <p> {{ explanation.justification | safe }} </p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+
+{% endblock %}

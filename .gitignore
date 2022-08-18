@@ -7,3 +7,15 @@ evopie/DB_quizlib-easy.sqlite
 gradebooks.diff
 gradebook-downloaded.csv
 .DS_Store
+evopie/evo.md
+testing/diff-o.csv
+testing/students.csv
+deca-spaces/*
+results/*
+algo/*
+testing/archive.csv
+testing/deca.json
+testing/evo.json
+data
+figures
+db.log

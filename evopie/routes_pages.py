@@ -9,8 +9,7 @@ import io
 from math import exp
 from mimetypes import init
 from operator import not_
-import traceback
-from flask import jsonify, abort, request, Response, render_template, redirect, url_for, make_response, send_file
+from flask import g, jsonify, abort, request, Response, render_template, redirect, url_for, make_response, send_file
 from flask import Blueprint
 from flask_login import login_required, current_user
 from flask import flash
@@ -18,12 +17,13 @@ from pandas import DataFrame
 from sqlalchemy import not_
 from sqlalchemy.sql import collate
 from flask import Markup
-from random import shuffle
+from evopie.evo import Evaluation, get_evo
+from evopie.routes_mcq import answer_questions, justify_alternative_selection
 
 from evopie.utils import role_required, retry_concurrent_update, find_median
 
-from .config import ROLE_INSTRUCTOR, ROLE_STUDENT, get_k_tournament_size, get_least_seen_slots_num
-from .utils import unescape
+from .config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_HIDDEN, QUIZ_STEP1, QUIZ_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT, get_attempt_next_step, get_k_tournament_size, get_least_seen_slots_num
+from .utils import unescape, unmime, validate_quiz_attempt_step
 
 import json, random, ast, re
 import numpy as np
@@ -40,37 +40,6 @@ matplotlib.rcParams['ps.fonttype'] = 42
 
 
 pages = Blueprint('pages', __name__)
-
-def replaceModified(str):
-    str1 = list(str)
-    openTags = [m.start() for m in re.finditer('<p>', str)]
-    closeTags = [m.start() for m in re.finditer('</p>', str)]
-    singleQuotes = [m.start() for m in re.finditer('\'', str)]
-    i = 0
-    if len(openTags) == 0:
-        return str.replace("'", '"')
-    start = openTags[i]
-    end = closeTags[i]
-    for j in range(len(singleQuotes)):
-        curr = singleQuotes[j]
-        if curr > end:
-            i += 1
-            if i >= len(openTags):
-                break
-            start = openTags[i]
-            end = closeTags[i]
-        if not (curr > start and curr < end):
-            str1[curr] = '\"'
-    for j in range(closeTags[len(closeTags) - 1] + 4, len(str)):
-        if str1[j] == "\'":
-            str1[j] = "\""
-    str = ''.join(str1)
-    return str
-
-class QuizAttempt:
-    justifications = {}
-    initial_responses = []
-    revised_responses = []
 
 @pages.route('/')
 def index():
@@ -300,45 +269,21 @@ def quiz_editor(quiz_id):
     return render_template('quiz-editor.html', quiz = q.dump_as_dict(), limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, numJustificationsOptions = numJustificationsOptions, quartileOptions = quartileOptions)
 
 
-def get_possible_justifications(quiz):
+def get_possible_justifications(attempt):
     '''
     Collect all possible justifications from which policy should pick 
-    :param quiz - quiz model
+    :param attempt - student attempt for quiz
     '''
-    justifications = {}
-    for q in quiz.quiz_questions:
-        justifications[str(q.id)] = {}
-        for d in q.distractors:
-            # get all justifications for that alternative / question pair
-            res = models.Justification.query\
-                .filter_by(quiz_question_id=q.id)\
-                .filter_by(distractor_id=d.id)\
-                .filter(not_(models.Justification.justification==""))\
-                .filter(not_(models.Justification.justification=="<br>"))\
-                .filter(not_(models.Justification.justification=="<p><br></p>"))\
-                .filter(not_(models.Justification.justification=="<p></p>"))\
-                .filter(not_(models.Justification.student_id==current_user.id))\
-                .all()
-            # justifications.extend(res)
-            justifications[str(q.id)][str(d.id)] = res
-        # also handle the solution -1
-        res = models.Justification.query\
-            .filter_by(quiz_question_id=q.id)\
-            .filter_by(distractor_id="-1")\
-            .filter(not_(models.Justification.justification==""))\
-            .filter(not_(models.Justification.justification=="<br>"))\
-            .filter(not_(models.Justification.justification=="<p><br></p>"))\
-            .filter(not_(models.Justification.justification=="<p></p>"))\
-            .filter(not_(models.Justification.student_id==current_user.id))\
-            .all()
-        
-        # NOTE use filter instead of filter_by for != comparisons
-        # https://stackoverflow.com/questions/16093475/flask-sqlalchemy-querying-a-column-with-not-equals/16093713
-
-        # record this array of objects as corresponding to this question
-        # quiz_justifications[str(q.id)] = question_justifications
-        # justifications.extend(res)
-        justifications[str(q.id)]["-1"] = res
+    qids = [ int(qid) for qid in attempt.alternatives_map.keys() ]
+    dids = set(did for _, alternatives in attempt.alternatives_map.items() for did in alternatives)
+    did_positions = {(int(qid), did):aid for qid, alternatives in attempt.alternatives_map.items() for aid, did in enumerate(alternatives)}
+    justification_plain = models.Justification.query.where(models.Justification.quiz_question_id.in_(qids), 
+            models.Justification.distractor_id.in_(dids), models.Justification.ready==True,
+            not_(models.Justification.student_id == current_user.id),
+            not_(models.Justification.justification==""), not_(models.Justification.justification=="<br>"),
+            not_(models.Justification.justification=="<p><br></p>"), not_(models.Justification.justification=="<p></p>")).all()
+    justifications = {str(qid):{str(did_positions[(qid, did)]):djs for did, djs in groupby(js, key=lambda x:x.distractor_id)} 
+                        for qid, js in groupby(justification_plain, key=lambda x: x.quiz_question_id)}
     return justifications
 
 #See discussion of policies on overleaf
@@ -493,13 +438,14 @@ def select_justifications(justifications, num_slots, selection_policy = j_random
 @pages.route('/quiz/<int:quiz_id>/justification/histogram', methods=['GET'])
 @login_required 
 def get_justification_distribution(quiz_id):
+    ''' outputs png for shown justification distribution '''
     if not current_user.is_instructor():
         flash("You are not allowed to get justification distribution")
         return redirect(url_for('pages.index'))
     attempt_quality_attr = request.args.get("attempt_quality", "initial_total_score")   
     def attempt_quality(attempt):
         return getattr(attempt, attempt_quality_attr)    
-    attempts = models.QuizAttempt.query.filter_by(quiz_id=quiz_id).all() # assuming one per student for now 
+    attempts = models.QuizAttempt.query.filter(models.QuizAttempt.quiz_id == quiz_id, models.QuizAttempt.status != QUIZ_ATTEMPT_STEP1).all() # assuming one per student for now 
     quiz_attempt_ids = set(a.id for a in attempts)
     student_attempts = {a.student_id: a for a in attempts} #TODO: one attempt per student per quiz currently 
     # attempt_map = {a.id:a for a in attempts}
@@ -537,17 +483,37 @@ def get_justification_distribution(quiz_id):
     finally:
         plt.close(figure)
 
-@pages.route('/student/<int:qid>', methods=['GET'])
+def get_or_create_attempt(quiz_id, quiz_questions, distractor_per_question):
+    attempt = models.QuizAttempt.query.filter_by(student_id=current_user.id, quiz_id=quiz_id).first()
+    if attempt is None: #first visit 
+        evo = get_evo(quiz_id)
+        if evo is None: #by default when no evo process - we pick all distractors selected by instructor
+            selected_distractor_ids = [{"question_id": qq.id, "alternatives": [d.id for d in distractor_per_question.get(qq.id, [])] } 
+                                        for qq in quiz_questions]
+        else: #rely on evo engine for selection of distractors
+            selected_distractor_ids = [{"question_id": qid, "alternatives": ds} 
+                                        for qid, ds in evo.get_for_evaluation(current_user.id)]
+        for question_alternatives in selected_distractor_ids:
+            question_alternatives["alternatives"].append(-1) #add correct answer 
+            random.shuffle(question_alternatives["alternatives"]) #shuffle each question alternatives
+        attempt = models.QuizAttempt(quiz_id=quiz_id, student_id=current_user.id, status = QUIZ_ATTEMPT_STEP1, alternatives=selected_distractor_ids)
+        models.DB.session.add(attempt)
+        models.DB.session.commit()
+    return attempt
+
+@pages.route('/student/<quiz:q>', methods=['GET']) #IMPORTANT: see the notation of <quiz:q> in the url template - these are custom converter - check _init__.py APP.url_map.converters 
 @login_required
 @role_required(role=ROLE_STUDENT, redirect_route='pages.index', redirect_message="You are not allowed to take this quiz")
-@retry_concurrent_update
-def get_student(qid):
+@retry_concurrent_update #this will retry the call of this function  in case when two requests try to update db at same time - optimistic concurency 
+def get_quiz(q):
     '''
-    Links using this route are meant to be sh
-    ared with students so that they may take the quiz
+    Links using this route are meant to be shared with students so that they may take the quiz
     and engage in the asynchronous peer instrution aspects. 
     '''
-    q = models.Quiz.query.get_or_404(qid)
+    # models.DB.session.add(q)
+    if q.status == QUIZ_HIDDEN:
+        flash("Quiz not accessible at this time", "error")        
+        return redirect(url_for('pages.index'))
 
     # TODO #3 we replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
     # see lines commented out a ## for originals
@@ -556,7 +522,7 @@ def get_student(qid):
     # FIXME why are we not unescaping above?
 
     # BUG we had to simplify the questions to avoid an escaping problem
-    simplified_quiz_questions = [question.dump_as_simplified_dict() for question in q.quiz_questions]    
+    # simplified_quiz_questions = [question.dump_as_simplified_dict() for question in q.quiz_questions]    
     # PBM - the alternatives for questions show unescaped when taking the quiz
     # SOL - need to unescape them before to pass them to the template
     
@@ -565,56 +531,60 @@ def get_student(qid):
     ##        # experimenting, this works: tmp = unescape(quiz_questions[0]["alternatives"][0][1])
     ##        altern[1] = unescape(altern[1])
     ##        # nope... altern[1] = jinja2.Markup.escape(altern[1])
-    for qq in quiz_questions:
-        qq.question.title = unescape(qq.question.title)
-        qq.question.stem = unescape(qq.question.stem)
-        qq.question.answer = unescape(qq.question.answer)
-        for d in qq.distractors:
-            d.answer = unescape(d.answer)
-        # Preparing the list of alternatives for this question (these are the distractors + answer being displayed in the template)
-        # This comes straight from models.py dump_as_dict for QuizQuestion
-        tmp1 = [] # list of distractors IDs, -1 for right answer
-        tmp2 = [] # list of alternatives, including the right answer
-        tmp1.append(-1)
-        tmp2.append(unescape(qq.question.answer))
-        for d in qq.distractors:
-            tmp1.append(unescape(d.id)) # FIXME not necessary
-            tmp2.append(unescape(d.answer))
-        qq.alternatives = [list(tup) for tup in zip(tmp1,tmp2)]
-        shuffle(qq.alternatives)
-        # now, each QuizQuestion has an additional field "alternatives"
 
-    # determine which step of the peer instruction the student is in
-    a = models.QuizAttempt.query.filter_by(student_id=current_user.id).filter_by(quiz_id=qid).first()
+    question_ids = set(q.id for q in quiz_questions)    
+    quiz_question_distractors = models.DB.session.query(models.quiz_questions_hub).where(models.quiz_questions_hub.c.quiz_question_id.in_(question_ids)).all()
+    distractor_ids = [d.distractor_id for d in quiz_question_distractors]
+    plain_distractors = models.Distractor.query.where(models.Distractor.id.in_(distractor_ids))
+    distractor_per_question = {q_id: ds for q_id, ds in groupby(plain_distractors, key = lambda d: d.question_id)}    
+    distractor_map = {d.id:d for d in plain_distractors}
+
+    #unescaping part - left for backward compatibility for now
     
-    if q.status == "HIDDEN":
-        flash("Quiz not accessible at this time", "error")
-        return redirect(request.referrer) #return redirect(url_for('pages.index'))
+    attempt = get_or_create_attempt(q.id, quiz_questions, distractor_per_question)
+    question_ids = [ int(qid) for qid in attempt.alternatives_map.keys() ]
+    distractor_ids = [did for _, ds in attempt.alternatives_map.items() for did in ds]
 
-    if a and q.status == "STEP1":
-        flash("You already submitted your answers for step 1 of this quiz. Wait for the instructor to open step 2 for everyone.", "error")
-        return redirect(request.referrer) #return redirect(url_for('pages.index'))
+    justifications = models.Justification.query.where(models.Justification.quiz_question_id.in_(question_ids), models.Justification.distractor_id.in_(distractor_ids), models.Justification.student_id == current_user.id).all()
+    justification_map = {qid:{j.distractor_id:j for j in js} for qid, js in groupby(justifications, key=lambda x:x.quiz_question_id)}
 
-    if not a and q.status == "STEP2":
+    question_model = [ { "id": qq.id, 
+                        "alternatives": [ unescape(distractor_map[alternative].answer) if alternative in distractor_map else unescape(qq.question.answer) 
+                                                for alternative in alternatives["alternatives"]
+                                                if alternative in distractor_map or alternative == -1],
+                        "choice": next((i for i, d in enumerate(alternatives["alternatives"]) if d == attempt.step_responses.get(str(qq.id), None)), -1), 
+                        "justifications": {a:js[did].justification for a, did in enumerate(alternatives["alternatives"]) if did in js},
+                        **{attr:unescape(getattr(qq.question, attr)) for attr in [ "title", "stem", "answer" ]}}
+                        for (qq, alternatives) in zip(quiz_questions, attempt.alternatives) 
+                        for js in [justification_map.get(qq.id, {})]]
+
+    quiz_model = { "id" : q.id, "title" : q.title, "description" : q.description } #we do not need any other fields from dump_as_dict
+    #NOTE: dump_as_dict causes additional db requests due to rendering related entities.
+
+
+    #we create QuizAttempt if not exist
+    if (attempt.status == QUIZ_ATTEMPT_STEP1) and (q.status != QUIZ_STEP1):
         flash("You did not submit your answers for step 1 of this quiz. Because of that, you may not participate in step 2.", "error")
-        return redirect(request.referrer) #return redirect(url_for('pages.index'))
-
-    if a and q.status == "STEP2" and a.revised_responses != "{}":
+        return redirect(url_for('pages.index'))
+    if attempt.status == QUIZ_ATTEMPT_STEP1:
+        #load existing in db distractors 
+        if request.accept_mimetypes.accept_html:            
+            return render_template('step1.html', quiz=quiz_model, questions=question_model)
+        return jsonify({"questions":question_model})
+    if attempt.status == QUIZ_ATTEMPT_STEP2 and q.status == QUIZ_STEP1:
+        flash("You already submitted your answers for step 1 of this quiz. Wait for the instructor to open step 2 for everyone.", "error")
+        return redirect(url_for('pages.index'))
+    if attempt.status == QUIZ_ATTEMPT_STEP1 and q.status == QUIZ_STEP2:
+        flash("You did not submit your answers for step 1 of this quiz. Because of that, you may not participate in step 2.", "error")
+        return redirect(url_for('pages.index'))
+    if attempt.status == QUIZ_ATTEMPT_SOLUTIONS and q.status == QUIZ_STEP2 and attempt.revised_responses != "{}":
         flash("You already submitted your answers for both step 1 and step 2. You are done with this quiz.", "error")
-        return redirect(request.referrer) #return redirect(url_for('pages.index'))
-
-
-    # finding the reference justifications for each distractor
-    expl = { -1 : "This is the correct answer for this question"}
-    for quiz_question in q.quiz_questions:
-        for distractor in quiz_question.distractors:
-            expl[distractor.id] = unescape(distractor.justification)
-            
-    # Handle different steps
-    if a: # step == 2 or SOLUTIONS    
-        if a.selected_justifications_timestamp is None: #attempt justifications were not initialized yet
+        return redirect(url_for('pages.index'))            
+    #if attempt.status == QUIZ_ATTEMPT_STEP2 or attempt.status == QUIZ_ATTEMPT_SOLUTIONS:
+    if attempt.status == QUIZ_ATTEMPT_STEP2:
+        if attempt.selected_justifications_timestamp is None: #attempt justifications were not initialized yet
             # retrieve the peers' justifications for each question  
-            possible_justifications = get_possible_justifications(q)
+            possible_justifications = get_possible_justifications(attempt)
 
             # This is where we apply the peer selection policy
             # selected_justification_map = select_justifications(possible_justifications, q.num_justifications_shown, \
@@ -627,7 +597,7 @@ def get_student(qid):
             #                     fallback_policy = select_random_justification) ))
 
             student_ids = set(j.student_id for (_, d) in possible_justifications.items() for (_, js) in d.items() for j in js)
-            attempts = models.QuizAttempt.query.filter_by(quiz_id = qid).where(models.QuizAttempt.student_id.in_(student_ids)).all()
+            attempts = models.QuizAttempt.query.filter_by(quiz_id = q.id).where(models.QuizAttempt.student_id.in_(student_ids)).all()
             student_attempts = {a.student_id:a for a in attempts}
 
             def get_justification_fitness(justification):
@@ -658,45 +628,100 @@ def get_student(qid):
                         # j_e_greedy(0.2, fitness=get_justification_fitness, best_policy=j_random, other_policy=j_random)))
                         # j_fitness_proportional(fitness=get_justification_fitness)))
 
-            a.selected_justifications.extend(j for d in selected_justification_map.values() for js in d.values() for j in js)
+            attempt.selected_justifications.extend(j for d in selected_justification_map.values() for js in d.values() for j in js)
 
-            a.max_likes = sum(len(js) for d in selected_justification_map.values() for js in d.values())
-            a.participation_grade_threshold = round(a.max_likes * q.limiting_factor)
+            attempt.max_likes = sum(len(js) for d in selected_justification_map.values() for js in d.values())
+            attempt.participation_grade_threshold = round(attempt.max_likes * q.limiting_factor)
             #Idea: put another select to check if we have someting for this attempt id 
-            a.selected_justifications_timestamp = datetime.now()
+            attempt.selected_justifications_timestamp = datetime.now()
             models.DB.session.commit()
         else: 
             #justification list to map
             # selected_justification_map = {}
-            selected_justifications = a.selected_justifications #here db query for selected justififcations
-            quiz_question_ids = set(str(j.quiz_question_id) for j in selected_justifications)
-            distractor_ids = set(str(j.distractor_id) for j in selected_justifications)
-            selected_justification_map = {qid:{did:[] for did in distractor_ids} for qid in quiz_question_ids}
+            selected_justifications = attempt.selected_justifications #here db query for selected justififcations
+            selected_justifications_question_ids = set(str(j.quiz_question_id) for j in selected_justifications)
+            selected_justifications_distractor_ids = set(str(j.distractor_id) for j in selected_justifications)
+            selected_justification_map = {qid:{did:[] for did in selected_justifications_distractor_ids} for qid in selected_justifications_question_ids}
             for j in selected_justifications:
                 selected_justification_map[str(j.quiz_question_id)][str(j.distractor_id)].append(j)
-        initial_responses = [] 
-
-        # FIXME TODO figure out how the JSON got messed up in the first place, then fix it instead of the ugly patch below
-        asdict = json.loads(a.initial_responses.replace("'",'"'))
-        for k in asdict:
-            initial_responses.append(asdict[k])
         
-        likes_given = len(LikesGiven(models.QuizAttempt.query.join(models.User)\
-        .filter(models.QuizAttempt.quiz_id == qid)\
-        .filter(models.QuizAttempt.student_id == current_user.id)\
-        .order_by(collate(models.User.last_name, 'NOCASE'))\
-        .first()))
+        jids = set(j.id for j in attempt.selected_justifications)
+        present_likes = models.Likes4Justifications.query.where(models.Likes4Justifications.student_id == current_user.id,
+            models.Likes4Justifications.justification_id.in_(jids)).all()
             
-        # quiz_questions = q.dump_as_dict()['quiz_questions']
-        return render_template('student.html', explanations=expl, quiz=q.dump_as_dict(), simplified_questions=simplified_quiz_questions, \
-            questions=quiz_questions, student=current_user, attempt=a.dump_as_dict(), initial_responses=initial_responses, \
-            justifications=selected_justification_map, likes_given = likes_given)
+        likes = set(l.justification_id for l in present_likes)
+        return render_template('step2.html', quiz=quiz_model,
+            questions=question_model, attempt=attempt.dump_as_dict(),
+            justifications=selected_justification_map, likes = likes)
 
-    else: # step == 1
+    #else status is SOLUTIONS
 
-        return render_template('student.html', explanations=expl, quiz=q.dump_as_dict(), simplified_questions=simplified_quiz_questions, \
-            questions=quiz_questions, student=current_user)
+    # finding the reference justifications for each distractor
+    explanations = {qid:{str(aid):{"justification": "Correct answer!" if did == -1 else unescape(distractor_map[did].justification), "is_correct": did == -1 } 
+                        for aid, did in enumerate(alternatives) if did in distractor_map or did == -1}
+                    for qid, alternatives in attempt.alternatives_map.items()}
 
+    return render_template("solutions.html", quiz=quiz_model,
+        questions=question_model, attempt=attempt.dump_as_dict(), explanations=explanations)
+
+
+@pages.route('/student/<qa:q>', methods=['POST']) #IMPORTANT: see the notation of <qa:q> in the url template - these are custom converter - check _init__.py APP.url_map.converters 
+@login_required
+@role_required(role=ROLE_STUDENT, redirect_route='pages.index', redirect_message="You are not allowed to take this quiz")
+@validate_quiz_attempt_step(quiz_attempt_param = "q")
+@unmime(delim='_', type_converters={"question":{"*":lambda x: int(x)}})
+def save_quiz_attempt(q, body):
+    quiz, attempt = q
+
+    body.setdefault("question", {})    
+
+    answer_questions(q, body["question"])
+    #validation that attempt could go to next step 
+    for qid in attempt.alternatives_map.keys():
+        if qid not in attempt.step_responses:
+            return {"message": "You must select an answer for each question", "redirect": url_for("pages.get_quiz", q = quiz) }, 400
+        
+    response_set = {(int(qid), did) for qid, did in attempt.step_responses.items()}
+
+    if attempt.status == QUIZ_ATTEMPT_STEP1:
+        body.setdefault("justification", {})
+        justify_alternative_selection(q, body["justification"])
+
+        saved_justifications = models.Justification.query.where(models.Justification.student_id == current_user.id).all()
+        js_map = {(j.quiz_question_id, j.distractor_id): j for j in saved_justifications}
+        #check that for all alternatives justifications were provided 
+        js_to_delete = []
+        for qid, alternatives in attempt.alternatives_map.items():
+            qid = int(qid)
+            for did in alternatives:
+                qdid = (qid, did)
+                if qdid in response_set:
+                    if qdid in js_map:
+                        js_to_delete.append(js_map[qdid])
+                elif qdid not in js_map:
+                    return { "message" : "You must provide a justification for each unselected option", "redirect": url_for("pages.get_quiz", q = quiz) }, 400
+                else:
+                    js_map[qdid].ready = True #justification could be used by student on next step
+
+        #justifications were validated - we delete unnecessary justifications (for selected answers)
+        if g.allow_justification_for_selected:
+            for qdid in js_map:
+                js_map[qdid].ready = True #for testing purpose
+        else:
+            for j in js_to_delete:
+                models.DB.session.delete(j)
+
+        attempt.revised_responses = attempt.initial_responses
+
+        evo = get_evo(quiz.id)
+        if evo is not None: 
+            answers = { int(q_id): answer for q_id, answer in attempt.initial_responses.items() }
+            evo.set_evaluation(Evaluation(evaluator_id=current_user.id, result=answers))
+
+    attempt.status = get_attempt_next_step(attempt.status)        
+            
+    models.DB.session.commit()
+    return {"message": "Quiz sumbission was saved!", "redirect": url_for("pages.index") }
 
 @pages.route('/users/', methods=['GET'])
 @login_required
@@ -741,11 +766,13 @@ def get_quiz_statistics(qid):
                                                             for attr in ["stem", "answer", "title"]} } 
                     for q in plain_questions}
 
-    plain_distractors = models.Distractor.query.where(models.Distractor.question_id.in_(question_ids)).all()
+    quiz_question_distractors = models.DB.session.query(models.quiz_questions_hub).where(models.quiz_questions_hub.c.quiz_question_id.in_(question_ids)).all()
+    distractor_ids = [d.distractor_id for d in quiz_question_distractors]
+    plain_distractors = models.Distractor.query.where(models.Distractor.id.in_(distractor_ids)).all()
     distractors = { qid : {d.id : unescape(d.answer) for d in ds} 
                     for (qid, ds) in groupby(plain_distractors, key = lambda d: d.question_id) } 
 
-    plain_attempts = models.QuizAttempt.query.where(models.QuizAttempt.quiz_id == qid).all()
+    plain_attempts = models.QuizAttempt.query.where(models.QuizAttempt.quiz_id == qid, models.QuizAttempt.status != QUIZ_ATTEMPT_STEP1).all()
 
     stats = QuizStats(quiz.dump_as_dict(), questions, distractors, students = [])
 
@@ -754,11 +781,12 @@ def get_quiz_statistics(qid):
     attempts_map = {a.student_id: a for a in plain_attempts} #assume 1 attempt for 1 student - otherwise use other grouping
         
     student_ids = attempts_map.keys()        
-    plain_justifications = models.Justification.query.where(models.Justification.student_id.in_(student_ids)).all()
+    plain_justifications = models.Justification.query.where(models.Justification.student_id.in_(student_ids), 
+                                models.Justification.quiz_question_id.in_(question_ids)).all()
     justification_map = {j.id:j.dump_as_dict() for j in plain_justifications}
 
     plain_likes = models.Likes4Justifications.query.where(models.Likes4Justifications.student_id.in_(student_ids)).all()
-    likes_given = { **{ a.student_id: [] for a in plain_attempts if a.revised_scores != ''  },
+    likes_given = { **{ a.student_id: [] for a in plain_attempts if a.status == QUIZ_ATTEMPT_SOLUTIONS  },
                     **{ student_id: [justification_map[l.justification_id] for l in student_likes if l.justification_id in justification_map] 
                         for student_id, student_likes in groupby(plain_likes, key = lambda like: like.student_id) }}
     
@@ -769,7 +797,7 @@ def get_quiz_statistics(qid):
                 for given_likes_by_o in [likes_given.get(o.student_id, [])]
                 for participation_threshold_of_o in [ quiz.limiting_factor * o.max_likes ]
                 for justifications_liked_by_o_to_a in [sum(1 for j in given_likes_by_o if j["student_id"] == a.student_id)]]]
-        if len(parts) > 0 or a.revised_scores != ''}            
+        if len(parts) > 0 or a.status == QUIZ_ATTEMPT_SOLUTIONS}            
         
     def decide_grades(quiz, score, ranges):
         for (r, quartile) in zip(ranges, [quiz.fourth_quartile_grade, quiz.third_quartile_grade, quiz.second_quartile_grade]):
@@ -793,7 +821,7 @@ def get_quiz_statistics(qid):
                                 "num_likes": len(list(students_who_like))}
                         for justification_id, students_who_like in groupby(plain_likes, key = lambda like: like.justification_id) 
                         if justification_id in justification_map]
-    likes_received = {**{ a.student_id: [] for a in plain_attempts if a.revised_scores != ''  },
+    likes_received = {**{ a.student_id: [] for a in plain_attempts if a.status != QUIZ_ATTEMPT_STEP1  },
                         **{student_id: list(js) for student_id, js in groupby(student_justifications, key=lambda j: j["student_id"])}}
     
     justification_like_count = {student_id:{j["justification"]:j["num_likes"] for j in student_js} for student_id, student_js in likes_received.items()}
@@ -807,9 +835,9 @@ def get_quiz_statistics(qid):
     for attempt in plain_attempts:    
         sid = attempt.student_id
         grade_parts = []
-        if attempt.initial_scores != '':
+        if len(attempt.initial_responses) > 0:
             grade_parts.append((attempt.initial_total_score, num_questions, quiz.initial_score_weight))
-        if attempt.revised_scores != '': #at step2 when revised scores are known
+        if attempt.status == QUIZ_ATTEMPT_SOLUTIONS:
             grade_parts.append((attempt.revised_total_score, num_questions, quiz.revised_score_weight))
         if sid in justification_scores:
             grade_parts.append((justification_scores[sid], max_justfication_grade, quiz.justification_grade_weight))
@@ -820,29 +848,37 @@ def get_quiz_statistics(qid):
         attempt_grades, max_grades, weights = tuple(zip(*grade_parts)) #unzip 
         # weights should sum up to 100 - so in case when some of grades are not available - we rescale 
         total_weights = sum(weights) 
+        total_weights = 1 if total_weights == 0 else total_weights
         weights = [ w / total_weights for w in weights ]
         total_scores[sid] = sum(w * g for w, g in zip(weights, attempt_grades))
         max_total_scores[sid] = sum(w * g for w, g in zip(weights, max_grades))
+        max_total_scores[sid] = 1 if max_total_scores[sid] == 0 else max_total_scores[sid]
     
     plain_students = models.User.query.where(models.User.id.in_(student_ids)).order_by(collate(models.User.last_name, 'NOCASE')).all()
+    student_ids = set(s.id for s in plain_students)
+    
+    justifications_by_student = {sid: js for sid, js in groupby(plain_justifications, key = lambda x: x.student_id)}
+    
     stats.students = [{**a.dump_as_dict(), **s.dump_as_dict(), 
                         "likes_given": likes_given.get(s.id, None),
                         "likes_given_count": len(likes_given[s.id]) if s.id in likes_given else None,
                         "like_score": like_scores.get(s.id, None),
-                        "initial_total_score": a.initial_total_score if a.initial_scores != '' else None,
-                        "revised_total_score": a.revised_total_score if a.revised_scores != '' else None,
+                        "initial_total_score": a.initial_total_score if len(a.initial_responses) > 0 else None,
+                        "revised_total_score": a.revised_total_score if a.status == QUIZ_ATTEMPT_SOLUTIONS else None,
                         "justification_score": justification_scores.get(s.id, None),
                         "likes_received": likes_received.get(s.id, None),
                         "likes_received_count": sum(j["num_likes"] for j in likes_received[s.id]) if s.id in likes_received else None,
                         "justification_like_count": justification_like_count.get(s.id, {}),
-                        "min_participation_grade_threshold": int(a.get_min_participation_grade_threshold()) if a.revised_scores != '' else None,
-                        "participation_grade_threshold": int(a.participation_grade_threshold) if a.revised_scores != '' else None,
+                        "min_participation_grade_threshold": int(a.get_min_participation_grade_threshold()) if a.status == QUIZ_ATTEMPT_SOLUTIONS else None,
+                        "participation_grade_threshold": int(a.participation_grade_threshold) if a.status == QUIZ_ATTEMPT_SOLUTIONS else None,
                         "participation_score": int(participation_scores[s.id]) if s.id in participation_scores else None,
                         "total_score": student_score,
                         "max_total_score": max_student_score,
-                        "initial_responses": {int(k):v for k, v in json.loads(a.initial_responses.replace("'", '"')).items()},
-                        "revised_responses": {int(k):v for k, v in json.loads(a.revised_responses.replace("'", '"')).items()},
-                        "justifications": ast.literal_eval(unescape(a.justifications).replace("\\n", "a").replace('\\"', '\"')),
+                        "initial_responses": {int(k):v for k, v in a.initial_responses.items()},
+                        "revised_responses": {int(k):v for k, v in a.revised_responses.items()},
+                        # "justifications": ast.literal_eval(unescape(a.justifications).replace("\\n", "a").replace('\\"', '\"')),
+                        "justifications": {qid: {j.distractor_id:j.justification for j in js} for qid, js in groupby(justifications_by_student.get(s.id, []), key = lambda x: x.quiz_question_id)
+                                                if str(qid) in a.alternatives_map},
                         "total_percent": (None if student_score is None or max_student_score is None else round(student_score * 100 / max_student_score, 1))}
                         for s in plain_students 
                         if s.id in attempts_map 
@@ -906,17 +942,6 @@ def getNumJustificationsShown(qid):
             quiz_justifications[key_question][key_distractor] = selected
     
     return number_to_select
-
-def LikesGiven(g):
-    '''
-    All likes given by g for a particular quiz
-    '''
-    return (models.DB.session.query(models.Justification, models.Likes4Justifications, DB.Model.metadata.tables['relation_questions_vs_quizzes'])
-        .filter(models.Likes4Justifications.student_id == g.student_id)\
-        .filter(models.Likes4Justifications.justification_id == models.Justification.id)\
-        .filter(DB.Model.metadata.tables['relation_questions_vs_quizzes'].c.quiz_id == g.quiz_id)\
-        .filter(DB.Model.metadata.tables['relation_questions_vs_quizzes'].c.quiz_question_id == models.Justification.quiz_question_id)\
-        .all())
 
 @pages.route('/grades/<int:qid>', methods=['GET'])
 @login_required

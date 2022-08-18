@@ -2,12 +2,15 @@
 # pylint: disable=E1101
 
 from email.policy import default
+from functools import cached_property
 import math
 from random import shuffle # to shuffle lists
 from flask_login import UserMixin
+from sqlalchemy import ForeignKey
 from evopie import DB
-from .config import ROLE_INSTRUCTOR, ROLE_STUDENT, ROLE_ADMIN
+from .config import QUIZ_ATTEMPT_STEP1, QUIZ_STEP1, ROLE_INSTRUCTOR, ROLE_STUDENT, ROLE_ADMIN
 from .utils import unescape
+from datetime import datetime
 
 import ast
 
@@ -15,7 +18,33 @@ import ast
 # Refer to docs/DB diagram - yyyy-mm-dd.png for a snapshot of the DB diagram.
 # Alternatively, run DBeaver on the sqlite file (that is where the png comes from).
 
+#https://docs.sqlalchemy.org/en/14/core/custom_types.html#marshal-json-strings
+from sqlalchemy.types import TypeDecorator, VARCHAR
+from sqlalchemy.ext.mutable import MutableDict, MutableList
+import json
 
+class JSONString(TypeDecorator):
+    """Represents an immutable structure as a json-encoded string.
+    Usage::
+        JSONEncodedDict(255)
+    """
+    impl = VARCHAR
+
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is not None:
+            value = json.dumps(value)
+
+        return value
+
+    def process_result_value(self, value, dialect):
+        if value is not None:
+            value = json.loads(value)
+        return value
+
+JSONEncodedMutableDict = MutableDict.as_mutable(JSONString)
+JSONEncodedMutableList = MutableList.as_mutable(JSONString)
 
 class Question(DB.Model):
     '''
@@ -181,7 +210,6 @@ relation_questions_vs_quizzes = DB.Table('relation_questions_vs_quizzes',
 )
 
 
-
 class Quiz(DB.Model):
     '''
     A Quiz object is a collection of QuizQuestion objects to be presented as a complete quiz
@@ -199,6 +227,9 @@ class Quiz(DB.Model):
 
     # Each quiz has many QuizAttempts
     quiz_attempts = DB.relationship('QuizAttempt', backref='quiz', lazy=True)
+
+    #Each quiz could have several evo processes 
+    quiz_processes = DB.relationship('EvoProcess', backref='quiz', lazy=True)
 
     title = DB.Column(DB.String)
     description = DB.Column(DB.String)
@@ -273,35 +304,48 @@ class QuizAttempt(DB.Model):
     # each QuizAttempt refers to exactly 1 student
     student_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'))
 
-    # time stamps
-    # initial --> start / end
-    # revised --> start / end
-
     # store students answers to all questions
     # FIXME instead of JSON lists of IDs we should have used a proper relational model
-    initial_responses = DB.Column(DB.String, default="{}") # as json list of distractor_ID or -1 for answer
-    revised_responses = DB.Column(DB.String, default="{}") # as json list of distractor_ID or -1 for answer
-
-    initial_total_score = DB.Column(DB.Integer, default=0)
-    revised_total_score = DB.Column(DB.Integer, default=0)
-
-    # justifications to each possible answer
-    justifications = DB.Column(DB.String, default="{}") # json list of text entries
-    # FIXME are we using this or Justification objects?! see below selected_justifications
+    initial_responses = DB.Column(JSONEncodedMutableDict, default={}) # as json list of distractor_ID or -1 for answer
+    revised_responses = DB.Column(JSONEncodedMutableDict, default={}) # as json list of distractor_ID or -1 for answer
 
     # score
-    initial_scores = DB.Column(DB.String, default="") # as json list of -1 / distractor ID
-    revised_scores = DB.Column(DB.String, default="") # as json list of -1 / distractor ID    
     version_id = DB.Column(DB.Integer, nullable=False)
     selected_justifications_timestamp = DB.Column(DB.DateTime, nullable=True)
     max_likes = DB.Column(DB.Integer, default = -99)
     participation_grade_threshold = DB.Column(DB.Integer, default = 10)    
-
+    status = DB.Column(DB.String, nullable=False)
+    alternatives = DB.Column(JSONEncodedMutableList, nullable=False, default="[]")
+    
     selected_justifications = DB.relationship('Justification', secondary=attempt_justifications, lazy=True)
 
     __mapper_args__ = {
         "version_id_col": version_id
     }    
+
+    @cached_property
+    def step_responses(self):
+        return self.initial_responses if self.status == QUIZ_ATTEMPT_STEP1 else self.revised_responses
+
+    @cached_property
+    def alternatives_map(self):
+        return {str(alt["question_id"]):alt["alternatives"] for alt in self.alternatives } 
+
+    @cached_property
+    def initial_scores(self):
+        return {qid: 1 if answer < 0 else 0 for qid, answer in self.initial_responses.items()}
+    
+    @cached_property
+    def initial_total_score(self):
+        return sum(self.initial_scores.values())
+
+    @cached_property
+    def revised_scores(self):
+        return {qid: 1 if answer < 0 else 0 for qid, answer in self.revised_responses.items()}
+    
+    @cached_property
+    def revised_total_score(self):
+        return sum(self.revised_scores.values())
 
     def get_min_participation_grade_threshold(self):
         return math.floor(0.8 * self.participation_grade_threshold)
@@ -311,9 +355,9 @@ class QuizAttempt(DB.Model):
         return {    "id" : self.id,
                     "quiz_id" : self.quiz_id,
                     "student_id" : self.student_id,
+                    "step_responses" : self.step_responses,
                     "initial_responses" : self.initial_responses,
                     "revised_responses" : self.revised_responses,
-                    "justifications" : self.justifications,
                     "initial_scores" : self.initial_scores,
                     "revised_scores" : self.revised_scores,
                     "initial_total_score" : self.initial_total_score,
@@ -321,7 +365,8 @@ class QuizAttempt(DB.Model):
                     "max_likes" : self.max_likes,
                     "min_participation_grade_threshold" : self.get_min_participation_grade_threshold(),
                     "participation_grade_threshold" : self.participation_grade_threshold,
-                    "selected_justifications_timestamp" : self.selected_justifications_timestamp
+                    "selected_justifications_timestamp" : self.selected_justifications_timestamp,
+                    "status": self.status
                 }
 
 
@@ -383,29 +428,8 @@ class User(UserMixin, DB.Model):
         return f'<{self.last_name}, {self.first_name}, {self.id}>'
 
     # Like / Dislike Feature
-    liked_justifications =DB.relationship('Likes4Justifications', foreign_keys='Likes4Justifications.student_id',
+    liked_justifications = DB.relationship('Likes4Justifications', foreign_keys='Likes4Justifications.student_id',
         backref='student', lazy='dynamic')
-
-    def like_justification(self, justification): 
-        if not self.has_liked_justification(justification) and not self.id == justification.student_id:
-            like = Likes4Justifications(student_id=self.id, justification_id=justification.id)
-            DB.session.add(like)
-            DB.session.commit()
-
-    def unlike_justification(self, justification): 
-        if self.has_liked_justification(justification) and not self.id == justification.student_id:
-            Likes4Justifications.query.filter_by(
-                student_id=self.id,
-                justification_id=justification.id).delete()
-            DB.session.commit()
-
-    def has_liked_justification(self, justification):
-        return Likes4Justifications.query.filter(
-            Likes4Justifications.student_id == self.id,
-            Likes4Justifications.justification_id == justification.id).count() > 0
-    
-    def get_email(self):
-        return self.email
 
     # again, is this affected by TODO #3 at all?
     # nope, none of these fields are input via WYSIWIG editor
@@ -420,11 +444,8 @@ class User(UserMixin, DB.Model):
 
 
 class Likes4Justifications(DB.Model):
-    id = DB.Column(DB.Integer, primary_key=True)
-    student_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'))
-    justification_id = DB.Column(DB.Integer, DB.ForeignKey('justification.id'))
-
-
+    student_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'), primary_key=True)
+    justification_id = DB.Column(DB.Integer, DB.ForeignKey('justification.id'), primary_key=True)
 
 class Justification(DB.Model):
     '''
@@ -436,6 +457,7 @@ class Justification(DB.Model):
     quiz_question_id = DB.Column(DB.Integer, DB.ForeignKey('quiz_question.id'), nullable=False)
     distractor_id = DB.Column(DB.Integer, DB.ForeignKey('distractor.id'), nullable=False)
     student_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'), nullable=False)
+    ready = DB.Column(DB.Boolean, nullable=False, default=False) #ready is False when student still working on justification on step1
     justification = DB.Column(DB.String) # FIXME do we allow duplicates like empty strings?
     likes = DB.relationship('Likes4Justifications', backref='justification', lazy='dynamic')
     seen = DB.Column(DB.Integer, nullable = False, default = 0)
@@ -449,3 +471,48 @@ class Justification(DB.Model):
                     "justification" : self.justification,
                     "seen" : self.seen,
                 }    
+
+class EvoProcess(DB.Model):
+    '''
+    Defines major settings of evo process, check columns 
+    '''
+    id = DB.Column(DB.Integer, primary_key=True)    
+    quiz_id = DB.Column(DB.Integer, DB.ForeignKey('quiz.id'))
+    start_timestamp = DB.Column(DB.DateTime, nullable=False)
+    touch_timestamp = DB.Column(DB.DateTime, nullable=False)
+    status = DB.Column(DB.String, nullable=False) #status 'Active', 'Stopped'
+    impl = DB.Column(DB.String, nullable=False) #name of the class
+    impl_state = DB.Column(DB.String, nullable=False) #class instance running state 
+    population = DB.Column(DB.String, nullable=False) #for steady state use one ind in population
+    objectives = DB.Column(DB.String, nullable=False) #one or more (but all) objectives seen in hronological order
+
+    archive = DB.relationship('EvoProcessArchive', backref='process', 
+                    lazy=True, cascade="save-update, merge, delete, delete-orphan")
+
+    __mapper_args__ = {
+        "version_id_col": touch_timestamp,
+        'version_id_generator': lambda version: datetime.now()
+    }    
+
+class EvoProcessArchive(DB.Model):
+    '''
+    Preserves evo process state, interaction matrix between students and quizes  
+    '''
+    id = DB.Column(DB.Integer, DB.ForeignKey('evo_process.id'), primary_key=True) #TODO: 
+    genotype_id = DB.Column(DB.Integer, primary_key=True) #interaction index
+    genotype = DB.Column(DB.String, nullable=False)
+    objectives = DB.Column(DB.String, nullable=False) #dict with all evaluations 
+
+class StudentKnowledge(DB.Model):
+    '''
+    Simulates student knowledge 
+    NOTE: we do not use here correct answers but chances of distractors to deceive student
+    NOTE: we do not emulate how distractors work together here 
+    By default ideal student is assumed - student will pick correct answer 
+    '''
+    student_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'), primary_key=True)    
+    question_id = DB.Column(DB.Integer, primary_key=True)
+    distractor_id = DB.Column(DB.Integer, primary_key=True) #-1 - correct answer
+    step_id = DB.Column(DB.Integer, primary_key=True)
+    chance = DB.Column(DB.Float, nullable=False)  # chance that student picks this option
+    # meta = DB.Column(JSONEncodedMutableDict, nullable=True) #used to store DECA info 
