@@ -1,11 +1,15 @@
 '''
 Implementation of evolutionary processes 
+Currently we only have PHC, PPHC here. 
+The evolutionary process is a background process which runs in separate thread. 
+Db operations of saving process state could be concurrent to instructor and students requests - this could be a potential problem for some db engines 
+Note that evo processes are restored from db on first Flask request - check hook handler registration at the end of file 
 '''
 from datetime import datetime
 import json
 from math import comb, prod
 import sys
-from time import sleep
+from time import sleep #for debugging bellow, but commented now
 import numpy as np
 from threading import Thread, Condition
 from typing import Any, Iterable
@@ -21,21 +25,25 @@ from numpy import unique
 
 @dataclass 
 class Evaluation:
+    ''' Student's submitted result '''
     evaluator_id: int 
     result: Any
 
 @dataclass 
-class CoevaluationGroup:    
+class CoevaluationGroup:   
+    ''' The group of genotypes and students which saw these genotypes in one quiz ''' 
     inds: 'list[int]'
     objs: 'list[int]'
 
 @dataclass
 class Genotype: #NOTE: we need this wrapper because pandas goes crazy if you provide to it just lists
+    ''' Abstract genotype of any representation from the archive '''
     g: Any
     def __repr__(self) -> str:
         return self.g.__repr__()
 
 class EvoSerializer:
+    ''' Base class for ways of preserving evo process state'''
     def to_store(self, process: models.EvoProcess) -> None:
         pass 
     def from_store(self, quiz_ids: Iterable[int]) -> 'list[models.EvoProcess]':
@@ -66,6 +74,7 @@ class SqlEvoSerializer(Thread, EvoSerializer):
             self.dumped.wait(timeout)
 
     def run(self):
+        ''' The loop that waits for state from other threads and dumps it into db '''
         with self.ready_to_write:
             while True:            
                 self.ready_to_write.wait_for(predicate=lambda: (len(self.evo_states) > 0) or self.stopped)
@@ -106,6 +115,7 @@ class SqlEvoSerializer(Thread, EvoSerializer):
                     return
 
     def to_store(self, evo_process):
+        ''' The method is classed by serializer clients. It puts the state into queue and notify bg process to start dumping'''
         with self.ready_to_write:
             self.evo_states[evo_process.quiz_id] = evo_process
             self.ready_to_write.notify()
@@ -124,20 +134,21 @@ class SqlEvoSerializer(Thread, EvoSerializer):
 sql_evo_serializer = SqlEvoSerializer()
 
 class EvolutionaryProcess(Thread, ABC): 
-
+    ''' Base class for evolution process (but still of specific form)'''
     def __init__(self, **kwargs):     
         Thread.__init__(self)      
         self.quiz_id: int = kwargs.get("quiz_id", -1)  #-1 - process is not associated to any quiz
         self.stopped: bool = False   
         self.population: 'list[int]' = kwargs.get("population", []) # int here is an index in archive (next field)
         self.objectives: 'list[int]' = kwargs.get("objectives", [])
-        self.archive: DataFrame = kwargs.get("archive", DataFrame(columns=['g']))
+        self.archive: DataFrame = kwargs.get("archive", DataFrame(columns=['g'])) #the archive of interactions
         self.archive[["g"]] = self.archive[["g"]].astype(object)
         self.gen: int = kwargs.get("gen", 0)
         self.rnd = np.random.RandomState(kwargs.get("seed", None))
         self.seed = int(self.rnd.get_state()[1][0])
 
     def add_genotype_to_archive(self, genotype):
+        ''' The routing to register genotype in the archive. The genotype becomes int id at return '''
         genotype_obj = Genotype(genotype)
         ix = self.archive[self.archive['g'] == genotype_obj].index
         if len(ix) > 0:
@@ -155,6 +166,7 @@ class EvolutionaryProcess(Thread, ABC):
         pass
 
     def get_genotype(self, genotype_id): 
+        ''' Get genotype by its id '''
         return self.archive.loc[genotype_id, 'g'].g
 
     def get_population_genotypes(self):
@@ -169,6 +181,7 @@ class EvolutionaryProcess(Thread, ABC):
         pass
 
     def start(self):
+        ''' starts the evolution '''
         APP.logger.info(f"[{self.__class__.__name__}] starting for quiz {self.quiz_id}")
         self.name = self.__class__.__name__
         self.daemon = True
@@ -176,6 +189,7 @@ class EvolutionaryProcess(Thread, ABC):
         Thread.start(self)  
 
     def stop(self):
+        ''' Stop the evolution '''
         APP.logger.info(f"[{self.__class__.__name__}] stopping quiz {self.quiz_id} evo")
         with self.on_new_evaluation:
             self.stopped = True 
@@ -220,7 +234,7 @@ class Serializable(ABC):
         self.serializer: EvoSerializer = kwargs.get("serializer", do_not_serialize)
 
     def save(self, **evo_state):
-        ''' returns dict which represents intenal state '''
+        ''' save evo process state '''
 
         evo_process = models.EvoProcess(quiz_id = self.quiz_id,
                         start_timestamp = datetime.now(),
@@ -238,6 +252,7 @@ class Serializable(ABC):
         self.serializer.to_store(evo_process)   
 
     def load(evo_process: models.EvoProcess, serializer: EvoSerializer = do_not_serialize) -> EvolutionaryProcess:
+        ''' loads config from db and create and instance of the class registered in config'''
         try:
             plain_interactions = evo_process.archive
             plain_data = {i.genotype_id:{'g': Genotype(json.loads(i.genotype)),
@@ -255,6 +270,7 @@ class Serializable(ABC):
             return None
 
 class InteractiveEvaluation(ABC):
+    ''' interface to interact with evo process'''
 
     @abstractmethod
     def get_for_evaluation(self, evaluator_id: int) -> 'list[list[int]]':
@@ -306,7 +322,7 @@ class PHC(EvolutionaryProcess, InteractiveEvaluation, ABC):
                 try:
                     for eval in self.waiting_evaluations:
                         if eval.evaluator_id not in self.evaluator_coevaluation_groups:
-                            #NOTE: should not be here usually - could be on system restart
+                            #NOTE: should not be here usually - but could be on system restart
                             APP.logger.warn(f"[p-phc] got evaluation for unexpected group: {eval}. {self.evaluator_coevaluation_groups}")
                             continue
                         coevaluation_group_id = self.evaluator_coevaluation_groups[eval.evaluator_id]
@@ -368,6 +384,7 @@ class PHC(EvolutionaryProcess, InteractiveEvaluation, ABC):
             self.on_new_evaluation.notify() 
 
 class P_PHC(PHC, Serializable):
+    ''' Pareto parallel hill climber '''
     def __init__(self, **kwargs):
         PHC.__init__(self, **kwargs)
         Serializable.__init__(self, **kwargs)
@@ -377,10 +394,12 @@ class P_PHC(PHC, Serializable):
         self.distractors_per_question = kwargs.get("distractors_per_question", {})   
 
     def get_state(self):
+        ''' this state is saved into db '''
         return { **super().get_state(),
                     "gene_size": self.gene_size, "pareto_n": self.pareto_n, "child_n": self.child_n }                        
 
     def init_distractor_pools(self):
+        ''' before we can create/mutate genotype, we need to fetch possible distractors to be in genes '''
         if self.quiz_id is None:
             APP.logger.warn("[default-p-phc] distractor pools were not initialized")
             return []
@@ -430,6 +449,7 @@ class P_PHC(PHC, Serializable):
             del self.coevaluation_groups[eval_group_id]
 
     def init(self):
+        ''' initialization of one individual (uniquely in the population) '''
         genotype = []
         for qid, distractors in self.distractors_per_question.items():
             d_set = set(distractors)
@@ -443,6 +463,7 @@ class P_PHC(PHC, Serializable):
         return ind 
 
     def mutate(self, parent_id): 
+        ''' produce children of a parent'''
         genotype = self.get_genotype(parent_id)        
         children = []
         for _ in range(self.child_n):
@@ -523,6 +544,7 @@ def get_evo(quiz_id) -> EvolutionaryProcess:
     return quiz_evo_processes.get(quiz_id, None)
 
 def start_evo(*quiz_ids):
+    ''' starts evolutionary processes for quizzes. Considers first db state and then if necessary starts processes with default evopie.config. '''
     evos = sql_evo_serializer.from_store(quiz_ids)
     for quiz_id in quiz_ids:  
         if quiz_id in quiz_evo_processes:

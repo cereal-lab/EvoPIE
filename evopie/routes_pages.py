@@ -41,37 +41,6 @@ matplotlib.rcParams['ps.fonttype'] = 42
 
 pages = Blueprint('pages', __name__)
 
-def replaceModified(str):
-    str1 = list(str)
-    openTags = [m.start() for m in re.finditer('<p>', str)]
-    closeTags = [m.start() for m in re.finditer('</p>', str)]
-    singleQuotes = [m.start() for m in re.finditer('\'', str)]
-    i = 0
-    if len(openTags) == 0:
-        return str.replace("'", '"')
-    start = openTags[i]
-    end = closeTags[i]
-    for j in range(len(singleQuotes)):
-        curr = singleQuotes[j]
-        if curr > end:
-            i += 1
-            if i >= len(openTags):
-                break
-            start = openTags[i]
-            end = closeTags[i]
-        if not (curr > start and curr < end):
-            str1[curr] = '\"'
-    for j in range(closeTags[len(closeTags) - 1] + 4, len(str)):
-        if str1[j] == "\'":
-            str1[j] = "\""
-    str = ''.join(str1)
-    return str
-
-class QuizAttempt:
-    justifications = {}
-    initial_responses = []
-    revised_responses = []
-
 @pages.route('/')
 def index():
     '''
@@ -469,6 +438,7 @@ def select_justifications(justifications, num_slots, selection_policy = j_random
 @pages.route('/quiz/<int:quiz_id>/justification/histogram', methods=['GET'])
 @login_required 
 def get_justification_distribution(quiz_id):
+    ''' outputs png for shown justification distribution '''
     if not current_user.is_instructor():
         flash("You are not allowed to get justification distribution")
         return redirect(url_for('pages.index'))
@@ -531,10 +501,10 @@ def get_or_create_attempt(quiz_id, quiz_questions, distractor_per_question):
         models.DB.session.commit()
     return attempt
 
-@pages.route('/student/<quiz:q>', methods=['GET'])
+@pages.route('/student/<quiz:q>', methods=['GET']) #IMPORTANT: see the notation of <quiz:q> in the url template - these are custom converter - check _init__.py APP.url_map.converters 
 @login_required
 @role_required(role=ROLE_STUDENT, redirect_route='pages.index', redirect_message="You are not allowed to take this quiz")
-@retry_concurrent_update
+@retry_concurrent_update #this will retry the call of this function  in case when two requests try to update db at same time - optimistic concurency 
 def get_quiz(q):
     '''
     Links using this route are meant to be shared with students so that they may take the quiz
@@ -695,7 +665,7 @@ def get_quiz(q):
         questions=question_model, attempt=attempt.dump_as_dict(), explanations=explanations)
 
 
-@pages.route('/student/<qa:q>', methods=['POST'])
+@pages.route('/student/<qa:q>', methods=['POST']) #IMPORTANT: see the notation of <qa:q> in the url template - these are custom converter - check _init__.py APP.url_map.converters 
 @login_required
 @role_required(role=ROLE_STUDENT, redirect_route='pages.index', redirect_message="You are not allowed to take this quiz")
 @validate_quiz_attempt_step(quiz_attempt_param = "q")
