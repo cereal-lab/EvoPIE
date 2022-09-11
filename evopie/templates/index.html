@@ -96,7 +96,7 @@
       {% if current_user.is_student() %}
         <div class="card bg-light m-3 mx-auto" style="width: 75%">    
           <div class="card-body" bg-light>
-            <h5 class="card-title" data-toggle = "collapse" data-target = "#instructions">Click here for general instructions</h5>
+            <h5 class="card-title pointer-link" data-bs-toggle = "collapse" data-bs-target = "#instructions">Click here for general instructions</h5>
             <div  id = "instructions" class = "collapse">
               <p>
                 <ul>
@@ -137,7 +137,7 @@
                         {{ q.id }}
                       </td>
                       <td>
-                        <p data-toggle = "modal" data-target = "#q{{q.id}}">
+                        <p class="pointer-link" data-bs-toggle = "modal" data-bs-target = "#q{{q.id}}">
                           {{ q.title }}
                         </p>
                         <div class="modal fade" id="q{{q.id}}" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" aria-hidden="true">

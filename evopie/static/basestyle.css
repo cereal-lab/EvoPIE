@@ -49,3 +49,7 @@
 .spinner {
   display: none;
 }
+
+.pointer-link {
+  cursor: pointer;
+}

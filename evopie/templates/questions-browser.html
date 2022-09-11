@@ -44,7 +44,7 @@
 
 <div class="card bg-light m-3 mx-auto" style="width: 75%">
     <div class="card-body" bg-light>
-        <h5 class="card-title" data-toggle = "collapse" data-target = "#newquestion">Click here to Create New Question</h5>
+        <h5 class="card-title pointer-link" data-bs-toggle = "collapse" data-bs-target = "#newquestion">Click here to Create New Question</h5>
         <div id = "newquestion" class = "collapse">
             <p class="card-text">
                 <form id="questionForm" method="post" action='/questions'>
@@ -85,7 +85,7 @@
                         {{ single_question.id }}
                     </td>
                     <td>
-                        <p data-toggle = "modal" data-target = "#q{{single_question.id}}">
+                        <p class="pointer-link" data-bs-toggle = "modal" data-bs-target = "#q{{single_question.id}}">
                             {{ single_question.title }}
                         </p>
                         <div class="modal fade" id="q{{single_question.id}}" tabindex="-1" role="dialog"

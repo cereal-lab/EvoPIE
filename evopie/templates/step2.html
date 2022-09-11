@@ -126,7 +126,7 @@
                                     <p> Reasons suggested by your peers for not selecting this possible answer.</p>                                    
                                     <p>
                                         <div class = "justificationsContainer">
-                                            <button type="button" class="btn btn-primary btn-sm" data-toggle="collapse" data-target="#justificationsTable_{{q.id}}_{{loop.index0}}">Show Justifications</button>
+                                            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#justificationsTable_{{q.id}}_{{loop.index0}}">Show Justifications</button>
                                             <table id="justificationsTable_{{q.id}}_{{loop.index0}}" class="table collapse">
                                                 {% for justification in justifications[q.id|string][loop.index0|string] %}
                                                     <tr>

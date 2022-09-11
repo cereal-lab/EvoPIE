@@ -28,7 +28,7 @@
 
 <div class="card bg-light m-3 mx-auto" style="width: 75%">
     <div class="card-body" bg-light>
-        <h5 class="card-title" data-toggle = "collapse" data-target = "#newquiz">Compose new Quiz</h5>
+        <h5 class="card-title pointer-link" data-bs-toggle = "collapse" data-bs-target = "#newquiz">Compose new Quiz</h5>
         <div  id = "newquiz" class = "collapse">
         <p class="card-text">
             <form id='QuizForm'>
@@ -104,7 +104,7 @@
                         {{ single_quiz.id }}
                     </td>
                     <td>
-                        <p data-toggle = "modal" data-target = "#q{{single_quiz.id}}">
+                        <p class="pointer-link" data-bs-toggle = "modal" data-bs-target = "#q{{single_quiz.id}}">
                             {{ single_quiz.title }}
                         </p>
                         <div class="modal fade" id="q{{single_quiz.id}}" tabindex="-1" role="dialog"

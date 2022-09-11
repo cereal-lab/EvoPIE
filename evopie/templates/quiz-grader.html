@@ -69,7 +69,7 @@
     <div class="jumbotron jumbotron-fluid">
         <div class="container">
             <h1 class="display-4">Grades for "{{quiz.title | safe}}"</h1>          
-            <a class="btn btn-primary btn-sm" data-toggle="collapse" href="#grades-info" data-target="#grades-info" role="button" aria-expanded="false" aria-controls="grades-info">
+            <a class="btn btn-primary btn-sm" data-bs-toggle="collapse" href="#grades-info" data-bs-target="#grades-info" role="button" aria-expanded="false" aria-controls="grades-info">
                 Information about scores computation
             </a>            
             <div id="grades-info" class="lead collapse fs-6">
@@ -211,12 +211,12 @@
             <td class='text-start align-top'>{{s.last_name | safe}}</td>
             <td class='text-start align-top'>{{s.first_name | safe}}</td>
             <td class='text-start align-top'>{{s.email | safe}}</td>
-            <td data-order="{{s.initial_total_score}}">
+            <td data-bs-order="{{s.initial_total_score}}">
                 {%- if s.initial_total_score is none -%}
                 N/A
                 {% else %}
-                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
-                        data-target=".TG-INI-{{s.id}}">
+                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal"
+                        data-bs-target=".TG-INI-{{s.id}}">
                     {{s.initial_total_score}}
                 </button>
                 <div class="modal fade TG-INI-{{s.id}}" tabindex="-1" role="dialog"
@@ -254,12 +254,12 @@
                 </div>
                 {% endif %}
             </td>
-            <td data-order="{{s.revised_total_score}}">
+            <td data-bs-order="{{s.revised_total_score}}">
                 {%- if s.revised_total_score is none -%}
                 N/A
                 {% else %}                
-                <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
-                        data-target=".TG-REV-{{s.id}}">
+                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal"
+                        data-bs-target=".TG-REV-{{s.id}}">
                     {{s.revised_total_score}}
                 </button>
                 <div class="modal fade TG-REV-{{s.id}}" tabindex="-1" role="dialog"
@@ -297,12 +297,12 @@
                 </div>
                 {% endif %}
             </td>
-            <td data-order="{{s.justification_score}}">
+            <td data-bs-order="{{s.justification_score}}">
                 {%- if s.justification_score is none -%}
                 N/A
                 {% else %}
-                <button id="justification_grade-{{s.id}}" type="button" class="btn btn-primary btn-sm" data-toggle="modal"
-                        data-target=".TG-JUS-{{s.id}}">
+                <button id="justification_grade-{{s.id}}" type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal"
+                        data-bs-target=".TG-JUS-{{s.id}}">
                     {{s.justification_score}}
                 </button>
                 <div class="modal fade TG-JUS-{{s.id}} text-start" tabindex="-1" role="dialog"
@@ -314,7 +314,7 @@
                             {% set qid = question_id | int %}
                                     <div class="accordion-item" >
                                     <h2 class="accordion-header" id="Heading{{question_id}}">
-                                        <button class="accordion-button collapsed text-start align-top" type="button" data-toggle="collapse" data-parent="#accordionExample" href="#collapse{{question_id}}" aria-expanded="false" aria-controls="collapse{{question_id}}">
+                                        <button class="accordion-button collapsed text-start align-top" type="button" data-bs-toggle="collapse" data-bs-parent="#accordionExample" href="#collapse{{question_id}}" aria-expanded="false" aria-controls="collapse{{question_id}}">
                                             <!-- FIX ME : the safe filter renders the text by applying the p and br tags -->
                                             {{ questions[qid].title | safe }} <!--(<b>QID#{{ question_id | safe }}</b>)-->
                                         </button>
@@ -363,7 +363,7 @@
                 </div>
                 {% endif %}
             </td>
-            <td data-order="{{s.min_participation_grade_threshold}}">
+            <td data-bs-order="{{s.min_participation_grade_threshold}}">
                 {%- if s.likes_given is none -%}
                 N/A
                 {% else %} 
@@ -375,12 +375,12 @@
                     {% endif %}                                
                 {% endif %}
             </td>
-            <td data-order="{{s.likes_given_count}}">
+            <td data-bs-order="{{s.likes_given_count}}">
                 {%- if s.likes_given is none -%}
                 N/A 
                 {% else %}                
-                    <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
-                    data-target=".TG-GIVEN-{{s.id}}">
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal"
+                    data-bs-target=".TG-GIVEN-{{s.id}}">
                         {{s.likes_given_count}}
                     </button>                
                     <div class="modal fade TG-GIVEN-{{s.id}}" tabindex="-1" role="dialog"
@@ -392,7 +392,7 @@
                                 {% set qid = question_id | int %}
                                         <div class="accordion-item" >
                                         <h2 class="accordion-header" id="Heading{{qid}}">
-                                            <button class="accordion-button" type="button" data-toggle="collapse" data-parent="#accordionExample" href="#collapse{{qid}}" aria-expanded="false" aria-controls="collapse{{qid}}"">
+                                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-parent="#accordionExample" href="#collapse{{qid}}" aria-expanded="false" aria-controls="collapse{{qid}}"">
                                                 <!--Question #{{ question_id | safe }} - -->
                                                 {{ questions[qid].title | safe }}
                                             </button>
@@ -432,12 +432,12 @@
                     </div>
                 {% endif %}
             </td>
-            <td data-order="{{s.likes_received_count }}">
+            <td data-bs-order="{{s.likes_received_count }}">
                 {%- if s.likes_received is none -%}
                 N/A
                 {% else %}                
-                    <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
-                    data-target=".TG-REC-{{s.id}}">
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal"
+                    data-bs-target=".TG-REC-{{s.id}}">
                         {{s.likes_received_count }}
                     </button>
                     <div class="modal fade TG-REC-{{s.id}}" tabindex="-1" role="dialog"
@@ -449,7 +449,7 @@
                                 {% set qid = question_id | int %}
                                         <div class="accordion-item" >
                                         <h2 class="accordion-header" id="Heading{{qid}}">
-                                            <button class="accordion-button" type="button" data-toggle="collapse" data-parent="#accordionExample" href="#collapse{{qid}}" aria-expanded="false" aria-controls="collapse{{qid}}"">
+                                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-parent="#accordionExample" href="#collapse{{qid}}" aria-expanded="false" aria-controls="collapse{{qid}}"">
                                                 <!-- Question #{{ question_id | safe }} - -->
                                                 {{ questions[qid].title | safe }}                                          
                                             </button>
@@ -493,15 +493,15 @@
                     </div>
                 {% endif %}
             </td>
-            <td data-order="{{s.total_score | round(1) }}">
-                <button id="total_score-{{s.id}}" type="button" class="btn btn-primary btn-sm" data-toggle="modal"
-                data-target=".TG-TOTAL-{{s.id}}">
+            <td data-bs-order="{{s.total_score | round(1) }}">
+                <button id="total_score-{{s.id}}" type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal"
+                data-bs-target=".TG-TOTAL-{{s.id}}">
                 {{s.total_score | round(1) }} / {{s.max_total_score | round(1)}}
                 </button>
             </td>
-            <td data-order="{{(s.total_score * 100 / s.max_total_score) | round(0) | int }}">
-                <button id="final_percentage-{{s.id}}" type="button" class="btn btn-primary btn-sm" data-toggle="modal"
-                data-target=".TG-FINAL-{{s.id}}">
+            <td data-bs-order="{{(s.total_score * 100 / s.max_total_score) | round(0) | int }}">
+                <button id="final_percentage-{{s.id}}" type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal"
+                data-bs-target=".TG-FINAL-{{s.id}}">
                 {{(s.total_score * 100 / s.max_total_score) | round(0) | int }}%
                 </button>
             </td>

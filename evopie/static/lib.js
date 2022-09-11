@@ -70,7 +70,7 @@ function sendToFlashLand(message, type) {
     var data = document.createElement('div')
     data.innerHTML = '<div class="alert mb-1 py-1 alert-' + type + ' alert-dismissible fade show" role="alert">' 
         + message 
-        + '<button type="button" class="small py-2 btn-close" data-dismiss="alert" aria-label="Close"></button></div>'
+        + '<button type="button" class="small py-2 btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>'
     target.append(data)
 }
 
