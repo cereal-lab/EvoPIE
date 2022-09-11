@@ -704,7 +704,7 @@ def save_quiz_attempt(q, body):
                     js_map[qdid].ready = True #justification could be used by student on next step
 
         #justifications were validated - we delete unnecessary justifications (for selected answers)
-        if g.allow_justification_for_selected:
+        if hasattr(g, "allow_justification_for_selected") and g.allow_justification_for_selected:
             for qdid in js_map:
                 js_map[qdid].ready = True #for testing purpose
         else:

@@ -911,7 +911,7 @@ def justify_alternative_selection(q, body):
 def like_justifications(q, body):
     _, attempt = q 
     
-    if g.ignore_selected_justifications: #disablces validation of ids 
+    if hasattr(g, "ignore_selected_justifications") and g.ignore_selected_justifications: #disablces validation of ids 
         present_likes = models.Likes4Justifications.query.where(models.Likes4Justifications.student_id == current_user.id).all()
         present_likes_map = {str(l.justification_id):l for l in present_likes}   
         valid_jid = lambda jid: True     
