@@ -77,7 +77,10 @@ def index():
     '''
     Index page for the whole thing; used to test out a rudimentary user interface
     '''
-    all_quizzes =  models.Quiz.query.all()
+    all_quizzes = []
+    if current_user.is_authenticated and current_user.is_student():
+        instructors = [ instructor.id for instructor in models.User.query.filter_by(id=current_user.id).first().instructors ]
+        all_quizzes = models.Quiz.query.filter(models.Quiz.author_id.in_(instructors))
     return render_template('index.html', quizzes=all_quizzes)
 
 
@@ -973,6 +976,8 @@ def student_list():
     if request.method == 'GET':
         return render_template('student-list.html', students=instructor.students)
     elif request.method == 'POST':
+        # delete current student list if any so latest csv data is used
+        models.DB.session.query(DB.Model.metadata.tables['InstructorStudent']).filter(DB.Model.metadata.tables['InstructorStudent'].c.InstructorId == current_user.get_id()).delete()
         csvfile = request.files['csvfile']
         csvstring = csvfile.read().decode('utf-8')
         for email in [line.strip() for line in csvstring.splitlines()]:

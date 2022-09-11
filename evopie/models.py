@@ -368,8 +368,8 @@ class User(UserMixin, DB.Model):
     students = DB.relationship(
         'User',
         secondary=instructor_student,
-        primaryjoin=id == instructor_student.c.StudentId,
-        secondaryjoin=id == instructor_student.c.InstructorId,
+        primaryjoin=id == instructor_student.c.InstructorId,
+        secondaryjoin=id == instructor_student.c.StudentId,
         backref=DB.backref('instructors')
     );
 
