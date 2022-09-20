@@ -229,7 +229,7 @@ class Quiz(DB.Model):
     quiz_attempts = DB.relationship('QuizAttempt', backref='quiz', lazy=True)
 
     #Each quiz could have several evo processes 
-    quiz_processes = DB.relationship('EvoProcess', backref='quiz', lazy=True)
+    quiz_processes = DB.relationship('QuizProcess', backref='quiz', lazy=True)
 
     title = DB.Column(DB.String)
     description = DB.Column(DB.String)
@@ -472,9 +472,9 @@ class Justification(DB.Model):
                     "seen" : self.seen,
                 }    
 
-class EvoProcess(DB.Model):
+class QuizProcess(DB.Model):
     '''
-    Defines major settings of evo process, check columns 
+    Defines major settings of quiz processes, check columns 
     '''
     id = DB.Column(DB.Integer, primary_key=True)    
     quiz_id = DB.Column(DB.Integer, DB.ForeignKey('quiz.id'))
@@ -482,11 +482,9 @@ class EvoProcess(DB.Model):
     touch_timestamp = DB.Column(DB.DateTime, nullable=False)
     status = DB.Column(DB.String, nullable=False) #status 'Active', 'Stopped'
     impl = DB.Column(DB.String, nullable=False) #name of the class
-    impl_state = DB.Column(DB.String, nullable=False) #class instance running state 
-    population = DB.Column(DB.String, nullable=False) #for steady state use one ind in population
-    objectives = DB.Column(DB.String, nullable=False) #one or more (but all) objectives seen in hronological order
+    impl_state = DB.Column(JSONEncodedMutableDict, default = {}, nullable=False) #class instance running state 
 
-    archive = DB.relationship('EvoProcessArchive', backref='process', 
+    interactions = DB.relationship('QuizProcessInteractions', backref='process', 
                     lazy=True, cascade="save-update, merge, delete, delete-orphan")
 
     __mapper_args__ = {
@@ -494,14 +492,15 @@ class EvoProcess(DB.Model):
         'version_id_generator': lambda version: datetime.now()
     }    
 
-class EvoProcessArchive(DB.Model):
+class QuizProcessInteractions(DB.Model):
     '''
     Preserves evo process state, interaction matrix between students and quizes  
     '''
-    id = DB.Column(DB.Integer, DB.ForeignKey('evo_process.id'), primary_key=True) #TODO: 
-    genotype_id = DB.Column(DB.Integer, primary_key=True) #interaction index
-    genotype = DB.Column(DB.String, nullable=False)
-    objectives = DB.Column(DB.String, nullable=False) #dict with all evaluations 
+    id = DB.Column(DB.Integer, DB.ForeignKey('quiz_process.id'), primary_key=True) #TODO: 
+    quiz_id = DB.Column(DB.Integer, primary_key=True) #interaction index
+    quiz = DB.Column(DB.String, nullable=False)
+    interactions = DB.Column(JSONEncodedMutableDict, nullable=False)
+
 
 class StudentKnowledge(DB.Model):
     '''

@@ -161,6 +161,26 @@
             ]
         },
         {
+            "name": "CLI: quiz run random-quiz",
+            "type": "python",
+            "request": "launch",
+            "module" : "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1",
+                // "EVOPIE_DATABASE_LOG": "db.log" 
+            },
+            "args" : [
+                "quiz",
+                "run",
+                "-q", "1",
+                "-s", "STEP1",
+                "--algo", "RandomQuiz", "--algo-params", "{ \"seed\": 595, \"n\": 6 }",
+                "--random-seed", "17"
+            ]
+        },        
+        {
             "name": "CLI: deca init",
             "type": "python",
             "request": "launch",

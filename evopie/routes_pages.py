@@ -17,7 +17,7 @@ from pandas import DataFrame
 from sqlalchemy import not_
 from sqlalchemy.sql import collate
 from flask import Markup
-from evopie.evo import Evaluation, get_evo
+from evopie.background_process import get_quiz_process
 from evopie.routes_mcq import answer_questions, justify_alternative_selection
 
 from evopie.utils import role_required, retry_concurrent_update, find_median
@@ -486,13 +486,13 @@ def get_justification_distribution(quiz_id):
 def get_or_create_attempt(quiz_id, quiz_questions, distractor_per_question):
     attempt = models.QuizAttempt.query.filter_by(student_id=current_user.id, quiz_id=quiz_id).first()
     if attempt is None: #first visit 
-        evo = get_evo(quiz_id)
-        if evo is None: #by default when no evo process - we pick all distractors selected by instructor
+        quiz_process = get_quiz_process(quiz_id)
+        if quiz_process is None: #by default when no evo process - we pick all distractors selected by instructor
             selected_distractor_ids = [{"question_id": qq.id, "alternatives": [d.id for d in distractor_per_question.get(qq.id, [])] } 
                                         for qq in quiz_questions]
         else: #rely on evo engine for selection of distractors
             selected_distractor_ids = [{"question_id": qid, "alternatives": ds} 
-                                        for qid, ds in evo.get_for_evaluation(current_user.id)]
+                                        for qid, ds in quiz_process.get_for_evaluation(current_user.id)]
         for question_alternatives in selected_distractor_ids:
             question_alternatives["alternatives"].append(-1) #add correct answer 
             random.shuffle(question_alternatives["alternatives"]) #shuffle each question alternatives
@@ -713,10 +713,10 @@ def save_quiz_attempt(q, body):
 
         attempt.revised_responses = attempt.initial_responses
 
-        evo = get_evo(quiz.id)
-        if evo is not None: 
+        quiz_process = get_quiz_process(quiz.id)
+        if quiz_process is not None: 
             answers = { int(q_id): answer for q_id, answer in attempt.initial_responses.items() }
-            evo.set_evaluation(Evaluation(evaluator_id=current_user.id, result=answers))
+            quiz_process.set_evaluation(current_user.id, answers)
 
     attempt.status = get_attempt_next_step(attempt.status)        
             

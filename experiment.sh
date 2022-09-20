@@ -13,6 +13,8 @@ flask student init -ns 20
 
 # flask student knows -kr -ef 's{}@usf.edu' -k '{"sid":{"range":[1,10]},"qid":1,"did":4,"step":1,"chance":1}' -k '{"sid":{"range":[1,20]},"qid":1,"did":8,"step":1,"chance":1}' -k '{"sid":{"range":[11,20]},"qid":2,"did":12,"step":1,"chance":1}' -k '{"sid":{"range":[1,20]},"qid":2,"did":16,"step":1,"chance":1}'
 
+# flask student knows -kr -ef 's{}@usf.edu' -k '{"sid":{"range":[1,10]},"qid":1,"did":4,"step":1,"chance":1}' -k '{"sid":{"range":[1,20]},"qid":1,"did":8,"step":1,"chance":1}' -k '{"sid":{"range":[11,20]},"qid":2,"did":12,"step":1,"chance":1}' -k '{"sid":{"range":[1,20]},"qid":2,"did":16,"step":1,"chance":1}'
+
 # flask deca init -q 1 -o deca-spaces -a 2 -a 3 --spanned 1 --best-students-percent 0.1 --spanned-geometric-p 0.8 --noninfo 0.1 -n 1
 flask deca init-many -ns 100 -nq 4 -nd 25 \
     -an 3 -an 7 -an 10 \
@@ -34,8 +36,14 @@ flask quiz deca-experiment --deca-input deca-spaces/space-1_1_1_1_1_1_1_1-s_20-3
 flask student knows --deca-input deca-spaces/space-1_1_1_1_1_1_1_1-s_0-1.json \
     -o testing/students.csv
 
-# flask quiz run -q 1 -s STEP1 --algo P_PHC --algo-params '{ "pop_size": 1, "pareto_n": 2, "child_n": 1, "gene_size": 3}' \
-#     --evo-output algo/pphc-1-2-1-3.json --archive-output algo/pphc-1-2-1-3-archive.csv
+flask quiz run -q 1 -s STEP1 --algo P_PHC --algo-params '{ "pop_size": 1, "pareto_n": 2, "child_n": 1, "gene_size": 3}' \
+    --evo-output algo/pphc-1-2-1-3.json --archive-output algo/pphc-1-2-1-3-archive.csv
+
+flask quiz run -q 1 -s STEP1 --algo P_PHC --algo-params '{ "pop_size": 1, "pareto_n": 2, "child_n": 1, "gene_size": 3}' \
+    --evo-output algo/pphc-1-2-1-3.json --archive-output algo/pphc-1-2-1-3-archive.csv
+
+flask quiz run -q 1 -s STEP1 --algo RandomQuiz --algo-params '{ "n": 4, "seed": 17 }' \
+    --evo-output algo/pphc-1-2-1-3.json --archive-output algo/pphc-1-2-1-3-archive.csv    
 
 flask deca result --algo-input algo/pphc-1-2-1-3.json --deca-space deca-spaces/space-1_1_1_1_1_1_1_1-s_20-3.json \
     -p explored_search_space_size -p search_space_size -io results/x.csv

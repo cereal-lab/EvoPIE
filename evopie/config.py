@@ -21,8 +21,8 @@ ROLE_INSTRUCTOR = "INSTRUCTOR"
 ROLE_ADMIN = "ADMIN"
 # ROLE_RESEARCHER = "RESEARCHER"
 
-EVO_PROCESS_STATUS_ACTIVE = 'Active'
-EVO_PROCESS_STATUS_STOPPED = 'Stopped'
+QUIZ_PROCESS_STATUS_ACTIVE = 'Active'
+QUIZ_PROCESS_STATUS_STOPPED = 'Stopped'
 p_phc_settings = { "pop_size": 1, "pareto_n": 2, "child_n": 1, "gene_size": 3}
 #p_phc_settings = { "pop_size": 3, "pareto_n": 2, "child_n": 2, "gene_size": 1}
 

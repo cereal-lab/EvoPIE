@@ -1,6 +1,6 @@
 from functools import reduce
 from io import StringIO
-from itertools import combinations_with_replacement, product
+from itertools import product
 import json
 import os
 import click
@@ -12,10 +12,12 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 
-from evopie import APP, deca, models
-from evopie.config import EVO_PROCESS_STATUS_ACTIVE, EVO_PROCESS_STATUS_STOPPED, QUIZ_ATTEMPT_STEP1, QUIZ_STEP1, QUIZ_STEP2, ROLE_STUDENT
+from evopie import APP, deca, models, serializer
+from evopie.algo import load_from_quiz_process
+from evopie.background_process import get_quiz_process
+from evopie.config import QUIZ_STEP1, QUIZ_STEP2, ROLE_STUDENT
+from evopie.evo import EvolutionaryProcess
 from evopie.utils import groupby, unpack_key
-from evopie.evo import get_evo, sql_evo_serializer, Serializable
 
 def throw_on_http_fail(resp: TestResponse, status: int = 400):
     if resp.status_code >= status:            
@@ -541,9 +543,9 @@ def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n
         #close prev evo process
         if QUIZ_STEP1 in step:
             with APP.app_context():
-                models.EvoProcessArchive.query.delete()
-                models.EvoProcess.query.delete()            
-                # existing_evo = models.EvoProcess.query.where(models.EvoProcess.quiz_id == quiz, models.EvoProcess.status == EVO_PROCESS_STATUS_ACTIVE).all()
+                models.QuizProcessInteractions.query.delete()  
+                models.QuizProcess.query.delete()            
+                # existing_evo = models.QuizProcess.query.where(models.QuizProcess.quiz_id == quiz, models.QuizProcess.status == EVO_PROCESS_STATUS_ACTIVE).all()
                 # for evo in existing_evo:
                 #     evo.status = EVO_PROCESS_STATUS_STOPPED    
                 models.DB.session.commit()    
@@ -556,32 +558,31 @@ def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n
             simulate_step(1)
 
             with APP.app_context():     
-                evo = get_evo(quiz)
-                if evo is None:
+                quiz_process = get_quiz_process(quiz)
+                if quiz_process is None:
                     sys.stdout.write(f"[{run_idx + 1}/{n_times}] Step1 quiz {quiz} finished\n")            
                 else:
-                    evo.stop()
-                    evo.join()
-                    sql_evo_serializer.wait_dump(timeout=5)  #wait for db data dump
-                    evo.archive["p"] = 0
-                    evo.archive["p"] = evo.archive["p"].astype(int)            
-                    for ind in evo.population:
-                        evo.archive.loc[ind, "p"] = 1        
-                    if archive_output is not None: 
-                        evo.archive.to_csv(archive_output.format(run_idx))  
-                    evo_state = evo.get_state()
-                    population = evo.get_population_genotypes()
-                    population_distractors = evo.get_population_distractors()
-                    search_space_size = evo.get_search_space_size()
-                    explored_search_space_size = evo.get_explored_search_space_size()
-                    sys.stdout.write(f"EVO algo: {evo.__class__}\nEVO settings: {evo_state}\nEVO population: {population}\n")
-                    if evo_output: 
+                    quiz_process.stop(await_stop = True)
+                    serializer.sql.wait_dump(timeout=5)  #wait for db data dump
+                    quiz_process_state = quiz_process.get_state()                          
+                    quiz_process.archive["p"] = 0
+                    quiz_process.archive["p"] = quiz_process.archive["p"].astype(int)            
+                    for ind in quiz_process.get_all_quiz_representation_ids():
+                        quiz_process.archive.loc[ind, "p"] = 1        
+                    if archive_output is not None:
+                        quiz_process.archive.to_csv(archive_output.format(run_idx))                                    
+                    sys.stdout.write(f"Quiz process algo: {quiz_process.__class__.__name__}\nAlgo settings: {quiz_process_state}\nArchive:\n{quiz_process.archive}\n")
+                    population = quiz_process.get_all_quiz_representations()
+                    population_distractors = quiz_process.get_all_distractors()
+                    search_space_size = quiz_process.get_search_space_size()
+                    explored_search_space_size = quiz_process.get_explored_search_space_size()
+                    if evo_output:                                                 
                         with open(evo_output, 'w') as evo_output_json_file:
-                            evo_output_json_file.write(json.dumps({"algo": evo.__class__.__name__, "settings":evo_state, 
+                            evo_output_json_file.write(json.dumps({"algo": quiz_process.__class__.__name__, "settings":quiz_process_state, 
                                                         "population":population, "population_distractors": population_distractors, 
                                                         "explored_search_space_size": explored_search_space_size, 
                                                         "search_space_size": search_space_size}, indent=4))
-                    sys.stdout.write(f"[{run_idx + 1}/{n_times}] Step1 quiz {quiz} finished\n{evo.archive}\n")
+                    sys.stdout.write(f"[{run_idx + 1}/{n_times}] Step1 quiz {quiz} finished\n")
         if QUIZ_STEP2 in step: 
             with APP.app_context(), APP.test_client(use_cookies=True) as c: #instructor session
                 throw_on_http_fail(c.post("/login",json={"email": instructor, "password": password}))
@@ -625,11 +626,11 @@ def calc_deca_metrics(algo_input, deca_space, params, input_output):
 @click.option('-q', '--quiz', type=int, required=True)
 @click.option('-o', '--output')
 def export_quiz_evo(quiz, output):
-    evo_process = sql_evo_serializer.from_store([quiz]).get(quiz, None)
+    evo_process = serializer.sql.from_store([quiz]).get(quiz, None)
     if evo_process is None:
         sys.stdout.write(f"Quiz {quiz} does not have evo process\n")
         return 
-    evo = Serializable.load(evo_process, sql_evo_serializer)
+    evo = load_from_quiz_process(evo_process)
     evo.archive["p"] = 0
     evo.archive["p"] = evo.archive["p"].astype(int)
     for ind in evo.population:

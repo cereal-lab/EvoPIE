@@ -9,10 +9,10 @@ from flask_login import login_required, current_user
 from flask import Markup
 from flask import flash
 from werkzeug.security import generate_password_hash
+from evopie.background_process import get_quiz_process, start_quiz_process, stop_quiz_process
 from evopie.config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT
-from evopie.evo import get_evo, start_evo, stop_evo, Evaluation
 
-from evopie.utils import groupby, role_required, sanitize, unmime, validate_quiz_attempt_step
+from evopie.utils import role_required, sanitize, unmime, validate_quiz_attempt_step
 
 from . import models
 
@@ -616,10 +616,10 @@ def post_quizzes_status(qid):
         if quiz.status == "STEP1": 
             #starting evo process for quiz 
             # start_default_p_phc(quiz)
-            start_evo(quiz.id)
+            start_quiz_process(quiz.id)
         else: 
             #ending evo process for quiz 
-            stop_evo(quiz.id)
+            stop_quiz_process(quiz.id)
     else:
         response     = ({ "message" : "Unable to switch to new status" }, 400, {"Content-Type": "application/json"})
     return make_response(response)
@@ -740,10 +740,10 @@ def all_quizzes_take(qid):
             models.DB.session.add(attempt)
             models.DB.session.commit()
 
-            evo = get_evo(quiz.id)
-            if evo is not None: 
+            quiz_process = get_quiz_process(quiz.id)
+            if quiz_process is not None: 
                 answers = { int(q_id): answer for q_id, answer in attempt.initial_responses.items() }
-                evo.set_evaluation(Evaluation(evaluator_id=sid, result=answers))
+                quiz_process.set_evaluation(sid, answers)
 
             response     = ({ "message" : "Quiz attempt recorded in database" }, 200, {"Content-Type": "application/json"})
             # NOTE see previous note about using 204 vs 200
