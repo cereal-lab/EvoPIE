@@ -211,13 +211,31 @@
             "args" : [
                 "deca",
                 "result",
-                "--algo-input", "algo/pphc-1-2-1-3.json",
-                "--deca-space", "deca-spaces/space-1_1_1_1_1_1_1_1-s_20-3.json",
+                "--algo-input", "algo/rand-quiz-5.json",
+                "--deca-space", "deca-spaces/space-1_1_1_1_1_1_1_1_1_1-s_0-0.json",
                 "-p", "explored_search_space_size",
                 "-p", "search_space_size",
                 "-io", "results/x.csv"
             ]
         },
+        {
+            "name": "CLI: deca experiment",
+            "type": "python",
+            "request": "launch",
+            "module" : "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1"
+            },
+            "args" : [
+                "quiz",
+                "deca-experiment",
+                "--deca-input", "deca-spaces/space-1_1_1_1_1_1_1_1_1_1-s_0-0.json",
+                "--num-runs", "3",
+                "--algo", "{ \"id\": \"rand-quiz-5\", \"algo\":\"RandomQuiz\", \"n\": 5 }",
+            ]
+        },        
         {
             "name": "CLI: deca init-many",
             "type": "python",

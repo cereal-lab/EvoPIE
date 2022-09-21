@@ -29,9 +29,13 @@ flask quiz deca-experiments \
     --random-seed 23 --num-runs 3 \
     --algo '{ "id": "pphc-1-2-1-3", "algo":"P_PHC", "pop_size": 1, "pareto_n": 2, "child_n": 1, "gene_size": 3}'
 
-flask quiz deca-experiment --deca-input deca-spaces/space-1_1_1_1_1_1_1_1-s_20-3.json \
+flask quiz deca-experiment --deca-input deca-spaces/space-1_1_1_1_1_1_1_1-s_0-0.json \
     --num-runs 3 \
     --algo '{ "id": "pphc-1-2-1-3", "algo":"P_PHC", "pop_size": 1, "pareto_n": 2, "child_n": 1, "gene_size": 3}'
+
+flask quiz deca-experiment --deca-input deca-spaces/space-1_1_1_1_1_1_1_1_1_1-s_0-0.json \
+    --num-runs 3 \
+    --algo '{ "id": "rand-quiz-5", "algo":"RandomQuiz", "n": 5}'
 
 flask student knows --deca-input deca-spaces/space-1_1_1_1_1_1_1_1-s_0-1.json \
     -o testing/students.csv

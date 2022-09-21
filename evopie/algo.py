@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 import json
+from math import comb, prod
 import sys
 from threading import Condition, Thread
 from typing import Any, Iterable, Optional
@@ -165,11 +166,12 @@ class RandomQuiz(InteractiveEvaluation):
         self.n = kwargs.get("n", 3)
         self.quiz = kwargs.get("quiz", None)
         self.ind = -1
+        self.distractors_per_question = {}
 
     def start(self):
         if self.quiz is None:
-            pools = get_distractor_pools(self.quiz_id)
-            self.quiz = [ [qid, [int(d) for d in self.rnd.choice(ds, size = min(len(ds), self.n), replace = False)]] for qid, ds in pools.items() ]
+            self.distractors_per_question = get_distractor_pools(self.quiz_id)
+            self.quiz = [ [qid, [int(d) for d in self.rnd.choice(ds, size = min(len(ds), self.n), replace = False)]] for qid, ds in self.distractors_per_question.items() ]
         self.ind = self.add_interaction_to_archive(self.quiz)
         pass
 
@@ -182,8 +184,8 @@ class RandomQuiz(InteractiveEvaluation):
         quiz_process = self.to_quiz_process(quiz_id = self.quiz_id, quiz = self.quiz, n = self.n, seed = self.kwargs["seed"])        
         serializer.sql.to_store(quiz_process)
 
-    def get_search_space_size(self):        
-        return 1         
+    def get_search_space_size(self):
+        return prod([ comb(len(dids), self.n) for _, dids in self.distractors_per_question.items()])  
 
     def get_all_quiz_representations(self):
         return [ self.get_for_evaluation(0) ]   

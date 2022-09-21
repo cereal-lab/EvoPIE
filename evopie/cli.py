@@ -731,6 +731,8 @@ def init_experiment(num_questions, num_distractors, num_students, axes_number, a
 def run_experiment(deca_input, algo, algo_folder, random_seed, results_folder, num_runs):    
     runner = APP.test_cli_runner()
     res = runner.invoke(args=["student", "knows", "-kr", "--deca-input", deca_input ])
+    if res.exit_code != 0:
+        print(res.stdout)
     assert res.exit_code == 0
     os.makedirs(algo_folder, exist_ok=True)
     os.makedirs(results_folder, exist_ok=True)
