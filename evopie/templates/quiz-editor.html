@@ -116,6 +116,8 @@
         document.querySelector('#third_quartile_grade').addEventListener('change', onSettingChange(qid, "third_quartile_grade", noop))
 
         document.querySelector('#fourth_quartile_grade').addEventListener('change', onSettingChange(qid, "fourth_quartile_grade", noop))
+        
+        document.querySelector('#require_auth').addEventListener('change', onSettingChange(qid, "require_auth", noop, preprocess = x => x))
 
         document.querySelector('#num_justifications_shown').addEventListener('change', onSettingChange(qid, "fourth_quartile_grade", noop))
 
@@ -204,6 +206,13 @@
                             <!/li> 
                         <!/ul>
                     </li>
+                    <li>
+                        Authentication before quiz steps:
+                        <select id="require_auth" name="require_auth">
+                            <option value="NONE" {% if quiz.require_auth == 'NONE' %} selected {% endif %}>None</option>
+                            <option value="PWD" {% if quiz.require_auth == 'PWD' %} selected {% endif %}>Password</option>
+                        </select>
+                    </li>                    
                     <li>
                         The final grade for each students is based on the following weighted components. 
                         Adjust the weights below: 

@@ -8,7 +8,7 @@ from random import shuffle # to shuffle lists
 from flask_login import UserMixin
 from sqlalchemy import ForeignKey
 from evopie import DB
-from .config import QUIZ_ATTEMPT_STEP1, QUIZ_STEP1, ROLE_INSTRUCTOR, ROLE_STUDENT, ROLE_ADMIN
+from .config import QUIZ_ATTEMPT_STEP1, QUIZ_HIDDEN, QUIZ_STEP1, QUIZ_STEP_PROTECTION_NONE, ROLE_INSTRUCTOR, ROLE_STUDENT, ROLE_ADMIN
 from .utils import unescape
 from datetime import datetime
 
@@ -237,7 +237,7 @@ class Quiz(DB.Model):
     # list of tags provided by the author to help them organize their stuff :)
     # later, we might add some global tags
     author_tags = DB.Column(DB.String)
-    status = DB.Column(DB.String, default="HIDDEN")
+    status = DB.Column(DB.String, default=QUIZ_HIDDEN)
     limiting_factor = DB.Column(DB.Integer, default=0.5)
     initial_score_weight = DB.Column(DB.Integer, default=0.4)
     revised_score_weight = DB.Column(DB.Integer, default=0.3)
@@ -248,6 +248,7 @@ class Quiz(DB.Model):
     second_quartile_grade = DB.Column(DB.Integer, default = 3)
     third_quartile_grade = DB.Column(DB.Integer, default = 5)
     fourth_quartile_grade = DB.Column(DB.Integer, default = 10)
+    require_auth = DB.Column(DB.String, default=QUIZ_STEP_PROTECTION_NONE)
 
     # NOTE for now the statuses that are handled are "HIDDEN", "STEP1", "STEP2"
     # TODO might want to make this a foreign key to a table of statuses
@@ -279,7 +280,8 @@ class Quiz(DB.Model):
                     "first_quartile_grade" : self.first_quartile_grade ,
                     "second_quartile_grade" : self.second_quartile_grade,
                     "third_quartile_grade" : self.third_quartile_grade ,
-                    "fourth_quartile_grade" : self.fourth_quartile_grade
+                    "fourth_quartile_grade" : self.fourth_quartile_grade,
+                    "require_auth": self.require_auth
                     # "participation_grade_threshold" : round(self.num_justifications_shown * len(questions) * self.limiting_factor)
                 }
 

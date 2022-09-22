@@ -543,13 +543,11 @@ def delete_quizzes(qid):
 
 @mcq.route('/quizzes/<int:qid>', methods=['PUT'])
 @login_required
+@role_required(role = ROLE_INSTRUCTOR, redirect_route='pages.index', redirect_message="You are not allowed to take quizzes", category="postError")
 def put_quizzes(qid):
     '''
     Handles PUT requests on a specific quiz
     '''
-    if not current_user.is_instructor():
-        response     = ({ "message" : "You are not allowed to modify quizzes" }, 403, {"Content-Type": "application/json"})
-        return make_response(response)
 
     quiz = models.Quiz.query.get_or_404(qid)
 
@@ -581,9 +579,8 @@ def put_quizzes(qid):
 
     models.DB.session.commit()
 
-    response = ({ "message" : "Quiz updated in database" }, 200, {"Content-Type": "application/json"})
     #NOTE see previous note about using 204 vs 200
-    return make_response(response)
+    return { "message" : "Quiz updated in database" }
     
 @mcq.route('/quizzes/<int:qid>/status', methods=['GET'])
 @login_required
@@ -827,6 +824,8 @@ def post_grading_settings(qid):
             q.third_quartile_grade = int(request.json['third_quartile_grade'])
         if 'fourth_quartile_grade' in request.json:
             q.fourth_quartile_grade = int(request.json['fourth_quartile_grade']) 
+        if 'require_auth' in request.json:
+            q.require_auth = request.json["require_auth"]
         if 'limiting_factor' in request.json:
             q.limiting_factor = int(request.json['limiting_factor']) / 100
             attempts = models.QuizAttempt.query.filter_by(quiz_id = qid).all()
@@ -911,7 +910,7 @@ def justify_alternative_selection(q, body):
 def like_justifications(q, body):
     _, attempt = q 
     
-    if g.ignore_selected_justifications: #disablces validation of ids 
+    if hasattr(g, "ignore_selected_justifications") and g.ignore_selected_justifications: #disablces validation of ids 
         present_likes = models.Likes4Justifications.query.where(models.Likes4Justifications.student_id == current_user.id).all()
         present_likes_map = {str(l.justification_id):l for l in present_likes}   
         valid_jid = lambda jid: True     
