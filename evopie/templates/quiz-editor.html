@@ -117,7 +117,8 @@
 
         document.querySelector('#fourth_quartile_grade').addEventListener('change', onSettingChange(qid, "fourth_quartile_grade", noop))
         
-        document.querySelector('#require_auth').addEventListener('change', onSettingChange(qid, "require_auth", noop, preprocess = x => x))
+        document.querySelector('#step1_pwd').addEventListener('change', onSettingChange(qid, "step1_pwd", noop, preprocess = x => x))
+        document.querySelector('#step2_pwd').addEventListener('change', onSettingChange(qid, "step2_pwd", noop, preprocess = x => x))
 
         document.querySelector('#num_justifications_shown').addEventListener('change', onSettingChange(qid, "fourth_quartile_grade", noop))
 
@@ -207,11 +208,12 @@
                         <!/ul>
                     </li>
                     <li>
-                        Authentication before quiz steps:
-                        <select id="require_auth" name="require_auth">
-                            <option value="NONE" {% if quiz.require_auth == 'NONE' %} selected {% endif %}>None</option>
-                            <option value="PWD" {% if quiz.require_auth == 'PWD' %} selected {% endif %}>Password</option>
-                        </select>
+                        Step1 password (optional):
+                        <input type="text" name="step1_pwd" id="step1_pwd" placeholder="step1..." value="{{quiz.step1_pwd}}" />
+                    </li>
+                    <li>
+                        Step2 password (optional):
+                        <input type="text" name="step2_pwd" id="step2_pwd" placeholder="step2..." value="{{quiz.step2_pwd}}" />
                     </li>                    
                     <li>
                         The final grade for each students is based on the following weighted components. 

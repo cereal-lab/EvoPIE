@@ -23,7 +23,7 @@ from werkzeug.security import check_password_hash
 
 from evopie.utils import role_required, retry_concurrent_update, find_median
 
-from .config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_HIDDEN, QUIZ_STEP1, QUIZ_STEP2, QUIZ_STEP_PROTECTION_PWD, ROLE_INSTRUCTOR, ROLE_STUDENT, get_attempt_next_step, get_k_tournament_size, get_least_seen_slots_num
+from .config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_HIDDEN, QUIZ_STEP1, QUIZ_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT, get_attempt_next_step, get_k_tournament_size, get_least_seen_slots_num
 from .utils import unescape, unmime, validate_quiz_attempt_step
 
 import json, random, ast, re
@@ -562,15 +562,22 @@ def get_quiz(q):
     quiz_model = { "id" : q.id, "title" : q.title, "description" : q.description } #we do not need any other fields from dump_as_dict
     #NOTE: dump_as_dict causes additional db requests due to rendering related entities.
 
-
+    def check_quiz_session_cookie():
+        return "quiz_session_id" in request.cookies and request.cookies["quiz_session_id"] == f"{current_user.id}:{q.id}"
+    def reset_quiz_session_cookie(resp: Response):
+        # resp.set_cookie('quiz_session_id', '', expires=0)
+        return resp
     #we create QuizAttempt if not exist
     if (attempt.status == QUIZ_ATTEMPT_STEP1) and (q.status != QUIZ_STEP1):
         flash("You did not submit your answers for step 1 of this quiz. Because of that, you may not participate in step 2.", "error")
         return redirect(url_for('pages.index'))
     if attempt.status == QUIZ_ATTEMPT_STEP1:
         #load existing in db distractors 
-        if request.accept_mimetypes.accept_html:            
-            return render_template('step1.html', quiz=quiz_model, questions=question_model)
+        if request.accept_mimetypes.accept_html:  
+            if check_quiz_session_cookie():                          
+                return reset_quiz_session_cookie(make_response(render_template('step1.html', quiz=quiz_model, questions=question_model)))
+            else:
+                return redirect(url_for("pages.protected_get_quiz", q = q))
         return jsonify({"questions":question_model})
     if attempt.status == QUIZ_ATTEMPT_STEP2 and q.status == QUIZ_STEP1:
         flash("You already submitted your answers for step 1 of this quiz. Wait for the instructor to open step 2 for everyone.", "error")
@@ -582,11 +589,8 @@ def get_quiz(q):
         flash("You already submitted your answers for both step 1 and step 2. You are done with this quiz.", "error")
         return redirect(url_for('pages.index'))            
     #if attempt.status == QUIZ_ATTEMPT_STEP2 or attempt.status == QUIZ_ATTEMPT_SOLUTIONS:
-    if not("quiz_session_id" in request.cookies and request.cookies["quiz_session_id"] == f"{current_user.id}:{q.id}"):
-        return redirect(url_for("pages.protected_get_quiz"))    
-    def reset_quiz_session_cookie(resp: Response):
-        resp.set_cookie('quiz_session_id', '', expires=0)
-        return resp
+    if not check_quiz_session_cookie():
+        return redirect(url_for("pages.protected_get_quiz", q = q))    
     if attempt.status == QUIZ_ATTEMPT_STEP2:
         if attempt.selected_justifications_timestamp is None: #attempt justifications were not initialized yet
             # retrieve the peers' justifications for each question  
@@ -656,9 +660,9 @@ def get_quiz(q):
             models.Likes4Justifications.justification_id.in_(jids)).all()
             
         likes = set(l.justification_id for l in present_likes)
-        return reset_quiz_session_cookie(render_template('step2.html', quiz=quiz_model,
+        return reset_quiz_session_cookie(make_response(render_template('step2.html', quiz=quiz_model,
             questions=question_model, attempt=attempt.dump_as_dict(),
-            justifications=selected_justification_map, likes = likes))
+            justifications=selected_justification_map, likes = likes)))
 
     #else status is SOLUTIONS
 
@@ -667,27 +671,25 @@ def get_quiz(q):
                         for aid, did in enumerate(alternatives) if did in distractor_map or did == -1}
                     for qid, alternatives in attempt.alternatives_map.items()}
 
-    return reset_quiz_session_cookie(render_template("solutions.html", quiz=quiz_model,
-        questions=question_model, attempt=attempt.dump_as_dict(), explanations=explanations))
+    return reset_quiz_session_cookie(make_response(render_template("solutions.html", quiz=quiz_model,
+        questions=question_model, attempt=attempt.dump_as_dict(), explanations=explanations)))
 
-@pages.route('/student/<quiz:q>/login', methods=['GET', 'POST'])
+@pages.route('/student/<quiz:q>/start', methods=['GET', 'POST'])
 @login_required
 @role_required(role=ROLE_STUDENT, redirect_route='pages.index', redirect_message="You are not allowed to take this quiz")
-def protected_get_quiz(q):
+def protected_get_quiz(q: models.Quiz):
     '''
     Same to get_quiz but requires login password from student. Instead of GET, POST method is used. 
     This method is entered when student submit login form 
     '''
-    if q.require_auth == QUIZ_STEP_PROTECTION_PWD:
+    step_pwd = q.step1_pwd if q.status == QUIZ_STEP1 else q.step2_pwd if q.status == QUIZ_STEP2 else ""
+    if step_pwd != "":
         if request.method == 'GET':
-            return render_template('login.html')
-        email = request.form.get('email')
+            return render_template('honorlock.html', quiz = q)
         password = request.form.get('password')
-        user = models.User.query.filter_by(email=email).first()
-
-        if not user or current_user.id != user.id or not check_password_hash(user.password, password):    
-            flash('Login or password incorrect')
-            return redirect(url_for('pages.protected_get_quiz'))
+        if password != step_pwd:
+            flash('Incorrect pass phrase was provided.')
+            return redirect(url_for('pages.protected_get_quiz', q = q))
 
     response = make_response(redirect(url_for("pages.get_quiz", q = q)))
     response.set_cookie('quiz_session_id', f"{current_user.id}:{q.id}")

@@ -8,7 +8,7 @@ from random import shuffle # to shuffle lists
 from flask_login import UserMixin
 from sqlalchemy import ForeignKey
 from evopie import DB
-from .config import QUIZ_ATTEMPT_STEP1, QUIZ_HIDDEN, QUIZ_STEP1, QUIZ_STEP_PROTECTION_NONE, ROLE_INSTRUCTOR, ROLE_STUDENT, ROLE_ADMIN
+from .config import QUIZ_ATTEMPT_STEP1, QUIZ_HIDDEN, QUIZ_STEP1, ROLE_INSTRUCTOR, ROLE_STUDENT, ROLE_ADMIN
 from .utils import unescape
 from datetime import datetime
 
@@ -248,7 +248,8 @@ class Quiz(DB.Model):
     second_quartile_grade = DB.Column(DB.Integer, default = 3)
     third_quartile_grade = DB.Column(DB.Integer, default = 5)
     fourth_quartile_grade = DB.Column(DB.Integer, default = 10)
-    require_auth = DB.Column(DB.String, default=QUIZ_STEP_PROTECTION_NONE)
+    step1_pwd = DB.Column(DB.String, default="")
+    step2_pwd = DB.Column(DB.String, default="")
 
     # NOTE for now the statuses that are handled are "HIDDEN", "STEP1", "STEP2"
     # TODO might want to make this a foreign key to a table of statuses
@@ -281,7 +282,8 @@ class Quiz(DB.Model):
                     "second_quartile_grade" : self.second_quartile_grade,
                     "third_quartile_grade" : self.third_quartile_grade ,
                     "fourth_quartile_grade" : self.fourth_quartile_grade,
-                    "require_auth": self.require_auth
+                    "step1_pwd": self.step1_pwd,
+                    "step2_pwd": self.step2_pwd
                     # "participation_grade_threshold" : round(self.num_justifications_shown * len(questions) * self.limiting_factor)
                 }
 

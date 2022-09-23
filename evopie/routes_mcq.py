@@ -824,8 +824,10 @@ def post_grading_settings(qid):
             q.third_quartile_grade = int(request.json['third_quartile_grade'])
         if 'fourth_quartile_grade' in request.json:
             q.fourth_quartile_grade = int(request.json['fourth_quartile_grade']) 
-        if 'require_auth' in request.json:
-            q.require_auth = request.json["require_auth"]
+        if 'step1_pwd' in request.json:
+            q.step1_pwd = request.json["step1_pwd"]
+        if 'step2_pwd' in request.json:
+            q.step2_pwd = request.json["step2_pwd"]            
         if 'limiting_factor' in request.json:
             q.limiting_factor = int(request.json['limiting_factor']) / 100
             attempts = models.QuizAttempt.query.filter_by(quiz_id = qid).all()
