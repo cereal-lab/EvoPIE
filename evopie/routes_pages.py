@@ -19,6 +19,7 @@ from sqlalchemy.sql import collate
 from flask import Markup
 from evopie.evo import Evaluation, get_evo
 from evopie.routes_mcq import answer_questions, justify_alternative_selection
+from werkzeug.security import check_password_hash
 
 from evopie.utils import role_required, retry_concurrent_update, find_median
 
@@ -46,7 +47,10 @@ def index():
     '''
     Index page for the whole thing; used to test out a rudimentary user interface
     '''
-    all_quizzes =  models.Quiz.query.all()
+    all_quizzes = []
+    if current_user.is_authenticated and current_user.is_student():
+        instructors = [ instructor.id for instructor in models.User.query.filter_by(id=current_user.id).first().instructors ]
+        all_quizzes = models.Quiz.query.filter(models.Quiz.author_id.in_(instructors))
     return render_template('index.html', quizzes=all_quizzes)
 
 
@@ -86,7 +90,7 @@ def quizzes_browser():
         return redirect(url_for('pages.index'))
     # TODO #3 working on getting rid of the dump_as_dict and instead using Markup(...).unescape when appropriate
     # all_quizzes = [q.dump_as_dict() for q in models.Quiz.query.all()]
-    all_quizzes = models.Quiz.query.all()
+    all_quizzes = models.Quiz.query.filter_by(author_id=current_user.get_id())
     return render_template('quizzes-browser.html', all_quizzes = all_quizzes)
     # version with pagination below
     #page = request.args.get('page',1, type=int)
@@ -562,15 +566,22 @@ def get_quiz(q):
     quiz_model = { "id" : q.id, "title" : q.title, "description" : q.description, "deadline0": q.deadline0, "deadline1": q.deadline1, "deadline2": q.deadline2, "deadline3": q.deadline3, "deadline4": q.deadline4 } #we do not need any other fields from dump_as_dict
     #NOTE: dump_as_dict causes additional db requests due to rendering related entities.
 
-
+    def check_quiz_session_cookie():
+        return "quiz_session_id" in request.cookies and request.cookies["quiz_session_id"] == f"{current_user.id}:{q.id}"
+    def reset_quiz_session_cookie(resp: Response):
+        # resp.set_cookie('quiz_session_id', '', expires=0)
+        return resp
     #we create QuizAttempt if not exist
     if (attempt.status == QUIZ_ATTEMPT_STEP1) and (q.status != QUIZ_STEP1):
         flash("You did not submit your answers for step 1 of this quiz. Because of that, you may not participate in step 2.", "error")
         return redirect(url_for('pages.index'))
     if attempt.status == QUIZ_ATTEMPT_STEP1:
         #load existing in db distractors 
-        if request.accept_mimetypes.accept_html:            
-            return render_template('step1.html', quiz=quiz_model, questions=question_model)
+        if request.accept_mimetypes.accept_html:  
+            if check_quiz_session_cookie():                          
+                return reset_quiz_session_cookie(make_response(render_template('step1.html', quiz=quiz_model, questions=question_model)))
+            else:
+                return redirect(url_for("pages.protected_get_quiz", q = q))
         return jsonify({"questions":question_model})
     if attempt.status == QUIZ_ATTEMPT_STEP2 and q.status == QUIZ_STEP1:
         flash("You already submitted your answers for step 1 of this quiz. Wait for the instructor to open step 2 for everyone.", "error")
@@ -582,6 +593,8 @@ def get_quiz(q):
         flash("You already submitted your answers for both step 1 and step 2. You are done with this quiz.", "error")
         return redirect(url_for('pages.index'))      
     #if attempt.status == QUIZ_ATTEMPT_STEP2 or attempt.status == QUIZ_ATTEMPT_SOLUTIONS:
+    if not check_quiz_session_cookie():
+        return redirect(url_for("pages.protected_get_quiz", q = q))    
     if attempt.status == QUIZ_ATTEMPT_STEP2:
         if attempt.selected_justifications_timestamp is None: #attempt justifications were not initialized yet
             # retrieve the peers' justifications for each question  
@@ -651,9 +664,9 @@ def get_quiz(q):
             models.Likes4Justifications.justification_id.in_(jids)).all()
             
         likes = set(l.justification_id for l in present_likes)
-        return render_template('step2.html', quiz=quiz_model,
+        return reset_quiz_session_cookie(make_response(render_template('step2.html', quiz=quiz_model,
             questions=question_model, attempt=attempt.dump_as_dict(),
-            justifications=selected_justification_map, likes = likes)
+            justifications=selected_justification_map, likes = likes)))
 
     #else status is SOLUTIONS
 
@@ -662,8 +675,29 @@ def get_quiz(q):
                         for aid, did in enumerate(alternatives) if did in distractor_map or did == -1}
                     for qid, alternatives in attempt.alternatives_map.items()}
 
-    return render_template("solutions.html", quiz=quiz_model,
-        questions=question_model, attempt=attempt.dump_as_dict(), explanations=explanations)
+    return reset_quiz_session_cookie(make_response(render_template("solutions.html", quiz=quiz_model,
+        questions=question_model, attempt=attempt.dump_as_dict(), explanations=explanations)))
+
+@pages.route('/student/<quiz:q>/start', methods=['GET', 'POST'])
+@login_required
+@role_required(role=ROLE_STUDENT, redirect_route='pages.index', redirect_message="You are not allowed to take this quiz")
+def protected_get_quiz(q: models.Quiz):
+    '''
+    Same to get_quiz but requires login password from student. Instead of GET, POST method is used. 
+    This method is entered when student submit login form 
+    '''
+    step_pwd = q.step1_pwd if q.status == QUIZ_STEP1 else q.step2_pwd if q.status == QUIZ_STEP2 else ""
+    if step_pwd != "":
+        if request.method == 'GET':
+            return render_template('honorlock.html', quiz = q)
+        password = request.form.get('password')
+        if password != step_pwd:
+            flash('Incorrect pass phrase was provided.')
+            return redirect(url_for('pages.protected_get_quiz', q = q))
+
+    response = make_response(redirect(url_for("pages.get_quiz", q = q)))
+    response.set_cookie('quiz_session_id', f"{current_user.id}:{q.id}")
+    return response
 
 @pages.route('/student/<qa:q>', methods=['POST']) #IMPORTANT: see the notation of <qa:q> in the url template - these are custom converter - check _init__.py APP.url_map.converters 
 @login_required
@@ -996,3 +1030,28 @@ def quiz_grader(qid):
                 # justification_grade = stats.justification_scores, total_scores = stats.total_scores, 
                 # max_total_scores = stats.max_total_scores
                 )
+
+@pages.route('/student-list', methods=['GET', 'POST'])
+@login_required
+@role_required(ROLE_INSTRUCTOR)
+def student_list():
+    # print(f'In student_list, current_user: {current_user}, get_id: {current_user.get_id()}')
+    instructor = models.User.query.get_or_404(current_user.get_id())
+    if request.method == 'GET':
+        return render_template('student-list.html', students=instructor.students)
+    elif request.method == 'POST':
+        # delete current student list if any so latest csv data is used
+        models.DB.session.query(DB.Model.metadata.tables['InstructorStudent']).filter(DB.Model.metadata.tables['InstructorStudent'].c.InstructorId == current_user.get_id()).delete()
+        csvfile = request.files['csvfile']
+        csvstring = csvfile.read().decode('utf-8')
+        for email in [line.strip() for line in csvstring.splitlines()]:
+            # print(email)
+            # find student in DB
+            student = models.User.query.filter_by(email=email).first()
+            if student is None:  # student not in DB
+                # add new User with empty password (needed as sentinel for when they login)
+                student = models.User(email=email)
+            student.instructors.append(instructor)
+            DB.session.add(student)
+        DB.session.commit()
+        return redirect(url_for('pages.student_list'))

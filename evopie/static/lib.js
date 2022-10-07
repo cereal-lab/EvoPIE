@@ -6,9 +6,9 @@ const updateQuiz = (qid, settings) =>
         credentials:    'same-origin'
     })      
 
-const onSettingChange = (qid, settingName, cb = false) => async (e) => {
+const onSettingChange = (qid, settingName, cb = false, preprocess = parseInt) => async (e) => {
     try {
-        let selectedValue = parseInt(e.target.value);
+        let selectedValue = preprocess(e.target.value);
         await updateQuiz(qid, {[settingName]:  selectedValue})
         if (cb === false) window.location.reload();
         else {

@@ -127,6 +127,7 @@
                     <th>Name</th>
                     <th>Status</th>
                     <th>Actions</th>
+                    <th>Instructor</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -153,13 +154,18 @@
                       </td>
                       {% if q.status == 'SOLUTIONS' %}
                         <td>
-                          <a href="/student/{{ q.id }}" class="btn btn-primary my-2"> See Solutions </a>
+                          <a href="/student/{{ q.id }}/start" class="btn btn-primary my-2"> See Solutions </a>
                         </td>
                       {% else %}
                         <td>
-                          <a href="/student/{{ q.id }}" class="btn btn-primary my-2"> Take Quiz </a>
+                          <a href="/student/{{ q.id }}/start" class="btn btn-primary my-2"> Take Quiz </a>
                         </td>
                       {% endif %}  
+                      <td>
+                        <p data-toggle = "modal" data-target = "#q{{q.id}}">
+                          {{ q.author.first_name | safe }} {{ q.author.last_name | safe }}
+                        </p>
+                      </td>
                     </tr>
                     {% endif %}
                   {% endfor %}

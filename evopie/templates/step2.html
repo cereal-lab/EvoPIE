@@ -121,7 +121,7 @@
                             <div class="form-group">
                                 <div class="form-check">
                                     {{ w.question_option(q, loop.index0, answer) }}
-                                    {% if (justifications[q.id|string][loop.index0|string] | length) == 0 %}
+                                    {% if ((justifications | length) == 0) or ((justifications[q.id|string] | length) == 0) or ((justifications[q.id|string][loop.index0|string] | length) == 0) %}
                                     <p> None of your classmates provided a justification for not chosing this possible answer.</p>                                        
                                     {% else %}
                                     <p> Reasons suggested by your peers for not selecting this possible answer.</p>                                    

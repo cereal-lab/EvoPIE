@@ -115,7 +115,7 @@ def put_question(question_id):
     coming from an HTML form that really wanted to send us a PUT.
     '''
     # validation - All of the quizzes containing question_id must be HIDDEN to be able to update
-    for quiz in models.Quiz.query.all():
+    for quiz in models.Quiz.query.filter_by(author_id=current_user.get_id()):
         for qq in quiz.quiz_questions:
             if qq.question_id == question_id and quiz.status != "HIDDEN":
                 response     = ({ "message" : "Quiz not accessible at this time" }, 403, {"Content-Type": "application/json"})
@@ -165,7 +165,7 @@ def delete_question(question_id):
     q = models.Question.query.get_or_404(question_id)
     
     # validation - All of the quizzes containing question_id must be HIDDEN to be able to update
-    for quiz in models.Quiz.query.all():
+    for quiz in models.Quiz.query.filter_by(author_id=current_user.get_id()):
         for qq in quiz.quiz_questions:
             if qq.question_id == question_id and quiz.status != "HIDDEN":
                 response     = ({ "message" : "Quiz not accessible at this time" }, 403, {"Content-Type": "application/json"})
@@ -255,7 +255,7 @@ def get_distractor(distractor_id):
 @role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to modify distractors")
 def put_distractor(distractor_id):
     # validation - All of the quizzes containing a question that distractor_id is related to must be HIDDEN to be able to update
-    for quiz in models.Quiz.query.all():
+    for quiz in models.Quiz.query.filter_by(author_id=current_user.get_id()):
         for qq in quiz.quiz_questions:
             question = models.Question.query.get(qq.question_id)
             for d in question.distractors:
@@ -309,7 +309,7 @@ def delete_distractor(distractor_id):
     d = models.Distractor.query.get_or_404(distractor_id)
     
     # validation - All of the quizzes containing a question that distractor_id is related to must be HIDDEN to be able to update
-    for quiz in models.Quiz.query.all():
+    for quiz in models.Quiz.query.filter_by(author_id=current_user.get_id()):
         for qq in quiz.quiz_questions:
             question = models.Question.query.get(qq.question_id)
             for d in question.distractors:
@@ -409,7 +409,7 @@ def delete_quiz_questions(qq_id):
     qq = models.QuizQuestion.query.get_or_404(qq_id)
 
     # validation - All of the quizzes using this qq_id must be HIDDEN to be able to delete
-    for quiz in models.Quiz.query.all():
+    for quiz in models.Quiz.query.filter_by(author_id=current_user.get_id()):
         for qq in quiz.quiz_questions:
             if qq.id == qq_id and quiz.status != "HIDDEN":
                 response     = ({ "message" : "Quiz not accessible at this time" }, 403, {"Content-Type": "application/json"})
@@ -435,7 +435,7 @@ def put_quiz_questions(qq_id):
     qq = models.QuizQuestion.query.get_or_404(qq_id)
 
     # validation - All of the quizzes using this qq_id must be HIDDEN to be able to update
-    for quiz in models.Quiz.query.all():
+    for quiz in models.Quiz.query.filter_by(author_id=current_user.get_id()):
         for qq in quiz.quiz_questions:
             if qq.id == qq_id and quiz.status != "HIDDEN":
                 response     = ({ "message" : "Quiz not accessible at this time" }, 403, {"Content-Type": "application/json"})
@@ -489,7 +489,7 @@ def post_new_quiz():
     bleached_title = sanitize(title)
     bleached_description = sanitize(description)
 
-    q = models.Quiz(title=bleached_title, description=bleached_description, deadline0=deadline0, deadline1=deadline1, deadline2=deadline2, deadline3=deadline3, deadline4=deadline4)
+    q = models.Quiz(title=bleached_title, description=bleached_description, author_id=current_user.get_id(), deadline0=deadline0, deadline1=deadline1, deadline2=deadline2, deadline3=deadline3, deadline4=deadline4)
     
     # Adding the questions, based on the questions_id that were submitted
     if 'questions_ids' in request.json:
@@ -512,7 +512,7 @@ def get_all_quizzes():
         response     = ({ "message" : "You are not allowed to view all quizzes" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
-    quizzes = models.Quiz.query.all()
+    quizzes = models.Quiz.query.filter_by(author_id=current_user.get_id())
     return jsonify([q.dump_as_dict()for q in quizzes])
 
 @mcq.route('/quizzes/<int:qid>', methods=['GET'])
@@ -553,13 +553,11 @@ def delete_quizzes(qid):
 
 @mcq.route('/quizzes/<int:qid>', methods=['PUT'])
 @login_required
+@role_required(role = ROLE_INSTRUCTOR, redirect_route='pages.index', redirect_message="You are not allowed to take quizzes", category="postError")
 def put_quizzes(qid):
     '''
     Handles PUT requests on a specific quiz
     '''
-    if not current_user.is_instructor():
-        response     = ({ "message" : "You are not allowed to modify quizzes" }, 403, {"Content-Type": "application/json"})
-        return make_response(response)
 
     quiz = models.Quiz.query.get_or_404(qid)
 
@@ -591,9 +589,8 @@ def put_quizzes(qid):
 
     models.DB.session.commit()
 
-    response = ({ "message" : "Quiz updated in database" }, 200, {"Content-Type": "application/json"})
     #NOTE see previous note about using 204 vs 200
-    return make_response(response)
+    return { "message" : "Quiz updated in database" }
     
 @mcq.route('/quizzes/<int:qid>/status', methods=['GET'])
 @login_required
@@ -844,6 +841,10 @@ def post_grading_settings(qid):
             q.third_quartile_grade = int(request.json['third_quartile_grade'])
         if 'fourth_quartile_grade' in request.json:
             q.fourth_quartile_grade = int(request.json['fourth_quartile_grade']) 
+        if 'step1_pwd' in request.json:
+            q.step1_pwd = request.json["step1_pwd"]
+        if 'step2_pwd' in request.json:
+            q.step2_pwd = request.json["step2_pwd"]            
         if 'limiting_factor' in request.json:
             q.limiting_factor = int(request.json['limiting_factor']) / 100
             attempts = models.QuizAttempt.query.filter_by(quiz_id = qid).all()

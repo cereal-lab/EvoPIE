@@ -110,3 +110,40 @@ flask quiz plot-metric-vs-num-of-dims -p dim_coverage --data-folder data/data-20
 
 flask quiz plot-metric-vs-num-of-dims -p dim_coverage --data-folder data/data-2022-08-08 --path-suffix results --figure-folder figures --file-name-pattern '.*-s_20-\d+.csv' \
   -p noninfo -pt 'Non-informativeness'  --fixate-range  
+
+flask quiz plot-metric-vs-num-of-dims --data-folder data/data-2022-10-03 --path-suffix results --figure-folder figures --file-name-pattern 'rand-quiz-5-.*-s_0-\d+.csv' \
+  -p dim_coverage -pt 'Dimension coverage' --fixate-range  --fig-name rand-quiz-5-dim-coverage
+
+flask quiz plot-metric-vs-num-of-dims --data-folder data/data-2022-10-03 --path-suffix results --figure-folder figures --file-name-pattern 'rand-quiz-3-.*-s_0-\d+.csv' \
+  -p dim_coverage -pt 'Dimension coverage' --fixate-range  --fig-name rand-quiz-3-dim-coverage  
+
+flask quiz plot-metric-vs-num-of-dims --data-folder data/data-2022-10-03 --path-suffix results --figure-folder figures --file-name-pattern 'pphc-1-2-1-3-.*-s_0-\d+.csv' \
+  -p dim_coverage -pt 'Dimension coverage' --fixate-range  --fig-name pphc-1-2-1-3-dim-coverage    
+
+flask quiz plot-metric-vs-num-of-dims --data-folder data/data-2022-10-03 --path-suffix results --figure-folder figures --file-name-pattern 'rand-quiz-5-.*-s_0-\d+.csv' \
+  -p arr -pt 'Average rank of representatives' --fixate-range  --fig-name rand-quiz-5-arr
+
+flask quiz plot-metric-vs-num-of-dims --data-folder data/data-2022-10-03 --path-suffix results --figure-folder figures --file-name-pattern 'rand-quiz-3-.*-s_0-\d+.csv' \
+  -p arr -pt 'Average rank of representatives' --fixate-range  --fig-name rand-quiz-3-arr
+
+flask quiz plot-metric-vs-num-of-dims --data-folder data/data-2022-10-03 --path-suffix results --figure-folder figures --file-name-pattern 'pphc-1-2-1-3-.*-s_0-\d+.csv' \
+  -p arr -pt 'Average rank of representatives' --fixate-range  --fig-name pphc-1-2-1-3-arr
+
+flask quiz plot-metric-vs-num-of-dims --data-folder data/data-2022-10-03 --path-suffix results --figure-folder figures --file-name-pattern 'rand-quiz-5-.*-s_0-\d+.csv' \
+  -p population_redundancy -pt 'Redundancy' --fixate-range  --fig-name rand-quiz-5-R
+
+flask quiz plot-metric-vs-num-of-dims --data-folder data/data-2022-10-03 --path-suffix results --figure-folder figures --file-name-pattern 'rand-quiz-3-.*-s_0-\d+.csv' \
+  -p population_redundancy -pt 'Redundancy' --fixate-range  --fig-name rand-quiz-3-R
+
+flask quiz plot-metric-vs-num-of-dims --data-folder data/data-2022-10-03 --path-suffix results --figure-folder figures --file-name-pattern 'pphc-1-2-1-3-.*-s_0-\d+.csv' \
+  -p population_redundancy -pt 'Redundancy' --fixate-range  --fig-name pphc-1-2-1-3-R  
+
+flask quiz plot-metric-vs-num-of-dims --data-folder data/data-2022-10-03 --path-suffix results \
+  --figure-folder figures --file-name-pattern '(?P<algo>.*)-on-space-.*-s_(?P<spanned>.*)-\d+.csv' \
+  -p dim_coverage -pt 'Dimension coverage' \
+  -p arr -pt 'Average rank of representatives' \
+  -p population_redundancy -pt 'Redundancy' \
+  -p population_duplication -pt 'Duplication' \
+  -p noninfo -pt 'Non-informativeness' \
+  --fig-name "<algo>-<param>-<spanned>" \
+  --fixate-range > res.txt

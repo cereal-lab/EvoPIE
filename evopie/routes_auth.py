@@ -62,6 +62,7 @@ def post_signup():
     if(retype != password):
         flash('Passwords do not match')
         return redirect(url_for('auth.get_signup'))
+    
         
     # making sure the user does not already exist
     if models.User.query.filter_by(email=email).first():        
@@ -87,9 +88,17 @@ def post_signup():
         its_role = ROLE_INSTRUCTOR
 
     password = generate_password_hash(password, method='sha256')
-    new_user = models.User(email=email, first_name=first_name, last_name=last_name, password=password, role=its_role) #NOTE default role is STUDENT
 
-    models.DB.session.add(new_user)
+    user = models.User.query.filter_by(email=email).first()
+    if user is not None and user.password is None:
+        user.password = password
+        user.first_name = first_name
+        user.last_name = last_name
+        user.set_role(its_role)
+    elif user is None:
+        new_user = models.User(email=email, first_name=first_name, last_name=last_name, password=password, role=its_role) #NOTE default role is STUDENT
+        models.DB.session.add(new_user)
+    
     models.DB.session.commit()
 
     if request.is_json:
