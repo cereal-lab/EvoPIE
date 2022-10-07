@@ -46,7 +46,10 @@ def index():
     '''
     Index page for the whole thing; used to test out a rudimentary user interface
     '''
-    all_quizzes =  models.Quiz.query.all()
+    all_quizzes = []
+    if current_user.is_authenticated and current_user.is_student():
+        instructors = [ instructor.id for instructor in models.User.query.filter_by(id=current_user.id).first().instructors ]
+        all_quizzes = models.Quiz.query.filter(models.Quiz.author_id.in_(instructors))
     return render_template('index.html', quizzes=all_quizzes)
 
 
@@ -86,7 +89,7 @@ def quizzes_browser():
         return redirect(url_for('pages.index'))
     # TODO #3 working on getting rid of the dump_as_dict and instead using Markup(...).unescape when appropriate
     # all_quizzes = [q.dump_as_dict() for q in models.Quiz.query.all()]
-    all_quizzes = models.Quiz.query.all()
+    all_quizzes = models.Quiz.query.filter_by(author_id=current_user.get_id())
     return render_template('quizzes-browser.html', all_quizzes = all_quizzes)
     # version with pagination below
     #page = request.args.get('page',1, type=int)
@@ -988,3 +991,28 @@ def quiz_grader(qid):
                 # justification_grade = stats.justification_scores, total_scores = stats.total_scores, 
                 # max_total_scores = stats.max_total_scores
                 )
+
+@pages.route('/student-list', methods=['GET', 'POST'])
+@login_required
+@role_required(ROLE_INSTRUCTOR)
+def student_list():
+    # print(f'In student_list, current_user: {current_user}, get_id: {current_user.get_id()}')
+    instructor = models.User.query.get_or_404(current_user.get_id())
+    if request.method == 'GET':
+        return render_template('student-list.html', students=instructor.students)
+    elif request.method == 'POST':
+        # delete current student list if any so latest csv data is used
+        models.DB.session.query(DB.Model.metadata.tables['InstructorStudent']).filter(DB.Model.metadata.tables['InstructorStudent'].c.InstructorId == current_user.get_id()).delete()
+        csvfile = request.files['csvfile']
+        csvstring = csvfile.read().decode('utf-8')
+        for email in [line.strip() for line in csvstring.splitlines()]:
+            # print(email)
+            # find student in DB
+            student = models.User.query.filter_by(email=email).first()
+            if student is None:  # student not in DB
+                # add new User with empty password (needed as sentinel for when they login)
+                student = models.User(email=email)
+            student.instructors.append(instructor)
+            DB.session.add(student)
+        DB.session.commit()
+        return redirect(url_for('pages.student_list'))

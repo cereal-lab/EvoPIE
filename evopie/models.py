@@ -383,7 +383,11 @@ relation_questions_vs_attempts = DB.Table('relation_questions_vs_attempts',
    DB.Column('quiz_question_id',DB.Integer, DB.ForeignKey('quiz_question.id'),primary_key=True)
 )
 
-
+instructor_student = DB.Table(
+    'InstructorStudent',
+    DB.Column('InstructorId', DB.Integer, DB.ForeignKey('user.id'), primary_key=True),
+    DB.Column('StudentId', DB.Integer, DB.ForeignKey('user.id'), primary_key=True)
+);
 
 class User(UserMixin, DB.Model):
     '''
@@ -406,6 +410,13 @@ class User(UserMixin, DB.Model):
 
     justifications = DB.relationship('Justification', backref='student', lazy=True)
 
+    students = DB.relationship(
+        'User',
+        secondary=instructor_student,
+        primaryjoin=id == instructor_student.c.InstructorId,
+        secondaryjoin=id == instructor_student.c.StudentId,
+        backref=DB.backref('instructors')
+    );
 
     def is_instructor(self):
         return self.role == ROLE_INSTRUCTOR

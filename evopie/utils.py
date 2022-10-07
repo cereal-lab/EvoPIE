@@ -26,6 +26,106 @@ def unescape(str):
 def unescape_double_quotes(s): 
     return s.replace('\\"','\"')
 
+# Invoke with flask DB-reboot
+# Tear down the data base and rebuild an empty one.
+@APP.cli.command("DB-reboot")
+def DB_reboot():
+    models.DB.drop_all()
+    models.DB.create_all()
+
+
+
+# Invoke with flask DB-multi-instr
+# First run flask DB-reboot
+# adds sample data to be used for testing multi-instr support
+
+@APP.cli.command("DB-multi-instr")
+def DB_multi_instr():
+    from subprocess import check_output
+    import os
+    script_path = os.path.abspath('./testing/MultiInstr')
+    stdout = check_output([os.path.join(script_path, 'setup.sh')], 
+                          cwd=script_path).decode('utf-8')
+    print(stdout)
+    # i1, i2, *students = models.User.query.all()
+    i2 = models.User.query.filter_by(email='instructor2@usf.edu').first()
+    i2.set_role(models.ROLE_INSTRUCTOR)
+    # print(f'Adding students to instructor 1: {i1}')
+    # for student in students[::2]:
+    #     print(f'\tAdding {student}')
+    #     i1.students.append(student)
+
+    # print(f'Adding students to instructor 2: {i2}')
+    # for student in students[1::2]:
+    #     print(f'\tAdding {student}')
+    #     i2.students.append(student)
+
+    # print(f'\tAdding {students[-1]}')
+    # i2.students.append(students[-1])
+    
+    models.DB.session.commit()
+
+
+
+    
+# Invoke with flask DB-populate
+# Empties the table and insert some testing data in the DB.
+# Consider using scripts/TestDB_[setup|step1|step2].sh 
+@APP.cli.command("DB-populate")
+def DB_populate():
+    '''
+        Just populating the DB with some mock quizzes
+    '''
+    # For some reason Flask restarts the app when we launch it with
+    # pipenv run python app.py
+    # as a result, we populate twice and get too many quizzes / distractors
+    # let's fix this by deleting all data from the tables first
+    models.Question.query.delete()
+    models.Distractor.query.delete()
+    models.DB.session.commit() # don't forget to commit or the DB will be locked
+
+    all_mcqs = [
+            models.Question(title=u'Sir Lancelot and the bridge keeper, part 1',
+                            stem=u'What... is your name?',
+                            answer=u'Sir Lancelot of Camelot'),
+            models.Question(title=u'Sir Lancelot and the bridge keeper, part 2',
+                            stem=u'What... is your quest?',
+                            answer=u'To seek the holy grail'),
+            models.Question(title=u'Sir Lancelot and the bridge keeper, part 3',
+                            stem=u'What... is your favorite colour?',
+                            answer=u'Blue')
+    ]
+
+    models.DB.session.add_all(all_mcqs)
+    models.DB.session.commit()
+    # need to commit right now; if not, the qid below will not be added in the distractors table's rows
+
+    qid=all_mcqs[0].id
+    some_distractors = [
+        models.Distractor(question_id=qid,answer=u'Sir Galahad of Camelot'),
+        models.Distractor(question_id=qid,answer=u'Sir Arthur of Camelot'),
+        models.Distractor(question_id=qid,answer=u'Sir Bevedere of Camelot'),
+        models.Distractor(question_id=qid,answer=u'Sir Robin of Camelot'),
+    ]
+
+    qid=all_mcqs[1].id
+    more_distractors = [
+        models.Distractor(question_id=qid,answer=u'To bravely run away'),
+        models.Distractor(question_id=qid,answer=u'To spank Zoot'),
+        models.Distractor(question_id=qid,answer=u'To find a shrubbery')
+    ]
+
+    qid=all_mcqs[2].id
+    yet_more_distractors = [
+        models.Distractor(question_id=qid,answer=u'Green'),
+        models.Distractor(question_id=qid,answer=u'Red'),
+        models.Distractor(question_id=qid,answer=u'Yellow')
+    ]
+
+    models.DB.session.add_all(some_distractors + more_distractors + yet_more_distractors)
+    models.DB.session.commit()
+
+
 from flask import flash, g, jsonify, redirect, url_for, request, abort
 from flask_login import current_user
 
