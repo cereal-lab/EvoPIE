@@ -290,7 +290,12 @@ class Quiz(DB.Model):
                     "third_quartile_grade" : self.third_quartile_grade ,
                     "fourth_quartile_grade" : self.fourth_quartile_grade,
                     "step1_pwd": self.step1_pwd,
-                    "step2_pwd": self.step2_pwd
+                    "step2_pwd": self.step2_pwd,
+                    "deadline0": self.deadline0.strftime("%Y-%m-%dT%H:%M"),
+                    "deadline1": self.deadline1.strftime("%Y-%m-%dT%H:%M"),
+                    "deadline2": self.deadline2.strftime("%Y-%m-%dT%H:%M"),
+                    "deadline3": self.deadline3.strftime("%Y-%m-%dT%H:%M"),
+                    "deadline4": self.deadline4.strftime("%Y-%m-%dT%H:%M")
                     # "participation_grade_threshold" : round(self.num_justifications_shown * len(questions) * self.limiting_factor)
                 }
 

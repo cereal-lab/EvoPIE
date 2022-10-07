@@ -12,83 +12,48 @@
 
 {% block content %}
 <div class="jumbotron jumbotron-fluid">
-    <div class="container">
-        <h1 class="display-4">Quiz Configuration</h1>
-            <p class="lead">
-                Use this to configure the quiz.
-                This page can be used to change deadlines.
-            </p>
+    <div class="container lh-1" style="max-width:720px">
+        <h1 class="h1">Quiz Configuration</h1>
+        <p class="lead">
+            Deadlines and honorlock passwords
+        </p>
     </div>
 </div>
 
-<div class="card bg-light m-3 mx-auto" style="width: 75%">
+<div class="card bg-light m-3 mx-auto" style="max-width:720px">
     <div class="card-body" bg-light>
-
-        <h5 class="card-title">Configure Quiz' Parameters Below:</h5>
-        <form id='QuizForm'>
-            <div class="form-group">
+        <form id='QuizForm' method="post">
+            <div class="form-group mb-2">
                 <label for="quiz_deadline0">Quiz Release Deadline</label>
-                <input type="datetime-local" id="quiz_deadline0" name="quiz_deadline0">
+                <input class="form-control" type="datetime-local" id="quiz_deadline0" name="deadline0" value="{{quiz.deadline0}}">
             </div>
-            <div class="form-group">
+            <div class="form-group mb-2">
                 <label for="quiz_deadline1">Step1 Submission Deadline</label>
-                <input type="datetime-local" id="quiz_deadline1" name="quiz_deadline1">
+                <input class="form-control" type="datetime-local" id="quiz_deadline1" name="deadline1" value="{{quiz.deadline1}}">
             </div>
-            <div class="form-group">
+            <div class="form-group mb-2">
                 <label for="quiz_deadline2">Step2 Submission Deadline</label>
-                <input type="datetime-local" id="quiz_deadline2" name="quiz_deadline2">
+                <input class="form-control" type="datetime-local" id="quiz_deadline2" name="deadline2" value="{{quiz.deadline2}}">
             </div>
-            <div class="form-group">
+            <div class="form-group mb-2">
                 <label for="quiz_deadline3">Solutions Release Deadline</label>
-                <input type="datetime-local" id="quiz_deadline3" name="quiz_deadline3">
+                <input class="form-control" type="datetime-local" id="quiz_deadline3" name="deadline3" value="{{quiz.deadline3}}">
             </div>
-            <div class="form-group">
+            <div class="form-group mb-2">
                 <label for="quiz_deadline4">Quiz Availability Deadline</label>
-                <input type="datetime-local" id="quiz_deadline4" name="quiz_deadline4">
+                <input class="form-control" type="datetime-local" id="quiz_deadline4" name="deadline4" value="{{quiz.deadline4}}">
             </div>
-            <button onclick="submitQuizForm({{quiz.id}})" class="btn btn-primary">Submit</button>
+            <div class="form-group mb-2">
+                <label for="step1_pwd">Step1 password (optional):</label>
+                <input class="form-control" type="text" name="step1_pwd" id="step1_pwd" placeholder="step1..." value="{{quiz.step1_pwd}}" />
+            </div>
+            <div class="form-group mb-2">
+                <label for="step2_pwd">Step2 password (optional):</label>
+                <input class="form-control" type="text" name="step2_pwd" id="step2_pwd" placeholder="step2..." value="{{quiz.step2_pwd}}" />
+            </div>
+            <button type="submit" class="btn btn-primary">Submit</button>
         </form>
     </div>
 </div>
-
-
-<script type="text/javascript">
-    function submitQuizForm(quiz_id){
-        let deadline0 = document.querySelector('#quiz_deadline0');
-        let deadline1 = document.querySelector('#quiz_deadline1');
-        let deadline2 = document.querySelector('#quiz_deadline2');
-        let deadline3 = document.querySelector('#quiz_deadline3');
-        let deadline4 = document.querySelector('#quiz_deadline4');
-        
-        let xhr = new XMLHttpRequest();
-        let url = '/update-quiz-configuration/' + quiz_id;
-    
-        xhr.open("PUT", url, false);
-        xhr.setRequestHeader("Content-Type", "application/json");
-
-        // Create a state change callback 
-        xhr.onreadystatechange = function () {
-            if (xhr.readyState === 4 && xhr.status === 201) {
-               sendToFlashLand(this.responseText,"success");
-            } else if (xhr.readyState === 4 && xhr.status === 400) {
-                sendToFlashLand(this.responseText,"danger");
-            } else {
-                sendToFlashLand("Please fill all the fields", "danger");
-            }
-        };
-
-        // Converting JSON data to string 
-        // old version limited to 3 questions
-        // var data = JSON.stringify({ "title": title.value, "description": description.value, "questions_ids": [parseInt(qq1.value), parseInt(qq2.value), parseInt(qq3.value)] });
-        
-        var data = JSON.stringify({ "deadline0": deadline0.value, "deadline1": deadline1.value, "deadline2": deadline2.value, "deadline3": deadline3.value, "deadline4": deadline4.value });
-        
-        // Sending data with the request 
-        xhr.send(data);
-        event.preventDefault();
-        //event.stopPropagation();
-        return false;
-    }
-</script>
 
 {% endblock %}

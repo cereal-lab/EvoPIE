@@ -272,14 +272,39 @@ def quiz_editor(quiz_id):
     quartileOptions = numJustificationsOptions
     return render_template('quiz-editor.html', quiz = q.dump_as_dict(), limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, numJustificationsOptions = numJustificationsOptions, quartileOptions = quartileOptions)
 
-@pages.route('/quiz-configuration/<int:quiz_id>')
+@pages.route('/quiz-configuration/<quiz:q>')
 @login_required
-def quiz_configuration(quiz_id):
-    if not current_user.is_instructor():
-        flash("Restricted to contributors.", "error")
-        return redirect(url_for('pages.index'))
-    quiz = models.Quiz.query.get_or_404(quiz_id)
-    return render_template('quiz-configuration.html', quiz = quiz.dump_as_dict())
+@role_required(ROLE_INSTRUCTOR, redirect_route='pages.index', redirect_message="Restricted to contributors")
+def quiz_configuration(q):
+    return render_template('quiz-configuration.html', quiz = q.dump_as_dict())
+
+@pages.route('/quiz-configuration/<quiz:q>', methods=['POST'])
+@login_required
+@role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to modify quiz configuration")
+@unmime(delim='-')
+def update_quiz_configuration(q, body):
+    ''' Separate quiz configuration update endpoint '''
+    deadline0 = datetime.strptime(body['deadline0'], '%Y-%m-%dT%H:%M')
+    deadline1 = datetime.strptime(body['deadline1'], '%Y-%m-%dT%H:%M')
+    deadline2 = datetime.strptime(body['deadline2'], '%Y-%m-%dT%H:%M')
+    deadline3 = datetime.strptime(body['deadline3'], '%Y-%m-%dT%H:%M')
+    deadline4 = datetime.strptime(body['deadline4'], '%Y-%m-%dT%H:%M')
+    step1_pwd = body['step1_pwd']
+    step2_pwd = body['step2_pwd']
+
+    if deadline0 > deadline1 or deadline1 > deadline2 or deadline2 > deadline3 or deadline3 > deadline4:
+        return { "message" : "Unable to create quiz due to invalid deadlines", "redirect": url_for("pages.quiz_configuration", q = q)}, 400
+
+    q.deadline0 = deadline0
+    q.deadline1 = deadline1
+    q.deadline2 = deadline2
+    q.deadline3 = deadline3
+    q.deadline4 = deadline4
+    q.step1_pwd = step1_pwd
+    q.step2_pwd = step2_pwd
+    models.DB.session.commit()
+
+    return { "message" : "Quiz settings were saved", "redirect": url_for("pages.quiz_configuration", q = q)}, 200
 
 def get_possible_justifications(attempt):
     '''

@@ -460,33 +460,6 @@ def put_quiz_questions(qq_id):
     response = ({ "message" : "Quiz Question updated in database" }, 201, {"Content-Type": "application/json"})
     return make_response(response)
 
-@mcq.route('/update-quiz-configuration/<int:quiz_id>', methods=['PUT'])
-@login_required
-@role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to modify quiz configuration")
-def update_quiz_configuration(quiz_id):
-    '''
-    Handles PUT requests on the quiz configuration page
-    '''
-    q = models.Quiz.query.get_or_404(quiz_id)
-    deadline0 = datetime.strptime(request.json['deadline0'], '%Y-%m-%dT%H:%M')
-    deadline1 = datetime.strptime(request.json['deadline1'], '%Y-%m-%dT%H:%M')
-    deadline2 = datetime.strptime(request.json['deadline2'], '%Y-%m-%dT%H:%M')
-    deadline3 = datetime.strptime(request.json['deadline3'], '%Y-%m-%dT%H:%M')
-    deadline4 = datetime.strptime(request.json['deadline4'], '%Y-%m-%dT%H:%M')
-
-    if deadline0 > deadline1 or deadline1 > deadline2 or deadline2 > deadline3 or deadline3 > deadline4:
-        return jsonify({ "message" : "Unable to create quiz due to invalid deadlines" }), 400
-
-    q.deadline0 = deadline0
-    q.deadline1 = deadline1
-    q.deadline2 = deadline2
-    q.deadline3 = deadline3
-    q.deadline4 = deadline4
-    models.DB.session.commit()
-
-    return jsonify({ "message" : "Deadlines added to database" }), 201
-
-
 @mcq.route('/quizzes', methods=['POST'])
 @login_required
 @role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to create quizzes")
