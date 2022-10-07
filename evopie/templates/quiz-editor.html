@@ -116,9 +116,6 @@
         document.querySelector('#third_quartile_grade').addEventListener('change', onSettingChange(qid, "third_quartile_grade", noop))
 
         document.querySelector('#fourth_quartile_grade').addEventListener('change', onSettingChange(qid, "fourth_quartile_grade", noop))
-        
-        document.querySelector('#step1_pwd').addEventListener('change', onSettingChange(qid, "step1_pwd", noop, preprocess = x => x))
-        document.querySelector('#step2_pwd').addEventListener('change', onSettingChange(qid, "step2_pwd", noop, preprocess = x => x))
 
         document.querySelector('#num_justifications_shown').addEventListener('change', onSettingChange(qid, "fourth_quartile_grade", noop))
 
@@ -206,15 +203,7 @@
                                 </select> points.
                             <!/li> 
                         <!/ul>
-                    </li>
-                    <li>
-                        Step1 password (optional):
-                        <input type="text" name="step1_pwd" id="step1_pwd" placeholder="step1..." value="{{quiz.step1_pwd}}" />
-                    </li>
-                    <li>
-                        Step2 password (optional):
-                        <input type="text" name="step2_pwd" id="step2_pwd" placeholder="step2..." value="{{quiz.step2_pwd}}" />
-                    </li>                    
+                    </li>                
                     <li>
                         The final grade for each students is based on the following weighted components. 
                         Adjust the weights below: 
