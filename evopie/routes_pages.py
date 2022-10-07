@@ -272,6 +272,14 @@ def quiz_editor(quiz_id):
     quartileOptions = numJustificationsOptions
     return render_template('quiz-editor.html', quiz = q.dump_as_dict(), limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, numJustificationsOptions = numJustificationsOptions, quartileOptions = quartileOptions)
 
+@pages.route('/quiz-configuration/<int:quiz_id>')
+@login_required
+def quiz_configuration(quiz_id):
+    if not current_user.is_instructor():
+        flash("Restricted to contributors.", "error")
+        return redirect(url_for('pages.index'))
+    quiz = models.Quiz.query.get_or_404(quiz_id)
+    return render_template('quiz-configuration.html', quiz = quiz.dump_as_dict())
 
 def get_possible_justifications(attempt):
     '''
