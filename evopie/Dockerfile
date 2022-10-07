@@ -11,9 +11,10 @@ RUN apt install -y sqlite3 git
 
 WORKDIR /app
 RUN echo "forcing rebuild"
-RUN git clone https://github.com/cereal-lab/EvoPIE.git
+RUN git clone https://github.com/cereal-lab/EvoPIE.git .
+RUN git checkout master
+RUN git pull
 
-WORKDIR /app/EvoPIE
 RUN pipenv sync
 #RUN pipenv run flask DB-reboot
 
