@@ -46,48 +46,37 @@
                 <label for="quiz_deadline4">Quiz Availability Deadline</label>
                 <input type="datetime-local" id="quiz_deadline4" name="quiz_deadline4">
             </div>
-            <button onclick="submitQuizForm({{quiz.id}})" class="btn btn-primary">Submit</button>
+            <button type="button" onclick="submitQuizForm({{quiz.id}})" class="btn btn-primary">Submit</button>
         </form>
     </div>
 </div>
 
 
 <script type="text/javascript">
-    function submitQuizForm(quiz_id){
+    async function submitQuizForm(quiz_id){
         let deadline0 = document.querySelector('#quiz_deadline0');
         let deadline1 = document.querySelector('#quiz_deadline1');
         let deadline2 = document.querySelector('#quiz_deadline2');
         let deadline3 = document.querySelector('#quiz_deadline3');
         let deadline4 = document.querySelector('#quiz_deadline4');
-        
-        let xhr = new XMLHttpRequest();
-        let url = '/update-quiz-configuration/' + quiz_id;
-    
-        xhr.open("PUT", url, false);
-        xhr.setRequestHeader("Content-Type", "application/json");
 
-        // Create a state change callback 
-        xhr.onreadystatechange = function () {
-            if (xhr.readyState === 4 && xhr.status === 201) {
-               sendToFlashLand(this.responseText,"success");
-            } else if (xhr.readyState === 4 && xhr.status === 400) {
-                sendToFlashLand(this.responseText,"danger");
-            } else {
-                sendToFlashLand("Please fill all the fields", "danger");
-            }
-        };
+        if (deadline0.value == "" || deadline1.value == "" || deadline2.value == "" || deadline3.value == "" || deadline4.value == "") {
+            sendToFlashLand("Please fill all the fields", "danger");
+            return;
+        }
+        
+        const body = JSON.stringify({ "deadline0": deadline0.value, "deadline1": deadline1.value, "deadline2": deadline2.value, "deadline3": deadline3.value, "deadline4": deadline4.value });
 
-        // Converting JSON data to string 
-        // old version limited to 3 questions
-        // var data = JSON.stringify({ "title": title.value, "description": description.value, "questions_ids": [parseInt(qq1.value), parseInt(qq2.value), parseInt(qq3.value)] });
-        
-        var data = JSON.stringify({ "deadline0": deadline0.value, "deadline1": deadline1.value, "deadline2": deadline2.value, "deadline3": deadline3.value, "deadline4": deadline4.value });
-        
-        // Sending data with the request 
-        xhr.send(data);
-        event.preventDefault();
-        //event.stopPropagation();
-        return false;
+        const response = await fetch('/update-quiz-configuration/' + quiz_id, {
+            method:         'PUT',
+            headers:        {'Content-Type' : 'application/json'},
+            body:           body,
+            credentials:    'same-origin'
+        })
+
+        const data = await response.json();
+
+        sendToFlashLand(data.message, data.status);
     }
 </script>
 

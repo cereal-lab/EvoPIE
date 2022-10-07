@@ -3,6 +3,7 @@
 # Dynamic classes like scoped_session are caught by pylint as not having any
 # of the members they end up featuring at runtime. This is a way to tell pylint to let it be
 
+from email import message
 from flask import g, jsonify, abort, request, Response, render_template, redirect, url_for, make_response
 from flask import Blueprint
 from flask_login import login_required, current_user
@@ -468,6 +469,7 @@ def update_quiz_configuration(quiz_id):
     Handles PUT requests on the quiz configuration page
     '''
     q = models.Quiz.query.get_or_404(quiz_id)
+
     deadline0 = datetime.strptime(request.json['deadline0'], '%Y-%m-%dT%H:%M')
     deadline1 = datetime.strptime(request.json['deadline1'], '%Y-%m-%dT%H:%M')
     deadline2 = datetime.strptime(request.json['deadline2'], '%Y-%m-%dT%H:%M')
@@ -475,7 +477,7 @@ def update_quiz_configuration(quiz_id):
     deadline4 = datetime.strptime(request.json['deadline4'], '%Y-%m-%dT%H:%M')
 
     if deadline0 > deadline1 or deadline1 > deadline2 or deadline2 > deadline3 or deadline3 > deadline4:
-        return jsonify({ "message" : "Unable to create quiz due to invalid deadlines" }), 400
+        return jsonify({ "message" : "Unable to create quiz due to invalid deadlines", "status": "danger" }), 400
 
     q.deadline0 = deadline0
     q.deadline1 = deadline1
@@ -484,7 +486,7 @@ def update_quiz_configuration(quiz_id):
     q.deadline4 = deadline4
     models.DB.session.commit()
 
-    return jsonify({ "message" : "Deadlines added to database" }), 201
+    return jsonify({ "message" : "Deadlines added to database", "status": "success" }), 201
 
 
 @mcq.route('/quizzes', methods=['POST'])
