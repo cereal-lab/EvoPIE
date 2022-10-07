@@ -548,11 +548,6 @@ def get_quiz(q):
     Links using this route are meant to be shared with students so that they may take the quiz
     and engage in the asynchronous peer instrution aspects. 
     '''
-    # models.DB.session.add(q)
-    if q.status == QUIZ_HIDDEN:
-        flash("Quiz not accessible at this time", "error")        
-        return redirect(url_for('pages.index'))
-
     # TODO #3 we replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
     # see lines commented out a ## for originals
     ##quiz_questions = [question.dump_as_dict() for question in q.quiz_questions]
@@ -603,31 +598,11 @@ def get_quiz(q):
         return "quiz_session_id" in request.cookies and request.cookies["quiz_session_id"] == f"{current_user.id}:{q.id}"
     def reset_quiz_session_cookie(resp: Response):
         # resp.set_cookie('quiz_session_id', '', expires=0)
-        return resp
-    #we create QuizAttempt if not exist
-    if (attempt.status == QUIZ_ATTEMPT_STEP1) and (q.status != QUIZ_STEP1):
-        flash("You did not submit your answers for step 1 of this quiz. Because of that, you may not participate in step 2.", "error")
-        return redirect(url_for('pages.index'))
-    if attempt.status == QUIZ_ATTEMPT_STEP1:
-        #load existing in db distractors 
-        if request.accept_mimetypes.accept_html:  
-            if check_quiz_session_cookie():                          
-                return reset_quiz_session_cookie(make_response(render_template('step1.html', quiz=quiz_model, questions=question_model)))
-            else:
-                return redirect(url_for("pages.protected_get_quiz", q = q))
-        return jsonify({"questions":question_model})
-    if attempt.status == QUIZ_ATTEMPT_STEP2 and q.status == QUIZ_STEP1:
-        flash("You already submitted your answers for step 1 of this quiz. Wait for the instructor to open step 2 for everyone.", "error")
-        return redirect(url_for('pages.index'))
-    if attempt.status == QUIZ_ATTEMPT_STEP1 and q.status == QUIZ_STEP2:
-        flash("You did not submit your answers for step 1 of this quiz. Because of that, you may not participate in step 2.", "error")
-        return redirect(url_for('pages.index'))
-    if attempt.status == QUIZ_ATTEMPT_SOLUTIONS and q.status == QUIZ_STEP2 and attempt.revised_responses != "{}":
-        flash("You already submitted your answers for both step 1 and step 2. You are done with this quiz.", "error")
-        return redirect(url_for('pages.index'))      
-    #if attempt.status == QUIZ_ATTEMPT_STEP2 or attempt.status == QUIZ_ATTEMPT_SOLUTIONS:
+        return resp    
     if not check_quiz_session_cookie():
         return redirect(url_for("pages.protected_get_quiz", q = q))    
+    if attempt.status == QUIZ_ATTEMPT_STEP1:
+        return reset_quiz_session_cookie(make_response(render_template('step1.html', quiz=quiz_model, questions=question_model)))
     if attempt.status == QUIZ_ATTEMPT_STEP2:
         if attempt.selected_justifications_timestamp is None: #attempt justifications were not initialized yet
             # retrieve the peers' justifications for each question  
@@ -714,6 +689,7 @@ def get_quiz(q):
 @pages.route('/student/<quiz:q>/start', methods=['GET', 'POST'])
 @login_required
 @role_required(role=ROLE_STUDENT, redirect_route='pages.index', redirect_message="You are not allowed to take this quiz")
+@verify_deadline(quiz_attempt_param = "q", redirect_route='pages.index')
 def protected_get_quiz(q: models.Quiz):
     '''
     Same to get_quiz but requires login password from student. Instead of GET, POST method is used. 
@@ -742,8 +718,6 @@ def save_quiz_attempt(q, body):
     quiz, attempt = q
 
     body.setdefault("question", {})    
-
-    date = datetime.now()
 
     answer_questions(q, body["question"])
     #validation that attempt could go to next step 

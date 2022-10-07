@@ -4,7 +4,7 @@
 # The following are flask custom commands; 
 
 from datetime import datetime
-from evopie.config import EVO_PROCESS_STATUS_ACTIVE, EVO_PROCESS_STATUS_STOPPED, QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, ROLE_STUDENT
+from evopie.config import EVO_PROCESS_STATUS_ACTIVE, EVO_PROCESS_STATUS_STOPPED, QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_HIDDEN, QUIZ_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, ROLE_STUDENT
 from . import models, APP # get also DB from there
 from sqlalchemy.orm.exc import StaleDataError
 
@@ -203,24 +203,46 @@ def verify_deadline(quiz_attempt_param = "q", redirect_to_referrer = False, redi
         @wraps(f)
         def decorated_function(*args, **kwargs):
             date = datetime.now()
-            # q = kwargs.get('q', None) or models.Quiz.query.get_or_404(kwargs['qid'])
-            # attempt = models.QuizAttempt.query.filter_by(student_id=current_user.id, quiz_id=q.id).first()
-            if type(kwargs.get('q')) is models.Quiz:
-                q = kwargs['q']
+            if type(kwargs.get(quiz_attempt_param)) is models.Quiz:
+                q = kwargs[quiz_attempt_param]
                 attempt = models.QuizAttempt.query.filter_by(student_id=current_user.id, quiz_id=q.id).first()
-            elif kwargs.get('q', None) is None:
+            elif kwargs.get(quiz_attempt_param, None) is None:
                 q = models.Quiz.query.get_or_404(kwargs['qid'])
                 attempt = models.QuizAttempt.query.filter_by(student_id=current_user.id, quiz_id=q.id).first()
             else:
-                q, attempt = kwargs['q']
+                q, attempt = kwargs[quiz_attempt_param]
 
-            status = attempt.status if attempt else QUIZ_ATTEMPT_STEP1
+            status, revised_responses_cnt = (attempt.status, len(attempt.revised_responses)) if attempt else (QUIZ_ATTEMPT_STEP1, 0)
+            def err_redir():
+                return redirect(request.referrer if redirect_to_referrer else url_for(redirect_route, next=request.url))
+
+            #Block about statuses
+            #check correspondence of quiz and attemot statuses
+            if q.status == QUIZ_HIDDEN: #quiz is hidden from students
+                flash("Quiz not accessible at this time", "error")
+                return err_redir()
+
+            if (status == QUIZ_ATTEMPT_STEP1) and (q.status != QUIZ_STEP1):
+                flash("You did not submit your answers for step 1 of this quiz. Because of that, you may not participate in step 2.", "error")
+                return err_redir()
+
+            if status == QUIZ_ATTEMPT_STEP2 and q.status == QUIZ_STEP1:
+                flash("You already submitted your answers for step 1 of this quiz. Wait for the instructor to open step 2 for everyone.", "error")
+                return err_redir()
+
+            if status == QUIZ_ATTEMPT_STEP1 and q.status == QUIZ_STEP2:
+                flash("You did not submit your answers for step 1 of this quiz. Because of that, you may not participate in step 2.", "error")
+                return err_redir()
+
+            if status == QUIZ_ATTEMPT_SOLUTIONS and q.status == QUIZ_STEP2 and revised_responses_cnt > 0:
+                flash("You already submitted your answers for both step 1 and step 2. You are done with this quiz.", "error")
+                return err_redir()
 
             # First sanity check: is the quiz active? 
             if date >= q.deadline4:
                 flash("Quiz is closed.", "error")
                 # Should we hide the quiz from the student?
-                return redirect(request.referrer if redirect_to_referrer else url_for(redirect_route, next=request.url))
+                return err_redir()
             if date < q.deadline0:
                 flash("The quiz is not available yet.", "error")
                 return redirect(request.referrer if redirect_to_referrer else url_for(redirect_route, next=request.url))
