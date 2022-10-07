@@ -240,7 +240,28 @@
                 "--file-name-pattern", ".*_20-\\d+.csv",
                 "-p", "dim_coverage_with_spanned", "--group-by-space"
             ]
-        }
+        },
+        {
+            "name": "CLI: quiz plot-metric-vs-num-of-dims",
+            "type": "python",
+            "request": "launch",
+            "module" : "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1"
+            },
+            "args" : [
+                "quiz", "plot-metric-vs-num-of-dims",
+                "-p", "dim_coverage", "-pt", "Dimension coverage",
+                "--data-folder", "data/data-2022-10-03",
+                "--path-suffix", "results",
+                "--figure-folder", "figures",
+                "--file-name-pattern", "(?P<algo>.*)-on-space-.*-s_(?P<spanned>.*)-\\d+.csv",
+                "--fig-name", "<algo>-<param>-<spanned>"
+            ],
+            "console": "internalConsole"
+        }        
     ]
 }
 
