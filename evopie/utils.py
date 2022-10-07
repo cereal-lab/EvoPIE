@@ -3,6 +3,7 @@
 
 # The following are flask custom commands; 
 
+from datetime import datetime
 from evopie.config import EVO_PROCESS_STATUS_ACTIVE, EVO_PROCESS_STATUS_STOPPED, QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, ROLE_STUDENT
 from . import models, APP # get also DB from there
 from sqlalchemy.orm.exc import StaleDataError
@@ -93,6 +94,71 @@ def role_required(role, redirect_to_referrer = False, redirect_route='login', re
                     return jsonify({"message": redirect_message}), 403
                 else: 
                     return abort(403)
+            return f(*args, **kwargs)            
+        return decorated_function
+    return decorator
+
+def verify_deadline(quiz_attempt_param = "q", redirect_to_referrer = False, redirect_route='index'):
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            date = datetime.now()
+            # q = kwargs.get('q', None) or models.Quiz.query.get_or_404(kwargs['qid'])
+            # attempt = models.QuizAttempt.query.filter_by(student_id=current_user.id, quiz_id=q.id).first()
+            if type(kwargs.get('q')) is models.Quiz:
+                q = kwargs['q']
+                attempt = models.QuizAttempt.query.filter_by(student_id=current_user.id, quiz_id=q.id).first()
+            elif kwargs.get('q', None) is None:
+                q = models.Quiz.query.get_or_404(kwargs['qid'])
+                attempt = models.QuizAttempt.query.filter_by(student_id=current_user.id, quiz_id=q.id).first()
+            else:
+                q, attempt = kwargs['q']
+
+            status = attempt.status if attempt else QUIZ_ATTEMPT_STEP1
+
+            # First sanity check: is the quiz active? 
+            if date >= q.deadline4:
+                flash("Quiz is closed.", "error")
+                # Should we hide the quiz from the student?
+                return redirect(request.referrer if redirect_to_referrer else url_for(redirect_route, next=request.url))
+            if date < q.deadline0:
+                flash("The quiz is not available yet.", "error")
+                return redirect(request.referrer if redirect_to_referrer else url_for(redirect_route, next=request.url))
+
+            if status == QUIZ_ATTEMPT_STEP1:
+                if q.status != QUIZ_STEP1:
+                    flash("You did not submit your answers for step 1 of this quiz. Because of that, you may not participate in step 2.", "error")
+                    return redirect(request.referrer if redirect_to_referrer else url_for(redirect_route, next=request.url))
+                elif not (date > q.deadline0 and date <= q.deadline1):
+                    flash("You missed the deadline for completing Step1.", "error")
+                    return redirect(request.referrer if redirect_to_referrer else url_for(redirect_route, next=request.url))
+            elif status == QUIZ_ATTEMPT_STEP2:
+                if attempt is None:
+                    flash("You did not submit your answers for step 1 of this quiz. Because of that, you may not participate in step 2.", "error")
+                    return redirect(request.referrer if redirect_to_referrer else url_for(redirect_route, next=request.url))
+                elif q.status != QUIZ_STEP2:
+                    flash("You already submitted your answers for step 1 of this quiz. Wait for the instructor to open step 2 for everyone.", "error")
+                    return redirect(request.referrer if redirect_to_referrer else url_for(redirect_route, next=request.url))
+                elif date <= q.deadline1:
+                    flash("You cannot participate in step 2 of this quiz before the deadline for step 1.", "error")
+                    return redirect(request.referrer if redirect_to_referrer else url_for(redirect_route, next=request.url))
+                elif not (date > q.deadline1 and date <= q.deadline2):
+                    flash("You missed the deadline for completing Step2.", "error")
+                    return redirect(request.referrer if redirect_to_referrer else url_for(redirect_route, next=request.url))
+            elif status == QUIZ_ATTEMPT_SOLUTIONS:
+                if date < q.deadline3:
+                    flash("Solutions have not been released yet.", "error")
+                    return redirect(request.referrer if redirect_to_referrer else url_for(redirect_route, next=request.url))
+                elif q.status == QUIZ_STEP2 and attempt.revised_responses != "{}":
+                    flash("You already submitted your answers for both step 1 and step 2. You are done with this quiz.", "error")
+                    return redirect(request.referrer if redirect_to_referrer else url_for(redirect_route, next=request.url))
+                elif not (date >= q.deadline3 and date < q.deadline4):
+                    flash("You missed the deadline for checking the solutions.", "error")
+                    return redirect(request.referrer if redirect_to_referrer else url_for(redirect_route, next=request.url))
+                elif request.method == "POST":
+                    flash("You cannot submit your answers after the deadline.", "error")
+                    return redirect(request.referrer if redirect_to_referrer else url_for(redirect_route, next=request.url))
+            
             return f(*args, **kwargs)            
         return decorated_function
     return decorator

@@ -40,6 +40,26 @@
                     <label for="quiz_description">Description</label>
                     <textarea class="summernote form-control" name="quiz_description" id="quiz_description" required></textarea>
                 </div>
+                <div class="form-group">
+                    <label for="quiz_deadline0">Quiz Release Deadline</label>
+                    <input type="datetime-local" id="quiz_deadline0" name="quiz_deadline0">
+                </div>
+                <div class="form-group">
+                    <label for="quiz_deadline1">Step1 Submission Deadline</label>
+                    <input type="datetime-local" id="quiz_deadline1" name="quiz_deadline1">
+                </div>
+                <div class="form-group">
+                    <label for="quiz_deadline2">Step2 Submission Deadline</label>
+                    <input type="datetime-local" id="quiz_deadline2" name="quiz_deadline2">
+                </div>
+                <div class="form-group">
+                    <label for="quiz_deadline3">Solutions Release Deadline</label>
+                    <input type="datetime-local" id="quiz_deadline3" name="quiz_deadline3">
+                </div>
+                <div class="form-group">
+                    <label for="quiz_deadline4">Quiz Availability Deadline</label>
+                    <input type="datetime-local" id="quiz_deadline4" name="quiz_deadline4">
+                </div>
                 <button onclick="submitQuizForm()" class="btn btn-primary">Submit</button>
             </form>
         </p>
@@ -53,6 +73,12 @@
     function submitQuizForm(){
         let title = document.querySelector('#quiz_title');
         let description = document.querySelector('#quiz_description');
+        let deadline0 = document.querySelector('#quiz_deadline0');
+        let deadline1 = document.querySelector('#quiz_deadline1');
+        let deadline2 = document.querySelector('#quiz_deadline2');
+        let deadline3 = document.querySelector('#quiz_deadline3');
+        let deadline4 = document.querySelector('#quiz_deadline4');
+
         
         let xhr = new XMLHttpRequest();
         let url = '/quizzes';
@@ -71,8 +97,7 @@
         // old version limited to 3 questions
         // var data = JSON.stringify({ "title": title.value, "description": description.value, "questions_ids": [parseInt(qq1.value), parseInt(qq2.value), parseInt(qq3.value)] });
         
-        var data = JSON.stringify({ "title": title.value, "description": description.value});
-        
+        var data = JSON.stringify({ "title": title.value, "description": description.value, "deadline0": deadline0.value, "deadline1": deadline1.value, "deadline2": deadline2.value, "deadline3": deadline3.value, "deadline4": deadline4.value });
         
         // Sending data with the request 
         xhr.send(data);

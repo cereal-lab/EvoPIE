@@ -8,11 +8,12 @@ from flask import Blueprint
 from flask_login import login_required, current_user
 from flask import Markup
 from flask import flash
+from datetime import datetime
 from werkzeug.security import generate_password_hash
-from evopie.config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT
+from evopie.config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT
 from evopie.evo import get_evo, start_evo, stop_evo, Evaluation
 
-from evopie.utils import groupby, role_required, sanitize, unmime, validate_quiz_attempt_step
+from evopie.utils import groupby, role_required, sanitize, unmime, validate_quiz_attempt_step, verify_deadline
 
 from . import models
 
@@ -468,6 +469,15 @@ def post_new_quiz():
     '''
     title = request.json['title']
     description = request.json['description']
+    deadline0 = datetime.strptime(request.json['deadline0'], '%Y-%m-%dT%H:%M')
+    deadline1 = datetime.strptime(request.json['deadline1'], '%Y-%m-%dT%H:%M')
+    deadline2 = datetime.strptime(request.json['deadline2'], '%Y-%m-%dT%H:%M')
+    deadline3 = datetime.strptime(request.json['deadline3'], '%Y-%m-%dT%H:%M')
+    deadline4 = datetime.strptime(request.json['deadline4'], '%Y-%m-%dT%H:%M')
+
+    if deadline0 > deadline1 or deadline1 > deadline2 or deadline2 > deadline3 or deadline3 > deadline4:
+        flash("Invalid deadline sequence", "error")
+        abort(400, "Unable to create quiz due to invalid deadlines")
 
     # validate that all required information was sent
     if title is None or description is None:
@@ -479,7 +489,7 @@ def post_new_quiz():
     bleached_title = sanitize(title)
     bleached_description = sanitize(description)
 
-    q = models.Quiz(title=bleached_title, description=bleached_description)
+    q = models.Quiz(title=bleached_title, description=bleached_description, deadline0=deadline0, deadline1=deadline1, deadline2=deadline2, deadline3=deadline3, deadline4=deadline4)
     
     # Adding the questions, based on the questions_id that were submitted
     if 'questions_ids' in request.json:
@@ -627,6 +637,7 @@ def post_quizzes_status(qid):
 @mcq.route('/quizzes/<int:qid>/take', methods=['GET', 'POST'])
 @login_required
 @role_required(ROLE_STUDENT, redirect_route='pages.index', redirect_message="You are not allowed to take quizzes", category="postError")
+@verify_deadline(redirect_route='pages.index')
 def all_quizzes_take(qid):
 
     quiz = models.Quiz.query.get_or_404(qid)
@@ -635,9 +646,15 @@ def all_quizzes_take(qid):
     
     # TODO implement logic for deadlines
     # IF date <= DL1 THEN step #1 ELSE IF DL1 < date <= DL2 && previous attempt exists THEN step #2
-    
+
     attempt = models.QuizAttempt.query.filter_by(quiz_id=qid).filter_by(student_id=sid).first()
     # FIXME we are taking the first... would be better to ensure uniqueness
+
+
+    # NOTE need to code for step1 and step2
+
+    # if attempt.status == QUIZ_ATTEMPT_STEP1:
+    #     if date > quiz.deadline0 and date <= quiz.deadline1 and quiz.status == QUIZ_STEP1:
     
     step1 = False
     step2 = False
@@ -853,6 +870,8 @@ def answer_questions(q, body):
     for qid, answer in body.items(): # body should be map of questionId: id of option selected
         if qid in attempt.alternatives_map and answer >= 0 and answer < len(attempt.alternatives_map[qid]):
             attempt.step_responses[qid] = attempt.alternatives_map[qid][answer]
+        # if qid in attempt.alternatives_map and int(answer) in attempt.alternatives_map[qid]:
+        #     attempt.step_responses[qid] = int(answer)
     
     models.DB.session.commit()
     return {"message": "Quiz answers were saved"}
@@ -876,6 +895,13 @@ def justify_alternative_selection(q, body):
         for aid in [int(alt_id)]
         if aid >= 0 and aid < len(alternatives)        
         for distractor_id in [ alternatives[aid] ] }
+
+    # new_justifications = {(int(qid), aid):justification
+    #     for qid, alt_js in body.items()
+    #     for alternatives in [ attempt.alternatives_map[qid] ]
+    #     for alt_id, justification in alt_js.items()
+    #     for aid in [int(alt_id)]
+    #     if aid in alternatives }
 
     if len(new_justifications) == 0: 
         return {"message": "Justifications were saved" }
@@ -906,12 +932,13 @@ def justify_alternative_selection(q, body):
 
 @mcq.route('/quizzes/<qa:q>/justifications/like', methods=['PUT'])
 @login_required
+@verify_deadline(quiz_attempt_param = "q", redirect_route='pages.index')
 @validate_quiz_attempt_step(quiz_attempt_param = "q", required_step=QUIZ_ATTEMPT_STEP2)
 @unmime(type_converters={"*": lambda x: x == 1}) #1 means like, 0 - unlike
 def like_justifications(q, body):
     _, attempt = q 
     
-    if g.ignore_selected_justifications: #disablces validation of ids 
+    if hasattr(g, "ignore_selected_justifications") and g.ignore_selected_justifications: #disablces validation of ids 
         present_likes = models.Likes4Justifications.query.where(models.Likes4Justifications.student_id == current_user.id).all()
         present_likes_map = {str(l.justification_id):l for l in present_likes}   
         valid_jid = lambda jid: True     

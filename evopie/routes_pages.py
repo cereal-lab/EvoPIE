@@ -22,8 +22,8 @@ from evopie.routes_mcq import answer_questions, justify_alternative_selection
 
 from evopie.utils import role_required, retry_concurrent_update, find_median
 
-from .config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_HIDDEN, QUIZ_STEP1, QUIZ_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT, get_attempt_next_step, get_k_tournament_size, get_least_seen_slots_num
-from .utils import unescape, unmime, validate_quiz_attempt_step
+from .config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_HIDDEN, QUIZ_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT, get_attempt_next_step, get_k_tournament_size, get_least_seen_slots_num
+from .utils import unescape, unmime, validate_quiz_attempt_step, verify_deadline
 
 import json, random, ast, re
 import numpy as np
@@ -504,6 +504,7 @@ def get_or_create_attempt(quiz_id, quiz_questions, distractor_per_question):
 @pages.route('/student/<quiz:q>', methods=['GET']) #IMPORTANT: see the notation of <quiz:q> in the url template - these are custom converter - check _init__.py APP.url_map.converters 
 @login_required
 @role_required(role=ROLE_STUDENT, redirect_route='pages.index', redirect_message="You are not allowed to take this quiz")
+@verify_deadline(quiz_attempt_param = "q", redirect_route='pages.index')
 @retry_concurrent_update #this will retry the call of this function  in case when two requests try to update db at same time - optimistic concurency 
 def get_quiz(q):
     '''
@@ -558,7 +559,7 @@ def get_quiz(q):
                         for (qq, alternatives) in zip(quiz_questions, attempt.alternatives) 
                         for js in [justification_map.get(qq.id, {})]]
 
-    quiz_model = { "id" : q.id, "title" : q.title, "description" : q.description } #we do not need any other fields from dump_as_dict
+    quiz_model = { "id" : q.id, "title" : q.title, "description" : q.description, "deadline0": q.deadline0, "deadline1": q.deadline1, "deadline2": q.deadline2, "deadline3": q.deadline3, "deadline4": q.deadline4 } #we do not need any other fields from dump_as_dict
     #NOTE: dump_as_dict causes additional db requests due to rendering related entities.
 
 
@@ -579,7 +580,7 @@ def get_quiz(q):
         return redirect(url_for('pages.index'))
     if attempt.status == QUIZ_ATTEMPT_SOLUTIONS and q.status == QUIZ_STEP2 and attempt.revised_responses != "{}":
         flash("You already submitted your answers for both step 1 and step 2. You are done with this quiz.", "error")
-        return redirect(url_for('pages.index'))            
+        return redirect(url_for('pages.index'))      
     #if attempt.status == QUIZ_ATTEMPT_STEP2 or attempt.status == QUIZ_ATTEMPT_SOLUTIONS:
     if attempt.status == QUIZ_ATTEMPT_STEP2:
         if attempt.selected_justifications_timestamp is None: #attempt justifications were not initialized yet
@@ -664,16 +665,18 @@ def get_quiz(q):
     return render_template("solutions.html", quiz=quiz_model,
         questions=question_model, attempt=attempt.dump_as_dict(), explanations=explanations)
 
-
 @pages.route('/student/<qa:q>', methods=['POST']) #IMPORTANT: see the notation of <qa:q> in the url template - these are custom converter - check _init__.py APP.url_map.converters 
 @login_required
 @role_required(role=ROLE_STUDENT, redirect_route='pages.index', redirect_message="You are not allowed to take this quiz")
+@verify_deadline(quiz_attempt_param = "q", redirect_route='pages.index')
 @validate_quiz_attempt_step(quiz_attempt_param = "q")
 @unmime(delim='_', type_converters={"question":{"*":lambda x: int(x)}})
 def save_quiz_attempt(q, body):
     quiz, attempt = q
 
     body.setdefault("question", {})    
+
+    date = datetime.now()
 
     answer_questions(q, body["question"])
     #validation that attempt could go to next step 
@@ -684,6 +687,11 @@ def save_quiz_attempt(q, body):
     response_set = {(int(qid), did) for qid, did in attempt.step_responses.items()}
 
     if attempt.status == QUIZ_ATTEMPT_STEP1:
+        # if not (date > quiz.deadline0 and date <= quiz.deadline1):
+        #     models.QuizAttempt.query.filter_by(student_id=current_user.id).delete()
+        #     models.DB.session.commit()
+        #     flash("You missed the deadline for Step1.", "error")
+        #     return redirect(url_for('pages.index'))
         body.setdefault("justification", {})
         justify_alternative_selection(q, body["justification"])
 
@@ -704,7 +712,7 @@ def save_quiz_attempt(q, body):
                     js_map[qdid].ready = True #justification could be used by student on next step
 
         #justifications were validated - we delete unnecessary justifications (for selected answers)
-        if g.allow_justification_for_selected:
+        if hasattr(g, "allow_justification_for_selected") and g.allow_justification_for_selected:
             for qdid in js_map:
                 js_map[qdid].ready = True #for testing purpose
         else:

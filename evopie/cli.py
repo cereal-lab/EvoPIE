@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from functools import reduce
 from io import StringIO
 from itertools import combinations_with_replacement, product
@@ -111,7 +112,12 @@ def start_quiz_init(instructor, num_questions, num_distractors, question_distrac
     '''
     instructor = {"email":instructor, "firstname":"I", "lastname": "I", "password":"pwd"}
     def build_quiz(i, questions):
-        return { "title": f"Quiz {i}", "description": "Test quiz", "questions_ids": questions}
+        deadline0 = (datetime.now() + timedelta(days=-1)).strftime("%Y-%m-%dT%H:%M")
+        deadline1 = (datetime.now() + timedelta(days=2)).strftime("%Y-%m-%dT%H:%M")
+        deadline2 = (datetime.now() + timedelta(days=3)).strftime("%Y-%m-%dT%H:%M")
+        deadline3 = (datetime.now() + timedelta(days=4)).strftime("%Y-%m-%dT%H:%M")
+        deadline4 = (datetime.now() + timedelta(days=5)).strftime("%Y-%m-%dT%H:%M")
+        return { "title": f"Quiz {i}", "description": "Test quiz", "deadline0": deadline0, "deadline1": deadline1, "deadline2": deadline2, "deadline3": deadline3, "deadline4": deadline4, "questions_ids": questions}
     def build_question(i):
         return { "title": f"Question {i}", "stem": f"Question {i} Stem?", "answer": f"a{i}"}
     def build_distractor(i, question):

@@ -151,9 +151,15 @@
                       <td>
                         {{q.status }}
                       </td>
-                      <td>
-                        <a href="/student/{{ q.id }}" class="btn btn-primary my-2"> Take Quiz </a>
-                      </td>
+                      {% if q.status == 'SOLUTIONS' %}
+                        <td>
+                          <a href="/student/{{ q.id }}" class="btn btn-primary my-2"> See Solutions </a>
+                        </td>
+                      {% else %}
+                        <td>
+                          <a href="/student/{{ q.id }}" class="btn btn-primary my-2"> Take Quiz </a>
+                        </td>
+                      {% endif %}  
                     </tr>
                     {% endif %}
                   {% endfor %}

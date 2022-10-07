@@ -8,6 +8,7 @@
     <div class="jumbotron jumbotron-fluid">
         <div class="container">
             <h1 class="display-4">Solutions - {{quiz.title | safe }}</h1>
+            <h3>Deadline - {{quiz.deadline4|date}}</h3>
             <p class="lead">
                 Hello, {{current_user.first_name}} {{current_user.last_name}} ({{current_user.email}}). 
                 Here are the answers to this quiz with instructor justifications.

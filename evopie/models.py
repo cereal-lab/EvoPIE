@@ -249,6 +249,13 @@ class Quiz(DB.Model):
     third_quartile_grade = DB.Column(DB.Integer, default = 5)
     fourth_quartile_grade = DB.Column(DB.Integer, default = 10)
 
+    deadline0 = DB.Column(DB.DateTime, nullable=False) # available
+    deadline1 = DB.Column(DB.DateTime, nullable=False) # step 1 is due
+    deadline2 = DB.Column(DB.DateTime, nullable=False) # step 2 is due
+    deadline3 = DB.Column(DB.DateTime, nullable=False) # when answers are revealed
+    deadline4 = DB.Column(DB.DateTime, nullable=False) # when the quiz is closed (becomes hidden)
+
+
     # NOTE for now the statuses that are handled are "HIDDEN", "STEP1", "STEP2"
     # TODO might want to make this a foreign key to a table of statuses
 
