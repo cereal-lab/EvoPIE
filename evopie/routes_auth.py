@@ -89,6 +89,7 @@ def post_signup():
 
     password = generate_password_hash(password, method='sha256')
 
+    user = models.User.query.filter_by(email=email).first()
     if user is not None and user.password is None:
         user.password = password
         user.first_name = first_name
