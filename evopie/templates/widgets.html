@@ -33,3 +33,34 @@
     {{ caller() }}    
 </div>  
 {%- endmacro %}
+
+{% macro submit_quiz_button() -%}
+    <div class="card bg-light m-3 mx-auto" style="width: 75%">
+        <div class="card-body" bg-light>   <p class="lead"><p>
+            <table>
+                <tr>
+                    <td>
+                        <button class="btn btn-danger" type="submit">Submit Quiz</button>
+                    </td>
+                    <td style="padding:1em;">
+                        When you are done taking the quiz, press this button. Remember: you may close this page
+                        then come back later to re-open the quiz, however, once you submit, you will not be available
+                        to reopen this quiz.
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+{%- endmacro %}
+
+{% macro question_option(q, option_id, answer, disabled=False) -%}
+<input type="radio" {% if disabled -%} disabled="disabled" {%- else -%} onchange="saveAnswers(event)" {%- endif %}
+    {% if (option_id == q.choice) -%} checked="checked" {%- endif %}    
+    id="question_{{q.id}}_{{option_id}}"
+    data-question-id="{{q.id}}" data-alt-id="{{option_id}}"
+    name="question_{{q.id}}" value="{{option_id}}"
+    class="form-check-input" />
+<label class="form-check-label opacity-100" for="question_{{q.id}}_{{option_id}}">
+    {{ answer | safe | unescapeDoubleQuotes }}
+</label>       
+{%- endmacro %}                     

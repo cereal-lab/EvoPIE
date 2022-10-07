@@ -64,3 +64,57 @@ const createWeightSlider = (qid, sliderId, weights, cb, step1WeightElId = "step1
     })
     return slider;
 }
+
+function sendToFlashLand(message, type) {
+    var target = document.getElementById('flashland')
+    var data = document.createElement('div')
+    data.innerHTML = '<div class="alert mb-1 py-1 alert-' + type + ' alert-dismissible fade show" role="alert">' 
+        + message 
+        + '<button type="button" class="small py-2 btn-close" data-dismiss="alert" aria-label="Close"></button></div>'
+    target.append(data)
+}
+
+const fetchJson = async (...args) => {
+    try {
+        const response = await fetch(...args)
+        const data = await response.json()
+        if (response.status >= 400) {
+            console.error("[fetch] fails: ", response.status, args, data)
+            sendToFlashLand(data.message, "danger");
+            throw new Error(data.message) //this exists to shortcut and exit event handler - otherwise return null and deal with it outside
+        } else {
+            return data;
+        }
+    } catch (e) {
+        //we show error in flash area
+        console.error("[fetch] fails: ", args, e)
+        sendToFlashLand("Something went wrong. Could not save state.", "danger")
+        throw e;
+    }
+}
+
+/** Delays function execution for some time  */
+const debounce = (func, timeout = 300) => {
+    let timer;
+    return (...args) => {
+      clearTimeout(timer);
+      timer = setTimeout(async () => { await func(...args); }, timeout);
+    };
+}
+
+const buildQuizSaver = (quizId, quizFormId) => {
+    const saveAnswers = async () => {
+        const form = new FormData(document.getElementById(quizFormId))
+        const data = {};
+        for (const [name, value] of form.entries()) {
+            if (name.startsWith("question_")) data[name.split("_")[1]] = parseInt(value)
+        }
+        const {} = await fetchJson(`/quizzes/${quizId}/answers`, {
+            method: 'PUT',
+            headers: {'Content-Type' : 'application/json'},
+            body: JSON.stringify(data),
+            credentials: 'same-origin'
+        })            
+    }
+    return saveAnswers
+}

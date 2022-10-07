@@ -1,6 +1,7 @@
 # pylint: disable=no-member
 # pylint: disable=E1101 
 
+import json
 from flask import jsonify, abort, request, Response, render_template, redirect, url_for, make_response
 from flask import flash, Markup
 from flask import Blueprint
@@ -11,26 +12,19 @@ from .config import ROLE_INSTRUCTOR, ROLE_STUDENT
 
 import evopie.models as models
 
-
 auth = Blueprint('auth', __name__)
-
-
 
 @auth.route('/login')
 def get_login():
     return render_template('login.html')
 
-
-
 @auth.route('/signup')
 def get_signup():
     return render_template('signup.html')
 
-
-
 @auth.route('/login', methods=['POST'])
 def post_login():
-    if request.json:
+    if request.is_json:
         email = request.json.get('email')
         password = request.json.get('password')
         remember = True if request.json.get('remember_me') else False
@@ -40,17 +34,19 @@ def post_login():
         remember = True if request.form.get('remember_me') else False
     user = models.User.query.filter_by(email=email).first()
 
-    if not user or not check_password_hash(user.password, password):        
+    if not user or not check_password_hash(user.password, password):    
+        if request.is_json:
+            return jsonify({ "message": "Login or password incorrect", "redirect": url_for('auth.get_signup')}), 400    
         flash(Markup('Login or password incorrect. Do you need to <a href="' + url_for('auth.get_signup') + '">sign up</a> for an account?'))
         return redirect(url_for('auth.get_login'))
     login_user(user, remember=remember, duration=timedelta(days=5))
+    if request.is_json:
+        return jsonify({ "message": "Login successful", "id": user.id }), 200
     return redirect(url_for('pages.index'))
-
-
 
 @auth.route('/signup', methods=['POST'])
 def post_signup():
-    if request.json:
+    if request.is_json:
         email = request.json.get('email')
         first_name = request.json.get('firstname')
         last_name = request.json.get('lastname')
@@ -63,21 +59,19 @@ def post_signup():
         password = request.form.get('password')
         retype = request.form.get('retype')
 
-    if( retype != password):
+    if(retype != password):
         flash('Passwords do not match')
         return redirect(url_for('auth.get_signup'))
     
         
     # making sure the user does not already exist
-    user = models.User.query.filter_by(email=email).first()
-    if user is None and (password is None or password == ''):
-        print('Empty password!')
-        flash('Password cannot be blank')
-        return redirect(url_for('auth.get_signup'))
-        
-    if user is not None and user.password is not None:
-        flash('Email address already exists')
-        return redirect(url_for('auth.get_signup'))
+    if models.User.query.filter_by(email=email).first():        
+        found_url = url_for('auth.get_signup')
+        message = 'Email address already exists'
+        if request.is_json:
+            return jsonify({ "message": message, "redirect": found_url }), 200
+        flash(message)
+        return redirect(found_url)
         #TODO we should redirect to password recovery so that, if someone is spam-creating
         # accounts, the first one will be salvageable by whoever actually has legitimate access
         # to the email address associated with it. 
@@ -106,9 +100,9 @@ def post_signup():
     
     models.DB.session.commit()
 
+    if request.is_json:
+        return jsonify({ "message": "User created", "login": url_for('auth.get_login'), "id": new_user.id }), 201
     return redirect(url_for('auth.get_login'))
-    
-
 
 @auth.route('/logout')
 def logout():

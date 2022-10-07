@@ -25,6 +25,224 @@
             //"program": "app.py",
             //"module": "evopie.${fileBasenameNoExtension}",
             //"console": "integratedTerminal"
+        },
+        {
+            "name": "CLI: quiz init",
+            "type": "python",
+            "request": "launch",
+            "module" : "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1"
+            },
+            "args" : [
+                "quiz",
+                "init",
+                "-nq",
+                "3",
+                "-nd",
+                "5"
+            ]
+        },
+        {
+            "name": "CLI: student init",
+            "type": "python",
+            "request": "launch",
+            "module" : "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1"
+            },
+            "args" : [
+                "student",
+                "init", "-q", "1",
+                "-ns", "20", "--exclude-id", "12", "-kr",
+                // "-i", "testing/students.csv",
+                // "-k {\"did\":1,\"chance\":1}",
+                // "-k {\"did\":2,\"chance\":[1,0.5]}",
+                // "-k {\"qid\":3,\"chance\":[0.4,0.2]}",
+                // "-k {\"sid\":4,\"chance\":[0.3,0.15]}",
+                "-k {\"sid\":{\"range\":[1,4]},\"qid\":1,\"did\":3,\"step\":1,\"chance\":1}",
+                "-k {\"sid\":{\"ranges\":[[1,4],[10,18]]},\"qid\":2,\"did\":7,\"step\":1,\"chance\":1}",
+                "-k {\"sid\":{\"range\":[1,9]},\"qid\":3,\"did\":11,\"step\":1,\"chance\":1}",
+                "-k {\"sid\":{\"range\":[1,9]},\"qid\":4,\"did\":13,\"step\":1,\"chance\":1}",
+                "-k {\"sid\":{\"range\":[1,18]},\"qid\":5,\"did\":17,\"step\":1,\"chance\":1}",
+                "-k {\"sid\":{\"range\":[1,14]},\"qid\":1,\"did\":4,\"step\":2,\"chance\":1}",
+                "-k {\"sid\":{\"ranges\":[[1,7],10]},\"qid\":4,\"did\":13,\"step\":2,\"chance\":1}",
+                "-k {\"sid\":{\"range\":[1,14]},\"qid\":5,\"did\":17,\"step\":2,\"chance\":1}",
+                "-o", "testing/students.csv"
+            ]
+        },
+        {
+            "name": "CLI: student export",
+            "type": "python",
+            "request": "launch",
+            "module" : "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1"
+            },
+            "args" : [
+                "student",
+                "export",
+            ]
+        },        
+        {
+            "name": "CLI: quiz run",
+            "type": "python",
+            "request": "launch",
+            "module" : "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1"
+            },
+            "args" : [
+                "quiz",
+                "run",
+                "-q", "1",
+                "-s", "STEP1", "-s", "STEP2",
+                "--no-algo", "--justify-response",
+                "-l {\"sid\":1,\"jid\":{\"range\":[90,103]}}",
+                "-l {\"sid\":2,\"jid\":{\"range\":[90,104]}}",
+                "-l {\"sid\":3,\"jid\":{\"range\":[89,104]}}",
+                "-l {\"sid\":4,\"jid\":{\"range\":[89,105]}}",
+                "-l {\"sid\":5,\"jid\":{\"ranges\":[[1,9],[23,27],17,22,24,30,33,37,57]}}",
+                "-l {\"sid\":6,\"jid\":{\"ranges\":[[1,9],[23,27],17,22,24,30,33]}}",
+                "-l {\"sid\":7,\"jid\":{\"ranges\":[[1,9],[23,27],17,22,30,33,57]}}",
+                "-l {\"sid\":{\"range\":[8,9]},\"jid\":{\"ranges\":[[1,9],[23,27],17,22,24,30,33,37,57,67,68]}}",
+                "-l {\"sid\":10,\"jid\":{\"ranges\":[[1,9],[23,27],17,22,24,30,33,37,57,[67,71],[89,104]]}}",
+                "-l {\"sid\":{\"range\":[11,14]},\"jid\":{\"ranges\":[[1,9],26,27,17,22,24,30,33,37,57,67,71,[89,91],[95,104]]}}",
+                "-l {\"sid\":{\"range\":[15,19]},\"jid\":{\"ranges\":[[1,9],[23,27],17,22,24,30,33,37,57,[67,71],[89,101]]}}",
+                "-l {\"sid\":20,\"jid\":{\"ranges\":[[1,9],[23,27],17,22,24,30,33,37,57,[67,71],[89,115]]}}",
+                "--random-seed", "17"
+            ]
+        },
+        {
+            "name": "CLI: quiz result",
+            "type": "python",
+            "request": "launch",
+            "module" : "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1"
+            },
+            "args" : [
+                "quiz",
+                "result",
+                "-q", "1",
+                "--expected", "testing/Extensive Test/LF_50%_Likes_15_to_19_QP_1_3_5_10_Weights_40%_30%_20%_10%.csv",
+                "--diff-o", "testing/diff-o.csv"
+            ]
+        },
+        {
+            "name": "CLI: quiz run deca-pphc",
+            "type": "python",
+            "request": "launch",
+            "module" : "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1",
+                // "EVOPIE_DATABASE_LOG": "db.log" 
+            },
+            "args" : [
+                "quiz",
+                "run",
+                "-q", "1",
+                "-s", "STEP1",
+                "--algo", "P_PHC", "--algo-params", "{ \"seed\": 595, \"pop_size\": 1, \"pareto_n\": 2, \"child_n\": 1, \"gene_size\": 3}",
+                "--evo-output", "algo/pphc-1-2-1-3.json", "--archive-output", "algo/a.csv",
+                "--random-seed", "17"
+            ]
+        },
+        {
+            "name": "CLI: deca init",
+            "type": "python",
+            "request": "launch",
+            "module" : "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1"
+            },
+            "args" : [
+                "deca",
+                "init", "-q", "1",
+                "-o", "deca-spaces",
+                "-a", "2", "-a", "3", "--spanned", "1", "--best-students-percent", "0.1", "--spanned-geometric-p", "0.8",
+                "--noninfo", "0.1", "-n", "3"
+            ]
+        },
+        {
+            "name": "CLI: deca result",
+            "type": "python",
+            "request": "launch",
+            "module" : "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1"
+            },
+            "args" : [
+                "deca",
+                "result",
+                "--algo-input", "algo/pphc-1-2-1-3.json",
+                "--deca-space", "deca-spaces/space-1_1_1_1_1_1_1_1-s_20-3.json",
+                "-p", "explored_search_space_size",
+                "-p", "search_space_size",
+                "-io", "results/x.csv"
+            ]
+        },
+        {
+            "name": "CLI: deca init-many",
+            "type": "python",
+            "request": "launch",
+            "module" : "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1"
+            },
+            "args" : [
+                "deca",
+                "init-many",
+                "-nq", "4",
+                "-nd", "25",
+                "-ns", "100",
+                "-an", "2", "-an", "3", "-an", "4", "-an", "5", "-an", "6", "-an", "7", "-an", "8", "-an", "9", "-an", "10",
+                "-as", "1", "-as", "2",  "-as", "3", "-as", "4",  "-as", "5",
+                "--num-spanned", "0", "--num-spanned", "1", "--num-spanned", "2", "--num-spanned", "3", "--num-spanned", "5", "--num-spanned", "10", "--num-spanned", "20",
+                "--num-spaces", "30", 
+                "--best-students-percent", "0.3", 
+                "--noninfo", "0.3"
+            ]
+        },
+        {
+            "name": "CLI: quiz post-process",
+            "type": "python",
+            "request": "launch",
+            "module" : "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1"
+            },
+            "args" : [
+                "quiz",
+                "post-process",
+                "--result-folder", "data/data-8/results",
+                "--figure-folder", "figures",
+                "--file-name-pattern", ".*_20-\\d+.csv",
+                "-p", "dim_coverage_with_spanned", "--group-by-space"
+            ]
         }
     ]
 }
+
+// --result-folder data/data-2/results --figure-folder figures --file-name-pattern '.*_0-\d+.csv' \
+//   -p population_duplication --group-by-space

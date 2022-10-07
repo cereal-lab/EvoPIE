@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+{% import 'widgets.html' as w %}
+
+{% block title %}EvoPIE{% endblock %}
+
+{% block content %}
+
+    <script>
+
+        const quizId = "{{quiz.id}}";
+        const lower = {{ attempt.min_participation_grade_threshold }};
+        const upper = {{ attempt.participation_grade_threshold }};
+        let likesGiven = {{ likes | length }};
+
+        const saveAnswers = buildQuizSaver(quizId, "quizForm")
+
+        function counterInit() {    
+            var progress = $('.progressbar .progress')                    
+            $('.counter').text(likesGiven);
+            $('.progress').text(likesGiven + " likes given (" + lower + " min, " + upper + " max)");
+
+            if (likesGiven >= lower && likesGiven <= upper) {
+                $('.progress').css("background", "#96ff96");
+                $('.progress').css("color", "black");
+            } else {
+                $('.progress').css("background", "rgb(223, 96, 65)");
+                $('.progress').css("color", "white");
+            }
+        }
+
+        const saveLikes = async (likes) => {
+            let res = await fetchJson(`/quizzes/${quizId}/justifications/like`, {
+                method: 'PUT',
+                headers: {'Content-Type' : 'application/json'},
+                body: JSON.stringify(likes),
+                credentials: 'same-origin'
+            })
+        }
+
+        $(() => {
+            counterInit();    
+            $(".like_justification").click(async function (event) {
+                event.preventDefault();
+                let iElem = $(this).find("i")
+                $(this).toggleClass("text-secondary text-primary")
+                iElem.toggleClass("fa-solid fa-regular")
+                const jid = iElem.data("justificationId")
+                const isLiked = iElem.hasClass("fa-solid");
+                let likes = {[jid]: isLiked}
+                await saveLikes(likes)
+                if (isLiked == 1) {
+                    likesGiven++;
+                } else {
+                    likesGiven--;
+                }
+                counterInit();
+            })          
+        })
+
+    </script>
+
+
+    <div class="jumbotron jumbotron-fluid">
+        <div class="container">
+            <h1 class="display-4">Step 2 - {{quiz.title|safe}}</h1>
+            <p class="lead">
+                Hello, {{current_user.first_name}} {{current_user.last_name}} ({{current_user.email}}).
+                Welcome to STEP 2 of this quiz.
+            </p>
+        
+            <p class="lead">
+                <h2>About this quiz:</h2>
+                {{quiz.description | safe}}
+            </p>
+                        
+            <p class="lead">
+                <p>
+                    <h2>How to take Step 2 of the quiz:</h2>
+                    <ul>
+                        <li> The questions below are the same that you previous answered. </li>
+                        <li>
+                            Justifications that other students provided for not chosing each of the available
+                            alternatives are also provided.
+                        </li>
+                        <li>
+                            Use them to determine what is your definitive answer to each question.
+                        </li>
+                        <li>
+                            In order to receive participation points, ensure that you give likes in the following range: {{ (0.8 * attempt.participation_grade_threshold) | round | int }} to {{ attempt.participation_grade_threshold }}
+                        </li>
+                    </ul>
+                    <div class="bar">
+                        <div class="progressbar sticky">
+                            <span class="progress w-100"></span>
+                        </div>
+                    </div>
+                </p>
+            </p>
+            <p class="lead"><p>
+                Scroll down to the bottom of the page for instructions on how to submit this quiz once you are done.
+            </p></p>
+        </div>
+    </div>
+
+    <form id="quizForm" method="post">
+        {% for q in questions %}
+            <div class="card bg-light m-3 mx-auto content" style="width: 75%">
+                <div class="card-body" bg-light>
+                    <h1 class="card-title">Question #{{loop.index}} - {{q.title |safe|unescapeDoubleQuotes}}</h1>
+                    <p class="card-text">{{q.stem|safe|unescapeDoubleQuotes}}</p>
+                    
+                    <dl>
+                        <dt>Your orginal answer is pre-selected below</dt>
+                    </dl>
+                    
+                    <div class="list-group list-group-flush">
+                    
+                    {% for answer in q.alternatives %}
+                        <div class="list-group-item border border-primaryrounded updateSize" style="height:fit-content">
+                            <div class="form-group">
+                                <div class="form-check">
+                                    {{ w.question_option(q, loop.index0, answer) }}
+                                    {% if (justifications[q.id|string][loop.index0|string] | length) == 0 %}
+                                    <p> None of your classmates provided a justification for not chosing this possible answer.</p>                                        
+                                    {% else %}
+                                    <p> Reasons suggested by your peers for not selecting this possible answer.</p>                                    
+                                    <p>
+                                        <div class = "justificationsContainer">
+                                            <button type="button" class="btn btn-primary btn-sm" data-toggle="collapse" data-target="#justificationsTable_{{q.id}}_{{loop.index0}}">Show Justifications</button>
+                                            <table id="justificationsTable_{{q.id}}_{{loop.index0}}" class="table collapse">
+                                                {% for justification in justifications[q.id|string][loop.index0|string] %}
+                                                    <tr>
+                                                        <td width="25px" class="align-middle">
+                                                            <p id="like_element_{{justification.id}}" class="mb-0">                                                                
+                                                                <a href="#" class="like_justification {% if justification.id in likes -%} text-primary {%- else -%} text-secondary {%- endif %}">
+                                                                    <i data-justification-id="{{justification.id}}" 
+                                                                        class="{% if justification.id in likes -%} fa-solid {%- else -%} fa-regular {%- endif %} fa-thumbs-up"></i>
+                                                                </a>
+                                                            </p>
+                                                        </td>
+                                                        <td class='text-start align-middle'>
+                                                            <p> {{ justification["justification"] | safe }} </p>
+                                                        </td>
+                                                    </tr>
+                                                {% endfor %}
+                                                </table>
+                                        </div>
+                                    </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}    
+
+        {{ w.submit_quiz_button() }}
+    </form>
+
+{% endblock %}

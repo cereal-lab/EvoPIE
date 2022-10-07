@@ -1,13 +1,25 @@
+import logging
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
-
+import os
 
 APP = Flask(__name__)
 APP.config['SECRET_KEY'] = '9OLWxND4o83j4K4iuopO' #FIXME replace this by an ENV variable
-APP.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///DB_quizlib.sqlite'
+ #NOTE: timeout allows to avoid database is locked - it is workaround
+APP.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('EVOPIE_DATABASE_URI', 'sqlite:///DB_quizlib.sqlite') + "?timeout=20"
 APP.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 APP.config['FLASK_ADMIN_SWATCH'] = 'cerulean' # set optional bootswatch theme for flask_admin
+# APP.config["SQLALCHEMY_ECHO"] = True #change to true to see logs of sql requests
+db_log_file_name = os.getenv('EVOPIE_DATABASE_LOG')
+if db_log_file_name:
+    formatter = logging.Formatter(fmt='%(asctime)s %(message)s',
+                                  datefmt='[%Y-%m-%d %H:%M:%S]')    
+    db_file_logger = logging.FileHandler(db_log_file_name)
+    db_file_logger.setFormatter(formatter)
+    db_file_logger.setLevel(logging.INFO)
+    db_file_logger.emit(logging.LogRecord(db_file_logger.name, logging.INFO, "", 0, f"DB file: {APP.config['SQLALCHEMY_DATABASE_URI']}", None, None))
+    logging.getLogger('sqlalchemy.engine').addHandler(db_file_logger)
 
 DB = SQLAlchemy(APP)
 
@@ -17,6 +29,56 @@ from flask_admin.contrib.sqla import ModelView
 from evopie import models
 from flask_login import current_user
 from flask import request, redirect, url_for
+
+#custom route converters - allows us to avoid unnecessary validations each time
+#NOTE: detauch could happen if any hook tries to do with app
+#https://stackoverflow.com/questions/19818082/how-does-a-sqlalchemy-object-get-detached
+from werkzeug.routing import IntegerConverter, ValidationError
+class QuizConverter(IntegerConverter):
+
+    def to_python(self, value):
+        quiz_id = super().to_python(value)
+        quiz = models.Quiz.query.filter_by(id = quiz_id).first()
+        if quiz is None:
+            raise ValidationError #will try next route
+        return quiz
+
+    def to_url(self, quiz):
+        return super().to_url(quiz.id if isinstance(quiz, models.Quiz) else quiz) #treat quiz as id itself 
+
+from collections import namedtuple
+
+class QuizWithAttemptConverter(QuizConverter):
+
+    def to_python(self, quiz_id):
+        quiz = super().to_python(quiz_id)
+        attempt = models.QuizAttempt.query.filter_by(quiz_id = quiz_id, student_id = current_user.id).first()
+        if attempt is None: 
+            raise ValidationError #will try next route
+        return namedtuple('Quiz_Attempt', ['quiz', 'attempt'])(quiz, attempt)
+
+    def to_url(self, quiz_attempt):
+        if isinstance(quiz_attempt, tuple) and isinstance(quiz_attempt[0], models.Quiz):
+            return super().to_url(quiz_attempt[0])
+        if isinstance(quiz_attempt, models.Quiz):
+            return super().to_url(quiz_attempt)
+        return super().to_url(quiz_attempt) #quiz_attempt can be int at start
+
+class QuizAttemptConverter(IntegerConverter):
+
+    def to_python(self, value):
+        quiz_id = super().to_python(value)
+        attempt = models.QuizAttempt.query.filter_by(quiz_id = quiz_id, student_id = current_user.id).first()
+        if attempt is None: 
+            raise ValidationError #will try next route
+        return attempt
+
+    def to_url(self, attempt):
+        return super().to_url(attempt.quiz_id if isinstance(attempt, models.QuizAttempt) else attempt) #treat quiz as id itself     
+        
+APP.url_map.converters['quiz'] = QuizConverter
+APP.url_map.converters['attempt'] = QuizAttemptConverter
+APP.url_map.converters['qa'] = QuizWithAttemptConverter
 
 class ProtectedAdminIndexView(AdminIndexView):
     def is_accessible(self):
@@ -100,5 +162,4 @@ def load_user(user_id):
 login_manager.init_app(APP)
 
 from . import utils
-
-# APP.config["SQLALCHEMY_ECHO"] = False #change to true to see logs of sql requests
+from . import cli

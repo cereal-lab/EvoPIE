@@ -3,25 +3,20 @@
 # Dynamic classes like scoped_session are caught by pylint as not having any
 # of the members they end up featuring at runtime. This is a way to tell pylint to let it be
 
-from flask import jsonify, abort, request, Response, render_template, redirect, url_for, make_response
+from flask import g, jsonify, abort, request, Response, render_template, redirect, url_for, make_response
 from flask import Blueprint
 from flask_login import login_required, current_user
 from flask import Markup
 from flask import flash
-from random import shuffle
-from bleach_allowlist import generally_xss_safe, print_attrs, standard_styles
 from werkzeug.security import generate_password_hash
-from evopie.config import ROLE_INSTRUCTOR
+from evopie.config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT
+from evopie.evo import get_evo, start_evo, stop_evo, Evaluation
 
-from evopie.utils import role_required, sanitize
+from evopie.utils import groupby, role_required, sanitize, unmime, validate_quiz_attempt_step
 
 from . import models
 
-
-
 mcq = Blueprint('mcq', __name__)
-
-
 
 @mcq.route('/questions', methods=['GET'])
 @login_required
@@ -37,22 +32,13 @@ def get_all_questions():
     all_questions = [q.dump_as_dict() for q in models.Question.query.all()]
     return jsonify(all_questions)
 
-
-
 @mcq.route('/questions', methods=['POST'])
 @login_required
+@role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to create questions")
 def post_new_question():
     '''
     Add a question and its answer to the database.
     '''
-    if not current_user.is_instructor():
-        if request.json:
-            response     = ({ "message" : "You are not allowed to create questions" }, 403, {"Content-Type": "application/json"})
-            return make_response(response)
-        else:
-            flash("You are not allowed to create questions", "postError")
-            return redirect(request.referrer)
-
     if request.json:
         title = request.json['title']
         stem = request.json['stem']
@@ -93,13 +79,10 @@ def post_new_question():
     models.DB.session.commit()
 
     if request.json:
-        response = ({ "message" : "Question & answer added to database" }, 201, {"Content-Type": "application/json"})
-        return make_response(response)
+        return jsonify({ "message" : "Question & answer added to database", "id": q.id }), 201
     else:
         flash("Question successfully added to database.", "shiny")
-        return redirect(request.referrer)
-
-    
+        return redirect(request.referrer)    
 
 @mcq.route('/questions/<int:question_id>', methods=['GET'])
 @login_required
@@ -121,20 +104,15 @@ def get_question(question_id):
     q = models.Question.query.get_or_404(question_id)
     return jsonify(q.dump_as_dict())
 
-
-
 @mcq.route('/questions/<int:question_id>', methods=['PUT'])
 @login_required
+@role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to modify questions")
 def put_question(question_id):
     '''
     Update a given question.
     This method may be called by post_new_question if we detect a POST request
     coming from an HTML form that really wanted to send us a PUT.
     '''
-    if not current_user.is_instructor():
-        response     = ({ "message" : "You are not allowed to modify questions" }, 403, {"Content-Type": "application/json"})
-        return make_response(response)
-
     # validation - All of the quizzes containing question_id must be HIDDEN to be able to update
     for quiz in models.Quiz.query.filter_by(author_id=current_user.get_id()):
         for qq in quiz.quiz_questions:
@@ -172,11 +150,6 @@ def put_question(question_id):
     else:
         flash("Question successfully updated in database.", "shiny")
         return  redirect(url_for('pages.index'))
-        # removing the following in order to avoid reloading a quiz-question-editor.html 
-        # and thus adding an extra quizquestion to that quiz
-        # redirect(request.referrer)
-
-
 
 @mcq.route('/questions/<int:question_id>', methods=['DELETE'])
 @login_required
@@ -202,8 +175,6 @@ def delete_question(question_id):
     response = ({ "message" : "Question Deleted from database" }, 200, {"Content-Type": "application/json"})
     return make_response(response)
 
-    
-
 @mcq.route('/questions/<int:question_id>/distractors', methods=['GET'])
 @login_required
 def get_distractors_for_question(question_id):
@@ -218,23 +189,13 @@ def get_distractors_for_question(question_id):
     result = [d.dump_as_dict() for d in q.distractors]
     return jsonify(result)
 
-
-
 @mcq.route('/questions/<int:question_id>/distractors', methods=['POST'])
 @login_required
+@role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to create distrators")
 def post_new_distractor_for_question(question_id):
     '''
     Add a distractor to the specified question.
     '''
-    if not current_user.is_instructor():
-        if request.json:
-            response     = ({ "message" : "You are not allowed to create distrators" }, 403, {"Content-Type": "application/json"})
-            return make_response(response)
-        else:
-            flash("You are not allowed to create distrators", "postError")
-            return redirect(request.referrer)
-
-
     # validation - All of the quizzes containing question_id must be HIDDEN to be able to add distractor
     # FIXED - not true, the quizzes refer to QuizQuestions which, when added to a Quiz, are characterised
     # by a selection of the available Distractors for their corresponding Question. 
@@ -268,17 +229,15 @@ def post_new_distractor_for_question(question_id):
     escaped_justification = Markup.escape(justification)
     escaped_justification = sanitize(escaped_justification)
 
-    q.distractors.append(models.Distractor(answer=escaped_answer,justification=escaped_justification,question_id=q.id))
+    new_distractor = models.Distractor(answer=escaped_answer,justification=escaped_justification,question_id=q.id)
+    q.distractors.append(new_distractor)
     models.DB.session.commit()
     
-    if request.json:
-        response = ({ "message" : "Distractor added to Question in database" }, 201, {"Content-Type": "application/json"})
-        return make_response(response)
+    if request.is_json:
+        return jsonify({ "message" : "Distractor added to Question in database", "id": new_distractor.id }), 201
     else:
         flash("Distractor successfully added to database.", "shiny")
         return redirect(request.referrer)
-
-
 
 @mcq.route('/distractors/<int:distractor_id>', methods=['GET'])
 @login_required
@@ -290,15 +249,10 @@ def get_distractor(distractor_id):
     d = models.Distractor.query.get_or_404(distractor_id)
     return jsonify({ "answer": d.answer, "justification": d.justification })
 
-
-
 @mcq.route('/distractors/<int:distractor_id>', methods=['PUT','POST'])
 @login_required
+@role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to modify distractors")
 def put_distractor(distractor_id):
-    if not current_user.is_instructor():
-        response     = ({ "message" : "You are not allowed to modify distractors" }, 403, {"Content-Type": "application/json"})
-        return make_response(response)
-
     # validation - All of the quizzes containing a question that distractor_id is related to must be HIDDEN to be able to update
     for quiz in models.Quiz.query.filter_by(author_id=current_user.get_id()):
         for qq in quiz.quiz_questions:
@@ -341,8 +295,6 @@ def put_distractor(distractor_id):
         flash("Distractor successfully modified in database.", "shiny")
         return redirect(request.referrer)
 
-
-
 @mcq.route('/distractors/<int:distractor_id>', methods=['DELETE'])
 @login_required
 def delete_distractor(distractor_id):
@@ -369,8 +321,6 @@ def delete_distractor(distractor_id):
     response = ({ "message" : "Distractor deleted from database" }, 204, {"Content-Type": "application/json"})
     return make_response(response)
 
-
-
 @mcq.route('/quizquestions', methods=['GET'])
 @login_required
 def get_all_quiz_questions():
@@ -384,8 +334,6 @@ def get_all_quiz_questions():
     all = models.QuizQuestion.query.all()
     result = [q.dump_as_dict() for q in all]
     return jsonify(result)
-
-
 
 @mcq.route('/quizquestions', methods=['POST'])
 @login_required
@@ -434,8 +382,6 @@ def post_new_quiz_question():
     response = ({ "message" : "Quiz Question added to database" }, 201, {"Content-Type": "application/json"})
     return make_response(response)
 
-
-
 @mcq.route('/quizquestions/<int:qq_id>', methods=['GET'])
 @login_required
 def get_quiz_questions(qq_id):
@@ -448,8 +394,6 @@ def get_quiz_questions(qq_id):
 
     qq = models.QuizQuestion.query.get_or_404(qq_id)
     return jsonify(qq.dump_as_dict())
-
-
 
 @mcq.route('/quizquestions/<int:qq_id>', methods=['DELETE'])
 @login_required
@@ -476,8 +420,6 @@ def delete_quiz_questions(qq_id):
     #NOTE see previous note about using 204 vs 200
     #NOTE the above is a bloody tuple, not 3 separate parameters to make_response
     return make_response(response)
-
-
 
 @mcq.route('/quizquestions/<int:qq_id>', methods=['PUT'])
 @login_required
@@ -517,22 +459,13 @@ def put_quiz_questions(qq_id):
     response = ({ "message" : "Quiz Question updated in database" }, 201, {"Content-Type": "application/json"})
     return make_response(response)
 
-
-
 @mcq.route('/quizzes', methods=['POST'])
 @login_required
+@role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to create quizzes")
 def post_new_quiz():
     '''
     Create a new quiz
     '''
-    if not current_user.is_instructor():
-        if request.json:
-            response     = ({ "message" : "You are not allowed to create quizzes" }, 403, {"Content-Type": "application/json"})
-            return make_response(response)
-        else:
-            flash("You are not allowed to create quizzes", "postError")
-            return redirect(request.referrer)
-
     title = request.json['title']
     description = request.json['description']
 
@@ -557,10 +490,7 @@ def post_new_quiz():
     models.DB.session.add(q)
     models.DB.session.commit()
 
-    response = ({ "message" : "Quiz added to database" }, 201, {"Content-Type": "application/json"})
-    return make_response(response)
-
-
+    return jsonify({ "message" : "Quiz added to database", "id": q.id }), 201
 
 @mcq.route('/quizzes', methods=['GET'])
 @login_required
@@ -575,8 +505,6 @@ def get_all_quizzes():
     quizzes = models.Quiz.query.filter_by(author_id=current_user.get_id())
     return jsonify([q.dump_as_dict()for q in quizzes])
 
-
-
 @mcq.route('/quizzes/<int:qid>', methods=['GET'])
 @login_required
 def get_quizzes(qid):
@@ -589,8 +517,6 @@ def get_quizzes(qid):
 
     quiz = models.Quiz.query.get_or_404(qid)
     return jsonify(quiz.dump_as_dict())
-
-
 
 @mcq.route('/quizzes/<int:qid>', methods=['DELETE'])
 @login_required
@@ -614,8 +540,6 @@ def delete_quizzes(qid):
     response = ({ "message" : "Quiz deleted from database" }, 200, {"Content-Type": "application/json"})
     #NOTE see previous note about using 204 vs 200
     return make_response(response)
-
-
 
 @mcq.route('/quizzes/<int:qid>', methods=['PUT'])
 @login_required
@@ -661,71 +585,49 @@ def put_quizzes(qid):
     #NOTE see previous note about using 204 vs 200
     return make_response(response)
     
-
-
 @mcq.route('/quizzes/<int:qid>/status', methods=['GET'])
 @login_required
+@role_required(role=ROLE_INSTRUCTOR)
 def get_quizzes_status(qid):
     '''
     Returns the status of a given quiz
     '''
-    if not current_user.is_instructor():
-        response     = ({ "message" : "You are not allowed to get quiz status" }, 403, {"Content-Type": "application/json"})
-        return make_response(response)
-
     quiz = models.Quiz.query.get_or_404(qid)
-
-    if not request.json:
-        abort(406, "JSON format required for request") # not acceptable
-
-    response     = (f'{{ "status" : {quiz.status} }}', 403, {"Content-Type": "application/json"})
-    return make_response(response)
-
-
+    return jsonify({"status": quiz.status})
 
 @mcq.route('/quizzes/<int:qid>/status', methods=['POST'])
 @login_required
+@role_required(role=ROLE_INSTRUCTOR)
 def post_quizzes_status(qid):
     '''
     Modifies the status of given quiz
     '''
-    if not current_user.is_instructor():
-        if request.json:
-            response     = ({ "message" : "You are not allowed to get quiz status" }, 403, {"Content-Type": "application/json"})
-            return make_response(response)
-        else:
-            flash("You are not allowed to get quiz status", "postError")
 
     quiz = models.Quiz.query.get_or_404(qid)
 
-    if not request.json:
+    if not request.is_json:
         abort(406, "JSON format required for request") # not acceptable
     new_status = sanitize(request.json['status'])
     # FIXED how about check that the status is actually valid, eh? :)'
     # done in set_status below
     if(quiz.set_status(new_status)):
-        response     = ({ "message" : "OK" }, 200, {"Content-Type": "application/json"})
+        response     = ({ "message" : "OK" }, 200, {"Content-Type": "application/json"})        
         models.DB.session.commit()
+        if quiz.status == "STEP1": 
+            #starting evo process for quiz 
+            # start_default_p_phc(quiz)
+            start_evo(quiz.id)
+        else: 
+            #ending evo process for quiz 
+            stop_evo(quiz.id)
     else:
         response     = ({ "message" : "Unable to switch to new status" }, 400, {"Content-Type": "application/json"})
     return make_response(response)
 
-
-
 @mcq.route('/quizzes/<int:qid>/take', methods=['GET', 'POST'])
 @login_required
+@role_required(ROLE_STUDENT, redirect_route='pages.index', redirect_message="You are not allowed to take quizzes", category="postError")
 def all_quizzes_take(qid):
-    '''
-    This is the route that will determine whether the student is taking the 
-    quiz for the first time, or is coming back to view peers' feedback.
-    '''
-    if not current_user.is_student():
-        if request.json:
-            response     = ({ "message" : "You are not allowed to take quizzes" }, 403, {"Content-Type": "application/json"})
-            return make_response(response)
-        else:
-            flash("You are not allowed to take quizzes", "postError") #FIXME this error category probably needs to change
-            return redirect(url_for('pages.index'))
 
     quiz = models.Quiz.query.get_or_404(qid)
     
@@ -752,8 +654,8 @@ def all_quizzes_take(qid):
         response     = ({ "message" : "Quiz not accessible at this time" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
     
-    step1 = (quiz.status == "STEP1" and attempt is None)
-    step2 = (quiz.status == "STEP2" and attempt is not None)
+    step1 = (quiz.status == "STEP1" and ((attempt is None) or (attempt.status == QUIZ_ATTEMPT_STEP1)))
+    step2 = (quiz.status == "STEP2" and ((attempt is not None) and (attempt.status == QUIZ_ATTEMPT_STEP2)))
 
     # sanity check
     if step1 == step2:
@@ -783,39 +685,39 @@ def all_quizzes_take(qid):
         if step1:
             # validate that all required information was sent
             # BUG if the keys are missing we crash
-            if request.json['initial_responses'] is None or request.json['justifications'] is None:
+            if 'initial_responses' not in request.json or 'justifications' not in request.json:
                 abort(400, "Unable to submit quiz response due to missing data") # bad request
 
             # Being in step 1 means that the quiz has not been already attempted
             # i.e., QuizAttempt object for this quiz & student combination does not already exist
-            if attempt is not None: # NOTE should never happen
-                abort(400, "Unable to submit quiz, already existing attempt previously submitted") # bad request
+            # if attempt is not None: # NOTE should never happen
+            #     abort(400, "Unable to submit quiz, already existing attempt previously submitted") # bad request
 
             # so we make a brand new one!
-            attempt = models.QuizAttempt(quiz_id=quiz.id, student_id=sid)
+            if attempt is None:
+                attempt = models.QuizAttempt(quiz_id=quiz.id, student_id=sid, alternatives=[]) #unknown alternatives set 
+            attempt.status = QUIZ_ATTEMPT_STEP2
             
             # extract from request the dictionary of question_id : distractor_ID (or None if correct answer)
-            initial_responses_dict = request.json['initial_responses']
             
             # we save a string version of this data in the proper field
-            attempt.initial_responses = str(initial_responses_dict)###
+            attempt.initial_responses = request.json['initial_responses']###
             # we compute a dictionary of question_id : score in which score is 0 or 1
             #   1 means the student selected the solution (None shows in the responses)
             #   0 means the student selected one of the distractors (its ID shows in the responses)
-            initial_scores_dict = {}
+            attempt.initial_scores = {}
             # we also save the total score as we go
             attempt.initial_total_score = 0
-            for key in initial_responses_dict:
-                if int(initial_responses_dict[key] == 0):
+            for qid, answer in attempt.initial_responses.items():
+                if answer == 0:
                     response     = ({ "message" : "You must select an answer for each question" }, 400, {"Content-Type": "application/json"})
                     return make_response(response)
-                if int(initial_responses_dict[key]) < 0:
+                if answer < 0:
                     result = 1
                 else:
                     result = 0
-                initial_scores_dict[key] = result
+                attempt.initial_scores[qid] = result
                 attempt.initial_total_score += result
-            attempt.initial_scores = str(initial_scores_dict)
 
             # extract same structure here; question_id : justification string
             justifications_dict = request.json['justifications']
@@ -825,7 +727,7 @@ def all_quizzes_take(qid):
             for key_quest in justifications_dict:
                 quest = justifications_dict[key_quest]
                 for key_just in quest:
-                    if quest[key_just] == "" and key_just != initial_responses_dict[key_quest]:
+                    if quest[key_just] == "" and key_just != attempt.initial_responses[key_quest]:
                         response     = ({ "message" : "You must provide a justification for each option" }, 400, {"Content-Type": "application/json"})
                         return make_response(response)
 
@@ -837,6 +739,11 @@ def all_quizzes_take(qid):
                     models.DB.session.add(just)
             models.DB.session.add(attempt)
             models.DB.session.commit()
+
+            evo = get_evo(quiz.id)
+            if evo is not None: 
+                answers = { int(q_id): answer for q_id, answer in attempt.initial_responses.items() }
+                evo.set_evaluation(Evaluation(evaluator_id=sid, result=answers))
 
             response     = ({ "message" : "Quiz attempt recorded in database" }, 200, {"Content-Type": "application/json"})
             # NOTE see previous note about using 204 vs 200
@@ -850,6 +757,8 @@ def all_quizzes_take(qid):
             
             if attempt is None:
                 abort(404)
+
+            attempt.status = QUIZ_ATTEMPT_SOLUTIONS
     
             #TODO only get answers to all questions; no justifications needed, regardless of quiz mode
             #       Select one of the two students whose answers + justifications were seen as the most useful
@@ -880,8 +789,6 @@ def all_quizzes_take(qid):
             response     = ({ "message" : "Quiz answers updated & feeback recorded in database" }, 200, {"Content-Type": "application/json"})
             #NOTE see previous note about using 204 vs 200
             return make_response(response)
-
-
 
 @mcq.route('/quizzes/<int:qid>/responses', methods=['GET'])
 @login_required
@@ -928,123 +835,102 @@ def post_grading_settings(qid):
         models.DB.session.commit()
     return jsonify(q.dump_as_dict())
 
-@mcq.route('/grades/<int:qid>/initialScoreWeight', methods=['POST'])
+@mcq.route('/quizzes/<qa:q>/justifications', methods=['GET'])
 @login_required
-def changeInitialScoreWeight(qid):
-    if current_user.is_instructor():
-        q = models.Quiz.query.get_or_404(qid)
-        response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
-        if request.json:
-            q.initial_score_weight = int(request.json['initial_score']) / 100
-            models.DB.session.commit()
+def get_quiz_justifications(q):
+    _, attempt = q
+    dids = [d for q in attempt.alternatives for d in q['alternatives'] ]
+    js = models.Justification.query.where(models.Justification.distractor_id.in_(dids), student_id = current_user.id).all()
+    return {"justifications":[j.dump_as_dict() for j in js]}
 
-        return make_response(response)
-
-@mcq.route('/grades/<int:qid>/revisedScoreWeight', methods=['POST'])
+@mcq.route('/quizzes/<qa:q>/answers', methods=['PUT'])
 @login_required
-def changeRevisedScoreWeight(qid):
-    if current_user.is_instructor():
-        q = models.Quiz.query.get_or_404(qid)
-        response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
-        if request.json:
-            q.revised_score_weight = int(request.json['revised_score']) / 100
-            models.DB.session.commit()
-        return make_response(response)
-  
+@validate_quiz_attempt_step(quiz_attempt_param = "q")
+@unmime(type_converters={"*":lambda x: int(x)})
+def answer_questions(q, body):
+    _, attempt = q
+
+    for qid, answer in body.items(): # body should be map of questionId: id of option selected
+        if qid in attempt.alternatives_map and answer >= 0 and answer < len(attempt.alternatives_map[qid]):
+            attempt.step_responses[qid] = attempt.alternatives_map[qid][answer]
     
-@mcq.route('/grades/<int:qid>/justificationGradeWeight', methods=['POST'])
-@login_required
-def changeJustificationGradeWeight(qid):
-    if current_user.is_instructor():
-        q = models.Quiz.query.get_or_404(qid)
-        response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
-        if request.json:
-            q.justification_grade_weight = int(request.json['justification_grade']) / 100
-            models.DB.session.commit()
-        return make_response(response)
+    models.DB.session.commit()
+    return {"message": "Quiz answers were saved"}
 
-
-@mcq.route('/grades/<int:qid>/participationGradeWeight', methods=['POST'])
+@mcq.route('/quizzes/<qa:q>/justifications', methods=['PUT', 'DELETE'])
 @login_required
-def changeParticipationGradeWeight(qid):
-    if current_user.is_instructor():
-        q = models.Quiz.query.get_or_404(qid)
-        response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
-        if request.json:
-            q.participation_grade_weight = int(request.json['participation_grade']) / 100
-            models.DB.session.commit()
-        return make_response(response)
+@validate_quiz_attempt_step(quiz_attempt_param = "q")
+@unmime()
+def justify_alternative_selection(q, body):
+    ''' Creates or saves justification into database
+        NOTE: alterantive_id is not distractor id, but id as it appearch on UI - for security reasons
+        TODO: security checks that student has access to specified quiz - multiinstractor support should provide this
+        NOTE: body should be in form {'<qid>': {'<altId>':<text>}}
+    '''        
+    _, attempt = q
 
-@mcq.route('/grades/<int:qid>/numJustificationsShown', methods=['POST'])
-@login_required
-def changeNumJustificationsShown(qid):
-    if current_user.is_instructor():
-        q = models.Quiz.query.get_or_404(qid)
-        response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
-        if request.json:
-            q.num_justifications_shown = int(request.json['num_justifications_shown'])
-            models.DB.session.commit()
-        return make_response(response)
+    new_justifications = {(int(qid), distractor_id):justification
+        for qid, alt_js in body.items()
+        for alternatives in [ attempt.alternatives_map[qid] ]
+        for alt_id, justification in alt_js.items()
+        for aid in [int(alt_id)]
+        if aid >= 0 and aid < len(alternatives)        
+        for distractor_id in [ alternatives[aid] ] }
 
-@mcq.route('/grades/<int:qid>/firstQuartileGrade', methods=['POST'])
-@login_required
-def changeFirstQuartileGrade(qid):
-    if current_user.is_instructor():
-        q = models.Quiz.query.get_or_404(qid)
-        response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
-        if request.json:
-            q.first_quartile_grade = int(request.json['first_quartile_grade'])
-            models.DB.session.commit()
-        return make_response(response)
+    if len(new_justifications) == 0: 
+        return {"message": "Justifications were saved" }
 
-@mcq.route('/grades/<int:qid>/secondQuartileGrade', methods=['POST'])
-@login_required
-def changeSecondQuartileGrade(qid):
-    if current_user.is_instructor():
-        q = models.Quiz.query.get_or_404(qid)
-        response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
-        if request.json:
-            q.second_quartile_grade = int(request.json['second_quartile_grade'])
-            models.DB.session.commit()
-        return make_response(response)
+    question_ids, distractor_ids = zip(*new_justifications.keys())
 
-@mcq.route('/grades/<int:qid>/thirdQuartileGrade', methods=['POST'])
-@login_required
-def changeThirdQuartileGrade(qid):
-    if current_user.is_instructor():
-        q = models.Quiz.query.get_or_404(qid)
-        response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
-        if request.json:
-            q.third_quartile_grade = int(request.json['third_quartile_grade'])
-            models.DB.session.commit()
-        return make_response(response)
-
-@mcq.route('/grades/<int:qid>/fourthQuartileGrade', methods=['POST'])
-@login_required
-def changeFourthQuartileGrade(qid):
-    if current_user.is_instructor():
-        q = models.Quiz.query.get_or_404(qid)
-        response     = ({ "message" : "Hello" }, 204, {"Content-Type": "application/json"})
-        if request.json:
-            q.fourth_quartile_grade = int(request.json['fourth_quartile_grade'])
-            models.DB.session.commit()
-        return make_response(response)
-
-@mcq.route('/justification/<int:justification_id>/<action>', methods=['PUT'])
-@login_required
-def like_justification(justification_id, action):
-    just = models.Justification.query.filter_by(id=justification_id).first_or_404()
-    if action == 'like':
-        current_user.like_justification(just)
+    justifications_plain = models.Justification.query.where(models.Justification.quiz_question_id.in_(question_ids), models.Justification.distractor_id.in_(distractor_ids), models.Justification.student_id == current_user.id).all()    
+    justifications = {(j.quiz_question_id, j.distractor_id):j for j in justifications_plain if (j.quiz_question_id, j.distractor_id) in new_justifications }
+    if request.method == 'DELETE':
+        for j in justifications.values():
+            models.DB.session.delete(j)    
         models.DB.session.commit()
-    if action == 'unlike':
-        current_user.unlike_justification(just)
-        models.DB.session.commit()
-    response     = ({ "message" : "ok with no contents to send back" }, 204, {"Content-Type": "application/json"})
-    return make_response(response)
-    #redirect(request.referrer)
+        return {"message": "Justifications were deleted"} #TODO: add ids of deleted entities or entities themselves
+    # resp_added_just_ids = {}
+    for (qid, did), new_j in new_justifications.items():
+        if (qid, did) in justifications:
+            if new_j == '':
+                models.DB.session.delete(justifications[(qid, did)])    
+            else:
+                justifications[(qid, did)].justification = new_j
+        elif new_j != '': 
+            justification = models.Justification(quiz_question_id = qid, distractor_id = did, student_id = current_user.id, justification = new_j)
+            # resp_added_just_ids.setdefault(str(justification.quiz_question_id), {})[str(justification.distractor_id)] = justification
+            models.DB.session.add(justification)
+    models.DB.session.commit() #after this point all ids for added_justifications were assigned 
+    # resp_added_just_ids = {qid:{did:j.id for did, j in qjs.items()} for qid, qjs in resp_added_just_ids.items()}
+    return {"message": "Justifications were saved" } #TODO: return ids of created entities
 
+@mcq.route('/quizzes/<qa:q>/justifications/like', methods=['PUT'])
+@login_required
+@validate_quiz_attempt_step(quiz_attempt_param = "q", required_step=QUIZ_ATTEMPT_STEP2)
+@unmime(type_converters={"*": lambda x: x == 1}) #1 means like, 0 - unlike
+def like_justifications(q, body):
+    _, attempt = q 
+    
+    if g.ignore_selected_justifications: #disablces validation of ids 
+        present_likes = models.Likes4Justifications.query.where(models.Likes4Justifications.student_id == current_user.id).all()
+        present_likes_map = {str(l.justification_id):l for l in present_likes}   
+        valid_jid = lambda jid: True     
+    else: 
+        jids = set(j.id for j in attempt.selected_justifications)
+        present_likes = models.Likes4Justifications.query.where(models.Likes4Justifications.student_id == current_user.id,
+            models.Likes4Justifications.justification_id.in_(jids)).all()
+        present_likes_map = {str(l.justification_id):l for l in present_likes}
+        valid_jid = lambda jid: int(jid) in jids
 
+    for jid, is_liked in body.items():
+        if is_liked and jid not in present_likes_map and valid_jid(jid):
+            models.DB.session.add(models.Likes4Justifications(student_id = current_user.id, justification_id = int(jid)))
+        elif not is_liked and jid in present_likes_map:
+            models.DB.session.delete(present_likes_map[jid])
+    
+    models.DB.session.commit()
+
+    return { "message" : "ok with no contents to send back" }
 
 @mcq.route('/users/<int:uid>/role', methods=['POST'])
 @login_required
@@ -1070,8 +956,6 @@ def post_users_role(uid):
     else:
         response     = ({ "message" : "Unable to switch to new role" }, 400, {"Content-Type": "application/json"})
     return make_response(response)
-
-
 
 @mcq.route('/users/<int:uid>/password', methods=['POST'])
 def post_user_password(uid):
