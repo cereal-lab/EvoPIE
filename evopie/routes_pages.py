@@ -293,7 +293,7 @@ def update_quiz_configuration(q, body):
     step2_pwd = body['step2_pwd']
 
     if deadline0 > deadline1 or deadline1 > deadline2 or deadline2 > deadline3 or deadline3 > deadline4:
-        return { "message" : "Unable to create quiz due to invalid deadlines", "redirect": url_for("pages.quiz_configuration", q = q)}, 400
+        return { "message" : "Quiz settings were not saved because of invalid deadlines", "redirect": url_for("pages.quiz_configuration", q = q)}, 400
 
     q.deadline0 = deadline0
     q.deadline1 = deadline1

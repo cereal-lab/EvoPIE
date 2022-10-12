@@ -251,11 +251,13 @@ class Quiz(DB.Model):
     step1_pwd = DB.Column(DB.String, default="")
     step2_pwd = DB.Column(DB.String, default="")
 
-    deadline0 = DB.Column(DB.DateTime, nullable=False, default=datetime.now) # available
-    deadline1 = DB.Column(DB.DateTime, nullable=False, default=datetime.now) # step 1 is due
-    deadline2 = DB.Column(DB.DateTime, nullable=False, default=datetime.now) # step 2 is due
-    deadline3 = DB.Column(DB.DateTime, nullable=False, default=datetime.now) # when answers are revealed
-    deadline4 = DB.Column(DB.DateTime, nullable=False, default=datetime.now) # when the quiz is closed (becomes hidden)
+    defaultDate = datetime.now().replace(hour=11, minute=59)
+
+    deadline0 = DB.Column(DB.DateTime, nullable=False, default=defaultDate) # available
+    deadline1 = DB.Column(DB.DateTime, nullable=False, default=defaultDate) # step 1 is due
+    deadline2 = DB.Column(DB.DateTime, nullable=False, default=defaultDate) # step 2 is due
+    deadline3 = DB.Column(DB.DateTime, nullable=False, default=defaultDate) # when answers are revealed
+    deadline4 = DB.Column(DB.DateTime, nullable=False, default=defaultDate) # when the quiz is closed (becomes hidden)
 
 
     # NOTE for now the statuses that are handled are "HIDDEN", "STEP1", "STEP2"
