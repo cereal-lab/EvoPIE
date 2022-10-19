@@ -62,19 +62,6 @@ def post_signup():
     if(retype != password):
         flash('Passwords do not match')
         return redirect(url_for('auth.get_signup'))
-    
-        
-    # making sure the user does not already exist
-    if models.User.query.filter_by(email=email).first():        
-        found_url = url_for('auth.get_signup')
-        message = 'Email address already exists'
-        if request.is_json:
-            return jsonify({ "message": message, "redirect": found_url }), 200
-        flash(message)
-        return redirect(found_url)
-        #TODO we should redirect to password recovery so that, if someone is spam-creating
-        # accounts, the first one will be salvageable by whoever actually has legitimate access
-        # to the email address associated with it. 
 
     #FIXME for now, we hardcode that the 1st user to signup is an INSTRUCTOR
     # the testing scripts are hardwired to work with that assumption too. 
@@ -90,11 +77,23 @@ def post_signup():
     password = generate_password_hash(password, method='sha256')
 
     user = models.User.query.filter_by(email=email).first()
+
     if user is not None and user.password is None:
         user.password = password
         user.first_name = first_name
         user.last_name = last_name
         user.set_role(its_role)
+    # making sure the user does not already exist
+    elif models.User.query.filter_by(email=email).first():        
+        found_url = url_for('auth.get_signup')
+        message = 'Email address already exists'
+        if request.is_json:
+            return jsonify({ "message": message, "redirect": found_url }), 200
+        flash(message)
+        return redirect(found_url)
+        #TODO we should redirect to password recovery so that, if someone is spam-creating
+        # accounts, the first one will be salvageable by whoever actually has legitimate access
+        # to the email address associated with it. 
     elif user is None:
         new_user = models.User(email=email, first_name=first_name, last_name=last_name, password=password, role=its_role) #NOTE default role is STUDENT
         models.DB.session.add(new_user)
