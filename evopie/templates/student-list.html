@@ -5,11 +5,11 @@
 {% block head%}
 <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.css">  
 <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.js"></script>
-<!-- <script>
+<script>
     $(document).ready( function () {
-        $('#gradingtable').DataTable();
+        $('#userstable').DataTable();
     } );
-</script> -->
+</script>
 {% endblock %}
 
 {% block content %}
@@ -42,15 +42,15 @@
                     <th>Last Name</th>
                     <th>First Name</th>
                     <th>Email</th>
-                    <th>Remove from roster</th>
+                    <th>Actions</th>
                 </tr></thead>
                 <tbody>
                     {% for user in students %}
                     <tr>
-                        <td class="text-start">{{user.last_name}}</td>
-                        <td class="text-start">{{user.first_name}}</td>
-                        <td class="text-start">{{user.email}}</td>
-                        <td class="text-right text-end">
+                        <td>{{user.last_name}}</td>
+                        <td>{{user.first_name}}</td>
+                        <td>{{user.email}}</td>
+                        <td>
                             <!-- TODO: change to remove from roster -->
                             <!-- password switcher -->
                             <a  data-toggle="modal" data-target=".TG-INI-{{user.id}}">
