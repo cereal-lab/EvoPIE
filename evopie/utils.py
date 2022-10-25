@@ -22,6 +22,21 @@ def sanitize(html):
 from jinja2 import Markup
 def unescape(str):
     return Markup(str).unescape()
+
+def changeQuizStatus(qid):
+    currentDateTime = datetime.now()
+    quiz = models.Quiz.query.get_or_404(qid)
+    if currentDateTime <= quiz.deadline0:
+        quiz.status = "HIDDEN"
+    elif currentDateTime > quiz.deadline0 and currentDateTime <= quiz.deadline1:
+        quiz.status = "STEP1"
+    elif currentDateTime > quiz.deadline1 and currentDateTime <= quiz.deadline3:
+        quiz.status = "STEP2"
+    elif currentDateTime > quiz.deadline3 and currentDateTime <= quiz.deadline4:
+        quiz.status = "SOLUTIONS"
+    elif currentDateTime > quiz.deadline4:
+        quiz.status = "HIDDEN"
+    models.DB.session.commit()
     
 @APP.template_filter('unescapeDoubleQuotes')
 def unescape_double_quotes(s): 
@@ -198,6 +213,27 @@ def role_required(role, redirect_to_referrer = False, redirect_route='login', re
         return decorated_function
     return decorator
 
+def verify_instructor_relationship(quiz_attempt_param = "q", redirect_to_referrer = False, redirect_route='index'):
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if type(kwargs.get(quiz_attempt_param)) is models.Quiz:
+                q = kwargs[quiz_attempt_param]
+            elif kwargs.get(quiz_attempt_param, None) is None:
+                q = models.Quiz.query.get_or_404(kwargs['qid'])
+            else:
+                q, attempt = kwargs[quiz_attempt_param]
+
+            instructors = [ instructor.id for instructor in models.User.query.filter_by(id=current_user.id).first().instructors ]
+            all_quiz_ids = [ quiz.id for quiz in models.Quiz.query.filter(models.Quiz.author_id.in_(instructors)).all() ]
+            if q.id not in all_quiz_ids:
+                flash("You are not allowed to take this quiz", "error")
+                return redirect(url_for('pages.index'))
+            
+            return f(*args, **kwargs)            
+        return decorated_function
+    return decorator
+
 def verify_deadline(quiz_attempt_param = "q", redirect_to_referrer = False, redirect_route='index'):
     def decorator(f):
         @wraps(f)
@@ -216,6 +252,14 @@ def verify_deadline(quiz_attempt_param = "q", redirect_to_referrer = False, redi
             def err_redir():
                 return redirect(request.referrer if redirect_to_referrer else url_for(redirect_route, next=request.url))
 
+            if q.deadline_driven == "True":
+                changeQuizStatus(q.id)
+            else:
+                if (status == QUIZ_ATTEMPT_STEP1 and q.status == QUIZ_STEP1
+                 or status == QUIZ_ATTEMPT_STEP2 and q.status == QUIZ_STEP2
+                 or status == QUIZ_ATTEMPT_SOLUTIONS and q.status == QUIZ_SOLUTIONS):
+                    return f(*args, **kwargs)
+
             #Block about statuses
             #check correspondence of quiz and attemot statuses
             if q.status == QUIZ_HIDDEN: #quiz is hidden from students
@@ -223,7 +267,7 @@ def verify_deadline(quiz_attempt_param = "q", redirect_to_referrer = False, redi
                 return err_redir()
 
             if (status == QUIZ_ATTEMPT_STEP1) and (q.status != QUIZ_STEP1):
-                flash("You did not submit your answers for step 1 of this quiz. Because of that, you may not participate in step 2.", "error")
+                flash("Step 1 of this quiz is not available", "error")
                 return err_redir()
 
             if status == QUIZ_ATTEMPT_STEP2 and q.status == QUIZ_STEP1:

@@ -24,7 +24,7 @@ from werkzeug.security import check_password_hash
 from evopie.utils import role_required, retry_concurrent_update, find_median
 
 from .config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_HIDDEN, QUIZ_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT, get_attempt_next_step, get_k_tournament_size, get_least_seen_slots_num
-from .utils import unescape, unmime, validate_quiz_attempt_step, verify_deadline
+from .utils import changeQuizStatus, unescape, unmime, validate_quiz_attempt_step, verify_deadline, verify_instructor_relationship
 
 import json, random, ast, re
 import numpy as np
@@ -50,7 +50,10 @@ def index():
     all_quizzes = []
     if current_user.is_authenticated and current_user.is_student():
         instructors = [ instructor.id for instructor in models.User.query.filter_by(id=current_user.id).first().instructors ]
-        all_quizzes = models.Quiz.query.filter(models.Quiz.author_id.in_(instructors))
+        all_quizzes = models.Quiz.query.filter(models.Quiz.author_id.in_(instructors)).all()
+        for quiz in all_quizzes:
+            if quiz.deadline_driven == "True":
+                changeQuizStatus(quiz.id)
     return render_template('index.html', quizzes=all_quizzes)
 
 
@@ -302,6 +305,7 @@ def update_quiz_configuration(q, body):
     q.deadline4 = deadline4
     q.step1_pwd = step1_pwd
     q.step2_pwd = step2_pwd
+    q.deadline_driven = "True"
     models.DB.session.commit()
 
     return { "message" : "Quiz settings were saved", "redirect": url_for("pages.quiz_configuration", q = q)}, 200
@@ -542,6 +546,7 @@ def get_or_create_attempt(quiz_id, quiz_questions, distractor_per_question):
 @login_required
 @role_required(role=ROLE_STUDENT, redirect_route='pages.index', redirect_message="You are not allowed to take this quiz")
 @verify_deadline(quiz_attempt_param = "q", redirect_route='pages.index')
+@verify_instructor_relationship(quiz_attempt_param = "q", redirect_route='pages.index')
 @retry_concurrent_update #this will retry the call of this function  in case when two requests try to update db at same time - optimistic concurency 
 def get_quiz(q):
     '''
@@ -690,6 +695,7 @@ def get_quiz(q):
 @login_required
 @role_required(role=ROLE_STUDENT, redirect_route='pages.index', redirect_message="You are not allowed to take this quiz")
 @verify_deadline(quiz_attempt_param = "q", redirect_route='pages.index')
+@verify_instructor_relationship(quiz_attempt_param = "q", redirect_route='pages.index')
 def protected_get_quiz(q: models.Quiz):
     '''
     Same to get_quiz but requires login password from student. Instead of GET, POST method is used. 
@@ -712,6 +718,7 @@ def protected_get_quiz(q: models.Quiz):
 @login_required
 @role_required(role=ROLE_STUDENT, redirect_route='pages.index', redirect_message="You are not allowed to take this quiz")
 @verify_deadline(quiz_attempt_param = "q", redirect_route='pages.index')
+@verify_instructor_relationship(quiz_attempt_param = "q", redirect_route='pages.index')
 @validate_quiz_attempt_step(quiz_attempt_param = "q")
 @unmime(delim='_', type_converters={"question":{"*":lambda x: int(x)}})
 def save_quiz_attempt(q, body):

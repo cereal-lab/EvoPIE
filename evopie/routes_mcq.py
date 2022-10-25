@@ -13,7 +13,7 @@ from werkzeug.security import generate_password_hash
 from evopie.config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT
 from evopie.evo import get_evo, start_evo, stop_evo, Evaluation
 
-from evopie.utils import groupby, role_required, sanitize, unmime, validate_quiz_attempt_step, verify_deadline
+from evopie.utils import groupby, role_required, sanitize, unmime, validate_quiz_attempt_step, verify_deadline, verify_instructor_relationship
 
 from . import models
 
@@ -626,6 +626,7 @@ def post_quizzes_status(qid):
 @login_required
 @role_required(ROLE_STUDENT, redirect_route='pages.index', redirect_message="You are not allowed to take quizzes", category="postError")
 @verify_deadline(redirect_route='pages.index')
+@verify_instructor_relationship(quiz_attempt_param = "q", redirect_route='pages.index')
 def all_quizzes_take(qid):
 
     quiz = models.Quiz.query.get_or_404(qid)
@@ -925,6 +926,7 @@ def justify_alternative_selection(q, body):
 @mcq.route('/quizzes/<qa:q>/justifications/like', methods=['PUT'])
 @login_required
 @verify_deadline(quiz_attempt_param = "q", redirect_route='pages.index')
+@verify_instructor_relationship(quiz_attempt_param = "q", redirect_route='pages.index')
 @validate_quiz_attempt_step(quiz_attempt_param = "q", required_step=QUIZ_ATTEMPT_STEP2)
 @unmime(type_converters={"*": lambda x: x == 1}) #1 means like, 0 - unlike
 def like_justifications(q, body):

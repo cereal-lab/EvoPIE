@@ -251,6 +251,7 @@ class Quiz(DB.Model):
     step1_pwd = DB.Column(DB.String, default="")
     step2_pwd = DB.Column(DB.String, default="")
 
+    deadline_driven = DB.Column(DB.String, default="False")
     deadline0 = DB.Column(DB.DateTime, nullable=False, default=datetime.now) # available
     deadline1 = DB.Column(DB.DateTime, nullable=False, default=datetime.now) # step 1 is due
     deadline2 = DB.Column(DB.DateTime, nullable=False, default=datetime.now) # step 2 is due
