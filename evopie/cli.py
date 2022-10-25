@@ -112,12 +112,7 @@ def start_quiz_init(instructor, num_questions, num_distractors, question_distrac
     '''
     instructor = {"email":instructor, "firstname":"I", "lastname": "I", "password":"pwd"}
     def build_quiz(i, questions):
-        deadline0 = (datetime.now() + timedelta(days=-1)).strftime("%Y-%m-%dT%H:%M")
-        deadline1 = (datetime.now() + timedelta(days=2)).strftime("%Y-%m-%dT%H:%M")
-        deadline2 = (datetime.now() + timedelta(days=3)).strftime("%Y-%m-%dT%H:%M")
-        deadline3 = (datetime.now() + timedelta(days=4)).strftime("%Y-%m-%dT%H:%M")
-        deadline4 = (datetime.now() + timedelta(days=5)).strftime("%Y-%m-%dT%H:%M")
-        return { "title": f"Quiz {i}", "description": "Test quiz", "deadline0": deadline0, "deadline1": deadline1, "deadline2": deadline2, "deadline3": deadline3, "deadline4": deadline4, "questions_ids": questions}
+        return { "title": f"Quiz {i}", "description": "Test quiz", "questions_ids": questions}
     def build_question(i):
         return { "title": f"Question {i}", "stem": f"Question {i} Stem?", "answer": f"a{i}"}
     def build_distractor(i, question):
@@ -242,6 +237,11 @@ def init_students(num_students, exclude_id, input, output, email_format):
                 student = build_student(i + 1)
                 create_student(student)
     student_ids = set(students["id"])
+    for student_id in student_ids:
+        student = models.User.query.get_or_404(student_id)
+        instructor = models.User.query.get_or_404(1)
+        student.instructors.append(instructor)
+        models.DB.session.commit()
     models.StudentKnowledge.query.where(models.StudentKnowledge.student_id.in_(student_ids)).delete()
     models.DB.session.commit()
     if output is not None:
@@ -503,6 +503,7 @@ def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n
                     resp = throw_on_http_fail(c.post("/login", json={"email": email, "password": "pwd"}))
                     if "id" not in resp:
                         continue #ignore non-default students
+                    resp = throw_on_http_fail(c.get(f"/student/{quiz}/start", headers={"Accept": "application/json"}))
                     resp = throw_on_http_fail(c.get(f"/student/{quiz}", headers={"Accept": "application/json"}))
 
                 with APP.app_context():
