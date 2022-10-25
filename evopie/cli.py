@@ -503,6 +503,7 @@ def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n
                     resp = throw_on_http_fail(c.post("/login", json={"email": email, "password": "pwd"}))
                     if "id" not in resp:
                         continue #ignore non-default students
+                    resp = throw_on_http_fail(c.get(f"/student/{quiz}/start", headers={"Accept": "application/json"}))
                     resp = throw_on_http_fail(c.get(f"/student/{quiz}", headers={"Accept": "application/json"}))
 
                 with APP.app_context():
