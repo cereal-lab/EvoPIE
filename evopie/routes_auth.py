@@ -34,7 +34,7 @@ def post_login():
         remember = True if request.form.get('remember_me') else False
     user = models.User.query.filter_by(email=email).first()
 
-    if not user or not check_password_hash(user.password, password):    
+    if not user or user.password is None or not check_password_hash(user.password, password):
         if request.is_json:
             return jsonify({ "message": "Login or password incorrect", "redirect": url_for('auth.get_signup')}), 400    
         flash(Markup('Login or password incorrect. Do you need to <a href="' + url_for('auth.get_signup') + '">sign up</a> for an account?'))
