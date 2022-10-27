@@ -7,6 +7,7 @@ from datetime import datetime
 from evopie.config import EVO_PROCESS_STATUS_ACTIVE, EVO_PROCESS_STATUS_STOPPED, QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_HIDDEN, QUIZ_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, ROLE_STUDENT
 from . import models, APP # get also DB from there
 from sqlalchemy.orm.exc import StaleDataError
+from evopie.evo import start_evo, stop_evo
 
 # helper method to use instead of directly calling bleach.clean
 import bleach
@@ -36,7 +37,14 @@ def changeQuizStatus(qid):
         quiz.status = "SOLUTIONS"
     elif currentDateTime > quiz.deadline4:
         quiz.status = "HIDDEN"
+
     models.DB.session.commit()
+
+    if quiz.status == "STEP1":
+        start_evo(quiz.id)
+    else:
+        stop_evo(quiz.id)
+        
     
 @APP.template_filter('unescapeDoubleQuotes')
 def unescape_double_quotes(s): 
