@@ -217,7 +217,7 @@
                 {% else %}
                 <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
                         data-target=".TG-INI-{{s.id}}">
-                    {{s.initial_total_score}}
+                    {{s.initial_total_score}} / {{s.initial_responses | length}}
                 </button>
                 <div class="modal fade TG-INI-{{s.id}}" tabindex="-1" role="dialog"
                         aria-labelledby="mySmallModalLabel" aria-hidden="true">
@@ -260,7 +260,7 @@
                 {% else %}                
                 <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
                         data-target=".TG-REV-{{s.id}}">
-                    {{s.revised_total_score}}
+                    {{s.revised_total_score}} / {{s.revised_responses | length}}
                 </button>
                 <div class="modal fade TG-REV-{{s.id}}" tabindex="-1" role="dialog"
                         aria-labelledby="mySmallModalLabel" aria-hidden="true">
@@ -303,7 +303,7 @@
                 {% else %}
                 <button id="justification_grade-{{s.id}}" type="button" class="btn btn-primary btn-sm" data-toggle="modal"
                         data-target=".TG-JUS-{{s.id}}">
-                    {{s.justification_score}}
+                    {{s.justification_score}} / {{ quiz.fourth_quartile_grade | safe }}
                 </button>
                 <div class="modal fade TG-JUS-{{s.id}} text-start" tabindex="-1" role="dialog"
                         aria-labelledby="mySmallModalLabel" aria-hidden="true">

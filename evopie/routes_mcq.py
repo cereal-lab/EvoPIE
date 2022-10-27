@@ -13,7 +13,8 @@ from werkzeug.security import generate_password_hash
 from evopie.config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT
 from evopie.evo import get_evo, start_evo, stop_evo, Evaluation
 
-from evopie.utils import groupby, role_required, sanitize, unmime, validate_quiz_attempt_step, verify_deadline, verify_instructor_relationship
+from evopie.utils import groupby, sanitize
+from evopie.decorators import role_required, unmime, validate_quiz_attempt_step, verify_deadline, verify_instructor_relationship
 
 from . import models
 

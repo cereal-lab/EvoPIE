@@ -9,6 +9,7 @@ import io
 from math import exp
 from mimetypes import init
 from operator import not_
+from tracemalloc import start
 from flask import g, jsonify, abort, request, Response, render_template, redirect, url_for, make_response, send_file
 from flask import Blueprint
 from flask_login import login_required, current_user
@@ -17,14 +18,16 @@ from pandas import DataFrame
 from sqlalchemy import not_
 from sqlalchemy.sql import collate
 from flask import Markup
-from evopie.evo import Evaluation, get_evo
+from evopie.evo import Evaluation, get_evo, start_evo, stop_evo
 from evopie.routes_mcq import answer_questions, justify_alternative_selection
 from werkzeug.security import check_password_hash
 
-from evopie.utils import role_required, retry_concurrent_update, find_median
+from evopie.utils import find_median
+from evopie.decorators import role_required, retry_concurrent_update
 
 from .config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_HIDDEN, QUIZ_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT, get_attempt_next_step, get_k_tournament_size, get_least_seen_slots_num
-from .utils import changeQuizStatus, unescape, unmime, validate_quiz_attempt_step, verify_deadline, verify_instructor_relationship
+from .utils import changeQuizStatus, unescape
+from evopie.decorators import unmime, validate_quiz_attempt_step, verify_deadline, verify_instructor_relationship
 
 import json, random, ast, re
 import numpy as np
@@ -53,7 +56,11 @@ def index():
         all_quizzes = models.Quiz.query.filter(models.Quiz.author_id.in_(instructors)).all()
         for quiz in all_quizzes:
             if quiz.deadline_driven == "True":
-                changeQuizStatus(quiz.id)
+                updatedStatus = changeQuizStatus(quiz.id)
+                if updatedStatus == QUIZ_STEP1:
+                    start_evo(quiz.id)
+                else:
+                    stop_evo(quiz.id)
     return render_template('index.html', quizzes=all_quizzes)
 
 
