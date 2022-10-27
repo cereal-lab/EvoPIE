@@ -889,7 +889,6 @@ def get_quiz_statistics(qid):
 
     #compute total scores 
     max_justfication_grade = max(quiz.first_quartile_grade, quiz.second_quartile_grade, quiz.third_quartile_grade, quiz.fourth_quartile_grade)
-    num_questions = len(quiz_questions)
     total_scores = {}
     max_total_scores = {}
     participation_scores= {}
@@ -897,9 +896,9 @@ def get_quiz_statistics(qid):
         sid = attempt.student_id
         grade_parts = []
         if len(attempt.initial_responses) > 0:
-            grade_parts.append((attempt.initial_total_score, num_questions, quiz.initial_score_weight))
+            grade_parts.append((attempt.initial_total_score, len(attempt.initial_responses), quiz.initial_score_weight))
         if attempt.status == QUIZ_ATTEMPT_SOLUTIONS:
-            grade_parts.append((attempt.revised_total_score, num_questions, quiz.revised_score_weight))
+            grade_parts.append((attempt.revised_total_score, len(attempt.revised_responses), quiz.revised_score_weight))
         if sid in justification_scores:
             grade_parts.append((justification_scores[sid], max_justfication_grade, quiz.justification_grade_weight))
         if sid in likes_given:
