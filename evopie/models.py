@@ -11,6 +11,7 @@ from evopie import DB
 from .config import QUIZ_ATTEMPT_STEP1, QUIZ_HIDDEN, QUIZ_STEP1, ROLE_INSTRUCTOR, ROLE_STUDENT, ROLE_ADMIN
 from .utils import unescape
 from datetime import datetime
+from pytz import timezone
 
 import ast
 
@@ -253,7 +254,8 @@ class Quiz(DB.Model):
 
     deadline_driven = DB.Column(DB.String, default="False")
 
-    defaultDate = datetime.now().replace(hour=23, minute=59)
+    tzinfo = timezone('US/Eastern')
+    defaultDate = datetime.now(tzinfo).replace(hour=23, minute=59)
     deadline0 = DB.Column(DB.DateTime, nullable=False, default=defaultDate) # available
     deadline1 = DB.Column(DB.DateTime, nullable=False, default=defaultDate) # step 1 is due
     deadline2 = DB.Column(DB.DateTime, nullable=False, default=defaultDate) # step 2 is due
