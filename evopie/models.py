@@ -255,7 +255,7 @@ class Quiz(DB.Model):
     deadline_driven = DB.Column(DB.String, default="False")
 
     tzinfo = timezone('US/Eastern')
-    defaultDate = datetime.now(tzinfo).replace(hour=23, minute=59)
+    defaultDate = datetime.now(tzinfo).replace(hour=23, minute=59).replace(tzinfo=None)
     deadline0 = DB.Column(DB.DateTime, nullable=False, default=defaultDate) # available
     deadline1 = DB.Column(DB.DateTime, nullable=False, default=defaultDate) # step 1 is due
     deadline2 = DB.Column(DB.DateTime, nullable=False, default=defaultDate) # step 2 is due

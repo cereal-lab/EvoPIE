@@ -59,6 +59,7 @@ def verify_deadline(quiz_attempt_param = "q", redirect_to_referrer = False, redi
         def decorated_function(*args, **kwargs):
             tzinfo = timezone('US/Eastern')
             date = datetime.now(tzinfo)
+            date = date.replace(tzinfo=None)
             if type(kwargs.get(quiz_attempt_param)) is models.Quiz:
                 q = kwargs[quiz_attempt_param]
                 attempt = models.QuizAttempt.query.filter_by(student_id=current_user.id, quiz_id=q.id).first()

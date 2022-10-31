@@ -27,6 +27,7 @@ def unescape(str):
 def changeQuizStatus(qid):
     tzinfo = timezone('US/Eastern')
     currentDateTime = datetime.now(tzinfo)
+    currentDateTime = currentDateTime.replace(tzinfo=None)
     quiz = models.Quiz.query.get_or_404(qid)
     update = False
     if currentDateTime <= quiz.deadline0 and quiz.status != QUIZ_HIDDEN:
