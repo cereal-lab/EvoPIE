@@ -1,4 +1,5 @@
 from datetime import datetime
+from pytz import timezone
 from evopie.config import EVO_PROCESS_STATUS_ACTIVE, EVO_PROCESS_STATUS_STOPPED, QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_HIDDEN, QUIZ_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, ROLE_STUDENT
 from flask import flash, g, jsonify, redirect, url_for, request, abort
 from flask_login import current_user
@@ -56,7 +57,8 @@ def verify_deadline(quiz_attempt_param = "q", redirect_to_referrer = False, redi
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            date = datetime.now()
+            tzinfo = timezone('US/Eastern')
+            date = datetime.now(tzinfo)
             if type(kwargs.get(quiz_attempt_param)) is models.Quiz:
                 q = kwargs[quiz_attempt_param]
                 attempt = models.QuizAttempt.query.filter_by(student_id=current_user.id, quiz_id=q.id).first()
