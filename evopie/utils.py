@@ -5,7 +5,6 @@
 
 from datetime import datetime
 from pytz import timezone
-from turtle import update
 from evopie.config import EVO_PROCESS_STATUS_ACTIVE, EVO_PROCESS_STATUS_STOPPED, QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_HIDDEN, QUIZ_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, ROLE_STUDENT
 from . import models, APP # get also DB from there
 from sqlalchemy.orm.exc import StaleDataError
