@@ -77,7 +77,7 @@ def verify_deadline(quiz_attempt_param = "q", redirect_to_referrer = False, redi
                 updatedStatus = changeQuizStatus(q.id)
                 if updatedStatus == QUIZ_STEP1:
                     start_evo(q.id)
-                else:
+                elif updatedStatus is not None:
                     stop_evo(q.id)
             else:
                 if (status == QUIZ_ATTEMPT_STEP1 and q.status == QUIZ_STEP1

@@ -59,7 +59,7 @@ def index():
                 updatedStatus = changeQuizStatus(quiz.id)
                 if updatedStatus == QUIZ_STEP1:
                     start_evo(quiz.id)
-                else:
+                elif updatedStatus is not None:
                     stop_evo(quiz.id)
     return render_template('index.html', quizzes=all_quizzes)
 
