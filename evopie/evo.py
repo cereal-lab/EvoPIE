@@ -510,19 +510,18 @@ class P_PHC(PHC, Serializable):
 
     def on_iteration_end(self):
         ''' For each iteraton preserves data into store '''
-        # self.save(pop_size = self.pop_size, gen = self.gen,
-        #             coevaluation_groups = {id: {"inds": g.inds, "objs": g.objs} for id, g in self.coevaluation_groups.items()}, 
-        #             evaluator_coevaluation_groups = self.evaluator_coevaluation_groups,
-        #             gene_size = self.gene_size, pareto_n = self.pareto_n, child_n = self.child_n)
-        pass 
+        self.save(pop_size = self.pop_size, gen = self.gen,
+                    coevaluation_groups = {id: {"inds": g.inds, "objs": g.objs} for id, g in self.coevaluation_groups.items()}, 
+                    evaluator_coevaluation_groups = self.evaluator_coevaluation_groups,
+                    gene_size = self.gene_size, pareto_n = self.pareto_n, child_n = self.child_n, seed = self.seed)     
 
     def on_generation_end(self):
         ''' Updates distractor pools - available distractors for each questions '''
         # self.population = [int(i) for i in unique([p for p in self.population if p is not None])]
-        self.save(pop_size = self.pop_size, gen = self.gen,
-                    coevaluation_groups = {id: {"inds": g.inds, "objs": g.objs} for id, g in self.coevaluation_groups.items()}, 
-                    evaluator_coevaluation_groups = self.evaluator_coevaluation_groups,
-                    gene_size = self.gene_size, pareto_n = self.pareto_n, child_n = self.child_n, seed = self.seed)
+        # self.save(pop_size = self.pop_size, gen = self.gen,
+        #             coevaluation_groups = {id: {"inds": g.inds, "objs": g.objs} for id, g in self.coevaluation_groups.items()}, 
+        #             evaluator_coevaluation_groups = self.evaluator_coevaluation_groups,
+        #             gene_size = self.gene_size, pareto_n = self.pareto_n, child_n = self.child_n, seed = self.seed)
         self.distractors_per_question = self.init_distractor_pools()
 
     def repr_adapter(self, ind_genotypes):

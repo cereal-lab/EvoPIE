@@ -884,6 +884,7 @@ def justify_alternative_selection(q, body):
 
     new_justifications = {(int(qid), distractor_id):justification
         for qid, alt_js in body.items()
+        if qid in attempt.alternatives_map
         for alternatives in [ attempt.alternatives_map[qid] ]
         for alt_id, justification in alt_js.items()
         for aid in [int(alt_id)]

@@ -600,12 +600,14 @@ def get_quiz(q):
 
     question_model = [ { "id": qq.id, 
                         "alternatives": [ unescape(distractor_map[alternative].answer) if alternative in distractor_map else unescape(qq.question.answer) 
-                                                for alternative in alternatives["alternatives"]
+                                                for alternative in attempt.alternatives_map[str(qq.id)]
                                                 if alternative in distractor_map or alternative == -1],
-                        "choice": next((i for i, d in enumerate(alternatives["alternatives"]) if d == attempt.step_responses.get(str(qq.id), None)), -1), 
-                        "justifications": {a:js[did].justification for a, did in enumerate(alternatives["alternatives"]) if did in js},
+                        "choice": next((i for i, d in enumerate(attempt.alternatives_map[str(qq.id)]) if d == attempt.step_responses.get(str(qq.id), None)), -1), 
+                        "justifications": {a:js[did].justification for a, did in enumerate(attempt.alternatives_map[str(qq.id)]) if did in js},
                         **{attr:unescape(getattr(qq.question, attr)) for attr in [ "title", "stem", "answer" ]}}
-                        for (qq, alternatives) in zip(quiz_questions, attempt.alternatives) 
+                        for qq in quiz_questions
+                        if str(qq.id) in attempt.alternatives_map
+                        # for (qq, alternatives) in zip(quiz_questions, attempt.alternatives) 
                         for js in [justification_map.get(qq.id, {})]]
 
     quiz_model = { "id" : q.id, "title" : q.title, "description" : q.description, "deadline0": q.deadline0, "deadline1": q.deadline1, "deadline2": q.deadline2, "deadline3": q.deadline3, "deadline4": q.deadline4 } #we do not need any other fields from dump_as_dict

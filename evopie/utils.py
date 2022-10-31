@@ -48,7 +48,7 @@ def changeQuizStatus(qid):
 
     models.DB.session.commit()
 
-    if update == True and quiz.status == "STEP1":
+    if update == True:
         return quiz.status
     else:
         return None
