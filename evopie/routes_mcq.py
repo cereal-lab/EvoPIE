@@ -623,6 +623,33 @@ def post_quizzes_status(qid):
         response     = ({ "message" : "Unable to switch to new status" }, 400, {"Content-Type": "application/json"})
     return make_response(response)
 
+@mcq.route('/quizzes/<int:qid>/deadline_driven', methods=['POST'])
+@login_required
+@role_required(role=ROLE_INSTRUCTOR)
+def post_quizzes_deadline_driven(qid):
+    '''
+    Modifies the deadline_driven flag of given quiz
+    '''
+
+    quiz = models.Quiz.query.get_or_404(qid)
+
+    if not request.is_json:
+        abort(406, "JSON format required for request")
+    
+    new_deadline_driven = sanitize(request.json['deadline_driven'])
+
+    if new_deadline_driven == "True" or new_deadline_driven == "False":
+        quiz.deadline_driven = new_deadline_driven
+        models.DB.session.commit()
+        response     = ({ "message" : "OK" }, 200, {"Content-Type": "application/json"})
+    else:
+        response     = ({ "message" : "Unable to switch to new deadline_driven flag" }, 400, {"Content-Type": "application/json"})
+
+    return make_response(response)
+
+
+
+
 @mcq.route('/quizzes/<int:qid>/take', methods=['GET', 'POST'])
 @login_required
 @role_required(ROLE_STUDENT, redirect_route='pages.index', redirect_message="You are not allowed to take quizzes", category="postError")

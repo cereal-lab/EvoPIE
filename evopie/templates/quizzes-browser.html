@@ -115,7 +115,9 @@
                         </div>
                     </td>
                     <td class='text-right text-end'>
-                        <select id="status{{single_quiz.id}}">
+                        <input type="checkbox" id="deadline_driven_checkbox{{single_quiz.id}}" name="deadline_driven_checkbox{{single_quiz.id}}" {{ "checked" if single_quiz.deadline_driven == "True" }}>
+                        <label for="deadline_driven_checkbox{{single_quiz.id}}">Deadline Driven</label><br>
+                        <select id="status{{single_quiz.id}}" {{ "disabled" if single_quiz.deadline_driven == "True"  }}>
                             <option value="HIDDEN"      {% if single_quiz.status == 'HIDDEN' %} selected {% endif %}>       Hidden</option>
                             <option value="STEP1"       {% if single_quiz.status == 'STEP1' %} selected {% endif %}>        Step #1</option>
                             <option value="STEP2"       {% if single_quiz.status == 'STEP2' %} selected {% endif %}>        Step #2</option>
@@ -144,6 +146,38 @@
                             </svg>
                         </a>
                         <script>
+                            document.querySelector('#deadline_driven_checkbox{{single_quiz.id}}').addEventListener('change', function() {
+                                let target_url = '/quizzes/{{single_quiz.id}}/deadline_driven';
+                                let e = document.querySelector('#deadline_driven_checkbox{{single_quiz.id}}');
+                                let status_dropdown = document.querySelector('#status{{single_quiz.id}}');
+                                let deadline_driven_value = e.checked ? "True" : "False";
+                                if (e.checked) {
+                                    status_dropdown.disabled = true;
+                                } else {
+                                    status_dropdown.disabled = false;
+                                }
+                                fetch(target_url,{
+                                    method:         'POST',
+                                    headers:        {'Content-Type' : 'application/json'},
+                                    body:           JSON.stringify({"deadline_driven" :  deadline_driven_value}),
+                                    credentials:    'same-origin'
+                                })
+                                .then(
+                                    response => {
+                                        if(response.ok){
+                                            sendToFlashLand("Quiz Deadline Driven Flag Updated","success");
+                                            //window.location.reload();
+                                        }else{
+                                            sendToFlashLand("Quiz Deadline Driven Flag NOT Updated","danger");
+                                            //window.location.reload();
+                                        }
+                                    }
+                                )
+                                .catch((error) => {
+                                    sendToFlashLand("There was a problem updating the quiz deadline driven flag: " + error,"danger");
+                                })
+                            });
+
                             document.querySelector('#status{{single_quiz.id}}').addEventListener('change',function(){
                                 let target_url = '/quizzes/{{single_quiz.id}}/status';
                                 let e = document.querySelector('#status{{single_quiz.id}}');
