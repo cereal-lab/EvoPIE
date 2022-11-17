@@ -121,7 +121,8 @@ class SqlEvoSerializer(Thread, EvoSerializer):
             self.ready_to_write.notify()
 
     def from_store(self, quiz_ids) -> 'dict[int, models.EvoProcess]':
-        with APP.app_context():
+        # with APP.app_context():
+        def _process():
             evo_processes = models.EvoProcess.query.where(models.EvoProcess.quiz_id.in_(quiz_ids), models.EvoProcess.status == EVO_PROCESS_STATUS_ACTIVE).all()
             evo_processes_map = {p.id:p for p in evo_processes}
             if len(evo_processes_map) > 0:
@@ -129,6 +130,12 @@ class SqlEvoSerializer(Thread, EvoSerializer):
                 evo_archives_map = dict(groupby(evo_archives, key=lambda a: a.id))
                 for p_id, p in evo_processes_map.items():
                     p.archive = evo_archives_map.get(p_id, [])
+            return evo_processes
+        if models.DB.session:
+            evo_processes = _process()
+        else:
+            with APP.app_context():
+                evo_processes = _process()
         return {p.quiz_id: p for p in evo_processes}
         
 sql_evo_serializer = SqlEvoSerializer()

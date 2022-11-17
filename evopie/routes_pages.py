@@ -100,7 +100,7 @@ def quizzes_browser():
         return redirect(url_for('pages.index'))
     # TODO #3 working on getting rid of the dump_as_dict and instead using Markup(...).unescape when appropriate
     # all_quizzes = [q.dump_as_dict() for q in models.Quiz.query.all()]
-    all_quizzes = models.Quiz.query.filter_by(author_id=current_user.get_id())
+    all_quizzes = models.Quiz.query.filter_by(author_id=current_user.get_id()).all()
     return render_template('quizzes-browser.html', all_quizzes = all_quizzes)
     # version with pagination below
     #page = request.args.get('page',1, type=int)
