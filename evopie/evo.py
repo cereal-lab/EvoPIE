@@ -330,7 +330,7 @@ class PHC(EvolutionaryProcess, InteractiveEvaluation, ABC):
                     for eval in self.waiting_evaluations:
                         if eval.evaluator_id not in self.evaluator_coevaluation_groups:
                             #NOTE: should not be here usually - but could be on system restart
-                            APP.logger.warn(f"[p-phc] got evaluation for unexpected group: {eval}. {self.evaluator_coevaluation_groups}")
+                            APP.logger.warn(f"[{self.__class__.__name__}] Quiz {self.quiz_id} got evaluation for unexpected group: {eval}. {self.evaluator_coevaluation_groups}")
                             continue
                         coevaluation_group_id = self.evaluator_coevaluation_groups[eval.evaluator_id]
                         eval_group = self.coevaluation_groups[coevaluation_group_id]
@@ -547,7 +547,10 @@ class P_PHC(PHC, Serializable):
 quiz_evo_processes = {}
 
 def get_evo(quiz_id) -> EvolutionaryProcess: 
-    return quiz_evo_processes.get(quiz_id, None)
+    res = quiz_evo_processes.get(quiz_id, None)
+    if res is None: 
+        APP.logger.info(f"No evo process was found for {quiz_id}. Available: {list(quiz_evo_processes.keys())}")
+    return res 
 
 def start_evo(*quiz_ids):
     ''' starts evolutionary processes for quizzes. Considers first db state and then if necessary starts processes with default evopie.config. '''
