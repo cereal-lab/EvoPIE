@@ -34,7 +34,7 @@ def test_extensive(runner):
         {"sid":{"range":[1,14]},"qid":1,"did":4,"step":2,"chance":1},
         {"sid":{"ranges":[[1,7],10]},"qid":4,"did":13,"step":2,"chance":1},
         {"sid":{"range":[1,14]},"qid":5,"did":17,"step":2,"chance":1}]
-    res = runner.invoke(args=[ "student", "knows", "-q", 1, "-kr", "-ef", 'student{}@usf.edu', *[ v for k in knowledge for v in ["-k", json.dumps(k)]] ])
+    res = runner.invoke(args=[ "student", "knows", "-kr", "-ef", 'student{}@usf.edu', *[ v for k in knowledge for v in ["-k", json.dumps(k)]] ])
 
     assert res.exit_code == 0
     print(res.stdout)

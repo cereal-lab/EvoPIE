@@ -937,7 +937,7 @@ def post_process(data_folder, path_suffix, figure_folder, fig_name, param, legen
         fig.savefig(os.path.join(figure_folder, f"{file_name}.png"), format='png')
         plt.close(fig)    
     for param_id, param_frames in frames_list.items():
-        print(f"\Param {param_id}")
+        print(f"Param {param_id}")
         for algo_id, algo_frames in param_frames.items():
             algo_frames.sort(key = lambda d: (int(d.columns[0][0]), int(d.columns[0][1])))
             stat_frame = pandas.concat(algo_frames, axis=1) 
