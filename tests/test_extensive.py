@@ -12,12 +12,19 @@ def app():
 @pytest.fixture()
 def runner(app):
     return app.test_cli_runner()    
-    
-def test_extensive(runner):
+
+@pytest.mark.parametrize("settings, fileName", 
+[
+    ({"fq": 1, "sq": 3, "tq": 5, "frq": 10, "is": 40, "rs": 30, "jg": 20, "pg": 10}, "LF_50%_Likes_15_to_19_QP_1_3_5_10_Weights_40%_30%_20%_10%.csv"),
+    ({"fq": 1, "sq": 3, "tq": 5, "frq": 10, "is": 60, "rs": 20, "jg": 10, "pg": 10}, "LF_50%_Likes_15_to_19_QP_1_3_5_10_Weights_60%_20%_10%_10%.csv"),
+    ({"fq": 2, "sq": 5, "tq": 8, "frq": 10, "is": 40, "rs": 30, "jg": 20, "pg": 10}, "LF_50%_Likes_15_to_19_QP_2_5_8_10_Weights_40%_30%_20%_10%.csv"),
+    ({"fq": 2, "sq": 5, "tq": 8, "frq": 10, "is": 60, "rs": 20, "jg": 10, "pg": 10}, "LF_50%_Likes_15_to_19_QP_2_5_8_10_Weights_60%_20%_10%_10%.csv")
+])
+def test_extensive(runner, settings, fileName):
     res = runner.invoke(args=["DB-reboot"])
     assert res.exit_code == 0
     #TODO: add assert that db is empty
-    res = runner.invoke(args=["quiz", "init", "-nq", 5, "-nd", 4, "-qd", json.dumps({"2":[5,6,7],"3":[9,10,11],"4":[13,14,16]})])
+    res = runner.invoke(args=["quiz", "init", "-nq", 5, "-nd", 4, "-qd", json.dumps({"2":[5,6,7],"3":[9,10,11],"4":[13,14,16]}), "-s", json.dumps(settings)])
     assert res.exit_code == 0
     print(res.stdout)
     #TODO: add assert that quiz is inited 
@@ -59,7 +66,7 @@ def test_extensive(runner):
     print(res.stdout)
 
     res = runner.invoke(args=[ "quiz", "result", "-q", 1,
-                            "--expected", "testing/Extensive Test/LF_50%_Likes_15_to_19_QP_1_3_5_10_Weights_40%_30%_20%_10%.csv"])        
+                            "--expected", "tests/{}".format(fileName)])        
     print(res.stdout)
     assert res.exit_code == 0
     

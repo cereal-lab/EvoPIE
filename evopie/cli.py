@@ -106,7 +106,8 @@ deca_cli = AppGroup('deca')
 @click.option('-nq', '--num-questions', required = True, type = int)
 @click.option('-nd', '--num-distractors', required = True, type = int)
 @click.option('-qd', '--question-distractors')
-def start_quiz_init(instructor, num_questions, num_distractors, question_distractors):
+@click.option('-s', '--settings')
+def start_quiz_init(instructor, num_questions, num_distractors, question_distractors, settings):
     ''' Creates instructor, quiz, students for further testing 
         Note: flask app should be running
     '''
@@ -117,6 +118,10 @@ def start_quiz_init(instructor, num_questions, num_distractors, question_distrac
         return { "title": f"Question {i}", "stem": f"Question {i} Stem?", "answer": f"a{i}"}
     def build_distractor(i, question):
         return { "answer": f"d{i}/q{question}", "justification": f"d{i}/q{question} just"}
+    if settings:
+        settings = json.loads(settings)
+    else:
+        settings = {}
     if question_distractors:
         question_distractors = json.loads(question_distractors)
     else:
@@ -149,6 +154,17 @@ def start_quiz_init(instructor, num_questions, num_distractors, question_distrac
         quiz = build_quiz(quiz_id, qids)
         throw_on_http_fail(c.put(f"/quizzes/{quiz_id}", json=quiz))
         sys.stdout.write(f"Quiz with id {quiz_id} was created successfully:\n{distractor_map}\n")
+        settings_for_quiz = { 
+            "first_quartile_grade": settings.get("fq", 1),
+            "second_quartile_grade": settings.get("sq", 3),
+            "third_quartile_grade": settings.get("tq", 5),
+            "fourth_quartile_grade": settings.get("frq", 10),
+            "initial_score": settings.get("is", 40),
+            "revised_score": settings.get("rs", 30),
+            "justification_grade": settings.get("jg", 20),
+            "participation_grade": settings.get("pg", 10)
+        }
+        throw_on_http_fail(c.post(f"/grades/{quiz_id}/settings", json=settings_for_quiz))
 
 @deca_cli.command("init")
 @click.option('-q', '--quiz', type = int, required = True)
