@@ -76,7 +76,7 @@ curlit  'Added distractor'          "/questions/5/distractors"      '{ "answer":
 curlit  'QuizQuestion composed'     "/quizquestions"                '{ "qid": "5", "distractors_ids": [17, 18, 19, 20]}'
 
 header 'CREATING QUIZ #1 from above questions'
-curlit  'Quiz Created'              "/quizzes"          '{ "title": "Test Quiz", "description": "This is just to make sure things are working", "questions_ids":[1,2,3,4,5]}'
+curlit  'Quiz Created'              "/quizzes"          '{ "title": "Test Quiz", "description": "This is just to make sure things are working", "deadline0": "2022-09-20T09:32", "deadline1": "2022-09-21T09:32", "deadline2": "2022-09-22T09:32", "deadline3": "2022-09-23T09:32", "deadline4": "2022-09-24T09:32", "questions_ids":[1,2,3,4,5]}'
 
 # new question template
 # curlit  'Added Question'            "/questions"        '{ "title": "", "stem": "", "answer": ""}'

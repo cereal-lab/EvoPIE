@@ -4,7 +4,9 @@ services:
   web:
     build: ./evopie
     volumes:
-      - /EvoPIE-INSTALLATION-FOLDER-NAME-GOES-HERE/DB_quizlib.sqlite:/app/EvoPIE/evopie/DB_quizlib.sqlite
+      - /EvoPIE/EvoPIE-INSTALLATION-FOLDER-NAME-GOES-HERE/data:/app/data
+    environment:
+      - EVOPIE_DATABASE_URI=sqlite:////app/data/db.sqlite
     expose:
       - 5000
     env_file:

@@ -71,8 +71,7 @@
         // old version limited to 3 questions
         // var data = JSON.stringify({ "title": title.value, "description": description.value, "questions_ids": [parseInt(qq1.value), parseInt(qq2.value), parseInt(qq3.value)] });
         
-        var data = JSON.stringify({ "title": title.value, "description": description.value});
-        
+        var data = JSON.stringify({ "title": title.value, "description": description.value });
         
         // Sending data with the request 
         xhr.send(data);
@@ -116,7 +115,9 @@
                         </div>
                     </td>
                     <td class='text-right text-end'>
-                        <select id="status{{single_quiz.id}}">
+                        <input type="checkbox" id="deadline_driven_checkbox{{single_quiz.id}}" name="deadline_driven_checkbox{{single_quiz.id}}" {{ "checked" if single_quiz.deadline_driven == "True" }}>
+                        <label for="deadline_driven_checkbox{{single_quiz.id}}">Deadline Driven</label><br>
+                        <select id="status{{single_quiz.id}}" {{ "disabled" if single_quiz.deadline_driven == "True"  }}>
                             <option value="HIDDEN"      {% if single_quiz.status == 'HIDDEN' %} selected {% endif %}>       Hidden</option>
                             <option value="STEP1"       {% if single_quiz.status == 'STEP1' %} selected {% endif %}>        Step #1</option>
                             <option value="STEP2"       {% if single_quiz.status == 'STEP2' %} selected {% endif %}>        Step #2</option>
@@ -139,7 +140,44 @@
                                 <path d="m13.498.795.149-.149a1.207 1.207 0 1 1 1.707 1.708l-.149.148a1.5 1.5 0 0 1-.059 2.059L4.854 14.854a.5.5 0 0 1-.233.131l-4 1a.5.5 0 0 1-.606-.606l1-4a.5.5 0 0 1 .131-.232l9.642-9.642a.5.5 0 0 0-.642.056L6.854 4.854a.5.5 0 1 1-.708-.708L9.44.854A1.5 1.5 0 0 1 11.5.796a1.5 1.5 0 0 1 1.998-.001zm-.644.766a.5.5 0 0 0-.707 0L1.95 11.756l-.764 3.057 3.057-.764L14.44 3.854a.5.5 0 0 0 0-.708l-1.585-1.585z"/>
                             </svg>
                         </a>
+                        <a  href='{{url_for('pages.quiz_configuration', q=single_quiz)}}' type="button" class="">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-gear-wide-connected" viewBox="0 0 16 16">
+                                <path d="M7.068.727c.243-.97 1.62-.97 1.864 0l.071.286a.96.96 0 0 0 1.622.434l.205-.211c.695-.719 1.888-.03 1.613.931l-.08.284a.96.96 0 0 0 1.187 1.187l.283-.081c.96-.275 1.65.918.931 1.613l-.211.205a.96.96 0 0 0 .434 1.622l.286.071c.97.243.97 1.62 0 1.864l-.286.071a.96.96 0 0 0-.434 1.622l.211.205c.719.695.03 1.888-.931 1.613l-.284-.08a.96.96 0 0 0-1.187 1.187l.081.283c.275.96-.918 1.65-1.613.931l-.205-.211a.96.96 0 0 0-1.622.434l-.071.286c-.243.97-1.62.97-1.864 0l-.071-.286a.96.96 0 0 0-1.622-.434l-.205.211c-.695.719-1.888.03-1.613-.931l.08-.284a.96.96 0 0 0-1.186-1.187l-.284.081c-.96.275-1.65-.918-.931-1.613l.211-.205a.96.96 0 0 0-.434-1.622l-.286-.071c-.97-.243-.97-1.62 0-1.864l.286-.071a.96.96 0 0 0 .434-1.622l-.211-.205c-.719-.695-.03-1.888.931-1.613l.284.08a.96.96 0 0 0 1.187-1.186l-.081-.284c-.275-.96.918-1.65 1.613-.931l.205.211a.96.96 0 0 0 1.622-.434l.071-.286zM12.973 8.5H8.25l-2.834 3.779A4.998 4.998 0 0 0 12.973 8.5zm0-1a4.998 4.998 0 0 0-7.557-3.779l2.834 3.78h4.723zM5.048 3.967c-.03.021-.058.043-.087.065l.087-.065zm-.431.355A4.984 4.984 0 0 0 3.002 8c0 1.455.622 2.765 1.615 3.678L7.375 8 4.617 4.322zm.344 7.646.087.065-.087-.065z"/>
+                            </svg>
+                        </a>
                         <script>
+                            document.querySelector('#deadline_driven_checkbox{{single_quiz.id}}').addEventListener('change', function() {
+                                let target_url = '/quizzes/{{single_quiz.id}}/deadline_driven';
+                                let e = document.querySelector('#deadline_driven_checkbox{{single_quiz.id}}');
+                                let status_dropdown = document.querySelector('#status{{single_quiz.id}}');
+                                let deadline_driven_value = e.checked ? "True" : "False";
+                                if (e.checked) {
+                                    status_dropdown.disabled = true;
+                                } else {
+                                    status_dropdown.disabled = false;
+                                }
+                                fetch(target_url,{
+                                    method:         'POST',
+                                    headers:        {'Content-Type' : 'application/json'},
+                                    body:           JSON.stringify({"deadline_driven" :  deadline_driven_value}),
+                                    credentials:    'same-origin'
+                                })
+                                .then(
+                                    response => {
+                                        if(response.ok){
+                                            sendToFlashLand("Quiz Deadline Driven Flag Updated","success");
+                                            //window.location.reload();
+                                        }else{
+                                            sendToFlashLand("Quiz Deadline Driven Flag NOT Updated","danger");
+                                            //window.location.reload();
+                                        }
+                                    }
+                                )
+                                .catch((error) => {
+                                    sendToFlashLand("There was a problem updating the quiz deadline driven flag: " + error,"danger");
+                                })
+                            });
+
                             document.querySelector('#status{{single_quiz.id}}').addEventListener('change',function(){
                                 let target_url = '/quizzes/{{single_quiz.id}}/status';
                                 let e = document.querySelector('#status{{single_quiz.id}}');

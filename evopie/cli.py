@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from functools import reduce
 from io import StringIO
 from itertools import combinations_with_replacement, product
@@ -105,7 +106,8 @@ deca_cli = AppGroup('deca')
 @click.option('-nq', '--num-questions', required = True, type = int)
 @click.option('-nd', '--num-distractors', required = True, type = int)
 @click.option('-qd', '--question-distractors')
-def start_quiz_init(instructor, num_questions, num_distractors, question_distractors):
+@click.option('-s', '--settings')
+def start_quiz_init(instructor, num_questions, num_distractors, question_distractors, settings):
     ''' Creates instructor, quiz, students for further testing 
         Note: flask app should be running
     '''
@@ -116,6 +118,10 @@ def start_quiz_init(instructor, num_questions, num_distractors, question_distrac
         return { "title": f"Question {i}", "stem": f"Question {i} Stem?", "answer": f"a{i}"}
     def build_distractor(i, question):
         return { "answer": f"d{i}/q{question}", "justification": f"d{i}/q{question} just"}
+    if settings:
+        settings = json.loads(settings)
+    else:
+        settings = {}
     if question_distractors:
         question_distractors = json.loads(question_distractors)
     else:
@@ -148,6 +154,17 @@ def start_quiz_init(instructor, num_questions, num_distractors, question_distrac
         quiz = build_quiz(quiz_id, qids)
         throw_on_http_fail(c.put(f"/quizzes/{quiz_id}", json=quiz))
         sys.stdout.write(f"Quiz with id {quiz_id} was created successfully:\n{distractor_map}\n")
+        settings_for_quiz = { 
+            "first_quartile_grade": settings.get("fq", 1),
+            "second_quartile_grade": settings.get("sq", 3),
+            "third_quartile_grade": settings.get("tq", 5),
+            "fourth_quartile_grade": settings.get("frq", 10),
+            "initial_score": settings.get("is", 40),
+            "revised_score": settings.get("rs", 30),
+            "justification_grade": settings.get("jg", 20),
+            "participation_grade": settings.get("pg", 10)
+        }
+        throw_on_http_fail(c.post(f"/grades/{quiz_id}/settings", json=settings_for_quiz))
 
 @deca_cli.command("init")
 @click.option('-q', '--quiz', type = int, required = True)
@@ -236,6 +253,11 @@ def init_students(num_students, exclude_id, input, output, email_format):
                 student = build_student(i + 1)
                 create_student(student)
     student_ids = set(students["id"])
+    for student_id in student_ids:
+        student = models.User.query.get_or_404(student_id)
+        instructor = models.User.query.get_or_404(1)
+        student.instructors.append(instructor)
+        models.DB.session.commit()
     models.StudentKnowledge.query.where(models.StudentKnowledge.student_id.in_(student_ids)).delete()
     models.DB.session.commit()
     if output is not None:
@@ -497,6 +519,7 @@ def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n
                     resp = throw_on_http_fail(c.post("/login", json={"email": email, "password": "pwd"}))
                     if "id" not in resp:
                         continue #ignore non-default students
+                    resp = throw_on_http_fail(c.get(f"/student/{quiz}/start", headers={"Accept": "application/json"}))
                     resp = throw_on_http_fail(c.get(f"/student/{quiz}", headers={"Accept": "application/json"}))
 
                 with APP.app_context():
@@ -842,14 +865,16 @@ def post_process(result_folder, figure_folder, param, file_name_pattern, group_b
     print(f"Stats:\n{latex_table}\n--------")
 
 @quiz_cli.command("plot-metric-vs-num-of-dims")
-@click.option("-p", "--param", required=True)        
-@click.option("-pt", "--param-title")  
+@click.option("-p", "--param", required=True, multiple=True)   
+@click.option("-pt", "--param-title", multiple=True)  
 @click.option("--data-folder", required=True)
 @click.option("--path-suffix", required=True)
 @click.option("--figure-folder", required=True)
 @click.option("--file-name-pattern")
 @click.option("--fixate-range", is_flag=True)
-def post_process(data_folder, path_suffix, figure_folder, param, param_title, file_name_pattern, fixate_range):
+@click.option("--fig-name")
+@click.option("--legend")
+def post_process(data_folder, path_suffix, figure_folder, fig_name, param, legend, param_title, file_name_pattern, fixate_range):
     import re
     pattern = re.compile(file_name_pattern)
     frames_data = {}    
@@ -858,48 +883,82 @@ def post_process(data_folder, path_suffix, figure_folder, param, param_title, fi
         dims = tuple([int(d) for d in axes.split('_')])
         # sp = int(spanned.split('s_')[1])
         return dims[0]
-    
+        
+    param_titles = {}
+    for p, pt in zip(param, param_title):
+        param_titles[p] = pt
+
     for dim_data_dir in os.listdir(data_folder): 
         num_dims = int(dim_data_dir.split('-')[1])
         file_path = os.path.join(data_folder, dim_data_dir, path_suffix)
         for file in os.listdir(file_path):
-            if not pattern.match(file): 
+            if (m := pattern.match(file)) is None: 
                 continue
-            # print(file)
+            # print(file)            
             dim_size = get_space_params(file)
             # file_id = f"{len(dims)} {sp} {i}"
             # file_id = f"{dims} {sp} {i}"
             file_frame = pandas.read_csv(os.path.join(file_path, file))
-            file_data = file_frame[param].to_list()
-            frames_data.setdefault(dim_size, {}).setdefault(num_dims, []).extend(file_data)
-    frames = { dim_size: DataFrame(data = df) for dim_size, df in frames_data.items() }
-    frames = {dim_size: frame.reindex(sorted(frame.columns, key = lambda c: int(c)), axis=1) for dim_size, frame in frames.items() }  
-    sorted_dim_sizes = sorted(frames.keys())  
-    frames_list = []
+            for p in param:
+                file_key = (p, str(dim_size), *m.groupdict().values())
+                file_data = file_frame[p].to_list()
+                frames_data.setdefault(file_key, {}).setdefault(num_dims, []).extend(file_data)
+    frames = { file_key: DataFrame(data = df) for file_key, df in frames_data.items() }
+    frames = {file_key: frame.reindex(sorted(frame.columns, key = lambda c: int(c)), axis=1) for file_key, frame in frames.items() }  
+    sorted_file_keys = sorted(frames.keys())  
+    frames_list = {}
     markers = ["o", "s", "x"]
-    legend = []
-    for dim_size_id, dim_size in enumerate(sorted_dim_sizes):
-        frame = frames[dim_size]
+    # legend = []
+    groupedPlots = {}
+    for file_key in sorted_file_keys:
+        param = file_key[0]
+        dim_size = file_key[1]
+        frame = frames[file_key]
         mn = frame.mean()
         std = frame.std()
-        clr = ((0.3 + mn * 0.7) if param in ['dim_coverage', 'arr'] else (1 - mn * 0.7)).round(2).astype(str)
-        frames_list.append(DataFrame({dim_size: "cellcolor[rgb]{" + clr + "," + clr + "," + clr + "}" + mn.round(2).astype(str) + " ± " + std.round(2).astype(str)}))
+        clr = ((0.3 + mn * 0.7) if file_key[0] in ['dim_coverage', 'arr'] else (1 - mn * 0.7)).round(2).astype(str)
+        group_keys = {p:pi for pi, p in enumerate(pattern.groupindex.keys())}
+        algo = file_key[2 + group_keys["algo"]] if "algo" in group_keys else "algo"
+        spanned = file_key[2 + group_keys["spanned"]] if "spanned" in group_keys else 0
+        frames_list.setdefault(param, {}).setdefault(algo, []).append(DataFrame({(spanned, dim_size): "cellcolor[rgb]{" + clr + "," + clr + "," + clr + "}" + mn.round(2).astype(str) + " ± " + std.round(2).astype(str)}))
         #drawing plot
-        legend.append(f"Axis size {dim_size}")
-        plot = mn.plot(xlabel="Number of DECA axes", ylabel=param_title, marker = markers[dim_size_id], fontsize = 16)  
+        # legend.append(f"Axis size {dim_size}")
+        # plot = mn.plot(xlabel="Number of DECA axes", ylabel=param_title, marker = markers[file_key_id], fontsize = 16)  
+        fn = fig_name or "<param>"
+        l = legend or "Axis size <dimSize>"
+        for p, pi in group_keys.items():
+            fn = fn.replace(f"<{p}>", file_key[2 + pi])
+            l = l.replace(f"<{p}>", file_key[2 + pi])
+        fn = fn.replace("<param>", file_key[0])
+        l = l.replace("<param>", file_key[0])
+        fn = fn.replace("<dimSize>", file_key[1])
+        l = l.replace("<dimSize>", file_key[1])
+        
+        groupedPlots.setdefault(fn, []).append((mn, l, param_titles.get(file_key[0], file_key[0])))
         # boxplot.set_xticklabels(boxplot.get_xticklabels(), rotation=-60)
-    if fixate_range:
-        plot.set_ylim([0, 1.05])
-    legend = plot.legend(legend, fontsize=16)
-    plot.xaxis.label.set_fontsize(18)
-    plot.yaxis.label.set_fontsize(18)
-    fig = plot.get_figure()  
-    fig.set_tight_layout(True)      
-    fig.savefig(os.path.join(figure_folder, f"{param}.png"), format='png')
-    plt.close(fig)
-    stat_frame = pandas.concat(frames_list, axis=1) 
-    latex_table = stat_frame.to_latex().replace("cellcolor[rgb]\\{", "\\cellcolor[rgb]{").replace("\\}", "}")
-    print(f"Frame:\n{latex_table}\n")    
+    for file_name, mns in groupedPlots.items():
+        legends = []
+        for (mn, legend, pt) in mns:
+            mk = markers.pop(0)
+            legends.append(legend)
+            plot = mn.plot(xlabel="Number of DECA axes", ylabel=pt, marker = mk, fontsize = 16)  
+            markers.append(mk)
+        if fixate_range:
+            plot.set_ylim([0, 1.05])
+        legend = plot.legend(legends, fontsize=16)
+        plot.xaxis.label.set_fontsize(18)
+        plot.yaxis.label.set_fontsize(18)
+        fig = plot.get_figure()  
+        fig.set_tight_layout(True)      
+        fig.savefig(os.path.join(figure_folder, f"{file_name}.png"), format='png')
+        plt.close(fig)    
+    for param_id, param_frames in frames_list.items():
+        print(f"Param {param_id}")
+        for algo_id, algo_frames in param_frames.items():
+            algo_frames.sort(key = lambda d: (int(d.columns[0][0]), int(d.columns[0][1])))
+            stat_frame = pandas.concat(algo_frames, axis=1) 
+            latex_table = stat_frame.to_latex().replace("cellcolor[rgb]\\{", "\\cellcolor[rgb]{").replace("\\}", "}")
+            print(f"Frame for algo {algo_id}:\n{latex_table}\n")    
     # for param, values_group in frames_data.items():
     #     f = frames.setdefault(param, DataFrame()) 
     #     for space, g in groupby(values_group, key = lambda x: x[0]):            

@@ -8,11 +8,13 @@ from flask import Blueprint
 from flask_login import login_required, current_user
 from flask import Markup
 from flask import flash
+from datetime import datetime
 from werkzeug.security import generate_password_hash
-from evopie.config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT
+from evopie.config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT
 from evopie.evo import get_evo, start_evo, stop_evo, Evaluation
 
-from evopie.utils import groupby, role_required, sanitize, unmime, validate_quiz_attempt_step
+from evopie.utils import groupby, sanitize
+from evopie.decorators import role_required, unmime, validate_quiz_attempt_step, verify_deadline, verify_instructor_relationship
 
 from . import models
 
@@ -114,7 +116,7 @@ def put_question(question_id):
     coming from an HTML form that really wanted to send us a PUT.
     '''
     # validation - All of the quizzes containing question_id must be HIDDEN to be able to update
-    for quiz in models.Quiz.query.all():
+    for quiz in models.Quiz.query.filter_by(author_id=current_user.get_id()):
         for qq in quiz.quiz_questions:
             if qq.question_id == question_id and quiz.status != "HIDDEN":
                 response     = ({ "message" : "Quiz not accessible at this time" }, 403, {"Content-Type": "application/json"})
@@ -164,7 +166,7 @@ def delete_question(question_id):
     q = models.Question.query.get_or_404(question_id)
     
     # validation - All of the quizzes containing question_id must be HIDDEN to be able to update
-    for quiz in models.Quiz.query.all():
+    for quiz in models.Quiz.query.filter_by(author_id=current_user.get_id()):
         for qq in quiz.quiz_questions:
             if qq.question_id == question_id and quiz.status != "HIDDEN":
                 response     = ({ "message" : "Quiz not accessible at this time" }, 403, {"Content-Type": "application/json"})
@@ -254,7 +256,7 @@ def get_distractor(distractor_id):
 @role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to modify distractors")
 def put_distractor(distractor_id):
     # validation - All of the quizzes containing a question that distractor_id is related to must be HIDDEN to be able to update
-    for quiz in models.Quiz.query.all():
+    for quiz in models.Quiz.query.filter_by(author_id=current_user.get_id()):
         for qq in quiz.quiz_questions:
             question = models.Question.query.get(qq.question_id)
             for d in question.distractors:
@@ -308,7 +310,7 @@ def delete_distractor(distractor_id):
     d = models.Distractor.query.get_or_404(distractor_id)
     
     # validation - All of the quizzes containing a question that distractor_id is related to must be HIDDEN to be able to update
-    for quiz in models.Quiz.query.all():
+    for quiz in models.Quiz.query.filter_by(author_id=current_user.get_id()):
         for qq in quiz.quiz_questions:
             question = models.Question.query.get(qq.question_id)
             for d in question.distractors:
@@ -408,7 +410,7 @@ def delete_quiz_questions(qq_id):
     qq = models.QuizQuestion.query.get_or_404(qq_id)
 
     # validation - All of the quizzes using this qq_id must be HIDDEN to be able to delete
-    for quiz in models.Quiz.query.all():
+    for quiz in models.Quiz.query.filter_by(author_id=current_user.get_id()):
         for qq in quiz.quiz_questions:
             if qq.id == qq_id and quiz.status != "HIDDEN":
                 response     = ({ "message" : "Quiz not accessible at this time" }, 403, {"Content-Type": "application/json"})
@@ -434,7 +436,7 @@ def put_quiz_questions(qq_id):
     qq = models.QuizQuestion.query.get_or_404(qq_id)
 
     # validation - All of the quizzes using this qq_id must be HIDDEN to be able to update
-    for quiz in models.Quiz.query.all():
+    for quiz in models.Quiz.query.filter_by(author_id=current_user.get_id()):
         for qq in quiz.quiz_questions:
             if qq.id == qq_id and quiz.status != "HIDDEN":
                 response     = ({ "message" : "Quiz not accessible at this time" }, 403, {"Content-Type": "application/json"})
@@ -479,7 +481,7 @@ def post_new_quiz():
     bleached_title = sanitize(title)
     bleached_description = sanitize(description)
 
-    q = models.Quiz(title=bleached_title, description=bleached_description)
+    q = models.Quiz(title=bleached_title, description=bleached_description, author_id=current_user.get_id())
     
     # Adding the questions, based on the questions_id that were submitted
     if 'questions_ids' in request.json:
@@ -502,7 +504,7 @@ def get_all_quizzes():
         response     = ({ "message" : "You are not allowed to view all quizzes" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
-    quizzes = models.Quiz.query.all()
+    quizzes = models.Quiz.query.filter_by(author_id=current_user.get_id())
     return jsonify([q.dump_as_dict()for q in quizzes])
 
 @mcq.route('/quizzes/<int:qid>', methods=['GET'])
@@ -543,13 +545,11 @@ def delete_quizzes(qid):
 
 @mcq.route('/quizzes/<int:qid>', methods=['PUT'])
 @login_required
+@role_required(role = ROLE_INSTRUCTOR, redirect_route='pages.index', redirect_message="You are not allowed to take quizzes", category="postError")
 def put_quizzes(qid):
     '''
     Handles PUT requests on a specific quiz
     '''
-    if not current_user.is_instructor():
-        response     = ({ "message" : "You are not allowed to modify quizzes" }, 403, {"Content-Type": "application/json"})
-        return make_response(response)
 
     quiz = models.Quiz.query.get_or_404(qid)
 
@@ -581,9 +581,8 @@ def put_quizzes(qid):
 
     models.DB.session.commit()
 
-    response = ({ "message" : "Quiz updated in database" }, 200, {"Content-Type": "application/json"})
     #NOTE see previous note about using 204 vs 200
-    return make_response(response)
+    return { "message" : "Quiz updated in database" }
     
 @mcq.route('/quizzes/<int:qid>/status', methods=['GET'])
 @login_required
@@ -624,9 +623,38 @@ def post_quizzes_status(qid):
         response     = ({ "message" : "Unable to switch to new status" }, 400, {"Content-Type": "application/json"})
     return make_response(response)
 
+@mcq.route('/quizzes/<int:qid>/deadline_driven', methods=['POST'])
+@login_required
+@role_required(role=ROLE_INSTRUCTOR)
+def post_quizzes_deadline_driven(qid):
+    '''
+    Modifies the deadline_driven flag of given quiz
+    '''
+
+    quiz = models.Quiz.query.get_or_404(qid)
+
+    if not request.is_json:
+        abort(406, "JSON format required for request")
+    
+    new_deadline_driven = sanitize(request.json['deadline_driven'])
+
+    if new_deadline_driven == "True" or new_deadline_driven == "False":
+        quiz.deadline_driven = new_deadline_driven
+        models.DB.session.commit()
+        response     = ({ "message" : "OK" }, 200, {"Content-Type": "application/json"})
+    else:
+        response     = ({ "message" : "Unable to switch to new deadline_driven flag" }, 400, {"Content-Type": "application/json"})
+
+    return make_response(response)
+
+
+
+
 @mcq.route('/quizzes/<int:qid>/take', methods=['GET', 'POST'])
 @login_required
 @role_required(ROLE_STUDENT, redirect_route='pages.index', redirect_message="You are not allowed to take quizzes", category="postError")
+@verify_deadline(redirect_route='pages.index')
+@verify_instructor_relationship(quiz_attempt_param = "q", redirect_route='pages.index')
 def all_quizzes_take(qid):
 
     quiz = models.Quiz.query.get_or_404(qid)
@@ -635,9 +663,15 @@ def all_quizzes_take(qid):
     
     # TODO implement logic for deadlines
     # IF date <= DL1 THEN step #1 ELSE IF DL1 < date <= DL2 && previous attempt exists THEN step #2
-    
+
     attempt = models.QuizAttempt.query.filter_by(quiz_id=qid).filter_by(student_id=sid).first()
     # FIXME we are taking the first... would be better to ensure uniqueness
+
+
+    # NOTE need to code for step1 and step2
+
+    # if attempt.status == QUIZ_ATTEMPT_STEP1:
+    #     if date > quiz.deadline0 and date <= quiz.deadline1 and quiz.status == QUIZ_STEP1:
     
     step1 = False
     step2 = False
@@ -827,6 +861,10 @@ def post_grading_settings(qid):
             q.third_quartile_grade = int(request.json['third_quartile_grade'])
         if 'fourth_quartile_grade' in request.json:
             q.fourth_quartile_grade = int(request.json['fourth_quartile_grade']) 
+        if 'step1_pwd' in request.json:
+            q.step1_pwd = request.json["step1_pwd"]
+        if 'step2_pwd' in request.json:
+            q.step2_pwd = request.json["step2_pwd"]            
         if 'limiting_factor' in request.json:
             q.limiting_factor = int(request.json['limiting_factor']) / 100
             attempts = models.QuizAttempt.query.filter_by(quiz_id = qid).all()
@@ -853,6 +891,8 @@ def answer_questions(q, body):
     for qid, answer in body.items(): # body should be map of questionId: id of option selected
         if qid in attempt.alternatives_map and answer >= 0 and answer < len(attempt.alternatives_map[qid]):
             attempt.step_responses[qid] = attempt.alternatives_map[qid][answer]
+        # if qid in attempt.alternatives_map and int(answer) in attempt.alternatives_map[qid]:
+        #     attempt.step_responses[qid] = int(answer)
     
     models.DB.session.commit()
     return {"message": "Quiz answers were saved"}
@@ -871,11 +911,19 @@ def justify_alternative_selection(q, body):
 
     new_justifications = {(int(qid), distractor_id):justification
         for qid, alt_js in body.items()
+        if qid in attempt.alternatives_map
         for alternatives in [ attempt.alternatives_map[qid] ]
         for alt_id, justification in alt_js.items()
         for aid in [int(alt_id)]
         if aid >= 0 and aid < len(alternatives)        
         for distractor_id in [ alternatives[aid] ] }
+
+    # new_justifications = {(int(qid), aid):justification
+    #     for qid, alt_js in body.items()
+    #     for alternatives in [ attempt.alternatives_map[qid] ]
+    #     for alt_id, justification in alt_js.items()
+    #     for aid in [int(alt_id)]
+    #     if aid in alternatives }
 
     if len(new_justifications) == 0: 
         return {"message": "Justifications were saved" }
@@ -906,6 +954,8 @@ def justify_alternative_selection(q, body):
 
 @mcq.route('/quizzes/<qa:q>/justifications/like', methods=['PUT'])
 @login_required
+@verify_deadline(quiz_attempt_param = "q", redirect_route='pages.index')
+@verify_instructor_relationship(quiz_attempt_param = "q", redirect_route='pages.index')
 @validate_quiz_attempt_step(quiz_attempt_param = "q", required_step=QUIZ_ATTEMPT_STEP2)
 @unmime(type_converters={"*": lambda x: x == 1}) #1 means like, 0 - unlike
 def like_justifications(q, body):

@@ -8,9 +8,10 @@ from random import shuffle # to shuffle lists
 from flask_login import UserMixin
 from sqlalchemy import ForeignKey
 from evopie import DB
-from .config import QUIZ_ATTEMPT_STEP1, QUIZ_STEP1, ROLE_INSTRUCTOR, ROLE_STUDENT, ROLE_ADMIN
+from .config import QUIZ_ATTEMPT_STEP1, QUIZ_HIDDEN, QUIZ_STEP1, ROLE_INSTRUCTOR, ROLE_STUDENT, ROLE_ADMIN
 from .utils import unescape
 from datetime import datetime
+from pytz import timezone
 
 import ast
 
@@ -237,7 +238,7 @@ class Quiz(DB.Model):
     # list of tags provided by the author to help them organize their stuff :)
     # later, we might add some global tags
     author_tags = DB.Column(DB.String)
-    status = DB.Column(DB.String, default="HIDDEN")
+    status = DB.Column(DB.String, default=QUIZ_HIDDEN)
     limiting_factor = DB.Column(DB.Integer, default=0.5)
     initial_score_weight = DB.Column(DB.Integer, default=0.4)
     revised_score_weight = DB.Column(DB.Integer, default=0.3)
@@ -248,6 +249,19 @@ class Quiz(DB.Model):
     second_quartile_grade = DB.Column(DB.Integer, default = 3)
     third_quartile_grade = DB.Column(DB.Integer, default = 5)
     fourth_quartile_grade = DB.Column(DB.Integer, default = 10)
+    step1_pwd = DB.Column(DB.String, default="")
+    step2_pwd = DB.Column(DB.String, default="")
+
+    deadline_driven = DB.Column(DB.String, default="False")
+
+    tzinfo = timezone('US/Eastern')
+    defaultDate = datetime.now(tzinfo).replace(hour=23, minute=59).replace(tzinfo=None)
+    deadline0 = DB.Column(DB.DateTime, nullable=False, default=defaultDate) # available
+    deadline1 = DB.Column(DB.DateTime, nullable=False, default=defaultDate) # step 1 is due
+    deadline2 = DB.Column(DB.DateTime, nullable=False, default=defaultDate) # step 2 is due
+    deadline3 = DB.Column(DB.DateTime, nullable=False, default=defaultDate) # when answers are revealed
+    deadline4 = DB.Column(DB.DateTime, nullable=False, default=defaultDate) # when the quiz is closed (becomes hidden)
+
 
     # NOTE for now the statuses that are handled are "HIDDEN", "STEP1", "STEP2"
     # TODO might want to make this a foreign key to a table of statuses
@@ -279,7 +293,14 @@ class Quiz(DB.Model):
                     "first_quartile_grade" : self.first_quartile_grade ,
                     "second_quartile_grade" : self.second_quartile_grade,
                     "third_quartile_grade" : self.third_quartile_grade ,
-                    "fourth_quartile_grade" : self.fourth_quartile_grade
+                    "fourth_quartile_grade" : self.fourth_quartile_grade,
+                    "step1_pwd": self.step1_pwd,
+                    "step2_pwd": self.step2_pwd,
+                    "deadline0": self.deadline0.strftime("%Y-%m-%dT%H:%M"),
+                    "deadline1": self.deadline1.strftime("%Y-%m-%dT%H:%M"),
+                    "deadline2": self.deadline2.strftime("%Y-%m-%dT%H:%M"),
+                    "deadline3": self.deadline3.strftime("%Y-%m-%dT%H:%M"),
+                    "deadline4": self.deadline4.strftime("%Y-%m-%dT%H:%M")
                     # "participation_grade_threshold" : round(self.num_justifications_shown * len(questions) * self.limiting_factor)
                 }
 
@@ -383,7 +404,11 @@ relation_questions_vs_attempts = DB.Table('relation_questions_vs_attempts',
    DB.Column('quiz_question_id',DB.Integer, DB.ForeignKey('quiz_question.id'),primary_key=True)
 )
 
-
+instructor_student = DB.Table(
+    'InstructorStudent',
+    DB.Column('InstructorId', DB.Integer, DB.ForeignKey('user.id'), primary_key=True),
+    DB.Column('StudentId', DB.Integer, DB.ForeignKey('user.id'), primary_key=True)
+);
 
 class User(UserMixin, DB.Model):
     '''
@@ -406,6 +431,13 @@ class User(UserMixin, DB.Model):
 
     justifications = DB.relationship('Justification', backref='student', lazy=True)
 
+    students = DB.relationship(
+        'User',
+        secondary=instructor_student,
+        primaryjoin=id == instructor_student.c.InstructorId,
+        secondaryjoin=id == instructor_student.c.StudentId,
+        backref=DB.backref('instructors')
+    );
 
     def is_instructor(self):
         return self.role == ROLE_INSTRUCTOR

@@ -121,7 +121,8 @@ class SqlEvoSerializer(Thread, EvoSerializer):
             self.ready_to_write.notify()
 
     def from_store(self, quiz_ids) -> 'dict[int, models.EvoProcess]':
-        with APP.app_context():
+        # with APP.app_context():
+        def _process():
             evo_processes = models.EvoProcess.query.where(models.EvoProcess.quiz_id.in_(quiz_ids), models.EvoProcess.status == EVO_PROCESS_STATUS_ACTIVE).all()
             evo_processes_map = {p.id:p for p in evo_processes}
             if len(evo_processes_map) > 0:
@@ -129,6 +130,12 @@ class SqlEvoSerializer(Thread, EvoSerializer):
                 evo_archives_map = dict(groupby(evo_archives, key=lambda a: a.id))
                 for p_id, p in evo_processes_map.items():
                     p.archive = evo_archives_map.get(p_id, [])
+            return evo_processes
+        if models.DB.session:
+            evo_processes = _process()
+        else:
+            with APP.app_context():
+                evo_processes = _process()
         return {p.quiz_id: p for p in evo_processes}
         
 sql_evo_serializer = SqlEvoSerializer()
@@ -323,7 +330,7 @@ class PHC(EvolutionaryProcess, InteractiveEvaluation, ABC):
                     for eval in self.waiting_evaluations:
                         if eval.evaluator_id not in self.evaluator_coevaluation_groups:
                             #NOTE: should not be here usually - but could be on system restart
-                            APP.logger.warn(f"[p-phc] got evaluation for unexpected group: {eval}. {self.evaluator_coevaluation_groups}")
+                            APP.logger.warn(f"[{self.__class__.__name__}] Quiz {self.quiz_id} got evaluation for unexpected group: {eval}. {self.evaluator_coevaluation_groups}")
                             continue
                         coevaluation_group_id = self.evaluator_coevaluation_groups[eval.evaluator_id]
                         eval_group = self.coevaluation_groups[coevaluation_group_id]
@@ -510,19 +517,18 @@ class P_PHC(PHC, Serializable):
 
     def on_iteration_end(self):
         ''' For each iteraton preserves data into store '''
-        # self.save(pop_size = self.pop_size, gen = self.gen,
-        #             coevaluation_groups = {id: {"inds": g.inds, "objs": g.objs} for id, g in self.coevaluation_groups.items()}, 
-        #             evaluator_coevaluation_groups = self.evaluator_coevaluation_groups,
-        #             gene_size = self.gene_size, pareto_n = self.pareto_n, child_n = self.child_n)
-        pass 
+        self.save(pop_size = self.pop_size, gen = self.gen,
+                    coevaluation_groups = {id: {"inds": g.inds, "objs": g.objs} for id, g in self.coevaluation_groups.items()}, 
+                    evaluator_coevaluation_groups = self.evaluator_coevaluation_groups,
+                    gene_size = self.gene_size, pareto_n = self.pareto_n, child_n = self.child_n, seed = self.seed)     
 
     def on_generation_end(self):
         ''' Updates distractor pools - available distractors for each questions '''
         # self.population = [int(i) for i in unique([p for p in self.population if p is not None])]
-        self.save(pop_size = self.pop_size, gen = self.gen,
-                    coevaluation_groups = {id: {"inds": g.inds, "objs": g.objs} for id, g in self.coevaluation_groups.items()}, 
-                    evaluator_coevaluation_groups = self.evaluator_coevaluation_groups,
-                    gene_size = self.gene_size, pareto_n = self.pareto_n, child_n = self.child_n, seed = self.seed)
+        # self.save(pop_size = self.pop_size, gen = self.gen,
+        #             coevaluation_groups = {id: {"inds": g.inds, "objs": g.objs} for id, g in self.coevaluation_groups.items()}, 
+        #             evaluator_coevaluation_groups = self.evaluator_coevaluation_groups,
+        #             gene_size = self.gene_size, pareto_n = self.pareto_n, child_n = self.child_n, seed = self.seed)
         self.distractors_per_question = self.init_distractor_pools()
 
     def repr_adapter(self, ind_genotypes):
@@ -541,7 +547,10 @@ class P_PHC(PHC, Serializable):
 quiz_evo_processes = {}
 
 def get_evo(quiz_id) -> EvolutionaryProcess: 
-    return quiz_evo_processes.get(quiz_id, None)
+    res = quiz_evo_processes.get(quiz_id, None)
+    if res is None: 
+        APP.logger.info(f"No evo process was found for {quiz_id}. Available: {list(quiz_evo_processes.keys())}")
+    return res 
 
 def start_evo(*quiz_ids):
     ''' starts evolutionary processes for quizzes. Considers first db state and then if necessary starts processes with default evopie.config. '''

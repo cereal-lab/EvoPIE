@@ -3,6 +3,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 import os
+from datetime import datetime
 
 APP = Flask(__name__)
 APP.config['SECRET_KEY'] = '9OLWxND4o83j4K4iuopO' #FIXME replace this by an ENV variable
@@ -79,6 +80,11 @@ class QuizAttemptConverter(IntegerConverter):
 APP.url_map.converters['quiz'] = QuizConverter
 APP.url_map.converters['attempt'] = QuizAttemptConverter
 APP.url_map.converters['qa'] = QuizWithAttemptConverter
+
+def date(d):
+    return d.strftime("%B %d, %Y by %I:%M %p")
+
+APP.add_template_filter(date)
 
 class ProtectedAdminIndexView(AdminIndexView):
     def is_accessible(self):

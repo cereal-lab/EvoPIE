@@ -63,6 +63,7 @@
     <div class="jumbotron jumbotron-fluid">
         <div class="container">
             <h1 class="display-4">Step 2 - {{quiz.title|safe}}</h1>
+            <h3>Deadline - {{quiz.deadline2|date}}</h3>
             <p class="lead">
                 Hello, {{current_user.first_name}} {{current_user.last_name}} ({{current_user.email}}).
                 Welcome to STEP 2 of this quiz.
@@ -120,7 +121,7 @@
                             <div class="form-group">
                                 <div class="form-check">
                                     {{ w.question_option(q, loop.index0, answer) }}
-                                    {% if (justifications[q.id|string][loop.index0|string] | length) == 0 %}
+                                    {% if ((justifications | length) == 0) or ((justifications[q.id|string] | length) == 0) or ((justifications[q.id|string][loop.index0|string] | length) == 0) %}
                                     <p> None of your classmates provided a justification for not chosing this possible answer.</p>                                        
                                     {% else %}
                                     <p> Reasons suggested by your peers for not selecting this possible answer.</p>                                    

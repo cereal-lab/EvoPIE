@@ -3,7 +3,9 @@
 
 # The following are flask custom commands; 
 
-from evopie.config import EVO_PROCESS_STATUS_ACTIVE, EVO_PROCESS_STATUS_STOPPED, QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, ROLE_STUDENT
+from datetime import datetime
+from pytz import timezone
+from evopie.config import EVO_PROCESS_STATUS_ACTIVE, EVO_PROCESS_STATUS_STOPPED, QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_HIDDEN, QUIZ_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, ROLE_STUDENT
 from . import models, APP # get also DB from there
 from sqlalchemy.orm.exc import StaleDataError
 
@@ -21,15 +23,139 @@ def sanitize(html):
 from jinja2 import Markup
 def unescape(str):
     return Markup(str).unescape()
+
+def changeQuizStatus(qid):
+    tzinfo = timezone('US/Eastern')
+    currentDateTime = datetime.now(tzinfo)
+    currentDateTime = currentDateTime.replace(tzinfo=None)
+    quiz = models.Quiz.query.get_or_404(qid)
+    update = False
+    if currentDateTime <= quiz.deadline0 and quiz.status != QUIZ_HIDDEN:
+        quiz.status = "HIDDEN"
+        update = True
+    elif currentDateTime > quiz.deadline0 and currentDateTime <= quiz.deadline1 and quiz.status != QUIZ_STEP1:
+        quiz.status = "STEP1"
+        update = True
+    elif currentDateTime > quiz.deadline1 and currentDateTime <= quiz.deadline3 and quiz.status != QUIZ_STEP2:
+        quiz.status = "STEP2"
+        update = True
+    elif currentDateTime > quiz.deadline3 and currentDateTime <= quiz.deadline4 and quiz.status != QUIZ_SOLUTIONS:
+        quiz.status = "SOLUTIONS"
+        update = True
+    elif currentDateTime > quiz.deadline4 and quiz.status != QUIZ_HIDDEN:
+        quiz.status = "HIDDEN"
+        update = True
+
+    models.DB.session.commit()
+
+    if update == True:
+        return quiz.status
+    else:
+        return None
+        
     
 @APP.template_filter('unescapeDoubleQuotes')
 def unescape_double_quotes(s): 
     return s.replace('\\"','\"')
 
-from flask import flash, g, jsonify, redirect, url_for, request, abort
-from flask_login import current_user
+# Invoke with flask DB-reboot
+# Tear down the data base and rebuild an empty one.
+@APP.cli.command("DB-reboot")
+def DB_reboot():
+    models.DB.drop_all()
+    models.DB.create_all()
 
-from functools import wraps
+
+
+# Invoke with flask DB-multi-instr
+# First run flask DB-reboot
+# adds sample data to be used for testing multi-instr support
+
+@APP.cli.command("DB-multi-instr")
+def DB_multi_instr():
+    from subprocess import check_output
+    import os
+    script_path = os.path.abspath('./testing/MultiInstr')
+    stdout = check_output([os.path.join(script_path, 'setup.sh')], 
+                          cwd=script_path).decode('utf-8')
+    print(stdout)
+    # i1, i2, *students = models.User.query.all()
+    i2 = models.User.query.filter_by(email='instructor2@usf.edu').first()
+    i2.set_role(models.ROLE_INSTRUCTOR)
+    # print(f'Adding students to instructor 1: {i1}')
+    # for student in students[::2]:
+    #     print(f'\tAdding {student}')
+    #     i1.students.append(student)
+
+    # print(f'Adding students to instructor 2: {i2}')
+    # for student in students[1::2]:
+    #     print(f'\tAdding {student}')
+    #     i2.students.append(student)
+
+    # print(f'\tAdding {students[-1]}')
+    # i2.students.append(students[-1])
+    
+    models.DB.session.commit()
+
+
+
+    
+# Invoke with flask DB-populate
+# Empties the table and insert some testing data in the DB.
+# Consider using scripts/TestDB_[setup|step1|step2].sh 
+@APP.cli.command("DB-populate")
+def DB_populate():
+    '''
+        Just populating the DB with some mock quizzes
+    '''
+    # For some reason Flask restarts the app when we launch it with
+    # pipenv run python app.py
+    # as a result, we populate twice and get too many quizzes / distractors
+    # let's fix this by deleting all data from the tables first
+    models.Question.query.delete()
+    models.Distractor.query.delete()
+    models.DB.session.commit() # don't forget to commit or the DB will be locked
+
+    all_mcqs = [
+            models.Question(title=u'Sir Lancelot and the bridge keeper, part 1',
+                            stem=u'What... is your name?',
+                            answer=u'Sir Lancelot of Camelot'),
+            models.Question(title=u'Sir Lancelot and the bridge keeper, part 2',
+                            stem=u'What... is your quest?',
+                            answer=u'To seek the holy grail'),
+            models.Question(title=u'Sir Lancelot and the bridge keeper, part 3',
+                            stem=u'What... is your favorite colour?',
+                            answer=u'Blue')
+    ]
+
+    models.DB.session.add_all(all_mcqs)
+    models.DB.session.commit()
+    # need to commit right now; if not, the qid below will not be added in the distractors table's rows
+
+    qid=all_mcqs[0].id
+    some_distractors = [
+        models.Distractor(question_id=qid,answer=u'Sir Galahad of Camelot'),
+        models.Distractor(question_id=qid,answer=u'Sir Arthur of Camelot'),
+        models.Distractor(question_id=qid,answer=u'Sir Bevedere of Camelot'),
+        models.Distractor(question_id=qid,answer=u'Sir Robin of Camelot'),
+    ]
+
+    qid=all_mcqs[1].id
+    more_distractors = [
+        models.Distractor(question_id=qid,answer=u'To bravely run away'),
+        models.Distractor(question_id=qid,answer=u'To spank Zoot'),
+        models.Distractor(question_id=qid,answer=u'To find a shrubbery')
+    ]
+
+    qid=all_mcqs[2].id
+    yet_more_distractors = [
+        models.Distractor(question_id=qid,answer=u'Green'),
+        models.Distractor(question_id=qid,answer=u'Red'),
+        models.Distractor(question_id=qid,answer=u'Yellow')
+    ]
+
+    models.DB.session.add_all(some_distractors + more_distractors + yet_more_distractors)
+    models.DB.session.commit()
 
 def groupby(iterable, key=lambda x: x):
     '''from iterable creates list of pairs group_key:list of elements with the key'''
@@ -74,82 +200,6 @@ def find_median(sorted_list):
 
     return median, indices    
 
-def role_required(role, redirect_to_referrer = False, redirect_route='login', redirect_message="You are not authorized to access specified page", category="message"):
-    '''
-    Sepcifies what role is needed: student or instructor
-    Parameters
-    -----
-        role: one of ROLE_ contants from config module
-    '''
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            if current_user.role != role:
-                if request.accept_mimetypes.accept_html: 
-                    if redirect_message is not None: 
-                        flash(redirect_message, category)                    
-                    return redirect(request.referrer if redirect_to_referrer else url_for(redirect_route, next=request.url))
-                elif request.accept_mimetypes.accept_json or request.is_json:
-                    return jsonify({"message": redirect_message}), 403
-                else: 
-                    return abort(403)
-            return f(*args, **kwargs)            
-        return decorated_function
-    return decorator
-
-def retry_concurrent_update(f):
-    '''
-    For optimistic concurrency retries endpoint when concurrent updates happen.
-    This could be not always optimal strategy. Consider also showing to client updates versions of data from db before retry
-    '''
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if "inside_retry_concurrent" in g:
-            return f(*args, **kwargs)        
-        g.inside_retry_concurrent = True            
-        while True: #exit this loop if no StaleDataError: https://docs.sqlalchemy.org/en/14/orm/versioning.html   
-            try:
-                res = f(*args, **kwargs)            
-                break
-            except StaleDataError: 
-                models.DB.session.rollback()
-        return res 
-    return decorated_function
-
-def validate_quiz_attempt_step(quiz_attempt_param, required_step = None):
-    '''
-    Check that view_args quiz and attempt has consistent state. 
-    Otherwise return either redirect to pages index with flash or json which forces redirect.
-    '''
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            if "quiz_attempt_validated" in g:
-                return f(*args, **kwargs)        
-            g.quiz_attempt_validated = True            
-            quiz, attempt = request.view_args[quiz_attempt_param]
-            shortcut = False 
-            if required_step is not None and attempt.status != required_step: 
-                flash("Cannot perform action. Quiz attempt is not on required quiz step")
-                shortcut = True 
-            elif attempt.status == QUIZ_ATTEMPT_STEP1 and quiz.status != QUIZ_STEP1:
-                flash("Quiz step1 is not available anymore") #saves msg to cookie
-                shortcut = True 
-            elif attempt.status == QUIZ_ATTEMPT_STEP2 and quiz.status != QUIZ_STEP2:
-                flash("Quiz step2 is not available anymore") #saves msg to cookie
-                shortcut = True 
-            elif attempt.status == QUIZ_ATTEMPT_SOLUTIONS and quiz.status != QUIZ_SOLUTIONS:
-                flash("Quiz solutions are not available yet") #saves msg to cookie
-                shortcut = True 
-            if shortcut:
-                if request.accept_mimetypes.accept_html:
-                    return redirect(url_for("pages.index"))
-                else: 
-                    return jsonify({"redirect": url_for("pages.index")})
-            return f(*args, **kwargs)            
-        return decorated_function
-    return decorator
-
 def param_to_dict(n, v, d = {}, type_converters = {}, delim = '_'):
     '''
     Converts flat dict to tree using delim as edge in hierarchy
@@ -165,56 +215,3 @@ def param_to_dict(n, v, d = {}, type_converters = {}, delim = '_'):
     cur[path[-1]] = converter(v) if callable(converter) else v
     return d
 
-def unmime(delim = '_', type_converters = {}):
-    '''
-    Normalizes request.form and request.json and provides it as body parameter of endpoint 
-    Normalization of json is trivial. For form parameter names are normalized with param_to_dict
-    '''
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):    
-            if "unmimed" in g:
-                return f(*args, **kwargs)        
-            g.unmimed = True
-            if request.is_json:
-                body = request.json
-                #NOTE: next code was existed  only due to json type conversions in Extensive tests - better to fix tests
-                # body = dict(request.json)
-                # def convert_values(cur, conv):
-                #     for k, v in conv.items():
-                #         if k == "*":
-                #             for ck, cv in cur.items():
-                #                 if callable(v):
-                #                     cur[ck] = v(cv)
-                #                 else:
-                #                     convert_values(cv, v)       
-                #         elif k in cur:
-                #             if callable(v):
-                #                 cur[k] = v(cur[k])
-                #             else:
-                #                 convert_values(cur[k], v)                               
-                # convert_values(body, type_converters)                 
-            else: 
-                body = {}
-                for name, value in request.form.items():
-                    param_to_dict(name, value, d = body, delim = delim, type_converters = type_converters)            
-            orig_res = res = f(*args, **kwargs, body=body)
-            if type(res) == tuple:
-                res, status = res[0:2]
-            else:
-                status = 200
-            if type(res) == dict:
-                #converting dict back to html for form
-                if request.is_json: #NOTE: works only for requests with body - more careful login for GET is necessary - or use accept headers
-                    return orig_res
-                else:
-                    if res["message"]: 
-                        flash_area = "error" if status >= 400 else "message"
-                        flash(res["message"], flash_area)
-                    if res["redirect"]:
-                        return redirect(res["redirect"])
-                    else:
-                        return redirect(url_for("pages.index"))
-            return orig_res
-        return decorated_function
-    return decorator

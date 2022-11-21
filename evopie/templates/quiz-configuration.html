@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% import 'widgets.html' as w %}
+
+{% block title %}EvoPIE{% endblock %}
+
+{% block head%}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.css">  
+<script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.js"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='multislider.css') }}">
+<script type="text/javascript" charset="utf8" src="{{ url_for('static', filename='multislider.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="jumbotron jumbotron-fluid">
+    <div class="container lh-1" style="max-width:720px">
+        <h1 class="h1">Quiz Configuration</h1>
+        <p class="lead">
+            Deadlines and honorlock passwords
+        </p>
+    </div>
+</div>
+
+<div class="card bg-light m-3 mx-auto" style="max-width:720px">
+    <div class="card-body" bg-light>
+        <form id='QuizForm' method="post">
+            <div class="form-group mb-2">
+                <label for="quiz_deadline0">Quiz Release Deadline</label>
+                <input class="form-control" type="datetime-local" id="quiz_deadline0" name="deadline0" value="{{quiz.deadline0}}">
+            </div>
+            <div class="form-group mb-2">
+                <label for="quiz_deadline1">Step1 Submission Deadline</label>
+                <input class="form-control" type="datetime-local" id="quiz_deadline1" name="deadline1" value="{{quiz.deadline1}}">
+            </div>
+            <div class="form-group mb-2">
+                <label for="quiz_deadline2">Step2 Submission Deadline</label>
+                <input class="form-control" type="datetime-local" id="quiz_deadline2" name="deadline2" value="{{quiz.deadline2}}">
+            </div>
+            <div class="form-group mb-2">
+                <label for="quiz_deadline3">Solutions Release Deadline</label>
+                <input class="form-control" type="datetime-local" id="quiz_deadline3" name="deadline3" value="{{quiz.deadline3}}">
+            </div>
+            <div class="form-group mb-2">
+                <label for="quiz_deadline4">Quiz Availability Deadline</label>
+                <input class="form-control" type="datetime-local" id="quiz_deadline4" name="deadline4" value="{{quiz.deadline4}}">
+            </div>
+            <div class="form-group mb-2">
+                <label for="step1_pwd">Step1 password (optional):</label>
+                <input class="form-control" type="text" name="step1_pwd" id="step1_pwd" placeholder="step1..." value="{{quiz.step1_pwd}}" />
+            </div>
+            <div class="form-group mb-2">
+                <label for="step2_pwd">Step2 password (optional):</label>
+                <input class="form-control" type="text" name="step2_pwd" id="step2_pwd" placeholder="step2..." value="{{quiz.step2_pwd}}" />
+            </div>
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

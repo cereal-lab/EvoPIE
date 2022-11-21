@@ -151,59 +151,7 @@
                                 <option value="{{option}}" {% if quiz.num_justifications_shown == option %} selected {% endif %} >{{option}}</option>
                             {% endfor %}
                         </select> justifications from other students, for each alternative response.
-                    </li>
-                    <li>
-                        Students may only like up to 
-                        <select id="limiting_factor" name="limitingFactorOptions">
-                            {% for option in limitingFactorOptions %}
-                                <option value="{{option}}" {% if quiz.limiting_factor * 100 == option %} selected {% endif %} >{{option}}%</option>
-                            {% endfor %}
-                        </select> 
-                        of all the justifications that they see during step 2.
-                        <!-- <button class="btn btn-primary btn-sm" name="submit" value="submit">Submit</button> -->
-                        Each student could have different range for likes to give in order to have participation credit. 
-                    </li>
-                    <li>
-                        Justification credit is based on the number of likes received by the student and which quartile they
-                        fall into when compared to their peers. 
-                        You may adjust the number of points given to students, depending on the quartile: 
-                        
-                        <br/>
-                        <!ul>
-                            <!li>
-                                1st quartile: 
-                                <select id="first_quartile_grade" name="quartileOptions">
-                                    {% for option in quartileOptions %}
-                                        <option value="{{option}}" {% if quiz.first_quartile_grade == option %} selected {% endif %} >{{option}}</option>
-                                    {% endfor %}
-                                </select> points, 
-                            <!/li>
-                            <!li>
-                                2nd quartile:
-                                <select id="second_quartile_grade" name="quartileOptions">
-                                    {% for option in quartileOptions %}
-                                        <option value="{{option}}" {% if quiz.second_quartile_grade == option %} selected {% endif %} >{{option}}</option>
-                                    {% endfor %}
-                                </select>  points, 
-                            <!/li>
-                            <!li>
-                                3rd quartile:
-                                <select id="third_quartile_grade" name="quartileOptions">
-                                    {% for option in quartileOptions %}
-                                        <option value="{{option}}" {% if quiz.third_quartile_grade == option %} selected {% endif %} >{{option}}</option>
-                                    {% endfor %}
-                                </select>  points, 
-                            <!/li>
-                            <!li>
-                                4th quartile:
-                                <select id="fourth_quartile_grade" name="quartileOptions">
-                                    {% for option in quartileOptions %}
-                                        <option value="{{option}}" {% if quiz.fourth_quartile_grade == option %} selected {% endif %} >{{option}}</option>
-                                    {% endfor %}
-                                </select> points.
-                            <!/li> 
-                        <!/ul>
-                    </li>
+                    </li>              
                     <li>
                         The final grade for each students is based on the following weighted components. 
                         Adjust the weights below: 
@@ -211,6 +159,78 @@
                         {% call w.weight_slider("sliderTest", quiz) %}   
                         <span class="align-self-center text-success d-none" id="update-status">updated!</span>    
                         {% endcall %}
+                        <!--
+                            This is our modal dialog to configure the participation scoring
+                        -->
+
+                        <div class="modal fade" id="TG-GEARBOX-PARTICIPATION" tabindex="-1" role="dialog"
+                                aria-labelledby="mySmallModalLabel" aria-hidden="true">
+                            <div class="modal-dialog modal-l">
+                                <div class="modal-content">
+                                    <ul>
+                                        <li>
+                                            During step #2, each student will be able to see some justifications from other students
+                                            but they may give a "like" to only  
+                                            <select id="limiting_factor" name="limitingFactorOptions">
+                                                {% for option in limitingFactorOptions %}
+                                                    <option value="{{option}}" {% if quiz.limiting_factor * 100 == option %} selected {% endif %} >{{option}}%</option>
+                                                {% endfor %}
+                                            </select> of them.
+                                        </li>
+                                        <li id="participation_grade_threshold_display">
+                                            As a result, a student will get participation credit if they assign number of likes in given range during step #2.
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <!--
+                            This is our modal dialog to configure the justifications scoring
+                        -->
+                        <div class="modal fade" id="TG-GEARBOX-JUSTIFICATIONS" tabindex="-1" role="dialog"
+                                aria-labelledby="mySmallModalLabel" aria-hidden="true">
+                            <div class="modal-dialog modal-l">
+                                <div class="modal-content">
+                                    <ul>
+                                        <li>
+                                            Students in the following quartiles will receive the amount of points set below: 
+                                            <ul>
+                                                <li>1st quartile receives 
+                                                    <select id="first_quartile_grade" name="quartileOptions">
+                                                        {% for option in quartileOptions %}
+                                                            <option value="{{option}}" {% if quiz.first_quartile_grade == option %} selected {% endif %} >{{option}} points</option>
+                                                        {% endfor %}
+                                                    </select> 
+                                                </li>
+                                                <li>2nd quartile receives 
+                                                    <select id="second_quartile_grade" name="quartileOptions">
+                                                        {% for option in quartileOptions %}
+                                                            <option value="{{option}}" {% if quiz.second_quartile_grade == option %} selected {% endif %} >{{option}} points</option>
+                                                        {% endfor %}
+                                                    </select> 
+                                                </li>
+                                                <li>3rd quartile receives 
+                                                    <select id="third_quartile_grade" name="quartileOptions">
+                                                        {% for option in quartileOptions %}
+                                                            <option value="{{option}}" {% if quiz.third_quartile_grade == option %} selected {% endif %} >{{option}} points</option>
+                                                        {% endfor %}
+                                                    </select> 
+                                                </li>
+                                                <li>4th quartile receives 
+                                                    <select id="fourth_quartile_grade" name="quartileOptions">
+                                                        {% for option in quartileOptions %}
+                                                            <option value="{{option}}" {% if quiz.fourth_quartile_grade == option %} selected {% endif %} >{{option}} points</option>
+                                                        {% endfor %}
+                                                    </select> 
+                                                </li>
+                                            </ul>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
                     </li>
                 </ul>             
             </p>
