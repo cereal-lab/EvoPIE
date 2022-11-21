@@ -837,7 +837,7 @@ def get_quizzes_responses(qid):
     attempts = models.QuizAttempt.query.filter_by(quiz_id=qid).all()
     return jsonify([a.dump_as_dict() for a in attempts])
 
-@mcq.route('/grades/<int:qid>/settings', methods=['POST'])
+@mcq.route('/quiz/<int:qid>/settings', methods=['POST'])
 @login_required
 @role_required(role=ROLE_INSTRUCTOR)
 def post_grading_settings(qid):
