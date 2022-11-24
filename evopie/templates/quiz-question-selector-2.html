@@ -77,7 +77,7 @@
             response = await response.json();
             if (response.status === "success") {
                 sendToFlashLand(response.message, response.status);
-                await delay(2000);
+                await delay(3000);
                 window.location.href = response.redirect;
             } else {
                 sendToFlashLand(response.message, response.status);
