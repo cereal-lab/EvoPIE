@@ -58,20 +58,32 @@
     </div>
 </div>
 <script>
-    function submitQuizQuestion(){
-        url="/quiz-question-selector-3/{{quiz_id}}/{{question.id}}/"
+    async function submitQuizQuestion(){
+        url="/quiz-question-selector-2/{{quiz_id}}/{{question.id}}"
         // collect all the checked distractors, get their IDs, put them in a list
         const checkboxes = document.querySelectorAll('input[name="distractors_checkboxes"]:checked');
         let checked_distractors = [];
         checkboxes.forEach((checkbox) => {
             checked_distractors.push(checkbox.value);
         });
-        // then transform this list into a string of IDs separated by spaces that we can pass to the URL above
-        url += checked_distractors.join(" ");
-        if (url[url.length - 1] === "/") {
-            sendToFlashLand("Select atleast one distractor to continue!", "danger");
-        } else {
-            location.href=url;
+        let response;
+        try {
+            response = await fetch(url,{
+                method:         'POST',
+                headers:        {'Content-Type' : 'application/json'},
+                body:           JSON.stringify({"selected_distractors" :  checked_distractors}),
+                credentials:    'same-origin'
+            })
+            response = await response.json();
+            if (response.status === "success") {
+                sendToFlashLand(response.message, response.status);
+                await delay(2000);
+                window.location.href = response.redirect;
+            } else {
+                sendToFlashLand(response.message, response.status);
+            }
+        } catch (error) {
+            console.log(error);
         }
     }
 </script>
