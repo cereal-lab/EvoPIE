@@ -1012,7 +1012,7 @@ def getNumJustificationsShown(qid):
     
     return number_to_select
 
-@pages.route('/grades/<int:qid>', methods=['GET'])
+@pages.route('/quiz/<int:qid>/grades', methods=['GET'])
 @login_required
 @role_required(ROLE_INSTRUCTOR)
 def quiz_grader(qid):

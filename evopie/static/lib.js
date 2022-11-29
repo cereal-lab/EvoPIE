@@ -1,5 +1,5 @@
 const updateQuiz = (qid, settings) => 
-    fetch('/grades/' + qid + '/settings',{
+    fetch('/quiz/' + qid + '/settings',{
         method:         'POST',
         headers:        {'Content-Type' : 'application/json'},
         body:           JSON.stringify(settings),

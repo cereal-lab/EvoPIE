@@ -89,7 +89,7 @@ do
     like "s3q3d10"   "37"
 done
 
-# These are the expected results in the grading page for quiz #1 http://127.0.0.1:5000/grades/1
+# These are the expected results in the grading page for quiz #1 http://127.0.0.1:5000/quiz/1/grades
 # They have been verified by hand by looking up the information in the popups from the likes given,
 # likes received buttons 
 # student   initial score   revised score   likes given     likes received      scores
