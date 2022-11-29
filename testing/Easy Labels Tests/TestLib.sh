@@ -58,19 +58,6 @@ function curl_login {
     fi
 }
 
-function curl_grades {
-    # curl --silent -b ./mycookies -X GET -H "Content-Type: application/json" "http://127.0.0.1:5000/grades/1/justificationGrade"
-    RES=$(curl --silent -b ./mycookies -X GET -H "Content-Type: application/json" "http://127.0.0.1:5000/grades/1/justificationGrade")
-    if [[ $RES =~ \{[^\}]*?\} ]]; then
-        justification_grade=${BASH_REMATCH[0]} 
-        RES=${RES/"${BASH_REMATCH[0]}"/}
-    fi
-    if [[ $RES =~ \{[^\}]*?\} ]]; then
-        total_scores=${BASH_REMATCH[0]} 
-    fi
-    # echo "$justification_grade || $total_scores"
-}
-
 function curl_download {
     #LOGIN="-L -b ./mycookies"
     MSG=$1
