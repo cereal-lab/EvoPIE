@@ -15,7 +15,7 @@ rm ./gradebook-downloaded.csv ./gradebooks.diff
 
 #login as INSTRUCTOR to download the gradebook and verify that it is correct
 curl_login                              "instructor"            '{ "email": "instructor@usf.edu", "password": "pwd" }'
-curl_download    "Downloading gradebook" "/grades/1?q=csv"         "gradebook-downloaded.csv"
+curl_download    "Downloading gradebook" "/quiz/1/grades?q=csv"         "gradebook-downloaded.csv"
 
 header "Comparing downloaded gradebook to reference one for these tests"
 

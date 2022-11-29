@@ -1,5 +1,5 @@
 const updateQuiz = (qid, settings) => 
-    fetch('/grades/' + qid + '/settings',{
+    fetch('/quiz/' + qid + '/settings',{
         method:         'POST',
         headers:        {'Content-Type' : 'application/json'},
         body:           JSON.stringify(settings),
@@ -101,6 +101,8 @@ const debounce = (func, timeout = 300) => {
       timer = setTimeout(async () => { await func(...args); }, timeout);
     };
 }
+
+const delay = ms => new Promise(res => setTimeout(res, ms));
 
 const buildQuizSaver = (quizId, quizFormId) => {
     const saveAnswers = async () => {

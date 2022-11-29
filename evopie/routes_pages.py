@@ -180,8 +180,6 @@ def quiz_question_editor(quiz_id,quiz_question_id):
     #return redirect("/question-editor/" + str(q.id), code=302)
     return render_template('quiz-question-editor.html', quiz_id = quiz_id, quiz_question = qq, question = q)
 
-
-
 @pages.route('/quiz-question-selector-1/<int:quiz_id>')
 @login_required
 def quiz_question_selector_1(quiz_id):
@@ -195,8 +193,6 @@ def quiz_question_selector_1(quiz_id):
         q.stem = unescape(q.stem)
         q.answer = unescape(q.answer)
     return render_template('quiz-question-selector-1.html', quiz_id = quiz_id, available_questions = questions)
-
-
 
 @pages.route('/quiz-question-selector-2/<int:quiz_id>/<int:question_id>')
 @login_required
@@ -214,31 +210,32 @@ def quiz_question_selector_2(quiz_id, question_id):
         d.answer = unescape(d.answer)
         d.justification = unescape(d.justification)
     
-
     return render_template('quiz-question-selector-2.html', quiz_id=quiz_id, question=question)
 
-
-
-@pages.route('/quiz-question-selector-3/<int:quiz_id>/<int:question_id>/<selected_distractors>')
+@pages.route('/quiz-question-selector-2/<int:quiz_id>/<int:question_id>', methods=['POST'])
 @login_required
-def quiz_question_selector_3(quiz_id, question_id, selected_distractors):
-    # Quiz, Question & some of its distractors have been selected by ID.
-    # We create the corresponding QuizQuestion object and add it to the Quiz
+def add_quiz_question_to_quiz(quiz_id, question_id):
+    # Quiz & Question have been selected by ID.
+    # We now display all the available distractors for that question and let the user 
+    # select a bunch of them.
     if not current_user.is_instructor():
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
+
     qz = models.Quiz.query.get_or_404(quiz_id)
     q = models.Question.query.get_or_404(question_id)
     
     #create new QuizQuestion based on the Question
-    qq = models.QuizQuestion(question=q)
-    
-    # distractor IDs are passed as a space-separated string of int values
-    # We convert this into a proper list (still of str elements though)
-    selected_distractors_list = list(selected_distractors.split(" "))
-    
-    # we iterate on the above and retrieve each Distractor by its ID
-    # before to add it to the QuizQuestion
+    qq = models.QuizQuestion(question=q) 
+
+    if request.is_json:
+        selected_distractors_list = request.json.get('selected_distractors')
+    else:
+        selected_distractors_list = request.form.get('selected_distractors')
+
+    if len(selected_distractors_list) == 0:
+        return { "message" : "Select atleast one distractor to continue!", "redirect": url_for("pages.quizzes_browser"), "status": "danger" }, 400
+
     for distractor_id_str in selected_distractors_list:
         distractor_id = int(distractor_id_str)
         distractor = models.Distractor.query.get_or_404(distractor_id)
@@ -250,9 +247,7 @@ def quiz_question_selector_3(quiz_id, question_id, selected_distractors):
     qz.quiz_questions.append(qq)
     models.DB.session.commit()
 
-    return render_template("quiz-question-selector-3.html")
-
-
+    return { "message" : "Question added to Quiz! Redirecting to Quiz Browser...", "redirect": url_for("pages.quizzes_browser"), "status": "success" }, 200
 
 @pages.route('/quiz-editor/<int:quiz_id>')
 @login_required
@@ -1012,7 +1007,7 @@ def getNumJustificationsShown(qid):
     
     return number_to_select
 
-@pages.route('/grades/<int:qid>', methods=['GET'])
+@pages.route('/quiz/<int:qid>/grades', methods=['GET'])
 @login_required
 @role_required(ROLE_INSTRUCTOR)
 def quiz_grader(qid):

@@ -11,7 +11,7 @@
         var table = null; //DataTable - initialized on dom load
 
         const updateTable = async (qid) => {
-            let response = await fetch('/grades/' + qid, {
+            let response = await fetch('/quiz/' + qid + '/grades', {
                 method:         'GET',
                 headers:        {'Accept' : 'application/json'},
                 credentials:    'same-origin'

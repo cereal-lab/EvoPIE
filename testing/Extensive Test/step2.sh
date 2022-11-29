@@ -501,7 +501,7 @@ curlit "POST quiz"    "/student/1"   '{ "question": {"1":"-1" , "2":"-1", "3":"-
     like "s6q1sol"   "115"
 
 
-# These are the expected results in the grading page for quiz #1 http://127.0.0.1:5000/grades/1
+# These are the expected results in the grading page for quiz #1 http://127.0.0.1:5000/quiz/1/grades
 # They have been verified by hand by looking up the information in the popups from the likes given,
 # likes received buttons 
 # student   initial score   revised score   likes given     likes received      scores

@@ -164,7 +164,7 @@ def start_quiz_init(instructor, num_questions, num_distractors, question_distrac
             "justification_grade": settings.get("jg", 20),
             "participation_grade": settings.get("pg", 10)
         }
-        throw_on_http_fail(c.post(f"/grades/{quiz_id}/settings", json=settings_for_quiz))
+        throw_on_http_fail(c.post(f"/quiz/{quiz_id}/settings", json=settings_for_quiz))
 
 @deca_cli.command("init")
 @click.option('-q', '--quiz', type = int, required = True)
@@ -671,7 +671,7 @@ def export_quiz_evo(quiz, output):
 def get_quiz_result(quiz, output, instructor, password, expected, diff_o):
     with APP.test_client(use_cookies=True) as c: #instructor session
         throw_on_http_fail(c.post("/login",json={"email": instructor, "password": password}))
-        resp = c.get(f"/grades/{quiz}?q=csv")
+        resp = c.get(f"/quiz/{quiz}/grades?q=csv")
         if resp.status_code >= 400:  
             sys.stderr.write(f"[{resp.request.path}] failed:\n {resp.get_data(as_text=True)}")
             sys.exit(1)
