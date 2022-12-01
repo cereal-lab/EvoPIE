@@ -8,6 +8,7 @@ Note that evo processes are restored from db on first Flask request - check hook
 from datetime import datetime
 import json
 from math import comb, prod
+import math
 import sys
 from time import sleep #for debugging bellow, but commented now
 import numpy as np
@@ -342,12 +343,12 @@ class PHC(EvolutionaryProcess, InteractiveEvaluation, ABC):
                 except Exception as e: 
                     APP.logger.error(f"[{self.__class__.__name__}] error on evaluation of quiz {self.quiz_id}: {e}. Ignored: {self.waiting_evaluations}")
                 self.waiting_evaluations = []
-                gen_was_evaluated = len(self.coevaluation_groups) == 0 #group is treated as evaluated when removed  from this dict
-                self.on_iteration_end()
+                gen_was_evaluated = len(self.coevaluation_groups) == 0 #group is treated as evaluated when removed  from this dict                
                 if gen_was_evaluated:                        
                     self.on_generation_end()
                     self.gen += 1 # going to next generation                    
-                    self.mutate_population()              
+                    self.mutate_population()   
+                self.on_iteration_end()
                 if self.stopped:
                     return #exit evolution 
 
@@ -505,8 +506,8 @@ class P_PHC(PHC, Serializable):
         return int(self.rnd.choice(list(self.coevaluation_groups.keys())))
 
     def update_fitness(self, ind, eval):  
-        cur_score = self.archive.loc[ind, eval.evaluator_id]
-        cur_score = 0 if cur_score is None else cur_score
+        # cur_score = self.archive.loc[ind, eval.evaluator_id]
+        cur_score = 0 #if cur_score is None or math.isnan(cur_score) else cur_score
         ind_genotype = self.get_genotype(ind)
         for qid, genes in ind_genotype: #result - dict where for each question we provide some data                        
             if qid in eval.result:
