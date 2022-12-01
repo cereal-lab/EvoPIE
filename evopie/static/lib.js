@@ -102,6 +102,8 @@ const debounce = (func, timeout = 300) => {
     };
 }
 
+const delay = ms => new Promise(res => setTimeout(res, ms));
+
 const buildQuizSaver = (quizId, quizFormId) => {
     const saveAnswers = async () => {
         const form = new FormData(document.getElementById(quizFormId))

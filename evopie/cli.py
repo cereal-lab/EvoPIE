@@ -164,7 +164,7 @@ def start_quiz_init(instructor, num_questions, num_distractors, question_distrac
             "justification_grade": settings.get("jg", 20),
             "participation_grade": settings.get("pg", 10)
         }
-        throw_on_http_fail(c.post(f"/grades/{quiz_id}/settings", json=settings_for_quiz))
+        throw_on_http_fail(c.post(f"/quiz/{quiz_id}/settings", json=settings_for_quiz))
 
 @deca_cli.command("init")
 @click.option('-q', '--quiz', type = int, required = True)
