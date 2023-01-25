@@ -18,7 +18,7 @@ from pandas import DataFrame
 from sqlalchemy import not_
 from sqlalchemy.sql import collate
 from flask import Markup
-from evopie.evo import Evaluation, get_evo, start_evo, stop_evo
+from quiz_model import get_quiz_builder
 from evopie.routes_mcq import answer_questions, justify_alternative_selection
 from werkzeug.security import check_password_hash
 
@@ -26,7 +26,7 @@ from evopie.utils import find_median
 from evopie.decorators import role_required, retry_concurrent_update
 
 from .config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_HIDDEN, QUIZ_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT, get_attempt_next_step, get_k_tournament_size, get_least_seen_slots_num
-from .utils import changeQuizStatus, unescape
+from .utils import change_quiz_status, unescape
 from evopie.decorators import unmime, validate_quiz_attempt_step, verify_deadline, verify_instructor_relationship
 
 import json, random, ast, re
@@ -47,23 +47,15 @@ pages = Blueprint('pages', __name__)
 
 @pages.route('/')
 def index():
-    '''
-    Index page for the whole thing; used to test out a rudimentary user interface
-    '''
+    ''' Index page for the whole thing; used to test out a rudimentary user interface '''
     all_quizzes = []
     if current_user.is_authenticated and current_user.is_student():
         instructors = [ instructor.id for instructor in models.User.query.filter_by(id=current_user.id).first().instructors ]
         all_quizzes = models.Quiz.query.filter(models.Quiz.author_id.in_(instructors)).all()
         for quiz in all_quizzes:
             if quiz.deadline_driven == "True":
-                updatedStatus = changeQuizStatus(quiz.id)
-                if updatedStatus == QUIZ_STEP1:
-                    start_evo(quiz.id)
-                elif updatedStatus is not None:
-                    stop_evo(quiz.id)
+                change_quiz_status(quiz)
     return render_template('index.html', quizzes=all_quizzes)
-
-
 
 @pages.route('/questions-browser')
 @login_required
@@ -531,20 +523,20 @@ def get_justification_distribution(quiz_id):
     finally:
         plt.close(figure)
 
-def get_or_create_attempt(quiz_id, quiz_questions, distractor_per_question):
-    attempt = models.QuizAttempt.query.filter_by(student_id=current_user.id, quiz_id=quiz_id).first()
+def get_or_create_attempt(quiz: models.Quiz, quiz_questions, distractor_per_question):
+    attempt = models.QuizAttempt.query.filter_by(student_id=current_user.id, quiz_id=quiz.id).first()
     if attempt is None: #first visit 
-        evo = get_evo(quiz_id)
-        if evo is None: #by default when no evo process - we pick all distractors selected by instructor
+        quiz_model = get_quiz_builder().load_quiz_model(quiz)
+        if quiz_model is None: #by default when no evo process - we pick all distractors selected by instructor
             selected_distractor_ids = [{"question_id": qq.id, "alternatives": [d.id for d in distractor_per_question.get(qq.id, [])] } 
                                         for qq in quiz_questions]
         else: #rely on evo engine for selection of distractors
             selected_distractor_ids = [{"question_id": qid, "alternatives": ds} 
-                                        for qid, ds in evo.get_for_evaluation(current_user.id)]
+                                        for qid, ds in quiz_model.get_for_evaluation(current_user.id)]
         for question_alternatives in selected_distractor_ids:
             question_alternatives["alternatives"].append(-1) #add correct answer 
             random.shuffle(question_alternatives["alternatives"]) #shuffle each question alternatives
-        attempt = models.QuizAttempt(quiz_id=quiz_id, student_id=current_user.id, status = QUIZ_ATTEMPT_STEP1, alternatives=selected_distractor_ids)
+        attempt = models.QuizAttempt(quiz_id=quiz.id, student_id=current_user.id, status = QUIZ_ATTEMPT_STEP1, alternatives=selected_distractor_ids)
         models.DB.session.add(attempt)
         models.DB.session.commit()
     return attempt
@@ -586,7 +578,7 @@ def get_quiz(q):
 
     #unescaping part - left for backward compatibility for now
     
-    attempt = get_or_create_attempt(q.id, quiz_questions, distractor_per_question)
+    attempt = get_or_create_attempt(q, quiz_questions, distractor_per_question)
     question_ids = [ int(qid) for qid in attempt.alternatives_map.keys() ]
     distractor_ids = [did for _, ds in attempt.alternatives_map.items() for did in ds]
 
@@ -730,6 +722,7 @@ def protected_get_quiz(q: models.Quiz):
 @verify_instructor_relationship(quiz_attempt_param = "q", redirect_route='pages.index')
 @validate_quiz_attempt_step(quiz_attempt_param = "q")
 @unmime(delim='_', type_converters={"question":{"*":lambda x: int(x)}})
+@retry_concurrent_update
 def save_quiz_attempt(q, body):
     quiz, attempt = q
 
@@ -778,10 +771,10 @@ def save_quiz_attempt(q, body):
 
         attempt.revised_responses = attempt.initial_responses
 
-        evo = get_evo(quiz.id)
-        if evo is not None: 
+        quiz_model = get_quiz_builder().load_quiz_model(quiz)
+        if quiz_model is not None: 
             answers = { int(q_id): answer for q_id, answer in attempt.initial_responses.items() }
-            evo.set_evaluation(Evaluation(evaluator_id=current_user.id, result=answers))
+            quiz_model.evaluate(current_user.id, answers)
 
     attempt.status = get_attempt_next_step(attempt.status)        
             

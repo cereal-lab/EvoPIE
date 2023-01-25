@@ -4,10 +4,11 @@
 # The following are flask custom commands; 
 
 from datetime import datetime
+from typing import Optional
 from pytz import timezone
-from evopie.config import EVO_PROCESS_STATUS_ACTIVE, EVO_PROCESS_STATUS_STOPPED, QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_HIDDEN, QUIZ_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, ROLE_STUDENT
+from evopie.config import QUIZ_HIDDEN, QUIZ_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2
 from . import models, APP # get also DB from there
-from sqlalchemy.orm.exc import StaleDataError
+from quiz_model import get_quiz_builder
 
 # helper method to use instead of directly calling bleach.clean
 import bleach
@@ -24,34 +25,29 @@ from jinja2 import Markup
 def unescape(str):
     return Markup(str).unescape()
 
-def changeQuizStatus(qid):
+def change_quiz_status(quiz: models.Quiz) -> None:
     tzinfo = timezone('US/Eastern')
     currentDateTime = datetime.now(tzinfo)
     currentDateTime = currentDateTime.replace(tzinfo=None)
-    quiz = models.Quiz.query.get_or_404(qid)
-    update = False
+    old_status = quiz.status
     if currentDateTime <= quiz.deadline0 and quiz.status != QUIZ_HIDDEN:
-        quiz.status = "HIDDEN"
-        update = True
+        quiz.status = QUIZ_HIDDEN
     elif currentDateTime > quiz.deadline0 and currentDateTime <= quiz.deadline1 and quiz.status != QUIZ_STEP1:
-        quiz.status = "STEP1"
-        update = True
+        quiz.status = QUIZ_STEP1
     elif currentDateTime > quiz.deadline1 and currentDateTime <= quiz.deadline3 and quiz.status != QUIZ_STEP2:
-        quiz.status = "STEP2"
-        update = True
+        quiz.status = QUIZ_STEP2
     elif currentDateTime > quiz.deadline3 and currentDateTime <= quiz.deadline4 and quiz.status != QUIZ_SOLUTIONS:
-        quiz.status = "SOLUTIONS"
-        update = True
+        quiz.status = QUIZ_SOLUTIONS
     elif currentDateTime > quiz.deadline4 and quiz.status != QUIZ_HIDDEN:
-        quiz.status = "HIDDEN"
-        update = True
-
+        quiz.status = QUIZ_HIDDEN
+    new_status = quiz.status
     models.DB.session.commit()
+    if old_status != new_status:
+        if new_status == QUIZ_STEP1:
+            get_quiz_builder().create_quiz_model(quiz)
+        else:
+            get_quiz_builder().finalize_quiz_model(quiz)
 
-    if update == True:
-        return quiz.status
-    else:
-        return None
         
     
 @APP.template_filter('unescapeDoubleQuotes')

@@ -4,10 +4,10 @@ from evopie.config import EVO_PROCESS_STATUS_ACTIVE, EVO_PROCESS_STATUS_STOPPED,
 from flask import flash, g, jsonify, redirect, url_for, request, abort
 from flask_login import current_user
 from functools import wraps
-from evopie.utils import changeQuizStatus, param_to_dict
+from evopie.utils import change_quiz_status, param_to_dict
 from . import models
 from sqlalchemy.orm.exc import StaleDataError
-from evopie.evo import start_evo, stop_evo
+from quiz_model import get_quiz_builder
 
 def role_required(role, redirect_to_referrer = False, redirect_route='login', redirect_message="You are not authorized to access specified page", category="message"):
     '''
@@ -74,11 +74,7 @@ def verify_deadline(quiz_attempt_param = "q", redirect_to_referrer = False, redi
                 return redirect(request.referrer if redirect_to_referrer else url_for(redirect_route, next=request.url))
 
             if q.deadline_driven == "True":
-                updatedStatus = changeQuizStatus(q.id)
-                if updatedStatus == QUIZ_STEP1:
-                    start_evo(q.id)
-                elif updatedStatus is not None:
-                    stop_evo(q.id)
+                change_quiz_status(q)
             else:
                 if (status == QUIZ_ATTEMPT_STEP1 and q.status == QUIZ_STEP1
                  or status == QUIZ_ATTEMPT_STEP2 and q.status == QUIZ_STEP2
