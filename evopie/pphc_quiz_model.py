@@ -9,7 +9,7 @@ from evopie import APP, models
 from evopie.utils import groupby
 from dataclasses import dataclass
 from numpy import unique
-from quiz_model import QuizModel, QuizModelBuilder, Archive
+from quiz_model import QuizModel, QuizModelBuilder, Archive, GeneBasedUpdateMixin
 
 @dataclass 
 class CoevaluationGroup:   
@@ -83,7 +83,12 @@ class PphcQuizModel(QuizModel, GeneBasedUpdateMixin):
                 return
             coevaluation_group_id = self.evaluator_coevaluation_groups[evaluator_id]
             eval_group = self.coevaluation_groups[coevaluation_group_id]
-            eval_group.objs.append(evaluator_id)                        
+            #we need to check that all inds are still present in population.
+            #if not, we discard evaluation 
+            if any(ind not in self.population for ind in eval_group.inds):
+                APP.logger.warn(f"[{self.__class__.__name__}] discarding evaluation of {evaluator_id}. Population is {self.population} while eval_group in {eval_group}")    
+                return 
+            eval_group.objs.append(evaluator_id)   
             for ind in eval_group.inds:
                 self.update_fitness(ind, evaluator_id, result)
             del self.evaluator_coevaluation_groups[evaluator_id]
