@@ -526,7 +526,7 @@ def get_or_create_attempt(quiz: models.Quiz, quiz_questions, distractor_per_ques
     if attempt is None: #first visit 
         quiz_model = get_quiz_builder().load_quiz_model(quiz, create_if_not_exist=True)
         if quiz_model is None: #by default when no evo process - we pick all distractors selected by instructor
-            selected_distractor_ids = [{"question_id": qq.id, "alternatives": [d.id for d in distractor_per_question.get(qq.id, [])] } 
+            selected_distractor_ids = [{"question_id": qq.id, "alternatives": [d.id for d in distractor_per_question.get(qq.question_id, [])] } 
                                         for qq in quiz_questions]
         else: #rely on evo engine for selection of distractors
             selected_distractor_ids = [{"question_id": qid, "alternatives": ds} 
@@ -567,8 +567,8 @@ def get_quiz(q):
     ##        altern[1] = unescape(altern[1])
     ##        # nope... altern[1] = jinja2.Markup.escape(altern[1])
 
-    question_ids = set(q.id for q in quiz_questions)    
-    quiz_question_distractors = models.DB.session.query(models.quiz_questions_hub).where(models.quiz_questions_hub.c.quiz_question_id.in_(question_ids)).all()
+    quiz_question_ids = set(q.id for q in quiz_questions)
+    quiz_question_distractors = models.DB.session.query(models.quiz_questions_hub).where(models.quiz_questions_hub.c.quiz_question_id.in_(quiz_question_ids)).all()
     distractor_ids = [d.distractor_id for d in quiz_question_distractors]
     plain_distractors = models.Distractor.query.where(models.Distractor.id.in_(distractor_ids))
     distractor_per_question = {q_id: ds for q_id, ds in groupby(plain_distractors, key = lambda d: d.question_id)}    
@@ -577,10 +577,10 @@ def get_quiz(q):
     #unescaping part - left for backward compatibility for now
     
     attempt = get_or_create_attempt(q, quiz_questions, distractor_per_question)
-    question_ids = [ int(qid) for qid in attempt.alternatives_map.keys() ]
+    quiz_question_ids = [ int(qid) for qid in attempt.alternatives_map.keys() ]
     distractor_ids = [did for _, ds in attempt.alternatives_map.items() for did in ds]
 
-    justifications = models.Justification.query.where(models.Justification.quiz_question_id.in_(question_ids), models.Justification.distractor_id.in_(distractor_ids), models.Justification.student_id == current_user.id).all()
+    justifications = models.Justification.query.where(models.Justification.quiz_question_id.in_(quiz_question_ids), models.Justification.distractor_id.in_(distractor_ids), models.Justification.student_id == current_user.id).all()
     justification_map = {qid:{j.distractor_id:j for j in js} for qid, js in groupby(justifications, key=lambda x:x.quiz_question_id)}
 
     question_model = [ { "id": qq.id, 
@@ -814,12 +814,13 @@ def get_quiz_statistics(qid):
 
     quiz_questions = quiz.quiz_questions
     question_ids = set(qu.question_id for qu in quiz_questions)
+    quiz_question_ids = set(qu.id for qu in quiz_questions)
     plain_questions = models.Question.query.where(models.Question.id.in_(question_ids)).all()
     questions = {q.id:{**q.dump_as_simplified_dict(), **{attr:unescape(getattr(q, attr)) 
                                                             for attr in ["stem", "answer", "title"]} } 
                     for q in plain_questions}
 
-    quiz_question_distractors = models.DB.session.query(models.quiz_questions_hub).where(models.quiz_questions_hub.c.quiz_question_id.in_(question_ids)).all()
+    quiz_question_distractors = models.DB.session.query(models.quiz_questions_hub).where(models.quiz_questions_hub.c.quiz_question_id.in_(quiz_question_ids)).all()
     distractor_ids = [d.distractor_id for d in quiz_question_distractors]
     plain_distractors = models.Distractor.query.where(models.Distractor.id.in_(distractor_ids)).all()
     distractors = { qid : {d.id : unescape(d.answer) for d in ds} 
@@ -835,7 +836,7 @@ def get_quiz_statistics(qid):
         
     student_ids = attempts_map.keys()        
     plain_justifications = models.Justification.query.where(models.Justification.student_id.in_(student_ids), 
-                                models.Justification.quiz_question_id.in_(question_ids)).all()
+                                models.Justification.quiz_question_id.in_(quiz_question_ids)).all()
     justification_map = {j.id:j.dump_as_dict() for j in plain_justifications}
 
     plain_likes = models.Likes4Justifications.query.where(models.Likes4Justifications.student_id.in_(student_ids)).all()

@@ -138,12 +138,12 @@ class QuizModelBuilder():
     def get_distractor_pools(self, quiz_or_id):
         quiz = self.get_quiz(quiz_or_id)        
         questions = quiz.quiz_questions
-        question_ids = [ q.id for q in questions ]
+        question_ids = [ q.id for q in questions ] #note: question_id?
         quiz_question_distractors = models.DB.session.query(models.quiz_questions_hub).where(models.quiz_questions_hub.c.quiz_question_id.in_(question_ids)).all()
         distractor_ids = [d.distractor_id for d in quiz_question_distractors]
         distractors = models.Distractor.query.where(models.Distractor.id.in_(distractor_ids)).with_entities(models.Distractor.id, models.Distractor.question_id)
         distractor_map = { q_id: [ d.id for d in ds ] for q_id, ds in groupby(distractors, key = lambda d: d.question_id) }
-        return {q.id: distractor_map.get(q.id, []) for q in questions }
+        return {q.id: distractor_map.get(q.question_id, []) for q in questions }
 
     def load_quiz_model(self, quiz_or_id, create_if_not_exist = False) -> Optional[QuizModel]:
         ''' Restores evo processes from db by quiz id '''
@@ -190,9 +190,12 @@ class GeneBasedUpdateMixin():
         self.archive.set_interraction(ind, evaluator_id, cur_score)
 
 from evopie.pphc_quiz_model import PphcQuizModelBuilder
-default_builder = PphcQuizModelBuilder 
+default_builder = PphcQuizModelBuilder #this is shared state but check comment for set_default_builder
 default_builder_settings = {}
 def set_default_builder(algo, settings = {}):
+    ''' DO NOT USE THIS IN PROD (where num of workers > 1). Workers will not share the state. 
+        The functions exists for cli commands for experimentation with different algos. 
+    '''
     global default_builder, default_builder_settings
     if algo is not None:
         *module, builder = algo.split('.')
