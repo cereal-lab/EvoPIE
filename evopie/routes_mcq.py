@@ -11,10 +11,9 @@ from flask import flash
 from datetime import datetime
 from werkzeug.security import generate_password_hash
 from evopie.config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT
-from evopie.evo import get_evo, start_evo, stop_evo, Evaluation
-
 from evopie.utils import groupby, sanitize
-from evopie.decorators import role_required, unmime, validate_quiz_attempt_step, verify_deadline, verify_instructor_relationship
+from evopie.quiz_model import get_quiz_builder
+from evopie.decorators import role_required, unmime, validate_quiz_attempt_step, verify_deadline, verify_instructor_relationship, retry_concurrent_update
 
 from . import models
 
@@ -594,31 +593,23 @@ def get_quizzes_status(qid):
     quiz = models.Quiz.query.get_or_404(qid)
     return jsonify({"status": quiz.status})
 
-@mcq.route('/quizzes/<int:qid>/status', methods=['POST'])
+@mcq.route('/quizzes/<quiz:quiz>/status', methods=['POST'])
 @login_required
 @role_required(role=ROLE_INSTRUCTOR)
-def post_quizzes_status(qid):
-    '''
-    Modifies the status of given quiz
-    '''
-
-    quiz = models.Quiz.query.get_or_404(qid)
-
+def post_quizzes_status(quiz):
+    ''' Modifies the status of given quiz '''
     if not request.is_json:
         abort(406, "JSON format required for request") # not acceptable
     new_status = sanitize(request.json['status'])
     # FIXED how about check that the status is actually valid, eh? :)'
     # done in set_status below
+    old_status = quiz.status
     if(quiz.set_status(new_status)):
-        response     = ({ "message" : "OK" }, 200, {"Content-Type": "application/json"})        
-        models.DB.session.commit()
-        if quiz.status == "STEP1": 
-            #starting evo process for quiz 
-            # start_default_p_phc(quiz)
-            start_evo(quiz.id)
-        else: 
-            #ending evo process for quiz 
-            stop_evo(quiz.id)
+        response     = ({ "message" : "OK" }, 200, {"Content-Type": "application/json"})                
+        if old_status != new_status:
+            models.DB.session.commit()
+            if quiz.status == "STEP1":
+                get_quiz_builder().load_quiz_model(quiz, create_if_not_exist=True)
     else:
         response     = ({ "message" : "Unable to switch to new status" }, 400, {"Content-Type": "application/json"})
     return make_response(response)
@@ -655,6 +646,7 @@ def post_quizzes_deadline_driven(qid):
 @role_required(ROLE_STUDENT, redirect_route='pages.index', redirect_message="You are not allowed to take quizzes", category="postError")
 @verify_deadline(redirect_route='pages.index')
 @verify_instructor_relationship(quiz_attempt_param = "q", redirect_route='pages.index')
+@retry_concurrent_update
 def all_quizzes_take(qid):
 
     quiz = models.Quiz.query.get_or_404(qid)
@@ -774,10 +766,10 @@ def all_quizzes_take(qid):
             models.DB.session.add(attempt)
             models.DB.session.commit()
 
-            evo = get_evo(quiz.id)
-            if evo is not None: 
+            quiz_model = get_quiz_builder().load_quiz_model(quiz)
+            if quiz_model is not None: 
                 answers = { int(q_id): answer for q_id, answer in attempt.initial_responses.items() }
-                evo.set_evaluation(Evaluation(evaluator_id=sid, result=answers))
+                quiz_model.evaluate(sid, answers)
 
             response     = ({ "message" : "Quiz attempt recorded in database" }, 200, {"Content-Type": "application/json"})
             # NOTE see previous note about using 204 vs 200
@@ -878,7 +870,8 @@ def post_grading_settings(qid):
 def get_quiz_justifications(q):
     _, attempt = q
     dids = [d for q in attempt.alternatives for d in q['alternatives'] ]
-    js = models.Justification.query.where(models.Justification.distractor_id.in_(dids), student_id = current_user.id).all()
+    quiz_question_ids = [qq.id for qq in q.quiz_questions]
+    js = models.Justification.query.where(models.Justification.quiz_question_id.in_(quiz_question_ids), models.Justification.distractor_id.in_(dids), student_id = current_user.id).all()
     return {"justifications":[j.dump_as_dict() for j in js]}
 
 @mcq.route('/quizzes/<qa:q>/answers', methods=['PUT'])

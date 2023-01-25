@@ -155,7 +155,7 @@
                 "run",
                 "-q", "1",
                 "-s", "STEP1",
-                "--algo", "P_PHC", "--algo-params", "{ \"seed\": 595, \"pop_size\": 1, \"pareto_n\": 2, \"child_n\": 1, \"gene_size\": 3}",
+                "--algo", "evopie.pphc_quiz_model.PphcQuizModelBuilder", "--algo-params", "{ \"seed\": 595, \"pop_size\": 1, \"pareto_n\": 2, \"child_n\": 1, \"gene_size\": 3}",
                 "--evo-output", "algo/pphc-1-2-1-3.json", "--archive-output", "algo/a.csv",
                 "--random-seed", "17"
             ]

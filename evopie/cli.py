@@ -1,7 +1,6 @@
-from datetime import datetime, timedelta
 from functools import reduce
 from io import StringIO
-from itertools import combinations_with_replacement, product
+from itertools import product
 import json
 import os
 import click
@@ -14,9 +13,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from evopie import APP, deca, models
-from evopie.config import EVO_PROCESS_STATUS_ACTIVE, EVO_PROCESS_STATUS_STOPPED, QUIZ_ATTEMPT_STEP1, QUIZ_STEP1, QUIZ_STEP2, ROLE_STUDENT
+from evopie.config import QUIZ_ATTEMPT_STEP1, QUIZ_STEP1, QUIZ_STEP2, ROLE_STUDENT
 from evopie.utils import groupby, unpack_key
-from evopie.evo import get_evo, sql_evo_serializer, Serializable
+from evopie.quiz_model import get_quiz_builder, set_default_builder
 
 def throw_on_http_fail(resp: TestResponse, status: int = 400):
     if resp.status_code >= status:            
@@ -192,7 +191,7 @@ def create_deca_space(quiz, output, fmt, axis, spanned, best_students_percent, n
     with APP.app_context():
         quiz = models.Quiz.query.get(quiz)
         quiz_questions = quiz.quiz_questions
-        question_ids = set(q.id for q in quiz_questions)    
+        question_ids = set(q.question_id for q in quiz_questions)    
         quiz_question_distractors = models.DB.session.query(models.quiz_questions_hub).where(models.quiz_questions_hub.c.quiz_question_id.in_(question_ids)).all()
         #NOTE: for additional validation we also could check that distractors exist in Distractor tables
         question_distractors = [ (q.quiz_question_id, q.distractor_id) for q in quiz_question_distractors ]
@@ -474,17 +473,12 @@ KNOWLEDGE_SELECTION_WEIGHT = "KNOWLEDGE_SELECTION_WEIGHT"
 @click.option('--justify-response', is_flag=True)
 @click.option('-ef', '--email-format', default="s{}@usf.edu")
 @click.option('--random-seed', type=int)
-def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n_times, archive_output, evo_output, step, knowledge_selection, likes, justify_response, email_format, random_seed):    
-    import evopie.config
+def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n_times, archive_output, evo_output, step, knowledge_selection, likes, justify_response, email_format, random_seed):        
     rnd_state = np.random.RandomState(random_seed)
     if no_algo:
-        evopie.config.distractor_selection_process = None
-        evopie.config.distractor_selecton_settings = {}
-    else:
-        if algo is not None:         
-            evopie.config.distractor_selection_process = algo 
-        if algo_params is not None: 
-            evopie.config.distractor_selecton_settings = json.loads(algo_params)
+        set_default_builder(None)
+    elif algo is not None:         
+        set_default_builder(algo, settings = json.loads(algo_params) if algo_params is not None else {})
 
     def simulate_step(step):
         with APP.app_context():
@@ -566,9 +560,6 @@ def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n
             with APP.app_context():
                 models.EvoProcessArchive.query.delete()
                 models.EvoProcess.query.delete()            
-                # existing_evo = models.EvoProcess.query.where(models.EvoProcess.quiz_id == quiz, models.EvoProcess.status == EVO_PROCESS_STATUS_ACTIVE).all()
-                # for evo in existing_evo:
-                #     evo.status = EVO_PROCESS_STATUS_STOPPED    
                 models.DB.session.commit()    
             with APP.app_context(), APP.test_client(use_cookies=True) as c: #instructor session
                 throw_on_http_fail(c.post("/login",json={"email": instructor, "password": password}))
@@ -578,33 +569,25 @@ def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n
 
             simulate_step(1)
 
-            with APP.app_context():     
-                evo = get_evo(quiz)
-                if evo is None:
+            with APP.app_context():
+                quiz_model = get_quiz_builder().load_quiz_model(quiz)
+                if quiz_model is None:
                     sys.stdout.write(f"[{run_idx + 1}/{n_times}] Step1 quiz {quiz} finished\n")            
                 else:
-                    evo.stop()
-                    evo.join()
-                    sql_evo_serializer.wait_dump(timeout=5)  #wait for db data dump
-                    evo.archive["p"] = 0
-                    evo.archive["p"] = evo.archive["p"].astype(int)            
-                    for ind in evo.population:
-                        evo.archive.loc[ind, "p"] = 1        
+                    model_state = quiz_model.get_internal_model()
+
                     if archive_output is not None: 
-                        evo.archive.to_csv(archive_output.format(run_idx))  
-                    evo_state = evo.get_state()
-                    population = evo.get_population_genotypes()
-                    population_distractors = evo.get_population_distractors()
-                    search_space_size = evo.get_search_space_size()
-                    explored_search_space_size = evo.get_explored_search_space_size()
-                    sys.stdout.write(f"EVO algo: {evo.__class__}\nEVO settings: {evo_state}\nEVO population: {population}\n")
+                        quiz_model.to_csv(archive_output.format(run_idx))
+                    
+                    search_space_size = quiz_model.get_search_space_size()
+                    explored_search_space_size = quiz_model.get_explored_search_space_size()
+                    sys.stdout.write(f"EVO algo: {quiz_model.__class__}\nEVO settings: {model_state}\n")
                     if evo_output: 
                         with open(evo_output, 'w') as evo_output_json_file:
-                            evo_output_json_file.write(json.dumps({"algo": evo.__class__.__name__, "settings":evo_state, 
-                                                        "population":population, "population_distractors": population_distractors, 
-                                                        "explored_search_space_size": explored_search_space_size, 
+                            evo_output_json_file.write(json.dumps({"algo": quiz_model.__class__.__name__, 
+                                                        "quiz_model":model_state, "explored_search_space_size": explored_search_space_size, 
                                                         "search_space_size": search_space_size}, indent=4))
-                    sys.stdout.write(f"[{run_idx + 1}/{n_times}] Step1 quiz {quiz} finished\n{evo.archive}\n")
+                    sys.stdout.write(f"[{run_idx + 1}/{n_times}] Step1 quiz {quiz} finished\n{quiz_model.to_dataframe()}\n")
         if QUIZ_STEP2 in step: 
             with APP.app_context(), APP.test_client(use_cookies=True) as c: #instructor session
                 throw_on_http_fail(c.post("/login",json={"email": instructor, "password": password}))
@@ -648,18 +631,13 @@ def calc_deca_metrics(algo_input, deca_space, params, input_output):
 @click.option('-q', '--quiz', type=int, required=True)
 @click.option('-o', '--output')
 def export_quiz_evo(quiz, output):
-    evo_process = sql_evo_serializer.from_store([quiz]).get(quiz, None)
-    if evo_process is None:
+    quiz_model = get_quiz_builder().load_quiz_model(quiz)
+    if quiz_model is None:
         sys.stdout.write(f"Quiz {quiz} does not have evo process\n")
         return 
-    evo = Serializable.load(evo_process, sql_evo_serializer)
-    evo.archive["p"] = 0
-    evo.archive["p"] = evo.archive["p"].astype(int)
-    for ind in evo.population:
-        evo.archive.loc[ind, "p"] = 1
     if output is not None: 
-        evo.archive.to_csv(output)
-    sys.stdout.write(f"Genotypes for quiz {quiz}:\n{evo.archive}\n")   
+        quiz_model.to_csv(output)
+    sys.stdout.write(f"Genotypes for quiz {quiz}:\n{quiz_model.to_dataframe()}\n")   
 
 @quiz_cli.command("result")
 @click.option('-q', '--quiz', type=int, required=True)

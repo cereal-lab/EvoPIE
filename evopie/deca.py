@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import json
 import numpy as np
 import numpy.typing as npt
-from pandas import DataFrame, MultiIndex
+# from pandas import DataFrame, MultiIndex
 from evopie.utils import groupby
 
 #NOTE: problem how we correspond sets of students to structure of the quiz. 
