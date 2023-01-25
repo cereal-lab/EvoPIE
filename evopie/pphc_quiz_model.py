@@ -7,13 +7,9 @@ from pandas import DataFrame
 
 from evopie import APP, models
 from evopie.utils import groupby
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from numpy import unique
-from quiz_model import QuizModel, QuizModelBuilder
-
-EVO_PROCESS_STATUS_ACTIVE = 'Active'
-EVO_PROCESS_STATUS_STOPPED = 'Stopped'
+from quiz_model import QuizModel, QuizModelBuilder, Archive
 
 @dataclass 
 class CoevaluationGroup:   
@@ -21,73 +17,17 @@ class CoevaluationGroup:
     inds: 'list[int]'
     objs: 'list[int]'
 
-class Archive():
-    @dataclass
-    class Genotype: #NOTE: we need this wrapper because pandas goes crazy if you provide to it just lists
-        ''' Abstract genotype of any representation from the archive '''
-        g: Any
-        def __repr__(self) -> str:
-            return self.g.__repr__()
-
-    def __init__(self, archive_entries: 'list[models.EvoProcessArchive]', objectives: 'list[int]') -> None:
-        plain_data = {i.genotype_id:{'g': Archive.Genotype(i.genotype),
-                                **{ int(id):obj for id, obj in i.objectives.items()}} for i in archive_entries}
-        self.archive = DataFrame.from_dict(plain_data, orient='index', columns=["g", *objectives])    
-        self.archive[["g"]] = self.archive[["g"]].astype(object)     
-
-    def add(archive: DataFrame, genotype: Any) -> int:
-        ''' The routing to register genotype in the archive. The genotype becomes int id at return '''
-        genotype_obj = Archive.Genotype(genotype)
-        ix = archive[archive['g'] == genotype_obj].index
-        if len(ix) > 0:
-            return int(ix[0]) #NOTE: by default DataFrame index is int64 which fails json serialization
-        else:
-            id = len(archive)
-            archive.loc[id, 'g'] = genotype_obj
-            return id
-
-    def add_objective(self, obj):
-        self.archive[obj] = None
-
-    def get(archive: DataFrame, genotype_id: int) -> Any: 
-        ''' Get genotype by its id '''
-        return archive.loc[genotype_id, 'g'].g
-
-    def at(self, ids, objs):
-        return self.archive.loc[ids, objs].iterrows()        
-
-    def set_interraction(self, id, obj, score):
-        self.archive.loc[id, obj] = score 
-
-    def __contains__(self, item):
-        return self.archive.__contains__(item)
-
-    def items(self):
-        return self.archive.iterrows()
-    def to_csv(self, file_name, active: 'list[int]') -> None: 
-        ''' save state to csv file '''        
-        archive_clone = self.archive.copy()
-        archive_clone["p"] = 0
-        archive_clone["p"] = archive_clone["p"].astype(int)            
-        for ind in active:
-            archive_clone[ind, "p"] = 1        
-        archive_clone.to_csv(file_name)
-
-class PphcQuizModel(QuizModel): 
+class PphcQuizModel(QuizModel, GeneBasedUpdateMixin): 
     ''' Base class for evolution process (but still of specific form)'''
-    def __init__(self, quiz_id: int, process: models.EvoProcess, archive: Archive, distractors_per_question: 'dict[int, list[int]]'):
-        self.quiz_id: int = quiz_id  #-1 - process is not associated to any quiz
-        self.population: 'list[int]' = process.population # int here is an index in archive (next field)
-        self.objectives: 'list[int]' = process.objectives
-        self.archive = archive
+    def __init__(self, quiz_id: int, archive: Archive, process: models.EvoProcess, distractors_per_question: 'dict[int, list[int]]'):
+        super(PphcQuizModel, self).__init__(quiz_id, archive, process, distractors_per_question)
         self.gen: int = process.impl_state.get("gen", 0)
         self.rnd = np.random.RandomState(process.impl_state.get("seed", None))
         self.seed = int(self.rnd.get_state()[1][0])
         self.pop_size: int = process.impl_state.get("pop_size", 1)
         self.pareto_n: int = process.impl_state.get("pareto_n", 2)
         self.child_n: int = process.impl_state.get("child_n", 1)
-        self.gene_size: int = process.impl_state.get("gene_size", 3)        
-        self.distractors_per_question = distractors_per_question
+        self.gene_size: int = process.impl_state.get("gene_size", 3)                
         self.coevaluation_groups: dict[int, CoevaluationGroup] = { int(id):CoevaluationGroup(g["inds"], g["objs"]) 
                                                                     for id, g in process.impl_state.get("coevaluation_groups", {}).items()}
         self.evaluator_coevaluation_groups: dict[int, int] = { int(evaluator_id):group_id 
@@ -135,18 +75,7 @@ class PphcQuizModel(QuizModel):
                 self.population[eval_group_id] = winner #winner takes place of a parent
             del self.coevaluation_groups[eval_group_id]
 
-    def update_fitness(self, ind: int, evaluator_id: int, result) -> None:  
-        # cur_score = self.archive.loc[ind, evaluator_id]
-        cur_score = 0 #if cur_score is None or math.isnan(cur_score) else cur_score
-        ind_genotype = self.archive.get(ind)
-        for qid, genes in ind_genotype: #result - dict where for each question we provide some data                        
-            if qid in result:
-                for deception in genes:
-                    if deception == result[qid]:
-                        cur_score += 1
-        self.archive.set_interraction(ind, evaluator_id, cur_score)
-
-    def evaluate(self, evaluator_id: int, result: Any) -> None:
+    def evaluate_internal(self, evaluator_id: int, result: Any) -> None:
         try:
             if evaluator_id not in self.evaluator_coevaluation_groups:
                 #NOTE: should not be here usually - but could be on system restart
@@ -164,8 +93,7 @@ class PphcQuizModel(QuizModel):
         gen_was_evaluated = len(self.coevaluation_groups) == 0 #group is treated as evaluated when removed  from this dict                
         if gen_was_evaluated:
             self.gen += 1 # going to next generation                    
-            self.mutate_population()   
-        self.save()
+            self.mutate_population()
 
     def init(self):
         ''' initialization of one individual (uniquely in the population) '''
@@ -218,10 +146,7 @@ class PphcQuizModel(QuizModel):
             Random, rotate (round-robin), greedy '''
         return int(self.rnd.choice(list(self.coevaluation_groups.keys())))
 
-    def get_for_evaluation(self, evaluator_id: int) -> 'list[tuple[int, list[int]]]':
-        if evaluator_id not in self.archive:
-            self.archive.add_objective(evaluator_id)
-            self.objectives.append(evaluator_id)                
+    def prepare_for_evaluation(self, evaluator_id: int) -> 'list[tuple[int, list[int]]]':
         if evaluator_id in self.evaluator_coevaluation_groups: #student should solve quiz with same set of distractors on retake it could be regenerated
             coevaluation_group_id = self.evaluator_coevaluation_groups[evaluator_id]
         else:
@@ -233,7 +158,6 @@ class PphcQuizModel(QuizModel):
                                     for qid, ds in groupby(((qid, d) 
                                     for ind in ind_genotypes 
                                     for (qid, ds) in ind for d in ds), key=lambda x: x[0])]
-        self.save()        
         return question_distractors
 
     def get_internal_model(self):
@@ -245,96 +169,8 @@ class PphcQuizModel(QuizModel):
                     "evaluator_coevaluation_groups": self.evaluator_coevaluation_groups}   
         return {"population": population, "distractors": distractors, "settings": settings}
 
-    def save(self, status: Optional[EVO_PROCESS_STATUS_ACTIVE | EVO_PROCESS_STATUS_STOPPED] = None) -> None:
-        ''' Serialize evo process state to database '''
-        impl_state = self.get_internal_model().get("settings", {})
-        evo_process = models.EvoProcess.query.where(models.EvoProcess.quiz_id == self.quiz_id, models.EvoProcess.status == EVO_PROCESS_STATUS_ACTIVE).one_or_none()
-        if evo_process is None: 
-            evo_process = models.EvoProcess(quiz_id = self.quiz_id,
-                            start_timestamp = datetime.now(),
-                            status = status or EVO_PROCESS_STATUS_ACTIVE,
-                            impl = __name__,
-                            impl_state = impl_state,
-                            population = self.population,
-                            objectives = self.objectives)
-
-            evo_process.archive = [ models.EvoProcessArchive(genotype_id = genotype_id,
-                                            genotype = r.g.g, objectives = {c: r[c] for c in r[r.notnull()].index if c != "g" })
-                                            for genotype_id, r in self.archive.items() ]
-            models.DB.session.add(evo_process)
-        else:
-            evo_process.impl = __name__
-            evo_process.impl_state = impl_state
-            if status is not None: 
-                evo_process.status = status
-            evo_process.population = self.population
-            evo_process.objectives = self.objectives
-
-        #NOTE: next comments left from prev implementation with threading
-        # sleep(5) #This is for testing database is locked error - this could lock student write operations
-        # https://docs.sqlalchemy.org/en/14/dialects/sqlite.html#database-locking-behavior-concurrency
-        # https://stackoverflow.com/questions/13895176/sqlalchemy-and-sqlite-database-is-locked          
-        # current solution is to increase timeout of file lock              
-        models.DB.session.commit() 
-    def finalize(self):
-        self.save(EVO_PROCESS_STATUS_STOPPED)
-    def to_csv(self, file_name) -> None: 
-        ''' save state to csv file '''
-        self.archive.to_csv(file_name, self.population)
-    def to_dataframe(self) -> Optional[DataFrame]: 
-        return self.archive.archive    
-
 class PphcQuizModelBuilder(QuizModelBuilder):
-    def __init__(self, **settings) -> None:
-        default_settings = { "pop_size": 1, "pareto_n": 2, "child_n": 1, "gene_size": 3}
-        self.settings = {**default_settings, **settings}
-
-    def get_quiz(self, quiz_or_id: 'models.Quiz | int') -> models.Quiz: 
-        if type(quiz_or_id) == int:
-            quiz_or_id = models.Quiz.query.get_or_404(quiz_or_id)
-        return quiz_or_id
-
-    def get_distractor_pools(self, quiz_or_id):
-        quiz = self.get_quiz(quiz_or_id)        
-        questions = quiz.quiz_questions
-        question_ids = [ q.id for q in questions ]
-        quiz_question_distractors = models.DB.session.query(models.quiz_questions_hub).where(models.quiz_questions_hub.c.quiz_question_id.in_(question_ids)).all()
-        distractor_ids = [d.distractor_id for d in quiz_question_distractors]
-        distractors = models.Distractor.query.where(models.Distractor.id.in_(distractor_ids)).with_entities(models.Distractor.id, models.Distractor.question_id)
-        distractor_map = { q_id: [ d.id for d in ds ] for q_id, ds in groupby(distractors, key=lambda d: d.question_id) }
-        return {q.id: distractor_map.get(q.id, []) for q in questions }
-
-    def load_quiz_model(self, quiz_or_id, create_if_not_exist = False) -> Optional[QuizModel]:
-        ''' Restores evo processes from db by quiz id '''
-        quiz = self.get_quiz(quiz_or_id)
-        if type(quiz_or_id) == int:
-            quiz = models.Quiz.query.get_or_404(quiz_or_id)
-        evo_process = models.EvoProcess.query.where(models.EvoProcess.quiz_id.in_(quiz.id), models.EvoProcess.status == EVO_PROCESS_STATUS_ACTIVE).one_or_none()
-        if evo_process is not None:
-            evo_archive = models.EvoProcessArchive.query.where(models.EvoProcessArchive.id.in_(evo_process.id)).all()
-            # evo_archives_map = dict(groupby(evo_archives, key=lambda a: a.id))
-            # for p_id, p in evo_processes_map.items():
-            archive = Archive(evo_archive, evo_process.objectives)
-            distractors_per_question = self.get_distractor_pools(quiz)
-            quiz_model = PphcQuizModel(quiz.id, evo_process, archive, distractors_per_question) 
-        elif create_if_not_exist:
-            quiz_model = self.create_quiz_model(quiz)
-        else: 
-            quiz_model = None
-        return quiz_model        
-
-    def create_quiz_model(self, quiz_or_id) -> QuizModel:
-        quiz = self.get_quiz(quiz_or_id)
-        evo_process = models.EvoProcess(quiz_id = quiz.id,
-                        start_timestamp = datetime.now(),
-                        status = EVO_PROCESS_STATUS_ACTIVE,
-                        impl = __name__, impl_state = {**self.settings}, population = [], objectives = [])
-        distractors_per_question = self.get_distractor_pools(quiz)
-        quiz_model = PphcQuizModel(quiz.id, evo_process, Archive([]), distractors_per_question)
-        quiz_model.save()
-        return quiz_model
-
-    def finalize_quiz_model(self, quiz_or_id: 'models.Quiz | int') -> None:    
-        quiz_model = self.load_quiz_model(quiz_or_id)
-        if quiz_model:
-            quiz_model.finalize()
+    def get_default_settings():
+        return { "pop_size": 1, "pareto_n": 2, "child_n": 1, "gene_size": 3}
+    def get_quiz_model_class():
+        return PphcQuizModel

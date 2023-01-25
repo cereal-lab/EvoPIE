@@ -22,9 +22,6 @@ ROLE_ADMIN = "ADMIN"
 # ROLE_RESEARCHER = "RESEARCHER"
 
 
-# distractor_selection_process, distractor_selecton_settings = (None, {}) #NOTE: use this for default behavior without evo process
-distractor_selection_process, distractor_selecton_settings = ("P_PHC", p_phc_settings)
-
 #-------------------------------------------------------
 #-- Justification selection parameteres
 
