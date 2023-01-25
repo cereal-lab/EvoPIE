@@ -743,7 +743,7 @@ def save_quiz_attempt(q, body):
         body.setdefault("justification", {})
         justify_alternative_selection(q, body["justification"])
 
-        quiz_question_ids = [qq.id for qq in q.quiz_questions]
+        quiz_question_ids = [ int(qid) for qid in attempt.alternatives_map.keys() ]
         saved_justifications = models.Justification.query.where(models.Justification.quiz_question_id.in_(quiz_question_ids), models.Justification.student_id == current_user.id).all()
         js_map = {(j.quiz_question_id, j.distractor_id): j for j in saved_justifications}
         #check that for all alternatives justifications were provided 
