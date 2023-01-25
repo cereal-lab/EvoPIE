@@ -9,18 +9,19 @@ from evopie import APP, models
 from evopie.utils import groupby
 from dataclasses import dataclass
 from numpy import unique
-from quiz_model import QuizModel, QuizModelBuilder, Archive, GeneBasedUpdateMixin
+from evopie.quiz_model import QuizModel, QuizModelBuilder, GeneBasedUpdateMixin
 
 @dataclass 
 class CoevaluationGroup:   
     ''' The group of genotypes and students which saw these genotypes in one quiz ''' 
     inds: 'list[int]'
     objs: 'list[int]'
+    ppos: int
 
 class PphcQuizModel(QuizModel, GeneBasedUpdateMixin): 
     ''' Base class for evolution process (but still of specific form)'''
-    def __init__(self, quiz_id: int, archive: Archive, process: models.EvoProcess, distractors_per_question: 'dict[int, list[int]]'):
-        super(PphcQuizModel, self).__init__(quiz_id, archive, process, distractors_per_question)
+    def __init__(self, quiz_id: int, process: models.EvoProcess, distractors_per_question: 'dict[int, list[int]]'):
+        super(PphcQuizModel, self).__init__(quiz_id, process, distractors_per_question)
         self.gen: int = process.impl_state.get("gen", 0)
         self.rnd = np.random.RandomState(process.impl_state.get("seed", None))
         self.seed = int(self.rnd.get_state()[1][0])
@@ -28,9 +29,9 @@ class PphcQuizModel(QuizModel, GeneBasedUpdateMixin):
         self.pareto_n: int = process.impl_state.get("pareto_n", 2)
         self.child_n: int = process.impl_state.get("child_n", 1)
         self.gene_size: int = process.impl_state.get("gene_size", 3)                
-        self.coevaluation_groups: dict[int, CoevaluationGroup] = { int(id):CoevaluationGroup(g["inds"], g["objs"]) 
-                                                                    for id, g in process.impl_state.get("coevaluation_groups", {}).items()}
-        self.evaluator_coevaluation_groups: dict[int, int] = { int(evaluator_id):group_id 
+        self.coevaluation_groups: dict[str, CoevaluationGroup] = { cgid:CoevaluationGroup(g["inds"], g["objs"], g['ppos']) 
+                                                                    for cgid, g in process.impl_state.get("coevaluation_groups", {}).items()}
+        self.evaluator_coevaluation_groups: dict[int, str] = { int(evaluator_id):str(group_id)
                                                                     for evaluator_id, group_id in process.impl_state.get("evaluator_coevaluation_groups", {}).items() }        
         #add to population new inds till moment of pop_size
         #noop if already inited
@@ -40,22 +41,22 @@ class PphcQuizModel(QuizModel, GeneBasedUpdateMixin):
         self.mutate_population() #add new coeval groups on new parents
 
     def mutate_population(self):
-        self.coevaluation_groups = { **self.coevaluation_groups, 
-                                    **{pid: CoevaluationGroup(inds=[parent, *self.mutate(parent)], objs = []) 
-                                        for pid, parent in enumerate(self.population)
-                                        if pid not in self.coevaluation_groups} }             
+        for pid, parent in enumerate(self.population):
+            coeval_group_id = f"{self.gen}:{pid}"
+            if coeval_group_id not in self.coevaluation_groups:
+                self.coevaluation_groups[coeval_group_id] = CoevaluationGroup(inds=[parent, *self.mutate(parent)], objs = [], ppos=pid)
 
-    def compare(self, eval_group_id: int, eval_group: CoevaluationGroup):  
+    def compare(self, coeval_group_id: str, coeval_group: CoevaluationGroup):  
         ''' Implements Pareto comparison '''      
-        if len(eval_group.objs) >= self.pareto_n:
+        if len(coeval_group.objs) >= self.pareto_n:
             genotype_evaluations = {genotype_id: evals 
-                                    for genotype_id, evals in self.archive.at(eval_group.inds, eval_group.objs)}
-            parent = eval_group.inds[0]
+                                    for genotype_id, evals in self.archive.at(coeval_group.inds, coeval_group.objs)}
+            parent = coeval_group.inds[0]
             parent_genotype_evaluation = genotype_evaluations[parent]
             # possible_winners = [ child for child in eval_group.inds[1:]
             #                         if (genotype_evaluations[child] == parent_genotype_evaluation).all() or not((genotype_evaluations[child] <= parent_genotype_evaluation).all()) ] #Pareto check
 
-            possible_winners = [ child for child in eval_group.inds[1:]
+            possible_winners = [ child for child in coeval_group.inds[1:]
                                     if not((genotype_evaluations[child] == parent_genotype_evaluation).all()) and (genotype_evaluations[child] >= parent_genotype_evaluation).all() ] #Pareto check
 
             # possible_winners = [ child for child in eval_group.inds[1:]
@@ -72,29 +73,28 @@ class PphcQuizModel(QuizModel, GeneBasedUpdateMixin):
 
             if len(possible_winners) > 0:
                 winner = int(self.rnd.choice(possible_winners)) #NOTE: we have this cast due to bugged behaviour of numpy - it returns winner of type np.int64, not int - fails on json step
-                self.population[eval_group_id] = winner #winner takes place of a parent
-            del self.coevaluation_groups[eval_group_id]
+                self.population[coeval_group.ppos] = winner #winner takes place of a parent
+            del self.coevaluation_groups[coeval_group_id]
+            #we cleanup also evaluator_coevaluation_groups which denies postponed evaluations
+            #NOTE: comment next if you allow evaluation from another group (from prev generation)
+            evaluators = list(self.evaluator_coevaluation_groups.items())
+            for (sid, cgid) in evaluators: #TODO: store student ids in coeval_group for faster cleanup
+                if cgid == coeval_group_id:
+                    APP.logger.warn(f"Cannot accept evaluation of student {sid}, because coeval group {cgid} is evolving to next generation based on result from {coeval_group}")
+                    del self.evaluator_coevaluation_groups[sid]
 
     def evaluate_internal(self, evaluator_id: int, result: Any) -> None:
-        try:
-            if evaluator_id not in self.evaluator_coevaluation_groups:
-                #NOTE: should not be here usually - but could be on system restart
-                APP.logger.warn(f"[{self.__class__.__name__}] Quiz {self.quiz_id} got evaluation for unexpected group: {evaluator_id}. {self.evaluator_coevaluation_groups}")
-                return
-            coevaluation_group_id = self.evaluator_coevaluation_groups[evaluator_id]
-            eval_group = self.coevaluation_groups[coevaluation_group_id]
-            #we need to check that all inds are still present in population.
-            #if not, we discard evaluation 
-            if any(ind not in self.population for ind in eval_group.inds):
-                APP.logger.warn(f"[{self.__class__.__name__}] discarding evaluation of {evaluator_id}. Population is {self.population} while eval_group in {eval_group}")    
-                return 
-            eval_group.objs.append(evaluator_id)   
-            for ind in eval_group.inds:
-                self.update_fitness(ind, evaluator_id, result)
-            del self.evaluator_coevaluation_groups[evaluator_id]
-            self.compare(coevaluation_group_id, eval_group)
-        except Exception as e: 
-            APP.logger.error(f"[{self.__class__.__name__}] error on evaluation of quiz {self.quiz_id}: {e}.")
+        coevaluation_group_id = self.evaluator_coevaluation_groups.get(evaluator_id, None)
+        eval_group = self.coevaluation_groups.get(coevaluation_group_id, None)        
+        if coevaluation_group_id is None or eval_group is None:
+            #NOTE: coeval group was removed by evolution
+            APP.logger.warn(f"Discarding evaluation of {evaluator_id} for quiz {self.quiz_id}. Population is {self.population}. Result {result}")
+            return
+        eval_group.objs.append(evaluator_id)   
+        for ind in eval_group.inds:
+            self.update_fitness(ind, evaluator_id, result)
+        del self.evaluator_coevaluation_groups[evaluator_id]
+        self.compare(coevaluation_group_id, eval_group)
         gen_was_evaluated = len(self.coevaluation_groups) == 0 #group is treated as evaluated when removed  from this dict                
         if gen_was_evaluated:
             self.gen += 1 # going to next generation                    
@@ -149,7 +149,7 @@ class PphcQuizModel(QuizModel, GeneBasedUpdateMixin):
     def select(self, evaluator_id):
         ''' Policy what evaluation group to prioritize 
             Random, rotate (round-robin), greedy '''
-        return int(self.rnd.choice(list(self.coevaluation_groups.keys())))
+        return str(self.rnd.choice(list(self.coevaluation_groups.keys())))
 
     def prepare_for_evaluation(self, evaluator_id: int) -> 'list[tuple[int, list[int]]]':
         if evaluator_id in self.evaluator_coevaluation_groups: #student should solve quiz with same set of distractors on retake it could be regenerated
@@ -170,12 +170,15 @@ class PphcQuizModel(QuizModel, GeneBasedUpdateMixin):
         distractors = [d for genotype in population for (_, dids) in genotype for d in dids ] 
         settings = { "pop_size": self.pop_size, "gen": self.gen, "seed": self.seed,
                     "gene_size": self.gene_size, "pareto_n": self.pareto_n, "child_n": self.child_n,
-                    "coevaluation_groups":  {id: {"inds": g.inds, "objs": g.objs} for id, g in self.coevaluation_groups.items()},
+                    "coevaluation_groups":  {id: {"inds": g.inds, "objs": g.objs, "ppos": g.ppos} for id, g in self.coevaluation_groups.items()},
                     "evaluator_coevaluation_groups": self.evaluator_coevaluation_groups}   
         return {"population": population, "distractors": distractors, "settings": settings}
 
 class PphcQuizModelBuilder(QuizModelBuilder):
-    def get_default_settings():
-        return { "pop_size": 1, "pareto_n": 2, "child_n": 1, "gene_size": 3}
-    def get_quiz_model_class():
+    def __init__(self, **kwargs) -> None:
+        self.default_settings = { "pop_size": 1, "pareto_n": 2, "child_n": 1, "gene_size": 3}
+        self.settings = {**self.default_settings, **kwargs}
+    def get_settings(self):
+        return self.settings
+    def get_quiz_model_class(self):
         return PphcQuizModel

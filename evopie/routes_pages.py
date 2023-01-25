@@ -3,12 +3,12 @@
 # Dynamic classes like scoped_session are caught by pylint as not having any
 # of the members they end up featuring at runtime. This is a way to tell pylint to let it be
 
-from dataclasses import replace
 from datetime import datetime
 import io
 from math import exp
 from mimetypes import init
 from operator import not_
+import random
 from tracemalloc import start
 from flask import g, jsonify, abort, request, Response, render_template, redirect, url_for, make_response, send_file
 from flask import Blueprint
@@ -18,19 +18,17 @@ from pandas import DataFrame
 from sqlalchemy import not_
 from sqlalchemy.sql import collate
 from flask import Markup
-from quiz_model import get_quiz_builder
+from evopie.quiz_model import get_quiz_builder
 from evopie.routes_mcq import answer_questions, justify_alternative_selection
 from werkzeug.security import check_password_hash
 
-from evopie.utils import find_median
+from evopie.utils import find_median, unescape, groupby
 from evopie.decorators import role_required, retry_concurrent_update
 
 from .config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_HIDDEN, QUIZ_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT, get_attempt_next_step, get_k_tournament_size, get_least_seen_slots_num
-from .utils import change_quiz_status, unescape
-from evopie.decorators import unmime, validate_quiz_attempt_step, verify_deadline, verify_instructor_relationship
+from evopie.decorators import unmime, validate_quiz_attempt_step, verify_deadline, verify_instructor_relationship, change_quiz_status
 
-import json, random, ast, re
-import numpy as np
+from dataclasses import dataclass
 
 from . import DB, models
 
@@ -526,7 +524,7 @@ def get_justification_distribution(quiz_id):
 def get_or_create_attempt(quiz: models.Quiz, quiz_questions, distractor_per_question):
     attempt = models.QuizAttempt.query.filter_by(student_id=current_user.id, quiz_id=quiz.id).first()
     if attempt is None: #first visit 
-        quiz_model = get_quiz_builder().load_quiz_model(quiz)
+        quiz_model = get_quiz_builder().load_quiz_model(quiz, create_if_not_exist=True)
         if quiz_model is None: #by default when no evo process - we pick all distractors selected by instructor
             selected_distractor_ids = [{"question_id": qq.id, "alternatives": [d.id for d in distractor_per_question.get(qq.id, [])] } 
                                         for qq in quiz_questions]
@@ -792,9 +790,6 @@ def users_browser():
         return redirect(url_for('pages.index'))
     all_users = models.User.query.all()
     return render_template('users-browser.html', all_users=all_users)
-
-from dataclasses import dataclass
-from .utils import groupby
 
 #NOTE: no model data should be present on UI
 @dataclass

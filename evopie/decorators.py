@@ -1,13 +1,35 @@
 from datetime import datetime
 from pytz import timezone
-from evopie.config import EVO_PROCESS_STATUS_ACTIVE, EVO_PROCESS_STATUS_STOPPED, QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_HIDDEN, QUIZ_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, ROLE_STUDENT
+from evopie.config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_HIDDEN, QUIZ_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, ROLE_STUDENT
 from flask import flash, g, jsonify, redirect, url_for, request, abort
 from flask_login import current_user
 from functools import wraps
-from evopie.utils import change_quiz_status, param_to_dict
+from evopie.utils import param_to_dict
 from . import models
 from sqlalchemy.orm.exc import StaleDataError
-from quiz_model import get_quiz_builder
+from evopie.quiz_model import get_quiz_builder
+
+def change_quiz_status(quiz: models.Quiz) -> None:
+    tzinfo = timezone('US/Eastern')
+    currentDateTime = datetime.now(tzinfo)
+    currentDateTime = currentDateTime.replace(tzinfo=None)
+    old_status = quiz.status
+    if currentDateTime <= quiz.deadline0 and quiz.status != QUIZ_HIDDEN:
+        quiz.status = QUIZ_HIDDEN
+    elif currentDateTime > quiz.deadline0 and currentDateTime <= quiz.deadline1 and quiz.status != QUIZ_STEP1:
+        quiz.status = QUIZ_STEP1
+    elif currentDateTime > quiz.deadline1 and currentDateTime <= quiz.deadline3 and quiz.status != QUIZ_STEP2:
+        quiz.status = QUIZ_STEP2
+    elif currentDateTime > quiz.deadline3 and currentDateTime <= quiz.deadline4 and quiz.status != QUIZ_SOLUTIONS:
+        quiz.status = QUIZ_SOLUTIONS
+    elif currentDateTime > quiz.deadline4 and quiz.status != QUIZ_HIDDEN:
+        quiz.status = QUIZ_HIDDEN
+    new_status = quiz.status    
+    if old_status != new_status:
+        models.DB.session.commit()
+        if new_status == QUIZ_STEP1:
+            get_quiz_builder().load_quiz_model(quiz, create_if_not_exist=True)
+
 
 def role_required(role, redirect_to_referrer = False, redirect_route='login', redirect_message="You are not authorized to access specified page", category="message"):
     '''

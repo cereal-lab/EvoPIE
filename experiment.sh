@@ -25,16 +25,16 @@ flask deca init-many -ns 100 -nq 4 -nd 25 \
  
 flask quiz deca-experiments \
     --random-seed 23 --num-runs 3 \
-    --algo '{ "id": "pphc-1-2-1-3", "algo":"P_PHC", "pop_size": 1, "pareto_n": 2, "child_n": 1, "gene_size": 3}'
+    --algo '{ "id": "pphc-1-2-1-3", "algo":"evopie.pphc_quiz_model.PphcQuizModelBuilder", "pop_size": 1, "pareto_n": 2, "child_n": 1, "gene_size": 3}'
 
 flask quiz deca-experiment --deca-input deca-spaces/space-1_1_1_1_1_1_1_1-s_20-3.json \
     --num-runs 3 \
-    --algo '{ "id": "pphc-1-2-1-3", "algo":"P_PHC", "pop_size": 1, "pareto_n": 2, "child_n": 1, "gene_size": 3}'
+    --algo '{ "id": "pphc-1-2-1-3", "algo":"evopie.pphc_quiz_model.PphcQuizModelBuilder", "pop_size": 1, "pareto_n": 2, "child_n": 1, "gene_size": 3}'
 
 flask student knows --deca-input deca-spaces/space-1_1_1_1_1_1_1_1-s_0-1.json \
     -o testing/students.csv
 
-# flask quiz run -q 1 -s STEP1 --algo P_PHC --algo-params '{ "pop_size": 1, "pareto_n": 2, "child_n": 1, "gene_size": 3}' \
+# flask quiz run -q 1 -s STEP1 --algo 'evopie.pphc_quiz_model.PphcQuizModelBuilder' --algo-params '{ "pop_size": 1, "pareto_n": 2, "child_n": 1, "gene_size": 3}' \
 #     --evo-output algo/pphc-1-2-1-3.json --archive-output algo/pphc-1-2-1-3-archive.csv
 
 flask deca result --algo-input algo/pphc-1-2-1-3.json --deca-space deca-spaces/space-1_1_1_1_1_1_1_1-s_20-3.json \

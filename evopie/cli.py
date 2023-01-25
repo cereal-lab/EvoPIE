@@ -1,7 +1,6 @@
-from datetime import datetime, timedelta
 from functools import reduce
 from io import StringIO
-from itertools import combinations_with_replacement, product
+from itertools import product
 import json
 import os
 import click
@@ -16,7 +15,7 @@ import matplotlib.pyplot as plt
 from evopie import APP, deca, models
 from evopie.config import QUIZ_ATTEMPT_STEP1, QUIZ_STEP1, QUIZ_STEP2, ROLE_STUDENT
 from evopie.utils import groupby, unpack_key
-from quiz_model import get_quiz_builder
+from evopie.quiz_model import get_quiz_builder, set_default_builder
 
 def throw_on_http_fail(resp: TestResponse, status: int = 400):
     if resp.status_code >= status:            
@@ -474,17 +473,12 @@ KNOWLEDGE_SELECTION_WEIGHT = "KNOWLEDGE_SELECTION_WEIGHT"
 @click.option('--justify-response', is_flag=True)
 @click.option('-ef', '--email-format', default="s{}@usf.edu")
 @click.option('--random-seed', type=int)
-def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n_times, archive_output, evo_output, step, knowledge_selection, likes, justify_response, email_format, random_seed):    
-    import evopie.config
+def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n_times, archive_output, evo_output, step, knowledge_selection, likes, justify_response, email_format, random_seed):        
     rnd_state = np.random.RandomState(random_seed)
     if no_algo:
-        evopie.config.distractor_selection_process = None
-        evopie.config.distractor_selecton_settings = {}
-    else:
-        if algo is not None:         
-            evopie.config.distractor_selection_process = algo 
-        if algo_params is not None: 
-            evopie.config.distractor_selecton_settings = json.loads(algo_params)
+        set_default_builder(None)
+    elif algo is not None:         
+        set_default_builder(algo, settings = json.loads(algo_params) if algo_params is not None else {})
 
     def simulate_step(step):
         with APP.app_context():

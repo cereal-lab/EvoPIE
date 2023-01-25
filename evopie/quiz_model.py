@@ -2,14 +2,16 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+import enum
 from typing import Any, Optional
 from evopie import models
 from pandas import DataFrame
 from datetime import datetime
-from itertools import groupby
+from evopie.utils import groupby
 
-EVO_PROCESS_STATUS_ACTIVE = 'Active'
-EVO_PROCESS_STATUS_STOPPED = 'Stopped'
+class QuizModelStatus(enum.Enum):
+    ACTIVE = 'Active'
+    STOPPED = 'Stopped'
 
 class Archive():
     ''' stores interactions with quiz model '''
@@ -20,30 +22,30 @@ class Archive():
         def __repr__(self) -> str:
             return self.g.__repr__()
 
-    def __init__(self, archive_entries: 'list[tuple[int, Any, Any]]', objectives: 'list[int]') -> None:
-        plain_data = {rid:{'g': Archive.Representation(representation),
-                                **{ int(id):val for id, val in interactions.items()}} 
-                                for (rid, representation, interactions) in archive_entries}
+    def __init__(self, archive_entries: 'list[models.EvoProcessArchive]', objectives: 'list[int]') -> None:
+        plain_data = {i.genotype_id:{'g': Archive.Representation(i.genotype),
+                                **{ int(id):val for id, val in i.objectives.items()}} 
+                                for i in archive_entries}
         self.archive = DataFrame.from_dict(plain_data, orient='index', columns=["g", *objectives])    
-        self.archive[["g"]] = self.archive[["g"]].astype(object)     
+        self.archive[["g"]] = self.archive[["g"]].astype(object)   
 
-    def add(archive: DataFrame, genotype: Any) -> int:
+    def add(self, genotype: Any) -> int:
         ''' The routing to register genotype in the archive. The genotype becomes int id at return '''
         genotype_obj = Archive.Representation(genotype)
-        ix = archive[archive['g'] == genotype_obj].index
+        ix = self.archive[self.archive['g'] == genotype_obj].index
         if len(ix) > 0:
             return int(ix[0]) #NOTE: by default DataFrame index is int64 which fails json serialization
         else:
-            id = len(archive)
-            archive.loc[id, 'g'] = genotype_obj
+            id = len(self.archive)
+            self.archive.loc[id, 'g'] = genotype_obj
             return id
 
     def add_objective(self, obj):
         self.archive[obj] = None
 
-    def get(archive: DataFrame, genotype_id: int) -> Any: 
+    def get(self, genotype_id: int) -> Any: 
         ''' Get genotype by its id '''
-        return archive.loc[genotype_id, 'g'].g
+        return self.archive.loc[genotype_id, 'g'].g
 
     def at(self, ids, objs):
         return self.archive.loc[ids, objs].iterrows()        
@@ -67,16 +69,17 @@ class Archive():
 
 class QuizModel(ABC):
 
-    def __init__(self, quiz_id: int, archive: Archive, process: models.EvoProcess, distractors_per_question: 'dict[int, list[int]]') -> None:
+    def __init__(self, quiz_id: int, process: models.EvoProcess, distractors_per_question: 'dict[int, list[int]]') -> None:
+        self.process = process #NOTE: this object should exist during request time and saved in db in save - it tracks concurrent update attempts
         self.quiz_id = quiz_id
-        self.archive = archive
+        self.archive = Archive(process.archive, process.objectives)
         self.population = process.population #active antries
         self.objectives = process.objectives #all interaction ids
         self.distractors_per_question = distractors_per_question
 
     def get_explored_search_space_size(self) -> int:
         ''' returns explored search space size '''
-        return len(self.archive)
+        return len(self.archive.archive)
     def get_search_space_size(self) -> int:
         ''' returns number of possible combinations on inner model state '''
         return 0
@@ -101,36 +104,16 @@ class QuizModel(ABC):
         ''' stores results in model state '''        
         self.evaluate_internal(evaluator_id, result)
         self.save()
-    def save(self, status: Optional[EVO_PROCESS_STATUS_ACTIVE | EVO_PROCESS_STATUS_STOPPED] = None) -> None:
+    def save(self) -> None:
         ''' preserve state in persistent storage'''
         impl_state = self.get_internal_model().get("settings", {})
-        evo_process = models.EvoProcess.query.where(models.EvoProcess.quiz_id == self.quiz_id, models.EvoProcess.status == EVO_PROCESS_STATUS_ACTIVE).one_or_none()
-        if evo_process is None: 
-            evo_process = models.EvoProcess(quiz_id = self.quiz_id,
-                            start_timestamp = datetime.now(),
-                            status = status or EVO_PROCESS_STATUS_ACTIVE,
-                            impl = __name__,
-                            impl_state = impl_state,
-                            population = self.population,
-                            objectives = self.objectives)
-
-            evo_process.archive = [ models.EvoProcessArchive(genotype_id = genotype_id,
+        self.process.impl = self.__class__.__name__
+        self.process.impl_state = impl_state
+        self.process.population = self.population
+        self.process.objectives = self.objectives
+        self.process.archive = [ models.EvoProcessArchive(genotype_id = genotype_id,
                                             genotype = r.g.g, objectives = {c: r[c] for c in r[r.notnull()].index if c != "g" })
                                             for genotype_id, r in self.archive.items() ]
-            models.DB.session.add(evo_process)
-        else:
-            evo_process.impl = __name__
-            evo_process.impl_state = impl_state
-            if status is not None: 
-                evo_process.status = status
-            evo_process.population = self.population
-            evo_process.objectives = self.objectives
-
-        #NOTE: next comments left from prev implementation with threading
-        # sleep(5) #This is for testing database is locked error - this could lock student write operations
-        # https://docs.sqlalchemy.org/en/14/dialects/sqlite.html#database-locking-behavior-concurrency
-        # https://stackoverflow.com/questions/13895176/sqlalchemy-and-sqlite-database-is-locked          
-        # current solution is to increase timeout of file lock              
         models.DB.session.commit()         
     def to_csv(self, file_name) -> None: 
         ''' save state to csv file '''
@@ -139,13 +122,13 @@ class QuizModel(ABC):
         return self.archive.archive    
 
 
-class QuizModelBuilder(ABC):
-    @abstractmethod
-    def get_default_settings() -> 'dict':
+class QuizModelBuilder():
+    def __init__(self, **kwargs) -> None:
+        pass
+    def get_settings(self) -> 'dict':
         return {}
-    @abstractmethod
-    def get_quiz_model_class():
-        return QuizModel
+    def get_quiz_model_class(self):
+        return None
 
     def get_quiz(self, quiz_or_id: 'models.Quiz | int') -> models.Quiz: 
         if type(quiz_or_id) == int:
@@ -159,43 +142,40 @@ class QuizModelBuilder(ABC):
         quiz_question_distractors = models.DB.session.query(models.quiz_questions_hub).where(models.quiz_questions_hub.c.quiz_question_id.in_(question_ids)).all()
         distractor_ids = [d.distractor_id for d in quiz_question_distractors]
         distractors = models.Distractor.query.where(models.Distractor.id.in_(distractor_ids)).with_entities(models.Distractor.id, models.Distractor.question_id)
-        distractor_map = { q_id: [ d.id for d in ds ] for q_id, ds in groupby(sorted(distractors, key = lambda d: d.question_id), key=lambda d: d.question_id) }
+        distractor_map = { q_id: [ d.id for d in ds ] for q_id, ds in groupby(distractors, key = lambda d: d.question_id) }
         return {q.id: distractor_map.get(q.id, []) for q in questions }
 
     def load_quiz_model(self, quiz_or_id, create_if_not_exist = False) -> Optional[QuizModel]:
         ''' Restores evo processes from db by quiz id '''
+        quiz_model_class = self.get_quiz_model_class()
+        if quiz_model_class is None:
+            return None
         quiz = self.get_quiz(quiz_or_id)
-        if type(quiz_or_id) == int:
-            quiz = models.Quiz.query.get_or_404(quiz_or_id)
-        evo_process = models.EvoProcess.query.where(models.EvoProcess.quiz_id.in_(quiz.id), models.EvoProcess.status == EVO_PROCESS_STATUS_ACTIVE).one_or_none()
-        if evo_process is not None:
-            evo_archive = models.EvoProcessArchive.query.where(models.EvoProcessArchive.id.in_(evo_process.id)).all()
-            # evo_archives_map = dict(groupby(evo_archives, key=lambda a: a.id))
-            # for p_id, p in evo_processes_map.items():
-            archive = Archive([(i.genotype_id, i.genotype, i.objectives) for i in evo_archive], evo_process.objectives)
-            distractors_per_question = self.get_distractor_pools(quiz)
-            quiz_model = self.get_quiz_model_class()(quiz.id, archive, evo_process, distractors_per_question) 
+        process = models.EvoProcess.query.where(models.EvoProcess.quiz_id == quiz.id, models.EvoProcess.status == QuizModelStatus.ACTIVE.value).one_or_none()
+        if process is not None:
+            distractors_per_question = self.get_distractor_pools(quiz)            
+            quiz_model = quiz_model_class(quiz.id, process, distractors_per_question) 
         elif create_if_not_exist:
             quiz_model = self.create_quiz_model(quiz)
         else: 
             quiz_model = None
         return quiz_model        
 
-    def create_quiz_model(self, quiz_or_id) -> QuizModel:
+    def create_quiz_model(self, quiz_or_id) -> Optional[QuizModel]:
+        quiz_model_class = self.get_quiz_model_class()
+        if quiz_model_class is None: 
+            return None        
         quiz = self.get_quiz(quiz_or_id)
-        evo_process = models.EvoProcess(quiz_id = quiz.id,
+        process = models.EvoProcess(quiz_id = quiz.id,
                         start_timestamp = datetime.now(),
-                        status = EVO_PROCESS_STATUS_ACTIVE,
-                        impl = __name__, impl_state = {**self.get_default_settings()}, population = [], objectives = [])
+                        status = QuizModelStatus.ACTIVE.value,
+                        impl = quiz_model_class.__name__, impl_state = {**self.get_settings()}, 
+                        population = [], objectives = [], archive = [])
+        models.DB.session.add(process)
+        models.DB.session.commit()
         distractors_per_question = self.get_distractor_pools(quiz)
-        quiz_model = self.get_quiz_model_class()(quiz.id, Archive([],evo_process.objectives), evo_process, distractors_per_question)
-        quiz_model.save()
+        quiz_model = quiz_model_class(quiz.id, process, distractors_per_question)
         return quiz_model
-
-    def finalize_quiz_model(self, quiz_or_id: 'models.Quiz | int') -> None:    
-        quiz_model = self.load_quiz_model(quiz_or_id)
-        if quiz_model:
-            quiz_model.save(EVO_PROCESS_STATUS_STOPPED)
 
 class GeneBasedUpdateMixin():
     def update_fitness(self: QuizModel, ind: int, evaluator_id: int, result) -> None:  
@@ -209,6 +189,18 @@ class GeneBasedUpdateMixin():
                         cur_score += 1
         self.archive.set_interraction(ind, evaluator_id, cur_score)
 
+from evopie.pphc_quiz_model import PphcQuizModelBuilder
+default_builder = PphcQuizModelBuilder 
+default_builder_settings = {}
+def set_default_builder(algo, settings = {}):
+    global default_builder, default_builder_settings
+    if algo is not None:
+        *module, builder = algo.split('.')
+        m = __import__(".".join(module), fromlist=[builder])
+        default_builder = getattr(m, builder)
+    else:
+        default_builder = None
+    default_builder_settings = settings
+
 def get_quiz_builder() -> QuizModelBuilder:
-    from pphc_quiz_model import PphcQuizModelBuilder
-    return PphcQuizModelBuilder()
+    return (default_builder or QuizModelBuilder)(**default_builder_settings)

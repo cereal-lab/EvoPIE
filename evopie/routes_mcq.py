@@ -11,9 +11,8 @@ from flask import flash
 from datetime import datetime
 from werkzeug.security import generate_password_hash
 from evopie.config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT
-from quiz_model import get_quiz_builder
-
 from evopie.utils import groupby, sanitize
+from evopie.quiz_model import get_quiz_builder
 from evopie.decorators import role_required, unmime, validate_quiz_attempt_step, verify_deadline, verify_instructor_relationship, retry_concurrent_update
 
 from . import models
@@ -606,13 +605,11 @@ def post_quizzes_status(quiz):
     # done in set_status below
     old_status = quiz.status
     if(quiz.set_status(new_status)):
-        response     = ({ "message" : "OK" }, 200, {"Content-Type": "application/json"})        
-        models.DB.session.commit()
+        response     = ({ "message" : "OK" }, 200, {"Content-Type": "application/json"})                
         if old_status != new_status:
+            models.DB.session.commit()
             if quiz.status == "STEP1":
-                get_quiz_builder().create_quiz_model(quiz)
-            else:             
-                get_quiz_builder().finalize_quiz_model(quiz)
+                get_quiz_builder().load_quiz_model(quiz, create_if_not_exist=True)
     else:
         response     = ({ "message" : "Unable to switch to new status" }, 400, {"Content-Type": "application/json"})
     return make_response(response)

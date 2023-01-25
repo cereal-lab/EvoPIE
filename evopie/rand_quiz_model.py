@@ -1,15 +1,14 @@
 from math import comb, prod
 from typing import Any, Optional
-from quiz_model import QuizModel, QuizModelBuilder, Archive, GeneBasedUpdateMixin
-import numpy
 from evopie import models
 import numpy as np
+from evopie.quiz_model import QuizModel, QuizModelBuilder, GeneBasedUpdateMixin
 
 class RandomQuizModel(QuizModel, GeneBasedUpdateMixin):
     ''' Implements dummy choice of quiz questions - random questions at start '''
 
-    def __init__(self, quiz_id: int, archive: Archive, process: models.EvoProcess, distractors_per_question: 'dict[int, list[int]]'):
-        super(RandomQuizModel, self).__init__(quiz_id, archive, process, distractors_per_question)
+    def __init__(self, quiz_id: int, process: models.EvoProcess, distractors_per_question: 'dict[int, list[int]]'):
+        super(RandomQuizModel, self).__init__(quiz_id, process, distractors_per_question)
         self.n = process.impl_state.get("n", 3)
         self.rnd = np.random.RandomState(process.impl_state.get("seed", None))
         self.seed = int(self.rnd.get_state()[1][0])
@@ -34,7 +33,10 @@ class RandomQuizModel(QuizModel, GeneBasedUpdateMixin):
         self.update_fitness(evaluator_id, result)
 
 class RandomQuizModelBuilder(QuizModelBuilder):
-    def get_default_settings():
-        return { "n": 3 }
-    def get_quiz_model_class():
+    def __init__(self, **kwargs) -> None:
+        self.default_settings = { "n": 3 }
+        self.settings = {**self.default_settings, **kwargs}
+    def get_settings(self):
+        return self.settings
+    def get_quiz_model_class(self):
         return RandomQuizModel        
