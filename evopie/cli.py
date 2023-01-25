@@ -282,7 +282,7 @@ def init_knowledge(input, output, email_format, knows, knowledge_replace, deca_i
     # with APP.app_context():
     #     quiz = models.Quiz.query.get(quiz)
     #     quiz_questions = quiz.quiz_questions
-    #     question_ids = set(q.question_id for q in quiz_questions)    
+    #     question_ids = set(q.id for q in quiz_questions)    
     #     quiz_question_distractors = models.DB.session.query(models.quiz_questions_hub).where(models.quiz_questions_hub.c.quiz_question_id.in_(question_ids)).all()
     #     #NOTE: for additional validation we also could check that distractors exist in Distractor tables
     #     question_distractors = {qid:[q.distractor_id for q in qds] for qid, qds in groupby(quiz_question_distractors, key = lambda x: x.quiz_question_id)}

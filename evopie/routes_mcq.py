@@ -870,7 +870,8 @@ def post_grading_settings(qid):
 def get_quiz_justifications(q):
     _, attempt = q
     dids = [d for q in attempt.alternatives for d in q['alternatives'] ]
-    js = models.Justification.query.where(models.Justification.distractor_id.in_(dids), student_id = current_user.id).all()
+    quiz_question_ids = [qq.id for qq in q.quiz_questions]
+    js = models.Justification.query.where(models.Justification.quiz_question_id.in_(quiz_question_ids), models.Justification.distractor_id.in_(dids), student_id = current_user.id).all()
     return {"justifications":[j.dump_as_dict() for j in js]}
 
 @mcq.route('/quizzes/<qa:q>/answers', methods=['PUT'])
