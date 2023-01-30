@@ -226,6 +226,8 @@ class Quiz(DB.Model):
     quiz_questions = DB.relationship('QuizQuestion', secondary=relation_questions_vs_quizzes, lazy='subquery',
        backref=DB.backref('quizzes', lazy=True))
 
+    course_id = DB.Column(DB.Integer, DB.ForeignKey('course.id'))
+
     # Each quiz has many QuizAttempts
     quiz_attempts = DB.relationship('QuizAttempt', backref='quiz', lazy=True)
 
@@ -404,11 +406,17 @@ relation_questions_vs_attempts = DB.Table('relation_questions_vs_attempts',
    DB.Column('quiz_question_id',DB.Integer, DB.ForeignKey('quiz_question.id'),primary_key=True)
 )
 
-instructor_student = DB.Table(
-    'InstructorStudent',
-    DB.Column('InstructorId', DB.Integer, DB.ForeignKey('user.id'), primary_key=True),
+# instructor_student = DB.Table(
+#     'InstructorStudent',
+#     DB.Column('InstructorId', DB.Integer, DB.ForeignKey('user.id'), primary_key=True),
+#     DB.Column('StudentId', DB.Integer, DB.ForeignKey('user.id'), primary_key=True)
+# )
+
+Course_student = DB.Table(
+    'CourseStudent',
+    DB.Column('CourseId', DB.Integer, DB.ForeignKey('course.id'), primary_key=True),
     DB.Column('StudentId', DB.Integer, DB.ForeignKey('user.id'), primary_key=True)
-);
+)
 
 class User(UserMixin, DB.Model):
     '''
@@ -431,13 +439,13 @@ class User(UserMixin, DB.Model):
 
     justifications = DB.relationship('Justification', backref='student', lazy=True)
 
-    students = DB.relationship(
-        'User',
-        secondary=instructor_student,
-        primaryjoin=id == instructor_student.c.InstructorId,
-        secondaryjoin=id == instructor_student.c.StudentId,
-        backref=DB.backref('instructors')
-    );
+    # students = DB.relationship(
+    #     'User',
+    #     secondary=instructor_student,
+    #     primaryjoin=id == instructor_student.c.InstructorId,
+    #     secondaryjoin=id == instructor_student.c.StudentId,
+    #     backref=DB.backref('instructors')
+    # );
 
     def is_instructor(self):
         return self.role == ROLE_INSTRUCTOR
@@ -503,6 +511,22 @@ class Justification(DB.Model):
                     "justification" : self.justification,
                     "seen" : self.seen,
                 }    
+
+class Course(DB.Model):
+    id = DB.Column(DB.Integer, primary_key=True)
+    name = DB.Column(DB.String, nullable=False)
+    description = DB.Column(DB.String, nullable=False)
+    title = DB.Column(DB.String, nullable=False)
+    instructor_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'), nullable=False)
+    students = DB.relationship('User', secondary=Course_student, backref=DB.backref('courses', lazy='dynamic'))
+    quizzes = DB.relationship('Quiz', backref='course', lazy=True)
+
+    def dump_as_dict(self):
+        return {    "id" : self.id,
+                    "name" : self.name,
+                    "description" : self.description,
+                    "instructor_id" : self.instructor_id,
+                }
 
 class EvoProcess(DB.Model):
     '''

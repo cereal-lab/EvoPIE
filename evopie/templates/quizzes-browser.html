@@ -36,6 +36,16 @@
                     <label for="quiz_title">Title</label>
                     <input name="quiz_title" id="quiz_title" value="Your Quiz Title" required>
                 </div>
+                <br>
+                <div class="form-group">
+                    <label for="quiz_course">Course</label>
+                    <select id="quiz_course" name="quiz_course" required>
+                        {% for course in courses %}
+                            <option value="{{course.id}}">{{course.name}} : {{course.title}}</option>
+                        {% endfor %}
+                    </select> 
+                </div>
+                <br>
                 <div class="form-group">
                     <label for="quiz_description">Description</label>
                     <textarea class="summernote form-control" name="quiz_description" id="quiz_description" required></textarea>
@@ -53,6 +63,7 @@
     function submitQuizForm(){
         let title = document.querySelector('#quiz_title');
         let description = document.querySelector('#quiz_description');
+        let course_id = document.querySelector('#quiz_course');
         
         let xhr = new XMLHttpRequest();
         let url = '/quizzes';
@@ -71,7 +82,7 @@
         // old version limited to 3 questions
         // var data = JSON.stringify({ "title": title.value, "description": description.value, "questions_ids": [parseInt(qq1.value), parseInt(qq2.value), parseInt(qq3.value)] });
         
-        var data = JSON.stringify({ "title": title.value, "description": description.value });
+        var data = JSON.stringify({ "title": title.value, "description": description.value, "course_id": course_id.value });
         
         // Sending data with the request 
         xhr.send(data);

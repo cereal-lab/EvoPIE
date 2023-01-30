@@ -52,8 +52,9 @@ def index():
     '''
     all_quizzes = []
     if current_user.is_authenticated and current_user.is_student():
-        instructors = [ instructor.id for instructor in models.User.query.filter_by(id=current_user.id).first().instructors ]
-        all_quizzes = models.Quiz.query.filter(models.Quiz.author_id.in_(instructors)).all()
+        # instructors = [ instructor.id for instructor in models.User.query.filter_by(id=current_user.id).first().instructors ]
+        courses = [ course.id for course in models.User.query.filter_by(id=current_user.id).first().courses ]
+        all_quizzes = models.Quiz.query.filter(models.Quiz.course_id.in_(courses)).all()
         for quiz in all_quizzes:
             if quiz.deadline_driven == "True":
                 updatedStatus = changeQuizStatus(quiz.id)
@@ -101,7 +102,8 @@ def quizzes_browser():
     # TODO #3 working on getting rid of the dump_as_dict and instead using Markup(...).unescape when appropriate
     # all_quizzes = [q.dump_as_dict() for q in models.Quiz.query.all()]
     all_quizzes = models.Quiz.query.filter_by(author_id=current_user.get_id()).all()
-    return render_template('quizzes-browser.html', all_quizzes = all_quizzes)
+    courses = models.Course.query.filter_by(instructor_id=current_user.get_id()).all()
+    return render_template('quizzes-browser.html', all_quizzes = all_quizzes, courses = courses)
     # version with pagination below
     #page = request.args.get('page',1, type=int)
     #QUESTIONS_PER_PAGE = 5 # FIX ME make this a field in a global config object
@@ -111,6 +113,13 @@ def quizzes_browser():
     #next_url = url_for('pages.quizzes_browser', page=paginated.next_num) if paginated.has_next else None
     #prev_url = url_for('pages.quizzes_browser', page=paginated.prev_num) if paginated.has_prev else None
     #return render_template('quizzes-browser.html', all_quizzes = all_quizzes, next_url=next_url, prev_url=prev_url)
+
+@pages.route('/courses-browser')
+@login_required
+@role_required(ROLE_INSTRUCTOR)
+def courses_browser():
+    all_courses = models.Course.query.filter_by(instructor_id=current_user.get_id()).all()
+    return render_template('courses-browser.html', all_courses = all_courses)
 
 
 # NOTE signed=True because flask router won't accept a negative value (or floats for that matter)
@@ -249,6 +258,13 @@ def add_quiz_question_to_quiz(quiz_id, question_id):
 
     return { "message" : "Question added to Quiz! Redirecting to Quiz Browser...", "redirect": url_for("pages.quizzes_browser"), "status": "success" }, 200
 
+@pages.route('/course-editor/<int:course_id>')
+@login_required
+@role_required(ROLE_INSTRUCTOR)
+def course_editor(course_id):
+    course = models.Course.query.get_or_404(course_id)
+    return render_template('course-editor.html', course=course)
+
 @pages.route('/quiz-editor/<int:quiz_id>')
 @login_required
 def quiz_editor(quiz_id):
@@ -256,6 +272,7 @@ def quiz_editor(quiz_id):
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
     q = models.Quiz.query.get_or_404(quiz_id)
+    courses = models.Course.query.filter_by(instructor_id=current_user.get_id()).all()
     # TODO #3 we replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
     #q = q.dump_as_dict()
     for qq in q.quiz_questions:
@@ -275,7 +292,7 @@ def quiz_editor(quiz_id):
     justificationsGradeOptions = initialScoreFactorOptions
     participationGradeOptions = initialScoreFactorOptions
     quartileOptions = numJustificationsOptions
-    return render_template('quiz-editor.html', quiz = q.dump_as_dict(), limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, numJustificationsOptions = numJustificationsOptions, quartileOptions = quartileOptions)
+    return render_template('quiz-editor.html', quiz = q.dump_as_dict(), limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, numJustificationsOptions = numJustificationsOptions, quartileOptions = quartileOptions, courses = courses)
 
 @pages.route('/quiz-configuration/<quiz:q>')
 @login_required
@@ -1053,17 +1070,23 @@ def quiz_grader(qid):
                 # max_total_scores = stats.max_total_scores
                 )
 
-@pages.route('/student-list', methods=['GET', 'POST'])
+@pages.route('/courses/<int:cid>/student-list', methods=['GET', 'POST'])
 @login_required
 @role_required(ROLE_INSTRUCTOR)
-def student_list():
+def student_list(cid):
     # print(f'In student_list, current_user: {current_user}, get_id: {current_user.get_id()}')
+    course = models.Course.query.filter_by(id=cid).first()
+
+    if course is None:
+        flash('Course not found', 'danger')
+        return redirect(url_for('pages.home'))
+
     instructor = models.User.query.get_or_404(current_user.get_id())
     if request.method == 'GET':
-        return render_template('student-list.html', students=instructor.students)
+        return render_template('student-list.html', students=course.students)
     elif request.method == 'POST':
         # delete current student list if any so latest csv data is used
-        models.DB.session.query(DB.Model.metadata.tables['InstructorStudent']).filter(DB.Model.metadata.tables['InstructorStudent'].c.InstructorId == current_user.get_id()).delete()
+        models.DB.session.query(DB.Model.metadata.tables['CourseStudent']).filter(DB.Model.metadata.tables['CourseStudent'].c.CourseId == cid).delete()
         csvfile = request.files['csvfile']
         csvstring = csvfile.read().decode('utf-8')
         for email in [line.strip() for line in csvstring.splitlines()]:
@@ -1073,7 +1096,7 @@ def student_list():
             if student is None:  # student not in DB
                 # add new User with empty password (needed as sentinel for when they login)
                 student = models.User(email=email)
-            student.instructors.append(instructor)
+            student.courses.append(course)
             DB.session.add(student)
         DB.session.commit()
-        return redirect(url_for('pages.student_list'))
+        return redirect(url_for('pages.student_list', cid=course.id))
