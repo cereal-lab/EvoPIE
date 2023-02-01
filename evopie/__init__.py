@@ -3,7 +3,6 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 import os
-from datetime import datetime
 
 APP = Flask(__name__)
 APP.config['SECRET_KEY'] = '9OLWxND4o83j4K4iuopO' #FIXME replace this by an ENV variable
@@ -167,5 +166,6 @@ def load_user(user_id):
 
 login_manager.init_app(APP)
 
-from . import utils
-from . import cli
+# from . import utils
+# from . import quiz_model
+from . import cli #adds cli commands to app

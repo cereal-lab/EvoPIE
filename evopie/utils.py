@@ -1,13 +1,9 @@
 # pylint: disable=no-member
 # pylint: disable=E1101
-
-# The following are flask custom commands; 
-
-from datetime import datetime
-from pytz import timezone
-from evopie.config import EVO_PROCESS_STATUS_ACTIVE, EVO_PROCESS_STATUS_STOPPED, QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_HIDDEN, QUIZ_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, ROLE_STUDENT
-from . import models, APP # get also DB from there
-from sqlalchemy.orm.exc import StaleDataError
+from . import APP
+#NOTE: before importing other modules, like models, think about dependencies. 
+#Assuming that this module should not have db specific functions but only utilities db context free 
+#use decorators or models to add functionality which is models specific
 
 # helper method to use instead of directly calling bleach.clean
 import bleach
@@ -17,148 +13,20 @@ def sanitize(html):
     result = bleach.clean(html, tags=generally_xss_safe, attributes=print_attrs, styles=standard_styles)
     return result
 
-
 # All TODO #3 issue from models.py are factored in the function below
 # unescaping so that the stem and answer are rendered in jinja2 template with | safe
 from jinja2 import Markup
 def unescape(str):
     return Markup(str).unescape()
-
-def changeQuizStatus(qid):
-    tzinfo = timezone('US/Eastern')
-    currentDateTime = datetime.now(tzinfo)
-    currentDateTime = currentDateTime.replace(tzinfo=None)
-    quiz = models.Quiz.query.get_or_404(qid)
-    update = False
-    if currentDateTime <= quiz.deadline0 and quiz.status != QUIZ_HIDDEN:
-        quiz.status = "HIDDEN"
-        update = True
-    elif currentDateTime > quiz.deadline0 and currentDateTime <= quiz.deadline1 and quiz.status != QUIZ_STEP1:
-        quiz.status = "STEP1"
-        update = True
-    elif currentDateTime > quiz.deadline1 and currentDateTime <= quiz.deadline3 and quiz.status != QUIZ_STEP2:
-        quiz.status = "STEP2"
-        update = True
-    elif currentDateTime > quiz.deadline3 and currentDateTime <= quiz.deadline4 and quiz.status != QUIZ_SOLUTIONS:
-        quiz.status = "SOLUTIONS"
-        update = True
-    elif currentDateTime > quiz.deadline4 and quiz.status != QUIZ_HIDDEN:
-        quiz.status = "HIDDEN"
-        update = True
-
-    models.DB.session.commit()
-
-    if update == True:
-        return quiz.status
-    else:
-        return None
-        
-    
+            
 @APP.template_filter('unescapeDoubleQuotes')
 def unescape_double_quotes(s): 
     return s.replace('\\"','\"')
 
-# Invoke with flask DB-reboot
-# Tear down the data base and rebuild an empty one.
-@APP.cli.command("DB-reboot")
-def DB_reboot():
-    models.DB.drop_all()
-    models.DB.create_all()
-
-
-
-# Invoke with flask DB-multi-instr
-# First run flask DB-reboot
-# adds sample data to be used for testing multi-instr support
-
-@APP.cli.command("DB-multi-instr")
-def DB_multi_instr():
-    from subprocess import check_output
-    import os
-    script_path = os.path.abspath('./testing/MultiInstr')
-    stdout = check_output([os.path.join(script_path, 'setup.sh')], 
-                          cwd=script_path).decode('utf-8')
-    print(stdout)
-    # i1, i2, *students = models.User.query.all()
-    i2 = models.User.query.filter_by(email='instructor2@usf.edu').first()
-    i2.set_role(models.ROLE_INSTRUCTOR)
-    # print(f'Adding students to instructor 1: {i1}')
-    # for student in students[::2]:
-    #     print(f'\tAdding {student}')
-    #     i1.students.append(student)
-
-    # print(f'Adding students to instructor 2: {i2}')
-    # for student in students[1::2]:
-    #     print(f'\tAdding {student}')
-    #     i2.students.append(student)
-
-    # print(f'\tAdding {students[-1]}')
-    # i2.students.append(students[-1])
-    
-    models.DB.session.commit()
-
-
-
-    
-# Invoke with flask DB-populate
-# Empties the table and insert some testing data in the DB.
-# Consider using scripts/TestDB_[setup|step1|step2].sh 
-@APP.cli.command("DB-populate")
-def DB_populate():
-    '''
-        Just populating the DB with some mock quizzes
-    '''
-    # For some reason Flask restarts the app when we launch it with
-    # pipenv run python app.py
-    # as a result, we populate twice and get too many quizzes / distractors
-    # let's fix this by deleting all data from the tables first
-    models.Question.query.delete()
-    models.Distractor.query.delete()
-    models.DB.session.commit() # don't forget to commit or the DB will be locked
-
-    all_mcqs = [
-            models.Question(title=u'Sir Lancelot and the bridge keeper, part 1',
-                            stem=u'What... is your name?',
-                            answer=u'Sir Lancelot of Camelot'),
-            models.Question(title=u'Sir Lancelot and the bridge keeper, part 2',
-                            stem=u'What... is your quest?',
-                            answer=u'To seek the holy grail'),
-            models.Question(title=u'Sir Lancelot and the bridge keeper, part 3',
-                            stem=u'What... is your favorite colour?',
-                            answer=u'Blue')
-    ]
-
-    models.DB.session.add_all(all_mcqs)
-    models.DB.session.commit()
-    # need to commit right now; if not, the qid below will not be added in the distractors table's rows
-
-    qid=all_mcqs[0].id
-    some_distractors = [
-        models.Distractor(question_id=qid,answer=u'Sir Galahad of Camelot'),
-        models.Distractor(question_id=qid,answer=u'Sir Arthur of Camelot'),
-        models.Distractor(question_id=qid,answer=u'Sir Bevedere of Camelot'),
-        models.Distractor(question_id=qid,answer=u'Sir Robin of Camelot'),
-    ]
-
-    qid=all_mcqs[1].id
-    more_distractors = [
-        models.Distractor(question_id=qid,answer=u'To bravely run away'),
-        models.Distractor(question_id=qid,answer=u'To spank Zoot'),
-        models.Distractor(question_id=qid,answer=u'To find a shrubbery')
-    ]
-
-    qid=all_mcqs[2].id
-    yet_more_distractors = [
-        models.Distractor(question_id=qid,answer=u'Green'),
-        models.Distractor(question_id=qid,answer=u'Red'),
-        models.Distractor(question_id=qid,answer=u'Yellow')
-    ]
-
-    models.DB.session.add_all(some_distractors + more_distractors + yet_more_distractors)
-    models.DB.session.commit()
-
 def groupby(iterable, key=lambda x: x):
-    '''from iterable creates list of pairs group_key:list of elements with the key'''
+    '''from iterable creates list of pairs group_key:list of elements with the key.
+        Note that iterable.groupby groups only adjacent elements. This method is equiv of itertools.groupby(sorted)
+    '''
     res = {}
     for el in iterable:
         k = key(el)
@@ -214,4 +82,3 @@ def param_to_dict(n, v, d = {}, type_converters = {}, delim = '_'):
     converter = converter.get(path[-1], converter.get("*", {}))
     cur[path[-1]] = converter(v) if callable(converter) else v
     return d
-

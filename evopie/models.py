@@ -8,7 +8,7 @@ from random import shuffle # to shuffle lists
 from flask_login import UserMixin
 from sqlalchemy import ForeignKey
 from evopie import DB
-from .config import QUIZ_ATTEMPT_STEP1, QUIZ_HIDDEN, QUIZ_STEP1, ROLE_INSTRUCTOR, ROLE_STUDENT, ROLE_ADMIN
+from .config import QUIZ_ATTEMPT_STEP1, QUIZ_HIDDEN, QUIZ_STEP1, QUIZ_STEP2, QUIZ_SOLUTIONS, ROLE_INSTRUCTOR, ROLE_STUDENT, ROLE_ADMIN
 from .utils import unescape
 from datetime import datetime
 from pytz import timezone
@@ -270,7 +270,7 @@ class Quiz(DB.Model):
 
     def set_status(self, stat):
         ustat = stat.upper()
-        if ustat != "HIDDEN" and ustat != "STEP1" and ustat != "STEP2" and ustat != "SOLUTIONS":
+        if ustat != QUIZ_HIDDEN and ustat != QUIZ_STEP1 and ustat != QUIZ_STEP2 and ustat != QUIZ_SOLUTIONS:
             return False
         else:
             self.status = ustat
@@ -538,9 +538,12 @@ class EvoProcess(DB.Model):
     touch_timestamp = DB.Column(DB.DateTime, nullable=False)
     status = DB.Column(DB.String, nullable=False) #status 'Active', 'Stopped'
     impl = DB.Column(DB.String, nullable=False) #name of the class
-    impl_state = DB.Column(DB.String, nullable=False) #class instance running state 
-    population = DB.Column(DB.String, nullable=False) #for steady state use one ind in population
-    objectives = DB.Column(DB.String, nullable=False) #one or more (but all) objectives seen in hronological order
+    # impl_state = DB.Column(DB.String, nullable=False) #class instance running state 
+    # population = DB.Column(DB.String, nullable=False) #for steady state use one ind in population
+    # objectives = DB.Column(DB.String, nullable=False) #one or more (but all) objectives seen in hronological order
+    impl_state: dict = DB.Column(JSONEncodedMutableDict, default={})
+    population: 'list[int]' = DB.Column(JSONEncodedMutableList, default=[])
+    objectives: 'list[int]' = DB.Column(JSONEncodedMutableList, default=[])
 
     archive = DB.relationship('EvoProcessArchive', backref='process', 
                     lazy=True, cascade="save-update, merge, delete, delete-orphan")
@@ -556,8 +559,11 @@ class EvoProcessArchive(DB.Model):
     '''
     id = DB.Column(DB.Integer, DB.ForeignKey('evo_process.id'), primary_key=True) #TODO: 
     genotype_id = DB.Column(DB.Integer, primary_key=True) #interaction index
-    genotype = DB.Column(DB.String, nullable=False)
-    objectives = DB.Column(DB.String, nullable=False) #dict with all evaluations 
+    # genotype = DB.Column(DB.String, nullable=False)
+    # objectives = DB.Column(DB.String, nullable=False) #dict with all evaluations 
+    genotype = DB.Column(JSONEncodedMutableList, default=[])
+    objectives = DB.Column(JSONEncodedMutableDict, default={})
+
 
 class StudentKnowledge(DB.Model):
     '''
