@@ -49,15 +49,37 @@ class PphcQuizModel(QuizModel, GeneBasedUpdateMixin):
     def compare(self, coeval_group_id: str, coeval_group: CoevaluationGroup):  
         ''' Implements Pareto comparison '''      
         if len(coeval_group.objs) >= self.pareto_n:
-            genotype_evaluations = {genotype_id: evals 
-                                    for genotype_id, evals in self.archive.at(coeval_group.inds, coeval_group.objs)}
+            genotype_evaluations = {genotype_id: evals for genotype_id, evals in self.archive.at(coeval_group.inds, coeval_group.objs)}
             parent = coeval_group.inds[0]
             parent_genotype_evaluation = genotype_evaluations[parent]
             # possible_winners = [ child for child in eval_group.inds[1:]
             #                         if (genotype_evaluations[child] == parent_genotype_evaluation).all() or not((genotype_evaluations[child] <= parent_genotype_evaluation).all()) ] #Pareto check
 
+            def child_is_better(parent_genotype_evaluation, child_genotype_evaluation):
+                child_domination = child_genotype_evaluation >= parent_genotype_evaluation
+                parent_domination = child_genotype_evaluation <= parent_genotype_evaluation
+                if (parent_genotype_evaluation == child_genotype_evaluation).all(): #Pareto check
+                    #non-domination and same outcome for given students
+                    #prefer child for diversity - other statistics is necessary 
+                    return True 
+                elif child_domination.all():
+                    return True 
+                elif parent_domination.all():
+                    return False 
+                else: #non-pareto-comparable
+                    #NOTE: if we use aggregation here - it will be same to non-Pareto comparison
+                    return True #pick child
+                    # child_sum = (child_genotype_evaluation.sum(), child_domination.sum())
+                    # parent_sum = (parent_genotype_evaluation.sum(), parent_domination.sum())
+                    # if child_sum == parent_sum: 
+                    #     #prefer child for diversity but better to check other stats
+                    #     return True 
+                    # elif child_sum > parent_sum:
+                    #     return True 
+                    # else: #child_sum < parent_sum 
+                    #     return False                                 
             possible_winners = [ child for child in coeval_group.inds[1:]
-                                    if not((genotype_evaluations[child] == parent_genotype_evaluation).all()) and (genotype_evaluations[child] >= parent_genotype_evaluation).all() ] #Pareto check
+                                    if child_is_better(parent_genotype_evaluation, genotype_evaluations[child]) ]
 
             # possible_winners = [ child for child in eval_group.inds[1:]
             #                         if (genotype_evaluations[child] >= parent_genotype_evaluation).all() ] #Pareto check
