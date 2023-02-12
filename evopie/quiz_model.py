@@ -48,7 +48,10 @@ class Archive():
         return self.archive.loc[genotype_id, 'g'].g
 
     def at(self, ids, objs):
-        return self.archive.loc[ids, objs].iterrows()        
+        return self.archive.loc[ids, objs].iterrows()
+
+    def num_interactions(self, ids):        
+        return self.archive.loc[ids, self.archive.columns != 'g'].notna().astype(int).sum(axis=1).iteritems()
 
     def set_interraction(self, id, obj, score):
         self.archive.loc[id, obj] = score 
@@ -85,7 +88,7 @@ class QuizModel(ABC):
         return 0
     def get_internal_model(self) -> Any: #depends on impl, returns population for Evo models
         ''' returns anything related to state of quiz model '''
-        return None
+        return {}
     @abstractmethod
     def prepare_for_evaluation(self, evaluator_id: int) -> 'list[tuple[int, list[int]]]':
         return []
@@ -107,7 +110,7 @@ class QuizModel(ABC):
     def save(self) -> None:
         ''' preserve state in persistent storage'''
         impl_state = self.get_internal_model().get("settings", {})
-        self.process.impl = self.__class__.__name__
+        self.process.impl = self.__class__ .__module__ + '.' + self.__class__.__name__
         self.process.impl_state = impl_state
         self.process.population = self.population
         self.process.objectives = self.objectives
@@ -121,14 +124,22 @@ class QuizModel(ABC):
     def to_dataframe(self) -> Optional[DataFrame]: 
         return self.archive.archive    
 
+class GeneBasedUpdateMixin():
+    def update_fitness(self: QuizModel, ind: int, evaluator_id: int, result) -> None:  
+        # cur_score = self.archive.loc[ind, evaluator_id]
+        cur_score = 0 #if cur_score is None or math.isnan(cur_score) else cur_score
+        ind_genotype = self.archive.get(ind)
+        for qid, genes in ind_genotype: #result - dict where for each question we provide some data                        
+            if qid in result:
+                for deception in genes:
+                    if deception == result[qid]:
+                        cur_score += 1
+        self.archive.set_interraction(ind, evaluator_id, cur_score)
 
+from evopie.pphc_quiz_model import PphcQuizModel
 class QuizModelBuilder():
-    def __init__(self, **kwargs) -> None:
-        pass
-    def get_settings(self) -> 'dict':
-        return {}
-    def get_quiz_model_class(self):
-        return None
+    default_quiz_model_class = PphcQuizModel
+    default_settings = {}
 
     def get_quiz(self, quiz_or_id: 'models.Quiz | int') -> models.Quiz: 
         if type(quiz_or_id) == int:
@@ -145,15 +156,23 @@ class QuizModelBuilder():
         distractor_map = { q_id: [ d.id for d in ds ] for q_id, ds in groupby(distractors, key = lambda d: d.question_id) }
         return {q.id: distractor_map.get(q.question_id, []) for q in questions }
 
+    def parse_model_class(self, algo):
+        ''' Parse module.class to class function constructor'''
+        if algo is not None:
+            *module, builder = algo.split('.')
+            m = __import__(".".join(module), fromlist=[builder])
+            quiz_model_class = getattr(m, builder)
+        else:
+            quiz_model_class = None
+        return quiz_model_class
+
     def load_quiz_model(self, quiz_or_id, create_if_not_exist = False) -> Optional[QuizModel]:
         ''' Restores evo processes from db by quiz id '''
-        quiz_model_class = self.get_quiz_model_class()
-        if quiz_model_class is None:
-            return None
         quiz = self.get_quiz(quiz_or_id)
         process = models.EvoProcess.query.where(models.EvoProcess.quiz_id == quiz.id, models.EvoProcess.status == QuizModelStatus.ACTIVE.value).one_or_none()
         if process is not None:
             distractors_per_question = self.get_distractor_pools(quiz)            
+            quiz_model_class = self.parse_model_class(process.impl)
             quiz_model = quiz_model_class(quiz.id, process, distractors_per_question) 
         elif create_if_not_exist:
             quiz_model = self.create_quiz_model(quiz)
@@ -162,14 +181,18 @@ class QuizModelBuilder():
         return quiz_model        
 
     def create_quiz_model(self, quiz_or_id) -> Optional[QuizModel]:
-        quiz_model_class = self.get_quiz_model_class()
-        if quiz_model_class is None: 
-            return None        
+        if QuizModelBuilder.default_quiz_model_class is None: 
+            return None    
+        elif type(QuizModelBuilder.default_quiz_model_class) == str:    
+            quiz_model_class = self.parse_model_class(QuizModelBuilder.default_quiz_model_class)
+        else:
+            quiz_model_class = QuizModelBuilder.default_quiz_model_class
         quiz = self.get_quiz(quiz_or_id)
         process = models.EvoProcess(quiz_id = quiz.id,
                         start_timestamp = datetime.now(),
                         status = QuizModelStatus.ACTIVE.value,
-                        impl = quiz_model_class.__name__, impl_state = {**self.get_settings()}, 
+                        impl = quiz_model_class.__module__ + '.' + quiz_model_class.__name__, 
+                        impl_state = {**QuizModelBuilder.default_settings}, 
                         population = [], objectives = [], archive = [])
         models.DB.session.add(process)
         models.DB.session.commit()
@@ -177,33 +200,10 @@ class QuizModelBuilder():
         quiz_model = quiz_model_class(quiz.id, process, distractors_per_question)
         return quiz_model
 
-class GeneBasedUpdateMixin():
-    def update_fitness(self: QuizModel, ind: int, evaluator_id: int, result) -> None:  
-        # cur_score = self.archive.loc[ind, evaluator_id]
-        cur_score = 0 #if cur_score is None or math.isnan(cur_score) else cur_score
-        ind_genotype = self.archive.get(ind)
-        for qid, genes in ind_genotype: #result - dict where for each question we provide some data                        
-            if qid in result:
-                for deception in genes:
-                    if deception == result[qid]:
-                        cur_score += 1
-        self.archive.set_interraction(ind, evaluator_id, cur_score)
+def get_quiz_builder():
+    return QuizModelBuilder()
 
-from evopie.pphc_quiz_model import PphcQuizModelBuilder
-default_builder = PphcQuizModelBuilder #this is shared state but check comment for set_default_builder
-default_builder_settings = {}
-def set_default_builder(algo, settings = {}):
-    ''' DO NOT USE THIS IN PROD (where num of workers > 1). Workers will not share the state. 
-        The functions exists for cli commands for experimentation with different algos. 
-    '''
-    global default_builder, default_builder_settings
-    if algo is not None:
-        *module, builder = algo.split('.')
-        m = __import__(".".join(module), fromlist=[builder])
-        default_builder = getattr(m, builder)
-    else:
-        default_builder = None
-    default_builder_settings = settings
-
-def get_quiz_builder() -> QuizModelBuilder:
-    return (default_builder or QuizModelBuilder)(**default_builder_settings)
+def set_quiz_model(quiz_model_class, settings = {}):
+    ''' NOTE: this is state - used only in cli experiments '''
+    QuizModelBuilder.default_quiz_model_class = quiz_model_class
+    QuizModelBuilder.default_settings = settings

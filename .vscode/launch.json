@@ -155,7 +155,7 @@
                 "run",
                 "-q", "1",
                 "-s", "STEP1",
-                "--algo", "evopie.pphc_quiz_model.PphcQuizModelBuilder", "--algo-params", "{ \"seed\": 595, \"pop_size\": 1, \"pareto_n\": 2, \"child_n\": 1, \"gene_size\": 3}",
+                "--algo", "evopie.pphc_quiz_model.PphcQuizModel", "--algo-params", "{ \"seed\": 595, \"pop_size\": 1, \"pareto_n\": 2, \"child_n\": 1, \"gene_size\": 3}",
                 "--evo-output", "algo/pphc-1-2-1-3.json", "--archive-output", "algo/a.csv",
                 "--random-seed", "17"
             ]
@@ -261,7 +261,59 @@
                 "--fig-name", "<algo>-<param>-<spanned>"
             ],
             "console": "internalConsole"
-        }        
+        },
+        {
+            "name": "CLI: quiz deca-experiment",
+            "type": "python",
+            "request": "launch",
+            "module": "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1"
+            },
+            "args" : [
+                "quiz", "deca-experiment",
+                "--deca-input", "deca-spaces/space-1_1_1-s_0-2.json",
+                "--num-runs", "2",
+                "--algo", "{ \"id\": \"pphc-1-2-1-3\", \"algo\":\"evopie.pphc_quiz_model.PphcQuizModel\", \"pop_size\": 1, \"pareto_n\": 2, \"child_n\": 1, \"gene_size\": 3}"
+            ],
+            "console": "internalConsole"
+        },
+        {
+            "name": "CLI: quiz deca-experiment RAND",
+            "type": "python",
+            "request": "launch",
+            "module": "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1"
+            },
+            "args" : [
+                "quiz", "deca-experiment",
+                "--deca-input", "deca-spaces/space-1_1_1-s_0-2.json",
+                "--num-runs", "2",
+                "--algo", "{ \"id\": \"rand-3\", \"algo\":\"evopie.rand_quiz_model.RandomQuizModel\", \"n\": 3, \"seed\": 313}"
+            ],
+            "console": "internalConsole"
+        },
+        {
+            "name": "CLI: quiz export",
+            "type": "python",
+            "request": "launch",
+            "module": "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1"
+            },
+            "args" : [
+                "quiz", "export",
+                "-q", "1"
+            ],
+            "console": "internalConsole"
+        }
     ]
 }
 

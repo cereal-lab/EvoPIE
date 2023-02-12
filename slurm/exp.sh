@@ -15,4 +15,4 @@ pipenv run flask quiz deca-experiments \
     --algo-folder $WORK/evopie/data-$SLURM_ARRAY_TASK_ID/algo \
     --results-folder $WORK/evopie/data-$SLURM_ARRAY_TASK_ID/results \
     --random-seed 23 --num-runs 30 \
-    --algo '{ "id": "pphc-1-2-1-3", "algo":"evopie.pphc_quiz_model.PphcQuizModelBuilder", "pop_size": 1, "pareto_n": 2, "child_n": 1, "gene_size": 3}'
+    --algo '{ "id": "pphc-1-2-1-3", "algo":"evopie.pphc_quiz_model.PphcQuizModel", "pop_size": 1, "pareto_n": 2, "child_n": 1, "gene_size": 3}'
