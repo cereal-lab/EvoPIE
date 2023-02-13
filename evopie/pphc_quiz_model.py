@@ -1,15 +1,13 @@
 ''' implementation of pphc quiz model '''
-from datetime import datetime
 from math import comb, prod
 import numpy as np
-from typing import Any, Optional
-from pandas import DataFrame  
+from typing import Any
 
 from evopie import APP, models
 from evopie.utils import groupby
 from dataclasses import dataclass
 from numpy import unique
-from evopie.quiz_model import QuizModel, QuizModelBuilder, GeneBasedUpdateMixin
+from evopie.quiz_model import QuizModel, GeneBasedUpdateMixin
 
 @dataclass 
 class CoevaluationGroup:   
@@ -20,19 +18,22 @@ class CoevaluationGroup:
 
 class PphcQuizModel(QuizModel, GeneBasedUpdateMixin): 
     ''' Base class for evolution process (but still of specific form)'''
+    default_settings = { "pop_size": 1, "pareto_n": 2, "child_n": 1, "gene_size": 3}
+
     def __init__(self, quiz_id: int, process: models.EvoProcess, distractors_per_question: 'dict[int, list[int]]'):
         super(PphcQuizModel, self).__init__(quiz_id, process, distractors_per_question)
-        self.gen: int = process.impl_state.get("gen", 0)
-        self.rnd = np.random.RandomState(process.impl_state.get("seed", None))
-        self.seed = int(self.rnd.get_state()[1][0])
-        self.pop_size: int = process.impl_state.get("pop_size", 1)
-        self.pareto_n: int = process.impl_state.get("pareto_n", 2)
-        self.child_n: int = process.impl_state.get("child_n", 1)
-        self.gene_size: int = process.impl_state.get("gene_size", 3)                
+        settings = {**PphcQuizModel.default_settings, **process.impl_state}
+        self.gen: int = settings.get("gen", 0)
+        self.seed = settings.get("seed", None)
+        self.rnd = np.random.RandomState(self.seed)
+        self.pop_size: int = settings.get("pop_size", 1)
+        self.pareto_n: int = settings.get("pareto_n", 2)
+        self.child_n: int = settings.get("child_n", 1)
+        self.gene_size: int = settings.get("gene_size", 3)                
         self.coevaluation_groups: dict[str, CoevaluationGroup] = { cgid:CoevaluationGroup(g["inds"], g["objs"], g['ppos']) 
-                                                                    for cgid, g in process.impl_state.get("coevaluation_groups", {}).items()}
+                                                                    for cgid, g in settings.get("coevaluation_groups", {}).items()}
         self.evaluator_coevaluation_groups: dict[int, str] = { int(evaluator_id):str(group_id)
-                                                                    for evaluator_id, group_id in process.impl_state.get("evaluator_coevaluation_groups", {}).items() }        
+                                                                    for evaluator_id, group_id in settings.get("evaluator_coevaluation_groups", {}).items() }        
         #add to population new inds till moment of pop_size
         #noop if already inited
         while len(self.population) < self.pop_size:
@@ -49,15 +50,41 @@ class PphcQuizModel(QuizModel, GeneBasedUpdateMixin):
     def compare(self, coeval_group_id: str, coeval_group: CoevaluationGroup):  
         ''' Implements Pareto comparison '''      
         if len(coeval_group.objs) >= self.pareto_n:
-            genotype_evaluations = {genotype_id: evals 
-                                    for genotype_id, evals in self.archive.at(coeval_group.inds, coeval_group.objs)}
+            genotype_evaluations = {genotype_id: evals for genotype_id, evals in self.archive.at(coeval_group.inds, coeval_group.objs)}
+            genotype_evaluation_count = {genotype_id: num_evals for genotype_id, num_evals in self.archive.num_interactions(coeval_group.inds)}
             parent = coeval_group.inds[0]
             parent_genotype_evaluation = genotype_evaluations[parent]
+            parent_genotype_evaluation_count = genotype_evaluation_count[parent]
             # possible_winners = [ child for child in eval_group.inds[1:]
             #                         if (genotype_evaluations[child] == parent_genotype_evaluation).all() or not((genotype_evaluations[child] <= parent_genotype_evaluation).all()) ] #Pareto check
 
+            def child_is_better(parent_genotype_evaluation, parent_genotype_evaluation_count, 
+                                child_genotype_evaluation, child_genotype_evaluation_count):
+                child_domination = child_genotype_evaluation >= parent_genotype_evaluation
+                parent_domination = child_genotype_evaluation <= parent_genotype_evaluation
+                if (parent_genotype_evaluation == child_genotype_evaluation).all(): #Pareto check
+                    #non-domination and same outcome for given students
+                    #prefer child for diversity - other statistics is necessary 
+                    return child_genotype_evaluation_count <= parent_genotype_evaluation_count  #pick child if less evaluated
+                elif child_domination.all():
+                    return True 
+                elif parent_domination.all():
+                    return False 
+                else: #non-pareto-comparable
+                    #NOTE: if we use aggregation here - it will be same to non-Pareto comparison
+                    return child_genotype_evaluation_count <= parent_genotype_evaluation_count  #pick child if less evaluated
+                    # child_sum = (child_genotype_evaluation.sum(), child_domination.sum())
+                    # parent_sum = (parent_genotype_evaluation.sum(), parent_domination.sum())
+                    # if child_sum == parent_sum: 
+                    #     #prefer child for diversity but better to check other stats
+                    #     return True 
+                    # elif child_sum > parent_sum:
+                    #     return True 
+                    # else: #child_sum < parent_sum 
+                    #     return False                                 
             possible_winners = [ child for child in coeval_group.inds[1:]
-                                    if not((genotype_evaluations[child] == parent_genotype_evaluation).all()) and (genotype_evaluations[child] >= parent_genotype_evaluation).all() ] #Pareto check
+                                    if child_is_better(parent_genotype_evaluation, parent_genotype_evaluation_count, 
+                                                        genotype_evaluations[child], genotype_evaluation_count[child]) ]
 
             # possible_winners = [ child for child in eval_group.inds[1:]
             #                         if (genotype_evaluations[child] >= parent_genotype_evaluation).all() ] #Pareto check
@@ -173,12 +200,3 @@ class PphcQuizModel(QuizModel, GeneBasedUpdateMixin):
                     "coevaluation_groups":  {id: {"inds": g.inds, "objs": g.objs, "ppos": g.ppos} for id, g in self.coevaluation_groups.items()},
                     "evaluator_coevaluation_groups": self.evaluator_coevaluation_groups}   
         return {"population": population, "distractors": distractors, "settings": settings}
-
-class PphcQuizModelBuilder(QuizModelBuilder):
-    def __init__(self, **kwargs) -> None:
-        self.default_settings = { "pop_size": 1, "pareto_n": 2, "child_n": 1, "gene_size": 3}
-        self.settings = {**self.default_settings, **kwargs}
-    def get_settings(self):
-        return self.settings
-    def get_quiz_model_class(self):
-        return PphcQuizModel

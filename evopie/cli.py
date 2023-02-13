@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 from evopie import APP, deca, models
 from evopie.config import QUIZ_ATTEMPT_STEP1, QUIZ_STEP1, QUIZ_STEP2, ROLE_STUDENT
 from evopie.utils import groupby, unpack_key
-from evopie.quiz_model import get_quiz_builder, set_default_builder
+from evopie.quiz_model import get_quiz_builder, set_quiz_model
 
 def throw_on_http_fail(resp: TestResponse, status: int = 400):
     if resp.status_code >= status:            
@@ -476,9 +476,9 @@ KNOWLEDGE_SELECTION_WEIGHT = "KNOWLEDGE_SELECTION_WEIGHT"
 def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n_times, archive_output, evo_output, step, knowledge_selection, likes, justify_response, email_format, random_seed):        
     rnd_state = np.random.RandomState(random_seed)
     if no_algo:
-        set_default_builder(None)
+        set_quiz_model(None)
     elif algo is not None:         
-        set_default_builder(algo, settings = json.loads(algo_params) if algo_params is not None else {})
+        set_quiz_model(algo, settings = json.loads(algo_params) if algo_params is not None else {})
 
     def simulate_step(step):
         with APP.app_context():
@@ -584,8 +584,8 @@ def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n
                     sys.stdout.write(f"EVO algo: {quiz_model.__class__}\nEVO settings: {model_state}\n")
                     if evo_output: 
                         with open(evo_output, 'w') as evo_output_json_file:
-                            evo_output_json_file.write(json.dumps({"algo": quiz_model.__class__.__name__, 
-                                                        "quiz_model":model_state, "explored_search_space_size": explored_search_space_size, 
+                            evo_output_json_file.write(json.dumps({**model_state, "algo": quiz_model.__class__.__name__, 
+                                                        "explored_search_space_size": explored_search_space_size,
                                                         "search_space_size": search_space_size}, indent=4))
                     sys.stdout.write(f"[{run_idx + 1}/{n_times}] Step1 quiz {quiz} finished\n{quiz_model.to_dataframe()}\n")
         if QUIZ_STEP2 in step: 
@@ -607,7 +607,7 @@ def calc_deca_metrics(algo_input, deca_space, params, input_output):
         algo_results = json.loads("\n".join(f.readlines()))
     with open(deca_space, 'r') as f:
         space = deca.load_space_from_json("\n".join(f.readlines()))
-    population_distractors = algo_results["population_distractors"]
+    population_distractors = algo_results["distractors"]
     metrics_map = {"algo":algo_input,"deca": deca_space, **{p:algo_results.get(p, np.nan) for p in params},
                     **deca.dimension_coverage(space, population_distractors),
                     **deca.avg_rank_of_repr(space, population_distractors),
@@ -731,6 +731,8 @@ def init_experiment(num_questions, num_distractors, num_students, axes_number, a
 def run_experiment(deca_input, algo, algo_folder, random_seed, results_folder, num_runs):    
     runner = APP.test_cli_runner()
     res = runner.invoke(args=["student", "knows", "-kr", "--deca-input", deca_input ])
+    if res.exit_code != 0:
+        print(res.stdout)
     assert res.exit_code == 0
     os.makedirs(algo_folder, exist_ok=True)
     os.makedirs(results_folder, exist_ok=True)
