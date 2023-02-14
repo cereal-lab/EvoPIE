@@ -460,6 +460,56 @@ def put_quiz_questions(qq_id):
     response = ({ "message" : "Quiz Question updated in database" }, 201, {"Content-Type": "application/json"})
     return make_response(response)
 
+@mcq.route('/courses', methods=['POST'])
+@login_required
+@role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to create courses")
+def post_new_course():
+    '''
+    Handles POST requests on the courses
+    '''
+    if not request.json:
+        abort(406, "JSON format required for request")
+    if request.json['name'] is None or request.json['description'] is None or request.json['title'] is None:
+        abort(400, "Unable to create course due to missing data")
+
+    name = request.json['name']
+    description = request.json['description']
+    title = request.json['title']
+
+    c = models.Course(name=name, description=description, title=title, instructor_id=current_user.get_id())
+
+    models.DB.session.add(c)
+    models.DB.session.commit()
+
+    response = ({ "message" : "Course added to database" }, 201, {"Content-Type": "application/json"})
+
+    return make_response(response)
+
+@mcq.route('/courses/<int:course_id>', methods=['PUT'])
+@login_required
+@role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to modify courses")
+def put_course(course_id):
+    '''
+    Handles PUT requests on a specific course
+    '''
+    course = models.Course.query.get_or_404(course_id)
+    if not request.json:
+        abort(406, "JSON format required for request")
+    if request.json['name'] is None or request.json['description'] is None or request.json['title'] is None:
+        abort(400, "Unable to modify course due to missing data")
+
+    name = sanitize(request.json['name'])
+    description = sanitize(request.json['description'])
+    title = sanitize(request.json['title'])
+
+    course.name = name
+    course.description = description
+    course.title = title
+
+    models.DB.session.commit()
+
+    return { "message" : "Course updated in database" }
+
 @mcq.route('/quizzes', methods=['POST'])
 @login_required
 @role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to create quizzes")
@@ -469,18 +519,20 @@ def post_new_quiz():
     '''
     title = request.json['title']
     description = request.json['description']
+    course_id = request.json['course_id']
 
     # validate that all required information was sent
-    if title is None or description is None:
-        abort(400, "Unable to create new quiz due to missing data") # bad request
+    if title is None or description is None or course_id is None or course_id == '':
+        return jsonify({ "message" : "Unable to create new quiz due to missing data", "status": "danger" }), 400
 
     #if request.json['questions_ids'] is None:
     #    abort(400, "Unable to create new quiz due to missing data") # bad request
     
     bleached_title = sanitize(title)
     bleached_description = sanitize(description)
+    bleached_course_id = sanitize(course_id)
 
-    q = models.Quiz(title=bleached_title, description=bleached_description, author_id=current_user.get_id())
+    q = models.Quiz(title=bleached_title, description=bleached_description, author_id=current_user.get_id(), course_id=bleached_course_id, status="HIDDEN")
     
     # Adding the questions, based on the questions_id that were submitted
     if 'questions_ids' in request.json:
@@ -491,7 +543,7 @@ def post_new_quiz():
     models.DB.session.add(q)
     models.DB.session.commit()
 
-    return jsonify({ "message" : "Quiz added to database", "id": q.id }), 201
+    return jsonify({ "message" : "Quiz added to database", "status" : "success", "id": q.id }), 201
 
 @mcq.route('/quizzes', methods=['GET'])
 @login_required

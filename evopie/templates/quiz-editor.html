@@ -49,6 +49,7 @@
 
         let result = document.querySelector('#quiz_result');
         let title = document.querySelector('#quiz_title');
+        let course = document.querySelector('#quiz_course');
         let description = document.querySelector('#quiz_description');
             
         let xhr = new XMLHttpRequest();
@@ -67,7 +68,7 @@
         // Converting JSON data to string 
         // We pass no questions_ids at all since we only want to update the title / description in this page
         // passing an empty list for that field would result in removing all the questions from the quiz instead
-        var data = JSON.stringify({ "title": title.value, "description": description.value }); 
+        var data = JSON.stringify({ "title": title.value, "course": course.value, "description": description.value }); 
         // Sending data with the request 
         xhr.send(data);
         //location.reload();
@@ -251,12 +252,23 @@
                     <label for="quiz_title">Title</label>
                     <input name="quiz_title" id="quiz_title" value="{{quiz.title}}" required>
                 </div>
+                <br>
+                <div class="form-group">
+                    <label for="quiz_course">Course</label>
+                    <select id="quiz_course" name="quiz_course" required>
+                        {% for course in courses %}
+                            <option value="{{course.id}}">{{course.name}} : {{course.title}}</option>
+                        {% endfor %}
+                    </select> 
+                </div>
+                <br>
                 <div class="form-group">
                     <label for="quiz_description">Description</label>
                     <textarea class="summernote form-control" name="quiz_description" id="quiz_description" required>
                         {{quiz.description}}
                     </textarea>
                 </div>
+                <br>
                 <p name="quiz_result" id="quiz_result">
                 </p>
                 <button onclick="submitQuizForm(event)" class="btn btn-primary">Submit Changes</button>

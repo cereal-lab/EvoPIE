@@ -65,8 +65,9 @@ def verify_instructor_relationship(quiz_attempt_param = "q", redirect_to_referre
             else:
                 q, attempt = kwargs[quiz_attempt_param]
 
-            instructors = [ instructor.id for instructor in models.User.query.filter_by(id=current_user.id).first().instructors ]
-            all_quiz_ids = [ quiz.id for quiz in models.Quiz.query.filter(models.Quiz.author_id.in_(instructors)).all() ]
+            student = models.User.query.filter_by(id=current_user.id).first()
+            course_ids = [ course.id for course in student.courses ]
+            all_quiz_ids = [ quiz.id for quiz in models.Quiz.query.filter(models.Quiz.course_id.in_(course_ids)).all() ]
             if q.id not in all_quiz_ids:
                 flash("You are not allowed to take this quiz", "error")
                 return redirect(url_for('pages.index'))
