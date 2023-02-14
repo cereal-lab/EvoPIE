@@ -56,7 +56,7 @@ class Question(DB.Model):
     '''
 
     id = DB.Column(DB.Integer, primary_key=True)
-
+    author_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'))
     title = DB.Column(DB.String, nullable=False)
     stem = DB.Column(DB.String, nullable=False)
     answer = DB.Column(DB.String, nullable=False)
@@ -70,7 +70,7 @@ class Question(DB.Model):
     quiz_questions = DB.relationship('QuizQuestion', backref='question', lazy=True)
 
     def __repr__(self):
-        return "Question(id='%d',title='%s',question='%s',solution='%s')" % (self.id, self.title, self.stem, self.answer)
+        return "Question(id='%d',author_id='%d',title='%s',question='%s',solution='%s')" % (self.id, self.author_id, self.title, self.stem, self.answer)
 
     def dump_as_dict(self): # TODO #3 get rid of dump_as_dict as part of this issue
         q = {
@@ -94,6 +94,7 @@ class Question(DB.Model):
         # we simply do not pass the questions when we do not need them
         q = {
             "id" : self.id,
+            "author_id" : self.author_id,
             "title" : self.title,
             "alternatives" : []
         }
@@ -282,6 +283,8 @@ class Quiz(DB.Model):
         questions = [q.dump_as_dict() for q in self.quiz_questions]
         shuffle(questions)
         return  {   "id" : self.id,
+                    "author_id" : self.author_id,
+                    "course_id" : self.course_id,
                     "title" : self.title,
                     "description" : self.description,
                     "quiz_questions" : questions, # FIXME this field should really be named quiz_questions instead of questions
@@ -524,6 +527,7 @@ class Course(DB.Model):
     def dump_as_dict(self):
         return {    "id" : self.id,
                     "name" : self.name,
+                    "title" : self.title,
                     "description" : self.description,
                     "instructor_id" : self.instructor_id,
                 }

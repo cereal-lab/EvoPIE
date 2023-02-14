@@ -75,7 +75,9 @@ def post_new_question():
     escaped_title = Markup.escape(title)
     escaped_title = sanitize(escaped_title)
 
-    q = models.Question(title=escaped_title, stem=escaped_stem, answer=escaped_answer)
+    author_id = current_user.get_id()
+
+    q = models.Question(title=escaped_title, stem=escaped_stem, answer=escaped_answer, author_id=author_id)
     models.DB.session.add(q)
     models.DB.session.commit()
 

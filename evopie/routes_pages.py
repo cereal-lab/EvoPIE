@@ -64,7 +64,7 @@ def questions_browser():
         return redirect(url_for('pages.index'))
     # working on getting rid of the dump_as_dict and instead using Markup(...).unescape when appropriate
     # all_questions = [q.dump_as_dict() for q in models.Question.query.all()]
-    all_questions = models.Question.query.all()
+    all_questions = models.Question.query.filter_by(author_id=current_user.get_id()).all()
     # NOTE TODO #3 this particular one works without doing the following pass on the data, probably bc it's using only the titles in the list
     for q in all_questions:
         q.title = unescape(q.title)
