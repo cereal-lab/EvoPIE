@@ -226,7 +226,7 @@ class Quiz(DB.Model):
     quiz_questions = DB.relationship('QuizQuestion', secondary=relation_questions_vs_quizzes, lazy='subquery',
        backref=DB.backref('quizzes', lazy=True))
 
-    course_id = DB.Column(DB.Integer, DB.ForeignKey('course.id'))
+    course_id = DB.Column(DB.Integer, DB.ForeignKey('course.id'), nullable=False)
 
     # Each quiz has many QuizAttempts
     quiz_attempts = DB.relationship('QuizAttempt', backref='quiz', lazy=True)

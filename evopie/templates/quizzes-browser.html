@@ -50,7 +50,7 @@
                     <label for="quiz_description">Description</label>
                     <textarea class="summernote form-control" name="quiz_description" id="quiz_description" required></textarea>
                 </div>
-                <button onclick="submitQuizForm()" class="btn btn-primary">Submit</button>
+                <button type="button" onclick="submitQuizForm()" class="btn btn-primary">Submit</button>
             </form>
         </p>
         </div>
@@ -60,36 +60,31 @@
 
 
 <script type="text/javascript">
-    function submitQuizForm(){
+    async function submitQuizForm(){
         let title = document.querySelector('#quiz_title');
         let description = document.querySelector('#quiz_description');
         let course_id = document.querySelector('#quiz_course');
-        
-        let xhr = new XMLHttpRequest();
         let url = '/quizzes';
-    
-        xhr.open("POST", url, false);
-        xhr.setRequestHeader("Content-Type", "application/json");
 
-        // Create a state change callback 
-        xhr.onreadystatechange = function () {
-            if (xhr.readyState === 4 && xhr.status === 200) {
-               sendToFlashLand(JSON.parse(this.responseText).message,"primary");
+        let response;
+        try {
+            response = await fetch(url,{
+                method:         'POST',
+                headers:        {'Content-Type' : 'application/json'},
+                body:           JSON.stringify({ "title": title.value, "description": description.value, "course_id": course_id.value }),
+                credentials:    'same-origin'
+            })
+            response = await response.json();
+            if (response.status === "success") {
+                sendToFlashLand(response.message, response.status);
+                await delay(1000);
+                location.reload();
+            } else {
+                sendToFlashLand(response.message, response.status);
             }
-        };
-
-        // Converting JSON data to string 
-        // old version limited to 3 questions
-        // var data = JSON.stringify({ "title": title.value, "description": description.value, "questions_ids": [parseInt(qq1.value), parseInt(qq2.value), parseInt(qq3.value)] });
-        
-        var data = JSON.stringify({ "title": title.value, "description": description.value, "course_id": course_id.value });
-        
-        // Sending data with the request 
-        xhr.send(data);
-        event.preventDefault();
-        //event.stopPropagation();
-        location.reload();
-        //return false;
+        } catch (error) {
+            console.log(error);
+        }
     }
 </script>
 

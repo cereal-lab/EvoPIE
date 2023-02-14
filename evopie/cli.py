@@ -97,22 +97,38 @@ def DB_populate():
 from flask.cli import AppGroup
 
 quiz_cli = AppGroup('quiz')
+course_cli = AppGroup('course')
 student_cli = AppGroup('student') #responsible for student simulation
 deca_cli = AppGroup('deca')
 
+@course_cli.command("init")
+@click.option('-i', '--instructor', default='i@usf.edu')
+@click.option('-n', '--name')
+@click.option('-t', '--title')
+@click.option('-d', '--description')
+def start_course_init(instructor, name, title, description):
+    instructor = {"email":instructor, "firstname":"I", "lastname": "I", "password":"pwd"}
+    course = {"name":name, "title":title, "description":description, "instructor_id": 1}
+    with APP.test_client(use_cookies=True) as c:
+        throw_on_http_fail(c.post("/signup", json={**instructor, "retype":instructor["password"]}), status=300)
+        throw_on_http_fail(c.post("/login",json=instructor))
+        throw_on_http_fail(c.post('/courses', json=course))
+
+
 @quiz_cli.command("init")
+@click.option('-cs', '--course-id')
 @click.option('-i', '--instructor', default='i@usf.edu')
 @click.option('-nq', '--num-questions', required = True, type = int)
 @click.option('-nd', '--num-distractors', required = True, type = int)
 @click.option('-qd', '--question-distractors')
 @click.option('-s', '--settings')
-def start_quiz_init(instructor, num_questions, num_distractors, question_distractors, settings):
+def start_quiz_init(course_id, instructor, num_questions, num_distractors, question_distractors, settings):
     ''' Creates instructor, quiz, students for further testing 
         Note: flask app should be running
     '''
     instructor = {"email":instructor, "firstname":"I", "lastname": "I", "password":"pwd"}
     def build_quiz(i, questions):
-        return { "title": f"Quiz {i}", "description": "Test quiz", "questions_ids": questions}
+        return { "title": f"Quiz {i}", "description": "Test quiz", "questions_ids": questions, "course_id": course_id}
     def build_question(i):
         return { "title": f"Question {i}", "stem": f"Question {i} Stem?", "answer": f"a{i}"}
     def build_distractor(i, question):
@@ -126,7 +142,6 @@ def start_quiz_init(instructor, num_questions, num_distractors, question_distrac
     else:
         question_distractors = {}
     with APP.test_client(use_cookies=True) as c: #instructor session
-        throw_on_http_fail(c.post("/signup", json={**instructor, "retype":instructor["password"]}), status=300)
         throw_on_http_fail(c.post("/login",json=instructor))
         distractor_map = DataFrame(columns=["question", "distractor"])
         qids = []
@@ -209,12 +224,13 @@ def create_deca_space(quiz, output, fmt, axis, spanned, best_students_percent, n
                 f.write(deca.save_space_to_json(space))
 
 @student_cli.command("init")
+@click.option('-cs', '--course-id')
 @click.option('-ns', '--num-students', type = int)
 @click.option('--exclude-id', type = int, multiple=True)
 @click.option('-ef', '--email-format', default="s{}@usf.edu")
 @click.option('-i', '--input')
 @click.option('-o', '--output') #csv file to output with student email, id
-def init_students(num_students, exclude_id, input, output, email_format):
+def init_students(course_id, num_students, exclude_id, input, output, email_format):
     if input is None and num_students is None: 
         sys.stderr.write("Either  ")
         sys.exit(1)
@@ -254,8 +270,8 @@ def init_students(num_students, exclude_id, input, output, email_format):
     student_ids = set(students["id"])
     for student_id in student_ids:
         student = models.User.query.get_or_404(student_id)
-        instructor = models.User.query.get_or_404(1)
-        student.instructors.append(instructor)
+        course = models.Course.query.get_or_404(course_id)
+        student.courses.append(course)
         models.DB.session.commit()
     models.StudentKnowledge.query.where(models.StudentKnowledge.student_id.in_(student_ids)).delete()
     models.DB.session.commit()
@@ -965,5 +981,6 @@ def post_process(data_folder, path_suffix, figure_folder, fig_name, param, legen
     # print(f"Stats:\n{latex_table}\n--------")    
 
 APP.cli.add_command(quiz_cli)
+APP.cli.add_command(course_cli)
 APP.cli.add_command(student_cli)
 APP.cli.add_command(deca_cli)
