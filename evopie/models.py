@@ -518,27 +518,24 @@ class EvoProcess(DB.Model):
     # population = DB.Column(DB.String, nullable=False) #for steady state use one ind in population
     # objectives = DB.Column(DB.String, nullable=False) #one or more (but all) objectives seen in hronological order
     impl_state: dict = DB.Column(JSONEncodedMutableDict, default={})
-    population: 'list[int]' = DB.Column(JSONEncodedMutableList, default=[])
-    objectives: 'list[int]' = DB.Column(JSONEncodedMutableList, default=[])
-
-    archive = DB.relationship('EvoProcessArchive', backref='process', 
-                    lazy=True, cascade="save-update, merge, delete, delete-orphan")
+    # population: 'list[int]' = DB.Column(JSONEncodedMutableList, default=[])
+    # objectives: 'list[int]' = DB.Column(JSONEncodedMutableList, default=[])
 
     __mapper_args__ = {
         "version_id_col": touch_timestamp,
         'version_id_generator': lambda version: datetime.now()
     }    
 
-class EvoProcessArchive(DB.Model):
-    '''
-    Preserves evo process state, interaction matrix between students and quizes  
-    '''
-    id = DB.Column(DB.Integer, DB.ForeignKey('evo_process.id'), primary_key=True) #TODO: 
-    genotype_id = DB.Column(DB.Integer, primary_key=True) #interaction index
-    # genotype = DB.Column(DB.String, nullable=False)
-    # objectives = DB.Column(DB.String, nullable=False) #dict with all evaluations 
-    genotype = DB.Column(JSONEncodedMutableList, default=[])
-    objectives = DB.Column(JSONEncodedMutableDict, default={})
+# class Interaction(DB.Model):
+#     '''
+#     Represents student selection of 
+#     '''
+#     id = DB.Column(DB.Integer, DB.ForeignKey('evo_process.id'), primary_key=True) #TODO: 
+#     genotype_id = DB.Column(DB.Integer, primary_key=True) #interaction index
+#     # genotype = DB.Column(DB.String, nullable=False)
+#     # objectives = DB.Column(DB.String, nullable=False) #dict with all evaluations 
+#     genotype = DB.Column(JSONEncodedMutableList, default=[])
+#     objectives = DB.Column(JSONEncodedMutableDict, default={})
 
 
 class StudentKnowledge(DB.Model):

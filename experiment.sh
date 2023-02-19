@@ -156,3 +156,13 @@ flask quiz plot-metric-vs-num-of-dims --data-folder data/data-2022-10-03 --path-
   -p noninfo -pt 'Non-informativeness' \
   --fig-name "<algo>-<param>-<spanned>" \
   --fixate-range > res.txt
+
+flask quiz plot-metric-vs-num-of-dims --data-folder data/data-2023-02-12 --path-suffix results \
+  --figure-folder figures --file-name-pattern '(?P<algo>.*)-on-space-.*-s_(?P<spanned>.*)-\d+.csv' \
+  -p dim_coverage -pt 'Dimension coverage' \
+  -p arr -pt 'Average rank of representatives' \
+  -p population_redundancy -pt 'Redundancy' \
+  -p population_duplication -pt 'Duplication' \
+  -p noninfo -pt 'Non-informativeness' \
+  --fig-name "<algo>-<param>-<spanned>" \
+  --fixate-range > res.txt

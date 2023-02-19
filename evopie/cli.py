@@ -558,7 +558,6 @@ def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n
         #close prev evo process
         if QUIZ_STEP1 in step:
             with APP.app_context():
-                models.EvoProcessArchive.query.delete()
                 models.EvoProcess.query.delete()            
                 models.DB.session.commit()    
             with APP.app_context(), APP.test_client(use_cookies=True) as c: #instructor session
@@ -574,7 +573,7 @@ def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n
                 if quiz_model is None:
                     sys.stdout.write(f"[{run_idx + 1}/{n_times}] Step1 quiz {quiz} finished\n")            
                 else:
-                    model_state = quiz_model.get_internal_model()
+                    model_state = quiz_model.get_model_state()
 
                     if archive_output is not None: 
                         quiz_model.to_csv(archive_output.format(run_idx))
