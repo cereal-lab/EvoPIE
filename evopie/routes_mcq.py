@@ -521,10 +521,9 @@ def post_new_quiz():
     '''
     title = request.json['title']
     description = request.json['description']
-    course_id = request.json['course_id']
 
     # validate that all required information was sent
-    if title is None or description is None or course_id is None or course_id == '':
+    if title is None or description is None:
         return jsonify({ "message" : "Unable to create new quiz due to missing data", "status": "danger" }), 400
 
     #if request.json['questions_ids'] is None:
@@ -532,9 +531,8 @@ def post_new_quiz():
     
     bleached_title = sanitize(title)
     bleached_description = sanitize(description)
-    bleached_course_id = sanitize(course_id)
 
-    q = models.Quiz(title=bleached_title, description=bleached_description, author_id=current_user.get_id(), course_id=bleached_course_id, status="HIDDEN")
+    q = models.Quiz(title=bleached_title, description=bleached_description, author_id=current_user.get_id(), status="HIDDEN")
     
     # Adding the questions, based on the questions_id that were submitted
     if 'questions_ids' in request.json:

@@ -204,6 +204,15 @@ class QuizQuestion(DB.Model):
 
         shuffle(result['alternatives'])
         return result
+    
+    def copy(self):
+        '''
+        Returns a copy of this QuizQuestion object, with the same question_id, and the same distractors.
+        '''
+        qq = QuizQuestion(question_id=self.question_id)
+        for d in self.distractors:
+            qq.distractors.append(d)
+        return qq
 
 #Table used to implement the many-to-many relationship between QuizQuestions and Quizzes
 relation_questions_vs_quizzes = DB.Table('relation_questions_vs_quizzes',
@@ -226,8 +235,6 @@ class Quiz(DB.Model):
     # Each quiz has many QuizQuestions
     quiz_questions = DB.relationship('QuizQuestion', secondary=relation_questions_vs_quizzes, lazy='subquery',
        backref=DB.backref('quizzes', lazy=True))
-
-    course_id = DB.Column(DB.Integer, DB.ForeignKey('course.id'), nullable=False)
 
     # Each quiz has many QuizAttempts
     quiz_attempts = DB.relationship('QuizAttempt', backref='quiz', lazy=True)
@@ -284,7 +291,6 @@ class Quiz(DB.Model):
         shuffle(questions)
         return  {   "id" : self.id,
                     "author_id" : self.author_id,
-                    "course_id" : self.course_id,
                     "title" : self.title,
                     "description" : self.description,
                     "quiz_questions" : questions, # FIXME this field should really be named quiz_questions instead of questions
@@ -301,6 +307,7 @@ class Quiz(DB.Model):
                     "fourth_quartile_grade" : self.fourth_quartile_grade,
                     "step1_pwd": self.step1_pwd,
                     "step2_pwd": self.step2_pwd,
+                    "deadline_driven": self.deadline_driven,
                     "deadline0": self.deadline0.strftime("%Y-%m-%dT%H:%M"),
                     "deadline1": self.deadline1.strftime("%Y-%m-%dT%H:%M"),
                     "deadline2": self.deadline2.strftime("%Y-%m-%dT%H:%M"),
@@ -308,6 +315,15 @@ class Quiz(DB.Model):
                     "deadline4": self.deadline4.strftime("%Y-%m-%dT%H:%M")
                     # "participation_grade_threshold" : round(self.num_justifications_shown * len(questions) * self.limiting_factor)
                 }
+
+    def copy(self):
+        '''
+        Returns a copy of this quiz, with the same questions and answers
+        '''
+        new_quiz = Quiz(author_id=self.author_id, title=self.title, description=self.description, status=self.status, limiting_factor=self.limiting_factor, initial_score_weight=self.initial_score_weight, revised_score_weight=self.revised_score_weight, justification_grade_weight=self.justification_grade_weight, participation_grade_weight=self.participation_grade_weight, num_justifications_shown=self.num_justifications_shown, first_quartile_grade=self.first_quartile_grade, second_quartile_grade=self.second_quartile_grade, third_quartile_grade=self.third_quartile_grade, fourth_quartile_grade=self.fourth_quartile_grade, step1_pwd=self.step1_pwd, step2_pwd=self.step2_pwd, deadline_driven=self.deadline_driven, deadline0=self.deadline0, deadline1=self.deadline1, deadline2=self.deadline2, deadline3=self.deadline3, deadline4=self.deadline4)
+        for q in self.quiz_questions:
+            new_quiz.quiz_questions.append(q.copy())
+        return new_quiz
 
     def __repr__(self):
         return f'<{self.title}, {self.id}>'
@@ -329,6 +345,8 @@ class QuizAttempt(DB.Model):
 
     # each QuizAttempt refers to exactly 1 student
     student_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'))
+
+    course_id = DB.Column(DB.Integer, DB.ForeignKey('course.id'))
 
     # store students answers to all questions
     # FIXME instead of JSON lists of IDs we should have used a proper relational model
@@ -381,6 +399,7 @@ class QuizAttempt(DB.Model):
         return {    "id" : self.id,
                     "quiz_id" : self.quiz_id,
                     "student_id" : self.student_id,
+                    "course_id" : self.course_id,
                     "step_responses" : self.step_responses,
                     "initial_responses" : self.initial_responses,
                     "revised_responses" : self.revised_responses,
@@ -419,6 +438,12 @@ Course_student = DB.Table(
     'CourseStudent',
     DB.Column('CourseId', DB.Integer, DB.ForeignKey('course.id'), primary_key=True),
     DB.Column('StudentId', DB.Integer, DB.ForeignKey('user.id'), primary_key=True)
+)
+
+Course_quiz = DB.Table(
+    'CourseQuiz',
+    DB.Column('CourseId', DB.Integer, DB.ForeignKey('course.id'), primary_key=True),
+    DB.Column('QuizId', DB.Integer, DB.ForeignKey('quiz.id'), primary_key=True)
 )
 
 class User(UserMixin, DB.Model):
@@ -522,7 +547,7 @@ class Course(DB.Model):
     title = DB.Column(DB.String, nullable=False)
     instructor_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'), nullable=False)
     students = DB.relationship('User', secondary=Course_student, backref=DB.backref('courses', lazy='dynamic'))
-    quizzes = DB.relationship('Quiz', backref='course', lazy=True)
+    quizzes = DB.relationship('Quiz', secondary=Course_quiz, backref=DB.backref('courses', lazy='dynamic'))
 
     def dump_as_dict(self):
         return {    "id" : self.id,

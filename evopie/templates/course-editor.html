@@ -93,4 +93,111 @@
     </div>
 </div>
 
+<div class="card bg-light m-3 mx-auto" style="width: 75%">
+    <div class="card-body" bg-light>
+        <h5 class="card-title">
+            All quizzes in this course
+        </h5>
+        <table style="border:1px solid">
+            <tr>
+                <th style="border:1px solid; padding:  0 0.5em">
+                    Quiz ID#
+                </th>
+                <th style="border:1px solid; padding:  0 0.5em">
+                    Title
+                </th>
+                <th style="border:1px solid; padding:  0 0.5em">
+                    Description
+                </th>
+            </tr>
+            {% for quiz in course.quizzes %}
+                        <tr>
+                            <td  style="border:1px solid; padding:  0 0.5em" valign='top'>
+                                {{ quiz.id | safe }}
+                            </td>
+                            <td  style="border:1px solid; padding:  0 0.5em" valign="top">
+                                {{ quiz.title | safe }}
+                            </td>
+                            <td  style="border:1px solid; padding:  0 0.5em" valign="top">
+                                {{ quiz.description | safe }}
+                            </td>
+                        </tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+
+<div class="card bg-light m-3 mx-auto" style="width: 75%">
+    <div class="card-body" bg-light>
+        <h5 class="card-title">
+            List of all available quizzes to add to this course
+        </h5>
+        <table style="border:1px solid">
+            <tr>
+                <th style="border:1px solid; padding:  0 0.5em">
+                    Quiz ID#
+                </th>
+                <th style="border:1px solid; padding:  0 0.5em">
+                    Title
+                </th>
+                <th style="border:1px solid; padding:  0 0.5em">
+                    Description
+                </th>
+            </tr>
+            {% for quiz in quizzes %}
+                        <tr>
+                            <td  style="border:1px solid; padding:  0 0.5em" valign='top'>
+                                <label for="D{{quiz.id}}">
+                                    <INPUT TYPE="Checkbox" Name="quizzes_checkboxes" ID="Q{{quiz.id}}" Value="{{quiz.id}}">
+                                    &nbsp;&nbsp;&nbsp;&nbsp;
+                                    {{quiz.id}}
+                                </label>
+                            </td>
+                            <td  style="border:1px solid; padding:  0 0.5em" valign="top">
+                                {{ quiz.title | safe }}
+                            </td>
+                            <td  style="border:1px solid; padding:  0 0.5em" valign="top">
+                                {{ quiz.description | safe }}
+                            </td>
+                        </tr>
+                    </div>
+            {% endfor %}
+        </table>
+        <a class="btn btn-primary my-2 btn-sm" onClick='submitQuizzes()' href="#">
+            Submit with all selected quizzes below
+        </a>
+    </div>
+</div>
+
+<script>
+    async function submitQuizzes(){
+        url="/course-editor/{{course.id}}";
+        const checkboxes = document.querySelectorAll('input[name="quizzes_checkboxes"]:checked');
+        let checked_quizzes = [];
+        checkboxes.forEach((checkbox) => {
+            checked_quizzes.push(checkbox.value);
+        });
+        let response;
+        try {
+            response = await fetch(url,{
+                method:         'POST',
+                headers:        {'Content-Type' : 'application/json'},
+                body:           JSON.stringify({"selected_quizzes" :  checked_quizzes}),
+                credentials:    'same-origin'
+            })
+            response = await response.json();
+            if (response.status === "success") {
+                sendToFlashLand(response.message, response.status);
+                await delay(3000);
+                window.location.href = response.redirect;
+            } else {
+                sendToFlashLand(response.message, response.status);
+            }
+        } catch (error) {
+            console.log(error);
+        }
+    }
+</script>
+
 {% endblock %}
+

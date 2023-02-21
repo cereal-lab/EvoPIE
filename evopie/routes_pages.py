@@ -47,14 +47,15 @@ pages = Blueprint('pages', __name__)
 def index():
     ''' Index page for the whole thing; used to test out a rudimentary user interface '''
     all_quizzes = []
+    courses = []
     if current_user.is_authenticated and current_user.is_student():
-        # instructors = [ instructor.id for instructor in models.User.query.filter_by(id=current_user.id).first().instructors ]
-        courses = [ course.id for course in models.User.query.filter_by(id=current_user.id).first().courses ]
-        all_quizzes = models.Quiz.query.filter(models.Quiz.course_id.in_(courses)).all()
-        for quiz in all_quizzes:
-            if quiz.deadline_driven == "True":
-                change_quiz_status(quiz)
-    return render_template('index.html', quizzes=all_quizzes)
+        courses = current_user.courses
+        for course in courses:
+            for quiz in course.quizzes:
+                if quiz.deadline_driven == "True":
+                    change_quiz_status(quiz)
+
+    return render_template('index.html', quizzes=all_quizzes, courses=courses)
 
 @pages.route('/questions-browser')
 @login_required
@@ -92,8 +93,14 @@ def quizzes_browser():
     # TODO #3 working on getting rid of the dump_as_dict and instead using Markup(...).unescape when appropriate
     # all_quizzes = [q.dump_as_dict() for q in models.Quiz.query.all()]
     all_quizzes = models.Quiz.query.filter_by(author_id=current_user.get_id()).all()
+    new_quizzes = []
+    for q in all_quizzes:
+        courses = [ c.dump_as_dict() for c in q.courses ]
+        if len(courses) == 0:
+            new_quizzes.append(q)
     courses = models.Course.query.filter_by(instructor_id=current_user.get_id()).all()
-    return render_template('quizzes-browser.html', all_quizzes = all_quizzes, courses = courses)
+
+    return render_template('quizzes-browser.html', new_quizzes = new_quizzes, courses = courses)
     # version with pagination below
     #page = request.args.get('page',1, type=int)
     #QUESTIONS_PER_PAGE = 5 # FIX ME make this a field in a global config object
@@ -253,7 +260,35 @@ def add_quiz_question_to_quiz(quiz_id, question_id):
 @role_required(ROLE_INSTRUCTOR)
 def course_editor(course_id):
     course = models.Course.query.get_or_404(course_id)
-    return render_template('course-editor.html', course=course)
+    quizzes = models.Quiz.query.filter_by(author_id = current_user.id).all()
+
+    available_quizzes = []
+    for q in quizzes:
+        if q not in course.quizzes:
+            available_quizzes.append(q)
+            
+    return render_template('course-editor.html', course=course, quizzes=available_quizzes)
+
+@pages.route('/course-editor/<int:course_id>', methods=['POST'])
+@login_required
+@role_required(ROLE_INSTRUCTOR)
+def course_editor_post(course_id):
+    course = models.Course.query.get_or_404(course_id)
+    if request.is_json:
+        selected_quizzes_list = request.json.get('selected_quizzes')
+    else:
+        selected_quizzes_list = request.form.get('selected_quizzes')
+
+    if len(selected_quizzes_list) == 0:
+        return { "message" : "Select atleast one quiz to continue!", "redirect": url_for("pages.courses_browser"), "status": "danger" }, 400
+
+    for quiz_id_str in selected_quizzes_list:
+        quiz_id = int(quiz_id_str)
+        quiz = models.Quiz.query.get_or_404(quiz_id)
+        quiz.courses.append(course)
+    
+    models.DB.session.commit()
+    return { "message" : "Added quizzes to the course!", "redirect": url_for("pages.courses_browser"), "status": "success" }, 200
 
 @pages.route('/quiz-editor/<int:quiz_id>')
 @login_required
@@ -539,7 +574,10 @@ def get_justification_distribution(quiz_id):
         plt.close(figure)
 
 def get_or_create_attempt(quiz: models.Quiz, quiz_questions, distractor_per_question):
-    attempt = models.QuizAttempt.query.filter_by(student_id=current_user.id, quiz_id=quiz.id).first()
+    courses_offering_quiz = quiz.courses
+    student_courses = current_user.courses
+    course = list(set(courses_offering_quiz) & set(student_courses))
+    attempt = models.QuizAttempt.query.filter_by(student_id=current_user.id, quiz_id=quiz.id, course_id=course[0].id).first()
     if attempt is None: #first visit 
         quiz_model = get_quiz_builder().load_quiz_model(quiz, create_if_not_exist=True)
         if quiz_model is None: #by default when no evo process - we pick all distractors selected by instructor
@@ -551,7 +589,7 @@ def get_or_create_attempt(quiz: models.Quiz, quiz_questions, distractor_per_ques
         for question_alternatives in selected_distractor_ids:
             question_alternatives["alternatives"].append(-1) #add correct answer 
             random.shuffle(question_alternatives["alternatives"]) #shuffle each question alternatives
-        attempt = models.QuizAttempt(quiz_id=quiz.id, student_id=current_user.id, status = QUIZ_ATTEMPT_STEP1, alternatives=selected_distractor_ids)
+        attempt = models.QuizAttempt(quiz_id=quiz.id, student_id=current_user.id, status = QUIZ_ATTEMPT_STEP1, alternatives=selected_distractor_ids, course_id=course[0].id)
         models.DB.session.add(attempt)
         models.DB.session.commit()
     return attempt
@@ -824,7 +862,7 @@ class QuizStats:
     # total_score: dict #dict student id: score 
     # max_total_score: dict #dict student id: score 
 
-def get_quiz_statistics(qid):
+def get_quiz_statistics(qid, course_id):
     '''
     This page allows to get all stats on a given quiz.
     '''    
@@ -844,9 +882,15 @@ def get_quiz_statistics(qid):
     distractors = { qid : {d.id : unescape(d.answer) for d in ds} 
                     for (qid, ds) in groupby(plain_distractors, key = lambda d: d.question_id) } 
 
-    plain_attempts = models.QuizAttempt.query.where(models.QuizAttempt.quiz_id == qid, models.QuizAttempt.status != QUIZ_ATTEMPT_STEP1).all()
+    plain_attempts = models.QuizAttempt.query.where(models.QuizAttempt.quiz_id == qid, models.QuizAttempt.status != QUIZ_ATTEMPT_STEP1, models.QuizAttempt.course_id == course_id).all()
 
-    stats = QuizStats(quiz.dump_as_dict(), questions, distractors, students = [])
+    quiz_questions = {}
+    quiz_question_distractors = {}
+    for (question_id, quiz_question_id) in zip(question_ids, quiz_question_ids):
+        quiz_questions[quiz_question_id] = questions[question_id]
+        quiz_question_distractors[quiz_question_id] = distractors[question_id]
+
+    stats = QuizStats(quiz.dump_as_dict(), quiz_questions, quiz_question_distractors, students = [])
 
     if len(plain_attempts) == 0:
         return stats  
@@ -959,14 +1003,14 @@ def get_quiz_statistics(qid):
 
     return stats
 
-@pages.route('/quiz/<int:qid>/grades', methods=['GET'])
+@pages.route('/quiz/<int:qid>/<int:course_id>/grades', methods=['GET'])
 @login_required
 @role_required(ROLE_INSTRUCTOR)
-def quiz_grader(qid):
+def quiz_grader(qid, course_id):
     '''
     This page allows to get all stats on a given quiz.
     '''
-    stats = get_quiz_statistics(qid)
+    stats = get_quiz_statistics(qid, course_id)
     accept_mime_type = request.accept_mimetypes.best
     query_mime_type = request.args.get("q", None)
     if accept_mime_type == "text/csv" or query_mime_type == "csv":
@@ -1001,9 +1045,31 @@ def quiz_grader(qid):
                 limitingFactorOptions = limitingFactorOptions,
                 # justification_like_count = stats.justification_like_count,
                 numJustificationsOptions = numJustificationsOptions, quartileOptions = quartileOptions,
+                course_id = course_id
                 # justification_grade = stats.justification_scores, total_scores = stats.total_scores, 
                 # max_total_scores = stats.max_total_scores
                 )
+
+@pages.route('/quiz-copy/<int:qid>', methods=['GET'])
+@login_required
+@role_required(ROLE_INSTRUCTOR)
+def quiz_copy(qid):
+    '''
+    This page allows to copy a quiz.
+    '''
+    quiz = models.Quiz.query.get_or_404(qid)
+    if quiz is None:
+        flash('Quiz not found', 'danger')
+        return redirect(url_for('pages.home'))
+
+    new_quiz = quiz.copy()
+
+    models.DB.session.add(new_quiz)
+    models.DB.session.commit()
+
+    flash("Quiz copied successfully", "message")
+
+    return redirect(request.referrer)
 
 @pages.route('/courses/<int:cid>/student-list', methods=['GET', 'POST'])
 @login_required

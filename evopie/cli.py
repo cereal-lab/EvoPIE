@@ -116,19 +116,18 @@ def start_course_init(instructor, name, title, description):
 
 
 @quiz_cli.command("init")
-@click.option('-cs', '--course-id')
 @click.option('-i', '--instructor', default='i@usf.edu')
 @click.option('-nq', '--num-questions', required = True, type = int)
 @click.option('-nd', '--num-distractors', required = True, type = int)
 @click.option('-qd', '--question-distractors')
 @click.option('-s', '--settings')
-def start_quiz_init(course_id, instructor, num_questions, num_distractors, question_distractors, settings):
+def start_quiz_init(instructor, num_questions, num_distractors, question_distractors, settings):
     ''' Creates instructor, quiz, students for further testing 
         Note: flask app should be running
     '''
     instructor = {"email":instructor, "firstname":"I", "lastname": "I", "password":"pwd"}
     def build_quiz(i, questions):
-        return { "title": f"Quiz {i}", "description": "Test quiz", "questions_ids": questions, "course_id": course_id}
+        return { "title": f"Quiz {i}", "description": "Test quiz", "questions_ids": questions}
     def build_question(i):
         return { "title": f"Question {i}", "stem": f"Question {i} Stem?", "answer": f"a{i}"}
     def build_distractor(i, question):
@@ -168,6 +167,9 @@ def start_quiz_init(course_id, instructor, num_questions, num_distractors, quest
         quiz = build_quiz(quiz_id, qids)
         throw_on_http_fail(c.put(f"/quizzes/{quiz_id}", json=quiz))
         sys.stdout.write(f"Quiz with id {quiz_id} was created successfully:\n{distractor_map}\n")
+        # add quiz to course
+        course_id = 1
+        throw_on_http_fail(c.post(f"/course-editor/{course_id}", json={"selected_quizzes": [quiz_id]}))
         settings_for_quiz = { 
             "first_quartile_grade": settings.get("fq", 1),
             "second_quartile_grade": settings.get("sq", 3),
@@ -665,7 +667,7 @@ def export_quiz_evo(quiz, output):
 def get_quiz_result(quiz, output, instructor, password, expected, diff_o):
     with APP.test_client(use_cookies=True) as c: #instructor session
         throw_on_http_fail(c.post("/login",json={"email": instructor, "password": password}))
-        resp = c.get(f"/quiz/{quiz}/grades?q=csv")
+        resp = c.get(f"/quiz/{quiz}/{1}/grades?q=csv")
         if resp.status_code >= 400:  
             sys.stderr.write(f"[{resp.request.path}] failed:\n {resp.get_data(as_text=True)}")
             sys.exit(1)

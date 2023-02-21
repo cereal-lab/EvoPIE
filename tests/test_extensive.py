@@ -28,7 +28,7 @@ def test_extensive(runner, settings, fileName):
     res = runner.invoke(args=["course", "init", "-n", "COP 3000", "-t", "Test Course for Comp Sci", "-d", "This is a test course for the Comp Sci department at USF."])
     assert res.exit_code == 0
 
-    res = runner.invoke(args=["quiz", "init", "-cs", 1, "-nq", 5, "-nd", 4, "-qd", json.dumps({"2":[5,6,7],"3":[9,10,11],"4":[13,14,16]}), "-s", json.dumps(settings)])
+    res = runner.invoke(args=["quiz", "init", "-nq", 5, "-nd", 4, "-qd", json.dumps({"2":[5,6,7],"3":[9,10,11],"4":[13,14,16]}), "-s", json.dumps(settings)])
     assert res.exit_code == 0
     print(res.stdout)
     #TODO: add assert that quiz is inited 

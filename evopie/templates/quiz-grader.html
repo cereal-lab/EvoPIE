@@ -11,7 +11,7 @@
         var table = null; //DataTable - initialized on dom load
 
         const updateTable = async (qid) => {
-            let response = await fetch('/quiz/' + qid + '/grades', {
+            let response = await fetch('/quiz/' + qid + '/' + course_id + '/grades', {
                 method:         'GET',
                 headers:        {'Accept' : 'application/json'},
                 credentials:    'same-origin'
@@ -36,6 +36,7 @@
 
         $(document).ready( function () {
             const qid = {{quiz.id}};
+            const course_id = {{course_id}}
 
             let weights = {
                 initialScoreWeight: {{(quiz.initial_score_weight * 100) | round }},

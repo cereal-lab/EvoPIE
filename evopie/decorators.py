@@ -66,13 +66,14 @@ def verify_instructor_relationship(quiz_attempt_param = "q", redirect_to_referre
                 q, attempt = kwargs[quiz_attempt_param]
 
             student = models.User.query.filter_by(id=current_user.id).first()
-            course_ids = [ course.id for course in student.courses ]
-            all_quiz_ids = [ quiz.id for quiz in models.Quiz.query.filter(models.Quiz.course_id.in_(course_ids)).all() ]
-            if q.id not in all_quiz_ids:
-                flash("You are not allowed to take this quiz", "error")
-                return redirect(url_for('pages.index'))
-            
-            return f(*args, **kwargs)            
+            courses = student.courses
+            for course in courses:
+                if q in course.quizzes:
+                    return f(*args, **kwargs)
+
+            flash("You are not allowed to take this quiz", "error")
+            return redirect(url_for('pages.index'))
+                    
         return decorated_function
     return decorator
 
