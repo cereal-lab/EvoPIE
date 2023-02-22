@@ -21,11 +21,12 @@
     </style>
     <script>
         const quizId = "{{quiz.id}}";
+        const courseId = "{{course.id}}";
 
-        const saveAnswers = buildQuizSaver(quizId, "quizForm")
+        const saveAnswers = buildQuizSaver(quizId, courseId, "quizForm")
 
         const saveJustifications = async (justifications) => {
-            const {} = await fetchJson(`/quizzes/${quizId}/justifications`, {
+            const {} = await fetchJson(`/quizzes/${quizId}/${courseId}/justifications`, {
                 method: 'PUT',
                 headers: {'Content-Type' : 'application/json'},
                 body: JSON.stringify(justifications),

@@ -58,16 +58,18 @@ def verify_instructor_relationship(quiz_attempt_param = "q", redirect_to_referre
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            if type(kwargs.get(quiz_attempt_param)) is models.Quiz:
-                q = kwargs[quiz_attempt_param]
+            if len(kwargs[quiz_attempt_param]) == 2:
+                q = kwargs[quiz_attempt_param].quiz
+                course = kwargs[quiz_attempt_param].course
             elif kwargs.get(quiz_attempt_param, None) is None:
                 q = models.Quiz.query.get_or_404(kwargs['qid'])
+            elif len(kwargs[quiz_attempt_param]) == 3:
+                q, course, attempt = kwargs[quiz_attempt_param]
             else:
                 q, attempt = kwargs[quiz_attempt_param]
 
             student = models.User.query.filter_by(id=current_user.id).first()
-            courses = student.courses
-            for course in courses:
+            if course in student.courses:
                 if q in course.quizzes:
                     return f(*args, **kwargs)
 
@@ -84,9 +86,12 @@ def verify_deadline(quiz_attempt_param = "q", redirect_to_referrer = False, redi
             tzinfo = timezone('US/Eastern')
             date = datetime.now(tzinfo)
             date = date.replace(tzinfo=None)
-            if type(kwargs.get(quiz_attempt_param)) is models.Quiz:
-                q = kwargs[quiz_attempt_param]
-                attempt = models.QuizAttempt.query.filter_by(student_id=current_user.id, quiz_id=q.id).first()
+            if len(kwargs[quiz_attempt_param]) == 2:
+                q = kwargs[quiz_attempt_param].quiz
+                course = kwargs[quiz_attempt_param].course
+                attempt = models.QuizAttempt.query.filter_by(student_id=current_user.id, quiz_id=q.id, course_id=course.id).first()
+            elif len(kwargs[quiz_attempt_param]) == 3:
+                q, course, attempt = kwargs[quiz_attempt_param]
             elif kwargs.get(quiz_attempt_param, None) is None:
                 q = models.Quiz.query.get_or_404(kwargs['qid'])
                 attempt = models.QuizAttempt.query.filter_by(student_id=current_user.id, quiz_id=q.id).first()
@@ -193,7 +198,7 @@ def retry_concurrent_update(f):
         return res 
     return decorated_function
 
-def validate_quiz_attempt_step(quiz_attempt_param, required_step = None):
+def validate_quiz_attempt_step(quiz_attempt_param, required_step=None):
     '''
     Check that view_args quiz and attempt has consistent state. 
     Otherwise return either redirect to pages index with flash or json which forces redirect.
@@ -204,7 +209,7 @@ def validate_quiz_attempt_step(quiz_attempt_param, required_step = None):
             if "quiz_attempt_validated" in g:
                 return f(*args, **kwargs)        
             g.quiz_attempt_validated = True            
-            quiz, attempt = request.view_args[quiz_attempt_param]
+            quiz, course, attempt = request.view_args[quiz_attempt_param]
             shortcut = False 
             if required_step is not None and attempt.status != required_step: 
                 flash("Cannot perform action. Quiz attempt is not on required quiz step")

@@ -115,9 +115,9 @@
                             {{ course.name | safe }}
                         </td>
                         <td class='text-right text-end'>
-                            <input type="checkbox" id="deadline_driven_checkbox{{single_quiz.id}}" name="deadline_driven_checkbox{{single_quiz.id}}" {{ "checked" if single_quiz.deadline_driven == "True" }}>
-                            <label for="deadline_driven_checkbox{{single_quiz.id}}">Deadline Driven</label><br>
-                            <select id="status{{single_quiz.id}}" {{ "disabled" if single_quiz.deadline_driven == "True"  }}>
+                            <input type="checkbox" id="deadline_driven_checkbox{{single_quiz.id}}{{course.id}}" name="deadline_driven_checkbox{{single_quiz.id}}{{course.id}}" {{ "checked" if single_quiz.deadline_driven == "True" }}>
+                            <label for="deadline_driven_checkbox{{single_quiz.id}}{{course.id}}">Deadline Driven</label><br>
+                            <select id="status{{single_quiz.id}}{{course.id}}" {{ "disabled" if single_quiz.deadline_driven == "True"  }}>
                                 <option value="HIDDEN"      {% if single_quiz.status == 'HIDDEN' %} selected {% endif %}>       Hidden</option>
                                 <option value="STEP1"       {% if single_quiz.status == 'STEP1' %} selected {% endif %}>        Step #1</option>
                                 <option value="STEP2"       {% if single_quiz.status == 'STEP2' %} selected {% endif %}>        Step #2</option>
@@ -153,10 +153,10 @@
                                 </svg>
                             </a>
                             <script>
-                                document.querySelector('#deadline_driven_checkbox{{single_quiz.id}}').addEventListener('change', function() {
+                                document.querySelector('#deadline_driven_checkbox{{single_quiz.id}}{{course.id}}').addEventListener('change', function() {
                                     let target_url = '/quizzes/{{single_quiz.id}}/deadline_driven';
-                                    let e = document.querySelector('#deadline_driven_checkbox{{single_quiz.id}}');
-                                    let status_dropdown = document.querySelector('#status{{single_quiz.id}}');
+                                    let e = document.querySelector('#deadline_driven_checkbox{{single_quiz.id}}{{course.id}}');
+                                    let status_dropdown = document.querySelector('#status{{single_quiz.id}}{{course.id}}');
                                     let deadline_driven_value = e.checked ? "True" : "False";
                                     if (e.checked) {
                                         status_dropdown.disabled = true;
@@ -185,9 +185,9 @@
                                     })
                                 });
 
-                                document.querySelector('#status{{single_quiz.id}}').addEventListener('change',function(){
+                                document.querySelector('#status{{single_quiz.id}}{{course.id}}').addEventListener('change',function(){
                                     let target_url = '/quizzes/{{single_quiz.id}}/status';
-                                    let e = document.querySelector('#status{{single_quiz.id}}');
+                                    let e = document.querySelector('#status{{single_quiz.id}}{{course.id}}');
                                     let selectedValue = e.options[e.selectedIndex].value;
                                     fetch(target_url,{
                                         method:         'POST',

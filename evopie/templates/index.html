@@ -159,11 +159,11 @@
                         </td>
                         {% if q.status == 'SOLUTIONS' %}
                           <td>
-                            <a href="/student/{{ q.id }}/start" class="btn btn-primary my-2"> See Solutions </a>
+                            <a href="/student/{{ q.id }}/{{ course.id }}/start" class="btn btn-primary my-2"> See Solutions </a>
                           </td>
                         {% else %}
                           <td>
-                            <a href="/student/{{ q.id }}/start" class="btn btn-primary my-2"> Take Quiz </a>
+                            <a href="/student/{{ q.id }}/{{ course.id }}/start" class="btn btn-primary my-2"> Take Quiz </a>
                           </td>
                         {% endif %}  
                         <td>

@@ -920,7 +920,7 @@ def post_grading_settings(qid):
 @mcq.route('/quizzes/<qa:q>/justifications', methods=['GET'])
 @login_required
 def get_quiz_justifications(q):
-    _, attempt = q
+    *_, attempt = q
     dids = [d for q in attempt.alternatives for d in q['alternatives'] ]
     quiz_question_ids = [qq.id for qq in q.quiz_questions]
     js = models.Justification.query.where(models.Justification.quiz_question_id.in_(quiz_question_ids), models.Justification.distractor_id.in_(dids), student_id = current_user.id).all()
@@ -931,7 +931,7 @@ def get_quiz_justifications(q):
 @validate_quiz_attempt_step(quiz_attempt_param = "q")
 @unmime(type_converters={"*":lambda x: int(x)})
 def answer_questions(q, body):
-    _, attempt = q
+    *_, attempt = q
 
     for qid, answer in body.items(): # body should be map of questionId: id of option selected
         if qid in attempt.alternatives_map and answer >= 0 and answer < len(attempt.alternatives_map[qid]):
@@ -952,7 +952,7 @@ def justify_alternative_selection(q, body):
         TODO: security checks that student has access to specified quiz - multiinstractor support should provide this
         NOTE: body should be in form {'<qid>': {'<altId>':<text>}}
     '''        
-    _, attempt = q
+    *_, attempt = q
 
     new_justifications = {(int(qid), distractor_id):justification
         for qid, alt_js in body.items()
@@ -1004,7 +1004,7 @@ def justify_alternative_selection(q, body):
 @validate_quiz_attempt_step(quiz_attempt_param = "q", required_step=QUIZ_ATTEMPT_STEP2)
 @unmime(type_converters={"*": lambda x: x == 1}) #1 means like, 0 - unlike
 def like_justifications(q, body):
-    _, attempt = q 
+    *_, attempt = q 
     
     if hasattr(g, "ignore_selected_justifications") and g.ignore_selected_justifications: #disablces validation of ids 
         present_likes = models.Likes4Justifications.query.where(models.Likes4Justifications.student_id == current_user.id).all()
