@@ -62,7 +62,7 @@ def test_extensive(runner, settings, fileName):
         {"sid":{"range":[11,14]},"jid":{"ranges":[[1,9],26,27,17,22,24,30,33,37,57,67,71,[89,91],[95,104]]}},
         {"sid":{"range":[15,19]},"jid":{"ranges":[[1,9],[23,27],17,22,24,30,33,37,57,[67,71],[89,101]]}},
         {"sid":20,"jid":{"ranges":[[1,9],[23,27],17,22,24,30,33,37,57,[67,71],[89,115]]}}]
-    res = runner.invoke(args=[ "quiz", "run", "-q", 1, "-s", "STEP1", "-s", "STEP2", 
+    res = runner.invoke(args=[ "quiz", "run", "-q", 1, "-c", 1, "-s", "STEP1", "-s", "STEP2", 
                             "--no-algo", "--justify-response", "-ef", 'student{}@usf.edu',
                             *[ v for l in likes for v in ["-l", json.dumps(l)]]])        
     #TODO: add assert for run

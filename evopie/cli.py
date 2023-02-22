@@ -476,6 +476,7 @@ KNOWLEDGE_SELECTION_WEIGHT = "KNOWLEDGE_SELECTION_WEIGHT"
 
 @quiz_cli.command("run")
 @click.option('-q', '--quiz', type=int, required=True)
+@click.option('-c', '--course_id', type=int, required=True)
 @click.option('-s', '--step', default = [QUIZ_STEP1], multiple=True)
 @click.option('-n', '--n-times', type=int, default=1)
 @click.option('-kns', '--knowledge-selection', default = KNOWLEDGE_SELECTION_WEIGHT)
@@ -491,7 +492,7 @@ KNOWLEDGE_SELECTION_WEIGHT = "KNOWLEDGE_SELECTION_WEIGHT"
 @click.option('--justify-response', is_flag=True)
 @click.option('-ef', '--email-format', default="s{}@usf.edu")
 @click.option('--random-seed', type=int)
-def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n_times, archive_output, evo_output, step, knowledge_selection, likes, justify_response, email_format, random_seed):        
+def simulate_quiz(quiz, course_id, instructor, password, no_algo, algo, algo_params, rnd, n_times, archive_output, evo_output, step, knowledge_selection, likes, justify_response, email_format, random_seed):        
     rnd_state = np.random.RandomState(random_seed)
     if no_algo:
         set_quiz_model(None)
@@ -506,7 +507,7 @@ def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n
             students = list(students_plain) #[s.id for s in students_plain]
             student_ids = set([s.id for s in students])
             if step == 1:
-                models.QuizAttempt.query.where(models.QuizAttempt.student_id.in_(student_ids), models.QuizAttempt.quiz_id == quiz).delete()
+                models.QuizAttempt.query.where(models.QuizAttempt.student_id.in_(student_ids), models.QuizAttempt.quiz_id == quiz, models.QuizAttempt.course_id==course_id).delete()
                 models.DB.session.commit()
             elif step == 2:
                 models.Likes4Justifications.query.where(models.Likes4Justifications.student_id.in_(student_ids)).delete()
@@ -531,11 +532,11 @@ def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n
                     resp = throw_on_http_fail(c.post("/login", json={"email": email, "password": "pwd"}))
                     if "id" not in resp:
                         continue #ignore non-default students
-                    resp = throw_on_http_fail(c.get(f"/student/{quiz}/start", headers={"Accept": "application/json"}))
-                    resp = throw_on_http_fail(c.get(f"/student/{quiz}", headers={"Accept": "application/json"}))
+                    resp = throw_on_http_fail(c.get(f"/student/{quiz}/{course_id}/start", headers={"Accept": "application/json"}))
+                    resp = throw_on_http_fail(c.get(f"/student/{quiz}/{course_id}", headers={"Accept": "application/json"}))
 
                 with APP.app_context():
-                    attempt = models.QuizAttempt.query.where(models.QuizAttempt.quiz_id == quiz, models.QuizAttempt.student_id == sid).first()
+                    attempt = models.QuizAttempt.query.where(models.QuizAttempt.quiz_id == quiz, models.QuizAttempt.student_id == sid, models.QuizAttempt.course_id == course_id).first()
 
                 student_knowledge = knowledge.get(sid, {})
                 if knowledge_selection == KNOWLEDGE_SELECTION_CHANCE:
@@ -567,10 +568,10 @@ def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n
                 elif step == 2 and email in likes_map:
                     with APP.app_context():
                         g.ignore_selected_justifications = True
-                        resp = throw_on_http_fail(c.put(f"/quizzes/{quiz}/justifications/like", json=likes_map[email]))
+                        resp = throw_on_http_fail(c.put(f"/quizzes/{quiz}/{course_id}/justifications/like", json=likes_map[email]))
                 with APP.app_context():
                     g.allow_justification_for_selected = True #do not delete justifications for selection
-                    resp = throw_on_http_fail(c.post(f"/student/{quiz}", json=json_resp))
+                    resp = throw_on_http_fail(c.post(f"/student/{quiz}/{course_id}", json=json_resp))
         
     for run_idx in range(n_times):
         #close prev evo process
