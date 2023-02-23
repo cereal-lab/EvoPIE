@@ -455,12 +455,13 @@ def export_student_knowledge(output):
 
 KNOWLEDGE_SELECTION_CHANCE = "KNOWLEDGE_SELECTION_CHANCE"
 KNOWLEDGE_SELECTION_WEIGHT = "KNOWLEDGE_SELECTION_WEIGHT"
+KNOWLEDGE_SELECTION_STRENGTH = "KNOWLEDGE_SELECTION_STRENGTH"
 
 @quiz_cli.command("run")
 @click.option('-q', '--quiz', type=int, required=True)
 @click.option('-s', '--step', default = [QUIZ_STEP1], multiple=True)
 @click.option('-n', '--n-times', type=int, default=1)
-@click.option('-kns', '--knowledge-selection', default = KNOWLEDGE_SELECTION_WEIGHT)
+@click.option('-kns', '--knowledge-selection', default = KNOWLEDGE_SELECTION_STRENGTH)
 @click.option('-i', '--instructor', default='i@usf.edu')
 @click.option('-p', '--password', default='pwd') 
 @click.option('--no-algo', is_flag=True) #randomize student order
@@ -537,6 +538,12 @@ def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n
                                             for sums in [np.cumsum(weights)]
                                             for level in [(rnd_state.rand() * sums[-1]) if len(sums) > 0 else None]
                                             for selected_d_index in [next((i for i, s in enumerate(sums) if s > level), None)]}
+                elif knowledge_selection == KNOWLEDGE_SELECTION_STRENGTH:
+                    responses = {qid:sorted(ds, key=lambda x: x[1])[-1][0]
+                                            for qid, distractors in attempt.alternatives_map.items() 
+                                            for distractor_strength in [student_knowledge.get(qid, {}) ]
+                                            for ds_distr in [[(alt, distractor_strength[d]) for alt, d in enumerate(distractors) if d in distractor_strength]] 
+                                            for ds in [ds_distr if any(ds_distr) else [(alt,1) for alt, d in enumerate(distractors) if d == -1]]}
                 else: 
                     responses = {}
 
@@ -573,17 +580,19 @@ def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n
                 if quiz_model is None:
                     sys.stdout.write(f"[{run_idx + 1}/{n_times}] Step1 quiz {quiz} finished\n")            
                 else:
-                    model_state = quiz_model.get_model_state()
+                    settings = quiz_model.get_model_state()
+                    best_distractors = quiz_model.get_best_quiz()
 
                     if archive_output is not None: 
                         quiz_model.to_csv(archive_output.format(run_idx))
                     
                     search_space_size = quiz_model.get_search_space_size()
                     explored_search_space_size = quiz_model.get_explored_search_space_size()
-                    sys.stdout.write(f"EVO algo: {quiz_model.__class__}\nEVO settings: {model_state}\n")
+                    sys.stdout.write(f"EVO algo: {quiz_model.__class__}\nEVO settings: {settings}\n")
                     if evo_output: 
                         with open(evo_output, 'w') as evo_output_json_file:
-                            evo_output_json_file.write(json.dumps({**model_state, "algo": quiz_model.__class__.__name__, 
+                            evo_output_json_file.write(json.dumps({"settings": settings, "distractors": best_distractors, 
+                                                        "algo": quiz_model.__class__.__name__, 
                                                         "explored_search_space_size": explored_search_space_size,
                                                         "search_space_size": search_space_size}, indent=4))
                     sys.stdout.write(f"[{run_idx + 1}/{n_times}] Step1 quiz {quiz} finished\n{quiz_model.to_dataframe()}\n")

@@ -260,8 +260,6 @@ class PphcQuizModel(QuizModel):
         return question_distractors
 
     def get_model_state(self):
-        population = [self.archive.get(genotype_id) for genotype_id in self.population]
-        distractors = [d for genotype in population for (_, dids) in genotype for d in dids ] 
         archive = [ {"genotype_id": genotype_id, "genotype": r.g.g, "objectives": {c: r[c] for c in r[r.notnull()].index if c != "g" }}
                                             for genotype_id, r in self.archive.items() ]
         settings = { "pop_size": self.pop_size, "gen": self.gen, "seed": self.seed,
@@ -271,7 +269,12 @@ class PphcQuizModel(QuizModel):
                     "population": self.population, 
                     "objectives": self.objectives,
                     "archive": archive}   
-        return {"population": population, "distractors": distractors, "settings": settings}
+        return settings
+
+    def get_best_quiz(self):
+        population = [self.archive.get(genotype_id) for genotype_id in self.population]
+        distractors = [d for genotype in population for (_, dids) in genotype for d in dids ] 
+        return distractors
 
     def update_fitness(self, ind: int, evaluator_id: int, result: 'dict[int, int]') -> None:  
         # cur_score = self.archive.loc[ind, evaluator_id]

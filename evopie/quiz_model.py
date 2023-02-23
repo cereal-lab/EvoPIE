@@ -52,19 +52,24 @@ class QuizModel(ABC):
         self.save()
     def save(self) -> None:
         ''' preserve state in persistent storage'''
-        impl_state = self.get_model_state().get("settings", {})
+        impl_state = self.get_model_state()
         self.process.impl = self.__class__ .__module__ + '.' + self.__class__.__name__
         self.process.impl_state = impl_state
         models.DB.session.commit()         
-    def to_csv(self, file_name) -> None: 
-        ''' save state to csv file '''
-        pass 
     def to_dataframe(self) -> Optional[DataFrame]: 
         return None
+    def to_csv(self, file_name) -> None: 
+        ''' save state to csv file '''
+        df = self.to_dataframe()
+        if df is not None:
+            df.to_csv(file_name)
+    def get_best_quiz(self):
+        ''' Should return known best quiz distractors '''
+        return []
 
-from evopie.pphc_quiz_model import PphcQuizModel
+from evopie.sampling_quiz_model import SamplingQuizModel
 class QuizModelBuilder():
-    default_quiz_model_class = PphcQuizModel
+    default_quiz_model_class = SamplingQuizModel
     default_settings = {}
 
     def get_quiz(self, quiz_or_id: 'models.Quiz | int') -> models.Quiz: 

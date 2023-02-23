@@ -161,6 +161,27 @@
             ]
         },
         {
+            "name": "CLI: quiz run deca-pphc Sampling",
+            "type": "python",
+            "request": "launch",
+            "module" : "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1",
+                // "EVOPIE_DATABASE_LOG": "db.log" 
+            },
+            "args" : [
+                "quiz",
+                "run",
+                "-q", "1",
+                "-s", "STEP1",
+                "--algo", "evopie.sampling_quiz_model.SamplingQuizModel", "--algo-params", "{ \"n\": 3, \"min_num_evals\": 1, \"group_size\": 2, \"strategy\": \"non_domination\"}",
+                "--evo-output", "algo/s-nond.json", "--archive-output", "algo/a.csv",
+                "--random-seed", "17"
+            ]
+        },
+        {
             "name": "CLI: deca init",
             "type": "python",
             "request": "launch",
@@ -238,7 +259,7 @@
                 "--result-folder", "data/data-8/results",
                 "--figure-folder", "figures",
                 "--file-name-pattern", ".*_20-\\d+.csv",
-                "-p", "dim_coverage_with_spanned", "--group-by-space"
+                "--group-by-space"
             ]
         },
         {
@@ -277,6 +298,24 @@
                 "--deca-input", "deca-spaces/space-1_1_1-s_0-2.json",
                 "--num-runs", "2",
                 "--algo", "{ \"id\": \"pphc-1-2-1-3\", \"algo\":\"evopie.pphc_quiz_model.PphcQuizModel\", \"pop_size\": 1, \"pareto_n\": 2, \"child_n\": 1, \"gene_size\": 3}"
+            ],
+            "console": "internalConsole"
+        },
+        {
+            "name": "CLI: quiz deca-experiment Sampling",
+            "type": "python",
+            "request": "launch",
+            "module": "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1"
+            },
+            "args" : [
+                "quiz", "deca-experiment",
+                "--deca-input", "deca-spaces/space-4_4_4_4-s_4-0.json",
+                "--num-runs", "2",
+                "--algo", "{ \"id\": \"s-nond\", \"algo\":\"evopie.sampling_quiz_model.SamplingQuizModel\", \"n\": 3, \"min_num_evals\": 1, \"group_size\": 2, \"strategy\": \"non_domination\"}"
             ],
             "console": "internalConsole"
         },
