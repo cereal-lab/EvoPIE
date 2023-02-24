@@ -767,6 +767,7 @@ def run_experiment(deca_input, algo, algo_folder, random_seed, results_folder, n
     print(f"Experiment {deca_input}, {algo}, {algo_folder}, {random_seed}, {results_folder}, {num_runs}")
     res = runner.invoke(args=["student", "knows", "-kr", "--deca-input", deca_input ])
     if res.exit_code != 0:
+        print(res.exc_info)
         print(res.stdout)
     assert res.exit_code == 0
     os.makedirs(algo_folder, exist_ok=True)
@@ -814,8 +815,8 @@ def run_experiment(deca_spaces, algo, algo_folder, random_seed, results_folder, 
         res = runner.invoke(args=["quiz", "deca-experiment", "--deca-input", deca_input, "--algo-folder", algo_folder,
                                     "--results-folder", results_folder, *[p for a in algo for p in ["--algo", a]], 
                                     "--random-seed", random_seed, "--num-runs", num_runs ])
-        if res.exit_code != 0:
-            print(res.exc_info)
+        # if res.exit_code != 0:
+        #     print(res.exc_info)
         print(res.stdout)
         assert res.exit_code == 0
 
