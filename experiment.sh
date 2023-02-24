@@ -36,16 +36,135 @@ flask deca init-many -ns 100 -nq 4 -nd 25 \
     # --algo '{ "id": "rand-5", "algo":"evopie.rand_quiz_model.RandomQuizModel", "n": 5}' \
     # --algo '{ "id": "pphc-1-2-1-3", "algo":"evopie.pphc_quiz_model.PphcQuizModel", "pop_size": 1, "pareto_n": 2, "child_n": 1, "gene_size": 3}' \
 
+flask deca init-many -ns 100 -nq 4 -nd 25 \
+    -an 10 \
+    -as 5 \
+    --num-spanned 10 \
+    --num-spaces 1 \
+    --best-students-percent 0 \
+    --noninfo 0.1 \
+    --timeout 1000 --random-seed 17
+
+
 flask quiz deca-experiments \
     --deca-spaces deca-spaces \
     --algo-folder algo \
     --results-folder results \
     --random-seed 23 --num-runs 10 \
     --algo '{ "id": "rand-3", "algo":"evopie.rand_quiz_model.RandomQuizModel", "n": 3}' \
-    --algo '{ "id": "s-nond-1", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "min_num_evals": 1, "group_size": 2, "strategy": "non_domination"}' \
-    --algo '{ "id": "s-nond-2", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "min_num_evals": 1, "group_size": 2, "strategy": "non_domination"}' \
-    --algo '{ "id": "s-nond-3", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "min_num_evals": 1, "group_size": 3, "strategy": "non_domination"}'
+    --algo '{ "id": "s-nond-2", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "non_domination"}' \
+    --algo '{ "id": "s-nond-2r", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "non_domination"}'
 
+flask quiz deca-experiments \
+    --deca-spaces deca-spaces \
+    --algo-folder algo \
+    --results-folder results \
+    --random-seed 23 --num-runs 10 \
+    --algo '{ "id": "s-nond-2r", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "non_domination", "reduced_facts":true, "knowledge_annealing": 0.97}'
+    
+flask quiz deca-experiments \
+    --deca-spaces deca-spaces \
+    --algo-folder algo \
+    --results-folder results \
+    --random-seed 23 --num-runs 2 \
+    --algo '{ "id": "rand_s", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "non_domination", "knowledge_annealing": 0.99}'
+
+
+flask quiz deca-experiments \
+    --deca-spaces deca-spaces \
+    --algo-folder algo \
+    --results-folder results \
+    --random-seed 23 --num-runs 10 \
+    --algo '{ "id": "rand-3", "algo":"evopie.rand_quiz_model.RandomQuizModel", "n": 3}' \
+    --algo '{ "id": "s-nond", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "non_domination"}' \
+    --algo '{ "id": "s-nond-a", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "non_domination", "knowledge_annealing": 0.995}' \
+    --algo '{ "id": "s-nond-r", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "non_domination", "reduced_facts":true}' \
+    --algo '{ "id": "s-nond-ar", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "non_domination", "reduced_facts":true, "knowledge_annealing": 0.995}' \
+    --algo '{ "id": "s-nond-ab", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "non_domination", "alpha":0.75, "beta":2}'
+
+flask quiz deca-experiments \
+    --deca-spaces deca-spaces \
+    --algo-folder algo \
+    --results-folder results \
+    --random-seed 23 --num-runs 10 \
+    --algo '{ "id": "s-nond2", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 3, "strategy": "non_domination", "knowledge_annealing": 0.95, "alpha":0.2, "beta":3, "gamma":0.2, "delta": 3}'
+
+flask quiz deca-experiments \
+    --deca-spaces deca-spaces \
+    --algo-folder algo \
+    --results-folder results \
+    --random-seed 23 --num-runs 10 \
+    --algo '{ "id": "s-nond2", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 3, "strategy": "non_domination", "knowledge_annealing": 0.95, "alpha":0.2, "gamma":0.2}'
+
+flask quiz deca-experiments \
+    --deca-spaces deca-spaces \
+    --algo-folder algo \
+    --results-folder results \
+    --random-seed 23 --num-runs 10 \
+    --algo '{ "id": "rand_s", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "non_domination", "knowledge_annealing": 0.99}'
+
+flask quiz deca-experiments \
+    --deca-spaces deca-spaces \
+    --algo-folder algo \
+    --results-folder results \
+    --random-seed 23 --num-runs 10 \
+    --algo '{ "id": "rand-3", "algo":"evopie.rand_quiz_model.RandomQuizModel", "n": 3}'
+
+flask quiz deca-experiments \
+    --deca-spaces deca-spaces \
+    --algo-folder algo \
+    --results-folder results \
+    --random-seed 23 --num-runs 10 \
+    --algo '{ "id": "nond-1", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 1, "strategy": "non_domination"}'
+
+flask quiz deca-experiments \
+    --deca-spaces deca-spaces \
+    --algo-folder algo \
+    --results-folder results \
+    --random-seed 23 --num-runs 10 \
+    --algo '{ "id": "nond-1b", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 1, "strategy": "non_domination", "sample_best_one":true}'
+
+flask quiz deca-experiments \
+    --deca-spaces deca-spaces \
+    --algo-folder algo \
+    --results-folder results \
+    --random-seed 23 --num-runs 10 \
+    --algo '{ "id": "search", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 1, "strategy": "non_domination", "sample_best_one":true, "hyperparams": { "knowledge_annealing": 0.98 }}'
+
+flask quiz deca-experiments \
+    --deca-spaces deca-spaces \
+    --algo-folder algo \
+    --results-folder results \
+    --random-seed 23 --num-runs 10 \
+    --algo '{ "id": "nond-2", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "non_domination"}'
+
+flask quiz deca-experiments \
+    --deca-spaces deca-spaces \
+    --algo-folder algo \
+    --results-folder results \
+    --random-seed 23 --num-runs 10 \
+    --algo '{ "id": "nond-3", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 3, "strategy": "non_domination"}'
+
+flask quiz deca-experiments \
+    --deca-spaces deca-spaces \
+    --algo-folder algo \
+    --results-folder results \
+    --random-seed 23 --num-runs 10 \
+    --algo '{ "id": "nond-4", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 4, "strategy": "non_domination"}'    
+
+flask quiz deca-experiments \
+    --deca-spaces deca-spaces \
+    --algo-folder algo \
+    --results-folder results \
+    --random-seed 23 --num-runs 10 \
+    --algo '{ "id": "nond-5", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 5, "strategy": "non_domination"}'    
+
+flask quiz deca-experiments \
+    --deca-spaces deca-spaces \
+    --algo-folder algo \
+    --results-folder results \
+    --random-seed 23 --num-runs 10 \
+    --algo '{ "id": "nond-6", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 6, "strategy": "non_domination"}'    
 
 flask quiz deca-experiments \
     --random-seed 23 --num-runs 3 \

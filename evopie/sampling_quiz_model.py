@@ -88,7 +88,7 @@ from pandas import DataFrame
 
 class SamplingQuizModel(QuizModel): 
     ''' Samples n distractors from interactions. Does not change sampling for group_size interactions '''
-    default_settings = { "n": 3, "min_num_evals": 1, "group_size": 2, "strategy": "non_domination"}
+    default_settings = { "n": 3, "min_num_evals": 1, "group_size": 2, "strategy": "non_domination", "hyperparams": {}, "reduced_facts": False}
 
     def __init__(self, quiz_id: int, process: models.EvoProcess, distractors_per_question: 'dict[int, list[int]]'):
         super(SamplingQuizModel, self).__init__(quiz_id, process, distractors_per_question)
@@ -96,16 +96,19 @@ class SamplingQuizModel(QuizModel):
         self.seed = settings.get("seed", None)
         self.rnd = np.random.RandomState(self.seed)
         self.n: int = settings.get("n", SamplingQuizModel.default_settings["n"])
-        self.min_num_evals: int = settings.get("min_num_evals", SamplingQuizModel.default_settings["min_num_evals"])
+        self.t = settings.get("t", 0)
+        self.hyperparams: dict = settings.get("hyperparams", SamplingQuizModel.default_settings["hyperparams"])
         self.group_size: int = settings.get("group_size", SamplingQuizModel.default_settings["group_size"])
         self.cur_iter: int = settings.get("cur_iter", 0)
+        self.reduced_facts = settings.get("reduced_facts", SamplingQuizModel.default_settings["reduced_facts"])
+        #NOTE: if reduced_facts is True, we are going to ignore 0s when 1 is present in the interaction
         self.quiz = settings.get("quiz", []) #question distractors sampled to be present
         self.strategy = settings.get("strategy", SamplingQuizModel.default_settings["strategy"])
         #NOTE: we need  to maintain interactions in both forms but store only one form
         self.interactions: dict = {**settings.get("interactions", {})} #dict student_id:{quiz:[(qid1, [dids]), ...], result:{did:0/1}}
         # self.strength: dict = settings.get("strength", {}) #graph in a form of linked list did-to-did defines link from weaker to stronger distractor. did: {stronger:{dids}, weaker:{dids}}
         self.inverted_interactions: dict = self.invert_interactions()
-        self.sample_best_one = False
+        self.sample_best_one = settings.get("sample_best_one", False)
 
         self.sample_strategy = getattr(self, self.strategy)
         
@@ -126,11 +129,28 @@ class SamplingQuizModel(QuizModel):
     def evaluate_internal(self, evaluator_id: int, result: 'dict[int, int]') -> None:
         interaction = self.interactions.get(str(evaluator_id), None)
         given_quiz = interaction['quiz']
-        interaction['result'] = {str(did):1 if did == result.get(qid, -1) else 0 for qid, dids in given_quiz for did in dids }            
+        if self.reduced_facts: 
+            result = interaction.setdefault('result', {})
+            for qid, dids in given_quiz:
+                answer = result.get(qid, -1)
+                if answer == -1:
+                    for did in dids:
+                        result[str(did)] = 0 
+                else:
+                    result[str(answer)] = 1
+        else:
+            interaction['result'] = {str(did):1 if did == answer else 0 for qid, dids in given_quiz for answer in [result.get(qid, -1)] for did in dids }
         for qid, dids in given_quiz:
             selected_did = result.get(qid, -1)
-            for did in dids:
-                self.inverted_interactions.setdefault(int(did), {})[str(evaluator_id)] = 1 if did == selected_did else 0
+            if self.reduced_facts: 
+                if selected_did == -1:
+                    for did in dids:
+                        self.inverted_interactions.setdefault(int(did), {})[str(evaluator_id)] = 0               
+                else:
+                    self.inverted_interactions.setdefault(int(selected_did), {})[str(evaluator_id)] = 1
+            else:
+                for did in dids:
+                    self.inverted_interactions.setdefault(int(did), {})[str(evaluator_id)] = 1 if did == selected_did else 0
             # if selected_did != -1:
             #     weaker_dids = [did for did in dids if did != selected_did]
             #     self.strength[selected_did].setdefault("weaker", set()).update(weaker_dids)
@@ -148,16 +168,23 @@ class SamplingQuizModel(QuizModel):
         return quiz_to_return
 
     def get_model_state(self):
-        settings = { "seed": self.seed, "n": self.n, "min_num_evals": self.min_num_evals, "group_size": self.group_size,
-                    "cur_iter": self.cur_iter, "quiz": self.quiz, "interactions":  self.interactions, "strategy": self.strategy }
+        settings = { "seed": self.seed, "n": self.n, "group_size": self.group_size, "t": self.t,
+                    "hyperparams": self.hyperparams, "cur_iter": self.cur_iter, "reduced_facts": self.reduced_facts,
+                    "quiz": self.quiz, "interactions":  self.interactions, "strategy": self.strategy }
         return settings
 
     def get_best_quiz(self):
+        bestone_before = self.sample_best_one
         self.sample_best_one = True 
+        old_b = self.hyperparams.get("b", None)
+        self.hyperparams["b"] = 0
         quiz = self.sample_quiz()
-        population = [quiz]
         distractors = [d for _, dids in quiz for d in dids ] 
-        self.sample_best_one = False 
+        self.sample_best_one = bestone_before 
+        if old_b is None:
+            del self.hyperparams["b"]
+        else:
+            self.hyperparams["b"] = old_b
         return distractors
 
     def to_dataframe(self):
@@ -170,12 +197,21 @@ class SamplingQuizModel(QuizModel):
     def sample_by_score(self, dids, scores):
         total_score = sum(scores)
         weights = [s / total_score for s in scores]
-        selected_did = max(zip(dids, weights), key=lambda x: x[1])[0] if self.sample_best_one else self.rnd.choice(dids, p=weights)
+        if self.sample_best_one:
+            selected_did_with_weight = max(zip(dids, weights, scores), key=lambda x: x[1])
+            # if selected_did_with_weight[2] == 1:
+            #     print(f"Best {selected_did_with_weight}")
+            #     print(f"Scores {weights}")
+            #     print("-------------")
+            selected_did = selected_did_with_weight[0]
+        else:
+            selected_did = self.rnd.choice(dids, p=weights)
         return int(selected_did)
 
     def max_difficulty(self, dids, blocked_dids):        
         #first for fare game we give each distractor to students at least ones:
-        high_priority = [did for did in dids if len(self.inverted_interactions.get(int(did), {})) < self.min_num_evals]
+        min_num_evals = self.hyperparams.get("min_num_evals", 1)
+        high_priority = [did for did in dids if len(self.inverted_interactions.get(int(did), {})) < min_num_evals]
         selected = self.pick_random(self, high_priority, self.n)
 
         did_scores = {}
@@ -192,10 +228,40 @@ class SamplingQuizModel(QuizModel):
 
     def block_similar(self, selected_did, blocked_dids):
         selected_did_students = self.inverted_interactions.get(selected_did, {})
+        selected_did_cfs = set(sid for sid, r in selected_did_students.items() if r == 1)
+        selected_did_sids = set(selected_did_students.keys())
         for did, did_students in self.inverted_interactions.items():
-            common_students = set.intersection(set(did_students.keys()), set(selected_did_students.keys()))
-            if len(common_students) > 2 and all(did_students[sid] == selected_did_students[sid] for sid in common_students):
-                blocked_dids[did] = 0.1 #penalty for same behavior
+            if did != selected_did:
+                did_cfs = set(sid for sid, r in did_students.items() if r == 1 and sid in selected_did_sids)
+                # common_students = set.intersection(set(did_students.keys()), set(selected_did_students.keys()))            
+                if len(did_cfs) > 1 and did_cfs.issubset(selected_did_cfs):
+                    p = self.hyperparams.get("penalty", 0.1)
+                    blocked_dids[did] = p #penalty for same behavior
+
+    #note that hyperparams could vary with time - at some point we would prefer exploitation against exploration
+    def compute_score(self, did, non_dominated, dominated, dids, blocked_dids):
+        a = self.hyperparams.get("a", 100 ** 4) # 4 is number of forces, all in range [0, 1]
+        b = self.hyperparams.get("b", 100)
+        alpha = self.hyperparams.get("alpha", 1)
+        beta = self.hyperparams.get("beta", 1)
+        gamma = self.hyperparams.get("gamma", 1)
+        delta = self.hyperparams.get("delta", 1)
+        epsilon = self.hyperparams.get("epsilon", 1)
+        knowledge_annealing = self.hyperparams.get("knowledge_annealing", 1) #will degrade knowledge component with time t
+        did_interactions = self.inverted_interactions.get(int(did), {})
+        interacted_student_count = len(self.interactions)
+        if len(did_interactions) == 0:
+            return 1000 #should be very high - at start we prefer knowledge 
+        cfs = [s for s, r in did_interactions.items() if r == 1]
+        css = [s for s, r in did_interactions.items() if r == 0]
+        penalty = blocked_dids.get(did, 1)
+        non_domination_force = (len(non_dominated) / len(dids)) ** alpha
+        domination_force = (len(dominated) / len(dids)) ** beta
+        knowledge_force = (1 - len(did_interactions) / interacted_student_count) ** gamma
+        simplicity_force = (1 - len(cfs) / len(did_interactions)) ** delta
+        difficulty_force = (1 - len(css) / len(did_interactions)) ** epsilon
+        res = penalty * (1 + (a * non_domination_force * domination_force * simplicity_force * difficulty_force + b * (knowledge_annealing ** self.t) * knowledge_force) / 3)
+        return res
 
     def non_domination(self, dids, blocked_dids):                
         did_relations = {did:(non_domination, domination)
@@ -217,37 +283,16 @@ class SamplingQuizModel(QuizModel):
                                 if s_lst != s1_lst and any(v1 > v2 for v1, v2 in zip(s_lst, s1_lst))]]}
         selected = []
         for i in range(len(selected), self.n):
-            scores = [0 if did in selected else blocked_dids.get(did, 1) * (0.1 + 100 * len(non_dominated) / len(dids) * len(dominated) / (2 * len(dids)) * len(self.interactions) / (2 * int_len) * (1 if len(cfs) == 0 else len(self.interactions) / (2 * len(cfs)))) if int_len > 0 else 100
-                        for did, (non_dominated, dominated) in did_relations.items() 
-                        for interations in [self.inverted_interactions.get(int(did), {})]
-                        for int_len in [len(interations)]
-                        for cfs in [[s for s, r in interations.items() if r == 1]]]
+            scores = [0 if did in selected else self.compute_score(did, non_dominated, dominated, dids, blocked_dids)
+                        for did, (non_dominated, dominated) in did_relations.items()]
             selected_did = self.sample_by_score(dids, scores)
             self.block_similar(selected_did, blocked_dids)
             selected.append(selected_did)
         return selected         
     
-    # def default_strategy(self, dids, blocked_dids):        
-    #     #first for fare game we give each distractor to students at least ones:
-    #     high_priority = [did for did in dids if len(self.inverted_interactions.get(did, {})) < self.min_num_evals]
-    #     selected = self.pick_random(self, high_priority, self.n)
-    #     def did_score(did):
-    #         score = 0.5 if did in blocked_dids else 1.0 
-    #         unknown_pairing_dids = set(dids) - self.strength[did]["weaker"] - self.strength[did]["stronger"]
-    #         score *= len(unknown_pairing_dids)
-    #         return score 
-    #     for i in range(len(selected), self.n): #we need to build prob distribution
-    #         #we base selection on positive scores for each possible dids
-    #         #blocked_dids gives penalty. in this strategy blocked dids have same interactions as some from previous questions            
-
-    #         scores = {did: 1.0 if dids not in blocked_dids else 0.5 for did in dids}
-            
-    #         res = None 
-    #         selected.append(res)
-    #     return selected 
-
     def sample_quiz(self) -> 'list[tuple[int, list[int]]]':
         ''' Sample based on interactions and strategy '''
+        self.t += 1
         blocked_dids = {} #some info to block same concept distractors across questions
         return [[qid, sorted(self.sample_strategy(dids, blocked_dids))] for qid, dids in self.distractors_per_question.items()]        
 
