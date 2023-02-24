@@ -19,6 +19,8 @@ export EVOPIE_DATABASE_URI=sqlite:///$WORK/evopie/pswp-a-e/db-$SLURM_ARRAY_TASK_
 # export EVOPIE_DATABASE_LOG=$WORK/evopie/data-$SLURM_ARRAY_TASK_ID/db.log
 export PYTHONPATH=$(pipenv run which python)
 
+pipenv run flask DB-reboot 
+
 pipenv run flask quiz deca-experiments \
     --deca-spaces $WORK/evopie/spaces \
     --algo-folder $WORK/evopie/tmp-algo \
