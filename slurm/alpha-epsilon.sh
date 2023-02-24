@@ -14,8 +14,8 @@ alpha=${alphas[$alpha_id]}
 beta=${alphas[$beta_id]}
 
 cd ~/evopie 
-echo "Working in $WORK/evopie/pswp-a-e-$SLURM_ARRAY_TASK_ID alpha $alpha beta $beta"
-export EVOPIE_DATABASE_URI=sqlite:///$WORK/evopie/pswp-a-e-$SLURM_ARRAY_TASK_ID/db.sqlite
+echo "Working in $WORK/evopie/pswp-a-e/ alpha $alpha beta $beta"
+export EVOPIE_DATABASE_URI=sqlite:///$WORK/evopie/pswp-a-e/db-$SLURM_ARRAY_TASK_ID.sqlite
 # export EVOPIE_DATABASE_LOG=$WORK/evopie/data-$SLURM_ARRAY_TASK_ID/db.log
 export PYTHONPATH=$(pipenv run which python)
 

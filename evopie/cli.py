@@ -287,6 +287,7 @@ def init_knowledge(input, output, email_format, knows, knowledge_replace, deca_i
     #     #NOTE: for additional validation we also could check that distractors exist in Distractor tables
     #     question_distractors = {qid:[q.distractor_id for q in qds] for qid, qds in groupby(quiz_question_distractors, key = lambda x: x.quiz_question_id)}
     #     #NOTE: quiz also should be used to connect instructor to generated students and namespace them from other students
+    print(f"Student knows {input}, {output}, {email_format}, {knows}, {knowledge_replace}, {deca_input}")
 
     knows_map_input = {}
     if input is not None:
@@ -763,6 +764,7 @@ def init_experiment(num_questions, num_distractors, num_students, axes_number, a
 @click.option("--num-runs", type=int, default = 1)
 def run_experiment(deca_input, algo, algo_folder, random_seed, results_folder, num_runs):    
     runner = APP.test_cli_runner()
+    print(f"Experiment {deca_input}, {algo}, {algo_folder}, {random_seed}, {results_folder}, {num_runs}")
     res = runner.invoke(args=["student", "knows", "-kr", "--deca-input", deca_input ])
     if res.exit_code != 0:
         print(res.stdout)
