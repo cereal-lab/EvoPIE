@@ -288,151 +288,154 @@ def init_knowledge(input, output, email_format, knows, knowledge_replace, deca_i
     #     question_distractors = {qid:[q.distractor_id for q in qds] for qid, qds in groupby(quiz_question_distractors, key = lambda x: x.quiz_question_id)}
     #     #NOTE: quiz also should be used to connect instructor to generated students and namespace them from other students
     print(f"Student knows {input}, {output}, {email_format}, {knows}, {knowledge_replace}, {deca_input}")
+    try:
+        knows_map_input = {}
+        if input is not None:
+            input_students = pandas.read_csv(input)
+            input_students.dropna(subset=["email"])
+            for sid in input_students.index:
+                s = input_students.loc[sid]
+                for c in input_students.columns:
+                    if c.startswith("d_") and s[c]:
+                        qid, did, step = (int(id) for id in c.split("_")[1:])
+                        knows_map_input.setdefault(s["email"], {}).setdefault(qid, {}).setdefault(did, [np.nan, np.nan])[step - 1] = s[c]
+        
+        #NOTE: if step is provided - the knowledge will not be passed to next steps 
+        #NOTE: otherwise if chance is a list - elements are treated as chances for each step sequentially
+        #NOTE: otherwise chance defines value for all steps
+        def dks_reducton(acc, k):
+            ''' adds chances from simple knows record '''
+            if "step" in k:
+                local_step = k["step"] - 1
+                acc[local_step] = k["chance"][local_step] if type(k["chance"]) == list else k["chance"]
+            elif type(k["chance"]) == list:
+                for i in range(min(len(acc), len(k["chance"]))):
+                    acc[i] = k["chance"][i]
+            else: 
+                for i in range(len(acc)):
+                    if acc[i] < 0:
+                        acc[i] = k["chance"]
+            return acc 
 
-    knows_map_input = {}
-    if input is not None:
-        input_students = pandas.read_csv(input)
-        input_students.dropna(subset=["email"])
-        for sid in input_students.index:
-            s = input_students.loc[sid]
-            for c in input_students.columns:
-                if c.startswith("d_") and s[c]:
-                    qid, did, step = (int(id) for id in c.split("_")[1:])
-                    knows_map_input.setdefault(s["email"], {}).setdefault(qid, {}).setdefault(did, [np.nan, np.nan])[step - 1] = s[c]
-    
-    #NOTE: if step is provided - the knowledge will not be passed to next steps 
-    #NOTE: otherwise if chance is a list - elements are treated as chances for each step sequentially
-    #NOTE: otherwise chance defines value for all steps
-    def dks_reducton(acc, k):
-        ''' adds chances from simple knows record '''
-        if "step" in k:
-            local_step = k["step"] - 1
-            acc[local_step] = k["chance"][local_step] if type(k["chance"]) == list else k["chance"]
-        elif type(k["chance"]) == list:
-            for i in range(min(len(acc), len(k["chance"]))):
-                acc[i] = k["chance"][i]
+        knows_map_deca = {} 
+        if deca_input:
+            with open(deca_input, 'r') as deca_input_json_file:
+                deca_input_json_str = "\n".join(deca_input_json_file.readlines())
+                space = deca.load_space_from_json(deca_input_json_str)
+                knows_map_deca_plain = deca.gen_test_distractor_mapping_knowledge(space)
+                knows_unpacked = unpack_key('did', unpack_key('qid', unpack_key('sid', knows_map_deca_plain)))
+                knows_map_deca = {sid: {qid: {did: reduce(dks_reducton, dks, [-1,-1])
+                                    for did, dks in groupby(qks, key = lambda x: x.get("did", "*")) } 
+                                    for qid, qks in groupby(sks, key = lambda x: x.get("qid", "*")) } 
+                                    for sid, sks in groupby(knows_unpacked, key = lambda x: x.get("sid", "*"))} 
+            
+
+        knows = [json.loads(k) for k in knows]  #NOTE: expected format {'sid':<opt, by default all>, 'qid':<opt, by default all>, 'did':<opt, by default all>, choice:num or [step1_c, step2_c] }
+        knows_unpacked = unpack_key('did', unpack_key('qid', unpack_key('sid', knows)))
+
+        knows_map_args = {email_format.format(sid): {qid: {did: reduce(dks_reducton, dks, [-1,-1])
+                            for did, dks in groupby(qks, key = lambda x: x.get("did", "*")) } 
+                            for qid, qks in groupby(sks, key = lambda x: x.get("qid", "*")) } 
+                            for sid, sks in groupby(knows_unpacked, key = lambda x: x.get("sid", "*"))}    
+            
+        distractor_map = None
+        with_wild_did = [(qid, qks) for sks in knows_map_args.values() for qid, qks in sks.items() if qid != "*" and "*" in qks]
+        if len(with_wild_did) > 0: #remove wild dids 
+            if not distractor_map:
+                distractor_ids = models.Distractor.query.with_entities(models.Distractor.id, models.Distractor.question_id)
+                distractor_map = {qid:set(d.id for d in qds) for qid, qds in groupby(distractor_ids, key = lambda x: x.question_id) }
+            for (qid, qks) in with_wild_did:
+                for did in distractor_map.get(qid, []):
+                    qks.setdefault(did, list(qks["*"]))
+                del qks["*"]    
+        
+        with_wild_qid = [(sid, sks) for sid, sks in knows_map_args.items() if "*" in sks]    
+        if len(with_wild_qid) > 0: #remove wildcard for qid        
+            if not distractor_map:
+                distractor_ids = models.Distractor.query.with_entities(models.Distractor.id, models.Distractor.question_id)
+                distractor_map = {qid:set(d.id for d in qds) for qid, qds in groupby(distractor_ids, key = lambda x: x.question_id) }                
+            new_knows = {}
+            for sid, sks in with_wild_qid:            
+                new_sks = new_knows.setdefault(sid, {})
+                qks = sks["*"]
+                for qid, dids in distractor_map.items():
+                    if "*" in qks: #for all distractors
+                        for did in dids:
+                            new_sks.setdefault(qid, {}).setdefault(did, qks["*"])
+                    for did, dks in qks.items():
+                        if did in dids:
+                            new_sks.setdefault(qid, {}).setdefault(did, dks)
+            for sid, sks in new_knows.items():
+                for qid, qks in sks.items():
+                    for did, dks in qks.items():
+                        knows_map_args.setdefault(sid, {}).setdefault(qid, {}).setdefault(did, dks)
+            for _, sks in with_wild_qid: 
+                del sks["*"]
+
+        knows_map = {**knows_map_input, **knows_map_deca, **knows_map_args}        
+        students = DataFrame(columns=["email", "id"])    
+
+        distractor_column_order = list(sorted(set([ (i+1, qid, did) for skn in knows_map.values() for qid, qkn in skn.items() for did, dkn in qkn.items() for i, chance in enumerate(dkn) if chance > 0])))
+        distractor_columns = [f'd_{q}_{d}_{step}' for step, q, d in distractor_column_order]
+
+        with APP.test_client(use_cookies=True) as c:
+            all_students = models.User.query.where(models.User.role == ROLE_STUDENT).with_entities(models.User.email, models.User.id)
+            email_to_id = {}
+            id_to_email = {}
+            for s in all_students:
+                email_to_id[s.email] = s.id 
+                id_to_email[s.id] = s.email
+            def init_knowledge_from_map(knowledge_map):
+                def add_to_students(email, student_id, student_knowledge):
+                    distractors = {(i+1, qid, did):chance for qid, qks in student_knowledge.items() for did, dks in qks.items() for i, chance in enumerate(dks) if chance > 0}
+                    students.loc[student_id, [ "email", "id", *distractor_columns ]] = [email, student_id, *[distractors[kid] if kid in distractors else np.nan for kid in distractor_column_order]]                
+                if "*" in knowledge_map:
+                    for student_id, email in id_to_email.items():
+                        add_to_students(email, student_id, knowledge_map["*"])
+                for student_id, student_knowledge in knowledge_map.items():
+                    if student_id in id_to_email:
+                        email = id_to_email[student_id]
+                        add_to_students(email, student_id, student_knowledge)
+                for student_email, student_knowledge in knowledge_map.items():
+                    if student_email in email_to_id:
+                        student_id = email_to_id[student_email]
+                        add_to_students(student_email, student_id, student_knowledge)
+            init_knowledge_from_map(knows_map_input)
+            init_knowledge_from_map(knows_map_deca)
+            init_knowledge_from_map(knows_map_args)
+
+        student_ids = set(students["id"])
+        present_knowledge_query = models.StudentKnowledge.query.where(models.StudentKnowledge.student_id.in_(student_ids))
+        if knowledge_replace: 
+            present_knowledge_query.delete()
+            present_knowledge = {}
+        else:
+            present_plain = present_knowledge_query.all()
+            present_knowledge = {kid:ks[0] for kid, ks in groupby(present_plain, key=lambda k: (k.student_id, k.question_id, k.distractor_id, k.step_id))}
+        for _, student in students.iterrows(): 
+            for c in student[student.notnull()].index:
+                if c.startswith("d_"):    
+                    question_id, distractor_id, step_id = [int(x) for x in c.split('_')[1:]]
+                    knowledge_id = student.id, question_id, distractor_id, step_id
+                    if knowledge_id in present_knowledge:
+                        present_knowledge[knowledge_id].chance = student[c]
+                    else:
+                        k = models.StudentKnowledge(student_id=student.id, question_id = question_id, distractor_id=distractor_id, step_id = step_id, chance = student[c])
+                        models.DB.session.add(k) 
+        for (sid, qid, did, step), v in present_knowledge.items():
+            if sid in students.index: 
+                column = f'd_{qid}_{did}_{step}'
+                if np.isnan(students.loc[sid, column]):
+                    students.loc[sid, column] = v.chance
+        models.DB.session.commit()
+        if output is not None:
+            students.to_csv(output, index=False)    
+            sys.stdout.write(f"Students were saved to {output}:\n {students}\n")
         else: 
-            for i in range(len(acc)):
-                if acc[i] < 0:
-                    acc[i] = k["chance"]
-        return acc 
-
-    knows_map_deca = {} 
-    if deca_input:
-        with open(deca_input, 'r') as deca_input_json_file:
-            deca_input_json_str = "\n".join(deca_input_json_file.readlines())
-            space = deca.load_space_from_json(deca_input_json_str)
-            knows_map_deca_plain = deca.gen_test_distractor_mapping_knowledge(space)
-            knows_unpacked = unpack_key('did', unpack_key('qid', unpack_key('sid', knows_map_deca_plain)))
-            knows_map_deca = {sid: {qid: {did: reduce(dks_reducton, dks, [-1,-1])
-                                for did, dks in groupby(qks, key = lambda x: x.get("did", "*")) } 
-                                for qid, qks in groupby(sks, key = lambda x: x.get("qid", "*")) } 
-                                for sid, sks in groupby(knows_unpacked, key = lambda x: x.get("sid", "*"))} 
-        
-
-    knows = [json.loads(k) for k in knows]  #NOTE: expected format {'sid':<opt, by default all>, 'qid':<opt, by default all>, 'did':<opt, by default all>, choice:num or [step1_c, step2_c] }
-    knows_unpacked = unpack_key('did', unpack_key('qid', unpack_key('sid', knows)))
-
-    knows_map_args = {email_format.format(sid): {qid: {did: reduce(dks_reducton, dks, [-1,-1])
-                        for did, dks in groupby(qks, key = lambda x: x.get("did", "*")) } 
-                        for qid, qks in groupby(sks, key = lambda x: x.get("qid", "*")) } 
-                        for sid, sks in groupby(knows_unpacked, key = lambda x: x.get("sid", "*"))}    
-        
-    distractor_map = None
-    with_wild_did = [(qid, qks) for sks in knows_map_args.values() for qid, qks in sks.items() if qid != "*" and "*" in qks]
-    if len(with_wild_did) > 0: #remove wild dids 
-        if not distractor_map:
-            distractor_ids = models.Distractor.query.with_entities(models.Distractor.id, models.Distractor.question_id)
-            distractor_map = {qid:set(d.id for d in qds) for qid, qds in groupby(distractor_ids, key = lambda x: x.question_id) }
-        for (qid, qks) in with_wild_did:
-            for did in distractor_map.get(qid, []):
-                qks.setdefault(did, list(qks["*"]))
-            del qks["*"]    
-    
-    with_wild_qid = [(sid, sks) for sid, sks in knows_map_args.items() if "*" in sks]    
-    if len(with_wild_qid) > 0: #remove wildcard for qid        
-        if not distractor_map:
-            distractor_ids = models.Distractor.query.with_entities(models.Distractor.id, models.Distractor.question_id)
-            distractor_map = {qid:set(d.id for d in qds) for qid, qds in groupby(distractor_ids, key = lambda x: x.question_id) }                
-        new_knows = {}
-        for sid, sks in with_wild_qid:            
-            new_sks = new_knows.setdefault(sid, {})
-            qks = sks["*"]
-            for qid, dids in distractor_map.items():
-                if "*" in qks: #for all distractors
-                    for did in dids:
-                        new_sks.setdefault(qid, {}).setdefault(did, qks["*"])
-                for did, dks in qks.items():
-                    if did in dids:
-                        new_sks.setdefault(qid, {}).setdefault(did, dks)
-        for sid, sks in new_knows.items():
-            for qid, qks in sks.items():
-                for did, dks in qks.items():
-                    knows_map_args.setdefault(sid, {}).setdefault(qid, {}).setdefault(did, dks)
-        for _, sks in with_wild_qid: 
-            del sks["*"]
-
-    knows_map = {**knows_map_input, **knows_map_deca, **knows_map_args}        
-    students = DataFrame(columns=["email", "id"])    
-
-    distractor_column_order = list(sorted(set([ (i+1, qid, did) for skn in knows_map.values() for qid, qkn in skn.items() for did, dkn in qkn.items() for i, chance in enumerate(dkn) if chance > 0])))
-    distractor_columns = [f'd_{q}_{d}_{step}' for step, q, d in distractor_column_order]
-
-    with APP.test_client(use_cookies=True) as c:
-        all_students = models.User.query.where(models.User.role == ROLE_STUDENT).with_entities(models.User.email, models.User.id)
-        email_to_id = {}
-        id_to_email = {}
-        for s in all_students:
-            email_to_id[s.email] = s.id 
-            id_to_email[s.id] = s.email
-        def init_knowledge_from_map(knowledge_map):
-            def add_to_students(email, student_id, student_knowledge):
-                distractors = {(i+1, qid, did):chance for qid, qks in student_knowledge.items() for did, dks in qks.items() for i, chance in enumerate(dks) if chance > 0}
-                students.loc[student_id, [ "email", "id", *distractor_columns ]] = [email, student_id, *[distractors[kid] if kid in distractors else np.nan for kid in distractor_column_order]]                
-            if "*" in knowledge_map:
-                for student_id, email in id_to_email.items():
-                    add_to_students(email, student_id, knowledge_map["*"])
-            for student_id, student_knowledge in knowledge_map.items():
-                if student_id in id_to_email:
-                    email = id_to_email[student_id]
-                    add_to_students(email, student_id, student_knowledge)
-            for student_email, student_knowledge in knowledge_map.items():
-                if student_email in email_to_id:
-                    student_id = email_to_id[student_email]
-                    add_to_students(student_email, student_id, student_knowledge)
-        init_knowledge_from_map(knows_map_input)
-        init_knowledge_from_map(knows_map_deca)
-        init_knowledge_from_map(knows_map_args)
-
-    student_ids = set(students["id"])
-    present_knowledge_query = models.StudentKnowledge.query.where(models.StudentKnowledge.student_id.in_(student_ids))
-    if knowledge_replace: 
-        present_knowledge_query.delete()
-        present_knowledge = {}
-    else:
-        present_plain = present_knowledge_query.all()
-        present_knowledge = {kid:ks[0] for kid, ks in groupby(present_plain, key=lambda k: (k.student_id, k.question_id, k.distractor_id, k.step_id))}
-    for _, student in students.iterrows(): 
-        for c in student[student.notnull()].index:
-            if c.startswith("d_"):    
-                question_id, distractor_id, step_id = [int(x) for x in c.split('_')[1:]]
-                knowledge_id = student.id, question_id, distractor_id, step_id
-                if knowledge_id in present_knowledge:
-                    present_knowledge[knowledge_id].chance = student[c]
-                else:
-                    k = models.StudentKnowledge(student_id=student.id, question_id = question_id, distractor_id=distractor_id, step_id = step_id, chance = student[c])
-                    models.DB.session.add(k) 
-    for (sid, qid, did, step), v in present_knowledge.items():
-        if sid in students.index: 
-            column = f'd_{qid}_{did}_{step}'
-            if np.isnan(students.loc[sid, column]):
-                students.loc[sid, column] = v.chance
-    models.DB.session.commit()
-    if output is not None:
-        students.to_csv(output, index=False)    
-        sys.stdout.write(f"Students were saved to {output}:\n {students}\n")
-    else: 
-        sys.stdout.write(f"Students were created:\n {students}\n")
+            sys.stdout.write(f"Students were created:\n {students}\n")
+    except Exception as e:
+        print(e)
+        raise
 
 @student_cli.command("export")        
 @click.option('-o', '--output')
