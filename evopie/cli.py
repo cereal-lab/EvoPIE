@@ -808,7 +808,7 @@ def run_experiment(deca_spaces, algo, algo_folder, random_seed, results_folder, 
     runner = APP.test_cli_runner() 
     for file_name in os.listdir(deca_spaces):        
         deca_input = os.path.join(deca_spaces, file_name)
-        print(f"--- Working with space {deca_input} ---")
+        print(f"--- Space {deca_input} ---")
         res = runner.invoke(args=["quiz", "deca-experiment", "--deca-input", deca_input, "--algo-folder", algo_folder,
                                     "--results-folder", results_folder, *[p for a in algo for p in ["--algo", a]], 
                                     "--random-seed", random_seed, "--num-runs", num_runs ])
