@@ -767,9 +767,10 @@ def run_experiment(deca_input, algo, algo_folder, random_seed, results_folder, n
     print(f"Experiment {deca_input}, {algo}, {algo_folder}, {random_seed}, {results_folder}, {num_runs}")
     res = runner.invoke(args=["student", "knows", "-kr", "--deca-input", deca_input ])
     if res.exit_code != 0:
-        print(res.exc_info)
         print(res.stdout)
+    print("Before assert student")
     assert res.exit_code == 0
+    print("After assert")
     os.makedirs(algo_folder, exist_ok=True)
     os.makedirs(results_folder, exist_ok=True)
     rnd = np.random.RandomState(random_seed)
