@@ -158,10 +158,18 @@
                                     let e = document.querySelector('#deadline_driven_checkbox{{single_quiz.id}}{{course.id}}');
                                     let status_dropdown = document.querySelector('#status{{single_quiz.id}}{{course.id}}');
                                     let deadline_driven_value = e.checked ? "True" : "False";
+                                    let all_status_dropdowns = document.querySelectorAll('[id^=status{{single_quiz.id}}]');
+                                    let all_deadline_driven_checkboxes = document.querySelectorAll('[id^=deadline_driven_checkbox{{single_quiz.id}}]');
                                     if (e.checked) {
-                                        status_dropdown.disabled = true;
+                                        for (let i = 0; i < all_status_dropdowns.length; i++) {
+                                            all_deadline_driven_checkboxes[i].checked = true;
+                                            all_status_dropdowns[i].disabled = true;
+                                        }
                                     } else {
-                                        status_dropdown.disabled = false;
+                                        for (let i = 0; i < all_status_dropdowns.length; i++) {
+                                            all_deadline_driven_checkboxes[i].checked = false;
+                                            all_status_dropdowns[i].disabled = false;
+                                        }
                                     }
                                     fetch(target_url,{
                                         method:         'POST',
@@ -189,6 +197,10 @@
                                     let target_url = '/quizzes/{{single_quiz.id}}/status';
                                     let e = document.querySelector('#status{{single_quiz.id}}{{course.id}}');
                                     let selectedValue = e.options[e.selectedIndex].value;
+                                    let all_status_dropdowns = document.querySelectorAll('[id^=status{{single_quiz.id}}]');
+                                    for(let i = 0; i < all_status_dropdowns.length; i++){
+                                        all_status_dropdowns[i].value = selectedValue;
+                                    }
                                     fetch(target_url,{
                                         method:         'POST',
                                         headers:        {'Content-Type' : 'application/json'},

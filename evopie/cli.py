@@ -117,11 +117,12 @@ def start_course_init(instructor, name, title, description):
 
 @quiz_cli.command("init")
 @click.option('-i', '--instructor', default='i@usf.edu')
+@click.option('-c', '--course-id', default='1')
 @click.option('-nq', '--num-questions', required = True, type = int)
 @click.option('-nd', '--num-distractors', required = True, type = int)
 @click.option('-qd', '--question-distractors')
 @click.option('-s', '--settings')
-def start_quiz_init(instructor, num_questions, num_distractors, question_distractors, settings):
+def start_quiz_init(instructor, course_id, num_questions, num_distractors, question_distractors, settings):
     ''' Creates instructor, quiz, students for further testing 
         Note: flask app should be running
     '''
@@ -168,7 +169,6 @@ def start_quiz_init(instructor, num_questions, num_distractors, question_distrac
         throw_on_http_fail(c.put(f"/quizzes/{quiz_id}", json=quiz))
         sys.stdout.write(f"Quiz with id {quiz_id} was created successfully:\n{distractor_map}\n")
         # add quiz to course
-        course_id = 1
         throw_on_http_fail(c.post(f"/course-editor/{course_id}", json={"selected_quizzes": [quiz_id]}))
         settings_for_quiz = { 
             "first_quartile_grade": settings.get("fq", 1),
