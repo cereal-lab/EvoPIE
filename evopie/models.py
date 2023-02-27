@@ -580,7 +580,16 @@ class EvoProcess(DB.Model):
     __mapper_args__ = {
         "version_id_col": touch_timestamp,
         'version_id_generator': lambda version: datetime.now()
-    }    
+    }   
+
+    def copy(self):
+        new_process = EvoProcess(quiz_id=self.quiz_id, start_timestamp=self.start_timestamp, touch_timestamp=self.touch_timestamp, status=self.status, impl=self.impl, impl_state=self.impl_state, population=self.population, objectives=self.objectives)
+        return new_process 
+    
+    def deepcopy(self):
+        new_process = self.copy()
+        new_process.archive = [archive.copy() for archive in self.archive]
+        return new_process
 
 class EvoProcessArchive(DB.Model):
     '''
@@ -592,6 +601,10 @@ class EvoProcessArchive(DB.Model):
     # objectives = DB.Column(DB.String, nullable=False) #dict with all evaluations 
     genotype = DB.Column(JSONEncodedMutableList, default=[])
     objectives = DB.Column(JSONEncodedMutableDict, default={})
+
+    def copy(self):
+        archive = EvoProcessArchive(genotype_id=self.genotype_id, genotype=self.genotype, objectives=self.objectives)
+        return archive
 
 
 class StudentKnowledge(DB.Model):

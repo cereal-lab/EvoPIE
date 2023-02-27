@@ -1059,13 +1059,18 @@ def quiz_copy(qid):
     This page allows to copy a quiz.
     '''
     quiz = models.Quiz.query.get_or_404(qid)
+    evo_process = models.EvoProcess.query.filter_by(quiz_id=qid).first()
     if quiz is None:
         flash('Quiz not found', 'danger')
         return redirect(url_for('pages.home'))
 
     new_quiz = quiz.copy()
-
     models.DB.session.add(new_quiz)
+
+    if evo_process is not None:
+        new_evo_process = evo_process.deepcopy()
+        models.DB.session.add(new_evo_process)
+
     models.DB.session.commit()
 
     flash("Quiz copied successfully", "message")
