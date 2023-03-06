@@ -50,6 +50,13 @@ flask quiz deca-experiments \
     --deca-spaces deca-spaces \
     --algo-folder algo \
     --results-folder results \
+    --random-seed 23 --num-runs 30 \
+    --algo '{ "id": "rand-3", "algo":"evopie.rand_quiz_model.RandomQuizModel", "n": 3}' 
+
+flask quiz deca-experiments \
+    --deca-spaces deca-spaces \
+    --algo-folder algo \
+    --results-folder results \
     --random-seed 23 --num-runs 10 \
     --algo '{ "id": "rand-3", "algo":"evopie.rand_quiz_model.RandomQuizModel", "n": 3}' \
     --algo '{ "id": "s-nond-2", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "non_domination"}' \
@@ -313,3 +320,7 @@ flask quiz plot-metric-vs-num-of-dims --data-folder data/data-2023-02-12 --path-
   -p noninfo -pt 'Non-informativeness' \
   --fig-name "<algo>-<param>-<spanned>" \
   --fixate-range > res.txt
+
+flask deca space-result -r results
+
+flask deca space-result -r results -s D -f D

@@ -650,7 +650,7 @@ def calc_space_result(result_folder, sort_column, filter_column):
         space_result = os.path.join(result_folder, file_name)
         algo_stats = pandas.read_csv(space_result)
         idx = len(res.index)
-        res.loc[idx, 'algo'] = algo_stats.loc[0, 'algo'][len('algo/'):-len('.json')]
+        res.loc[idx, 'algo'] = algo_stats.loc[0, 'algo'].split("/")[-1][:-len('.json')]
         res.loc[idx, metrics] = algo_stats[metrics].mean()
         res.loc[idx, [m + '_std' for m in metrics]] = algo_stats[metrics].std().tolist()
     res[[m + '_std' for m in metrics]] = res[[m + '_std' for m in metrics]].astype(float)

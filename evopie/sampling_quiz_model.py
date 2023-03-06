@@ -1,5 +1,6 @@
 ''' Modification of pphc which considers Pareto domination on level of distractors '''
 ''' Note that archive is changed to be of level of distractor '''
+from math import sqrt
 import numpy as np
 
 from evopie import models
@@ -240,8 +241,9 @@ class SamplingQuizModel(QuizModel):
 
     #note that hyperparams could vary with time - at some point we would prefer exploitation against exploration
     def compute_score(self, did, non_dominated, dominated, dids, blocked_dids):
-        a = self.hyperparams.get("a", 100 ** 4) # 4 is number of forces, all in range [0, 1]
+        a = self.hyperparams.get("a", 100)
         b = self.hyperparams.get("b", 100)
+        c = self.hyperparams.get("c", 100)
         alpha = self.hyperparams.get("alpha", 1)
         beta = self.hyperparams.get("beta", 1)
         gamma = self.hyperparams.get("gamma", 1)
@@ -260,7 +262,7 @@ class SamplingQuizModel(QuizModel):
         knowledge_force = (1 - len(did_interactions) / interacted_student_count) ** gamma
         simplicity_force = (1 - len(cfs) / len(did_interactions)) ** delta
         difficulty_force = (1 - len(css) / len(did_interactions)) ** epsilon
-        res = penalty * (1 + (a * non_domination_force * domination_force * simplicity_force * difficulty_force + b * (knowledge_annealing ** self.t) * knowledge_force) / 3)
+        res = penalty * (1 + a * sqrt(non_domination_force * domination_force) + b * (knowledge_annealing ** self.t) * knowledge_force + c * sqrt(simplicity_force * difficulty_force))
         return res
 
     def non_domination(self, dids, blocked_dids):                
