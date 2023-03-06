@@ -251,12 +251,14 @@
                     <label for="quiz_title">Title</label>
                     <input name="quiz_title" id="quiz_title" value="{{quiz.title}}" required>
                 </div>
+                <br>
                 <div class="form-group">
                     <label for="quiz_description">Description</label>
                     <textarea class="summernote form-control" name="quiz_description" id="quiz_description" required>
                         {{quiz.description}}
                     </textarea>
                 </div>
+                <br>
                 <p name="quiz_result" id="quiz_result">
                 </p>
                 <button onclick="submitQuizForm(event)" class="btn btn-primary">Submit Changes</button>

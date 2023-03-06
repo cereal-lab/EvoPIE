@@ -29,40 +29,60 @@ from flask_admin.contrib.sqla import ModelView
 from evopie import models
 from flask_login import current_user
 from flask import request, redirect, url_for
+from collections import namedtuple
 
 #custom route converters - allows us to avoid unnecessary validations each time
 #NOTE: detauch could happen if any hook tries to do with app
 #https://stackoverflow.com/questions/19818082/how-does-a-sqlalchemy-object-get-detached
 from werkzeug.routing import IntegerConverter, ValidationError
 class QuizConverter(IntegerConverter):
+    regex = r'\d+(\/\d+)?'
 
     def to_python(self, value):
-        quiz_id = super().to_python(value)
-        quiz = models.Quiz.query.filter_by(id = quiz_id).first()
-        if quiz is None:
-            raise ValidationError #will try next route
-        return quiz
+        # check if value has a slash
+        if '/' not in value:
+            quiz_id = super().to_python(value)
+            quiz = models.Quiz.query.filter_by(id = quiz_id).first()
+            if quiz is None:
+                raise ValidationError
+            return quiz
+        else:
+            quiz_id, course_id = value.split('/')
+            quiz = models.Quiz.query.filter_by(id = quiz_id).first()
+            course = models.Course.query.filter_by(id = course_id).first()
+            if quiz is None or course is None:
+                raise ValidationError #will try next route
+            return namedtuple('Quiz_Course', ['quiz', 'course'])(quiz, course)
 
-    def to_url(self, quiz):
-        return super().to_url(quiz.id if isinstance(quiz, models.Quiz) else quiz) #treat quiz as id itself 
-
-from collections import namedtuple
-
+    def to_url(self, quiz_course):
+        if isinstance(quiz_course, tuple) and isinstance(quiz_course[0], models.Quiz):
+            quiz_id = str(quiz_course[0].id)
+            course_id = str(quiz_course.course.id)
+            return quiz_id + '/' + course_id
+        if isinstance(quiz_course, models.Quiz):
+            return super().to_url(quiz_course.id if isinstance(quiz_course, models.Quiz) else quiz_course) #treat quiz as id itself 
+        return str(quiz_course[0].id) + '/' + str(quiz_course[1].id) #quiz_course can be int at start
 class QuizWithAttemptConverter(QuizConverter):
+    regex = r'\d+/\d+'
 
-    def to_python(self, quiz_id):
-        quiz = super().to_python(quiz_id)
-        attempt = models.QuizAttempt.query.filter_by(quiz_id = quiz_id, student_id = current_user.id).first()
-        if attempt is None: 
-            raise ValidationError #will try next route
-        return namedtuple('Quiz_Attempt', ['quiz', 'attempt'])(quiz, attempt)
+    def to_python(self, value):
+        quiz_id, course_id = value.split('/')
+        quiz = models.Quiz.query.filter_by(id = quiz_id).first()
+        course = models.Course.query.filter_by(id = course_id).first()
+        attempt = models.QuizAttempt.query.filter_by(quiz_id = quiz_id, student_id = current_user.id, course_id = course_id).first()
+        if quiz is None or course is None or attempt is None:
+            raise ValidationError
+        return namedtuple('Quiz_Course_Attempt', ['quiz', 'course', 'attempt'])(quiz, course, attempt)
 
     def to_url(self, quiz_attempt):
         if isinstance(quiz_attempt, tuple) and isinstance(quiz_attempt[0], models.Quiz):
-            return super().to_url(quiz_attempt[0])
+            # return super().to_url(quiz_attempt[0])
+            quiz_id = str(quiz_attempt[0].id)
+            course_id = str(quiz_attempt[1].id)
+            return quiz_id + '/' + course_id
         if isinstance(quiz_attempt, models.Quiz):
             return super().to_url(quiz_attempt)
-        return super().to_url(quiz_attempt) #quiz_attempt can be int at start
+        return str(quiz_attempt[0].id) + '/' + str(quiz_attempt[1].id) #quiz_course can be int at start
 
 class QuizAttemptConverter(IntegerConverter):
 

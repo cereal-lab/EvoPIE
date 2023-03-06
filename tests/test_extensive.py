@@ -24,12 +24,16 @@ def test_extensive(runner, settings, fileName):
     res = runner.invoke(args=["DB-reboot"])
     assert res.exit_code == 0
     #TODO: add assert that db is empty
+
+    res = runner.invoke(args=["course", "init", "-n", "COP 3000", "-t", "Test Course for Comp Sci", "-d", "This is a test course for the Comp Sci department at USF."])
+    assert res.exit_code == 0
+
     res = runner.invoke(args=["quiz", "init", "-nq", 5, "-nd", 4, "-qd", json.dumps({"2":[5,6,7],"3":[9,10,11],"4":[13,14,16]}), "-s", json.dumps(settings)])
     assert res.exit_code == 0
     print(res.stdout)
     #TODO: add assert that quiz is inited 
     
-    res = runner.invoke(args=[ "student", "init", "-ns", 20, "--exclude-id", 12, "-ef", 'student{}@usf.edu' ])
+    res = runner.invoke(args=[ "student", "init", "-cs", 1, "-ns", 20, "--exclude-id", 12, "-ef", 'student{}@usf.edu' ])
     assert res.exit_code == 0
     print(res.stdout)
     
@@ -58,7 +62,7 @@ def test_extensive(runner, settings, fileName):
         {"sid":{"range":[11,14]},"jid":{"ranges":[[1,9],26,27,17,22,24,30,33,37,57,67,71,[89,91],[95,104]]}},
         {"sid":{"range":[15,19]},"jid":{"ranges":[[1,9],[23,27],17,22,24,30,33,37,57,[67,71],[89,101]]}},
         {"sid":20,"jid":{"ranges":[[1,9],[23,27],17,22,24,30,33,37,57,[67,71],[89,115]]}}]
-    res = runner.invoke(args=[ "quiz", "run", "-q", 1, "-s", "STEP1", "-s", "STEP2", 
+    res = runner.invoke(args=[ "quiz", "run", "-q", 1, "-c", 1, "-s", "STEP1", "-s", "STEP2", 
                             "--no-algo", "--justify-response", "-ef", 'student{}@usf.edu',
                             *[ v for l in likes for v in ["-l", json.dumps(l)]]])        
     #TODO: add assert for run

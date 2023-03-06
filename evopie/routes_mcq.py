@@ -75,7 +75,9 @@ def post_new_question():
     escaped_title = Markup.escape(title)
     escaped_title = sanitize(escaped_title)
 
-    q = models.Question(title=escaped_title, stem=escaped_stem, answer=escaped_answer)
+    author_id = current_user.get_id()
+
+    q = models.Question(title=escaped_title, stem=escaped_stem, answer=escaped_answer, author_id=author_id)
     models.DB.session.add(q)
     models.DB.session.commit()
 
@@ -460,6 +462,56 @@ def put_quiz_questions(qq_id):
     response = ({ "message" : "Quiz Question updated in database" }, 201, {"Content-Type": "application/json"})
     return make_response(response)
 
+@mcq.route('/courses', methods=['POST'])
+@login_required
+@role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to create courses")
+def post_new_course():
+    '''
+    Handles POST requests on the courses
+    '''
+    if not request.json:
+        abort(406, "JSON format required for request")
+    if request.json['name'] is None or request.json['description'] is None or request.json['title'] is None:
+        abort(400, "Unable to create course due to missing data")
+
+    name = request.json['name']
+    description = request.json['description']
+    title = request.json['title']
+
+    c = models.Course(name=name, description=description, title=title, instructor_id=current_user.get_id())
+
+    models.DB.session.add(c)
+    models.DB.session.commit()
+
+    response = ({ "message" : "Course added to database" }, 201, {"Content-Type": "application/json"})
+
+    return make_response(response)
+
+@mcq.route('/courses/<int:course_id>', methods=['PUT'])
+@login_required
+@role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to modify courses")
+def put_course(course_id):
+    '''
+    Handles PUT requests on a specific course
+    '''
+    course = models.Course.query.get_or_404(course_id)
+    if not request.json:
+        abort(406, "JSON format required for request")
+    if request.json['name'] is None or request.json['description'] is None or request.json['title'] is None:
+        abort(400, "Unable to modify course due to missing data")
+
+    name = sanitize(request.json['name'])
+    description = sanitize(request.json['description'])
+    title = sanitize(request.json['title'])
+
+    course.name = name
+    course.description = description
+    course.title = title
+
+    models.DB.session.commit()
+
+    return { "message" : "Course updated in database" }
+
 @mcq.route('/quizzes', methods=['POST'])
 @login_required
 @role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to create quizzes")
@@ -472,7 +524,7 @@ def post_new_quiz():
 
     # validate that all required information was sent
     if title is None or description is None:
-        abort(400, "Unable to create new quiz due to missing data") # bad request
+        return jsonify({ "message" : "Unable to create new quiz due to missing data", "status": "danger" }), 400
 
     #if request.json['questions_ids'] is None:
     #    abort(400, "Unable to create new quiz due to missing data") # bad request
@@ -480,7 +532,7 @@ def post_new_quiz():
     bleached_title = sanitize(title)
     bleached_description = sanitize(description)
 
-    q = models.Quiz(title=bleached_title, description=bleached_description, author_id=current_user.get_id())
+    q = models.Quiz(title=bleached_title, description=bleached_description, author_id=current_user.get_id(), status="HIDDEN")
     
     # Adding the questions, based on the questions_id that were submitted
     if 'questions_ids' in request.json:
@@ -491,7 +543,7 @@ def post_new_quiz():
     models.DB.session.add(q)
     models.DB.session.commit()
 
-    return jsonify({ "message" : "Quiz added to database", "id": q.id }), 201
+    return jsonify({ "message" : "Quiz added to database", "status" : "success", "id": q.id }), 201
 
 @mcq.route('/quizzes', methods=['GET'])
 @login_required
@@ -868,7 +920,7 @@ def post_grading_settings(qid):
 @mcq.route('/quizzes/<qa:q>/justifications', methods=['GET'])
 @login_required
 def get_quiz_justifications(q):
-    _, attempt = q
+    *_, attempt = q
     dids = [d for q in attempt.alternatives for d in q['alternatives'] ]
     quiz_question_ids = [qq.id for qq in q.quiz_questions]
     js = models.Justification.query.where(models.Justification.quiz_question_id.in_(quiz_question_ids), models.Justification.distractor_id.in_(dids), student_id = current_user.id).all()
@@ -879,7 +931,7 @@ def get_quiz_justifications(q):
 @validate_quiz_attempt_step(quiz_attempt_param = "q")
 @unmime(type_converters={"*":lambda x: int(x)})
 def answer_questions(q, body):
-    _, attempt = q
+    *_, attempt = q
 
     for qid, answer in body.items(): # body should be map of questionId: id of option selected
         if qid in attempt.alternatives_map and answer >= 0 and answer < len(attempt.alternatives_map[qid]):
@@ -900,7 +952,7 @@ def justify_alternative_selection(q, body):
         TODO: security checks that student has access to specified quiz - multiinstractor support should provide this
         NOTE: body should be in form {'<qid>': {'<altId>':<text>}}
     '''        
-    _, attempt = q
+    *_, attempt = q
 
     new_justifications = {(int(qid), distractor_id):justification
         for qid, alt_js in body.items()
@@ -952,7 +1004,7 @@ def justify_alternative_selection(q, body):
 @validate_quiz_attempt_step(quiz_attempt_param = "q", required_step=QUIZ_ATTEMPT_STEP2)
 @unmime(type_converters={"*": lambda x: x == 1}) #1 means like, 0 - unlike
 def like_justifications(q, body):
-    _, attempt = q 
+    *_, attempt = q 
     
     if hasattr(g, "ignore_selected_justifications") and g.ignore_selected_justifications: #disablces validation of ids 
         present_likes = models.Likes4Justifications.query.where(models.Likes4Justifications.student_id == current_user.id).all()

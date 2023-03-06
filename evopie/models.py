@@ -56,7 +56,7 @@ class Question(DB.Model):
     '''
 
     id = DB.Column(DB.Integer, primary_key=True)
-
+    author_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'))
     title = DB.Column(DB.String, nullable=False)
     stem = DB.Column(DB.String, nullable=False)
     answer = DB.Column(DB.String, nullable=False)
@@ -70,7 +70,7 @@ class Question(DB.Model):
     quiz_questions = DB.relationship('QuizQuestion', backref='question', lazy=True)
 
     def __repr__(self):
-        return "Question(id='%d',title='%s',question='%s',solution='%s')" % (self.id, self.title, self.stem, self.answer)
+        return "Question(id='%d',author_id='%d',title='%s',question='%s',solution='%s')" % (self.id, self.author_id, self.title, self.stem, self.answer)
 
     def dump_as_dict(self): # TODO #3 get rid of dump_as_dict as part of this issue
         q = {
@@ -94,6 +94,7 @@ class Question(DB.Model):
         # we simply do not pass the questions when we do not need them
         q = {
             "id" : self.id,
+            "author_id" : self.author_id,
             "title" : self.title,
             "alternatives" : []
         }
@@ -203,6 +204,15 @@ class QuizQuestion(DB.Model):
 
         shuffle(result['alternatives'])
         return result
+    
+    def copy(self):
+        '''
+        Returns a copy of this QuizQuestion object, with the same question_id, and the same distractors.
+        '''
+        qq = QuizQuestion(question_id=self.question_id)
+        for d in self.distractors:
+            qq.distractors.append(d)
+        return qq
 
 #Table used to implement the many-to-many relationship between QuizQuestions and Quizzes
 relation_questions_vs_quizzes = DB.Table('relation_questions_vs_quizzes',
@@ -280,6 +290,7 @@ class Quiz(DB.Model):
         questions = [q.dump_as_dict() for q in self.quiz_questions]
         shuffle(questions)
         return  {   "id" : self.id,
+                    "author_id" : self.author_id,
                     "title" : self.title,
                     "description" : self.description,
                     "quiz_questions" : questions, # FIXME this field should really be named quiz_questions instead of questions
@@ -296,6 +307,7 @@ class Quiz(DB.Model):
                     "fourth_quartile_grade" : self.fourth_quartile_grade,
                     "step1_pwd": self.step1_pwd,
                     "step2_pwd": self.step2_pwd,
+                    "deadline_driven": self.deadline_driven,
                     "deadline0": self.deadline0.strftime("%Y-%m-%dT%H:%M"),
                     "deadline1": self.deadline1.strftime("%Y-%m-%dT%H:%M"),
                     "deadline2": self.deadline2.strftime("%Y-%m-%dT%H:%M"),
@@ -303,6 +315,15 @@ class Quiz(DB.Model):
                     "deadline4": self.deadline4.strftime("%Y-%m-%dT%H:%M")
                     # "participation_grade_threshold" : round(self.num_justifications_shown * len(questions) * self.limiting_factor)
                 }
+
+    def copy(self):
+        '''
+        Returns a copy of this quiz, with the same questions and answers
+        '''
+        new_quiz = Quiz(author_id=self.author_id, title=self.title, description=self.description, status=self.status, limiting_factor=self.limiting_factor, initial_score_weight=self.initial_score_weight, revised_score_weight=self.revised_score_weight, justification_grade_weight=self.justification_grade_weight, participation_grade_weight=self.participation_grade_weight, num_justifications_shown=self.num_justifications_shown, first_quartile_grade=self.first_quartile_grade, second_quartile_grade=self.second_quartile_grade, third_quartile_grade=self.third_quartile_grade, fourth_quartile_grade=self.fourth_quartile_grade, step1_pwd=self.step1_pwd, step2_pwd=self.step2_pwd, deadline_driven=self.deadline_driven, deadline0=self.deadline0, deadline1=self.deadline1, deadline2=self.deadline2, deadline3=self.deadline3, deadline4=self.deadline4)
+        for q in self.quiz_questions:
+            new_quiz.quiz_questions.append(q.copy())
+        return new_quiz
 
     def __repr__(self):
         return f'<{self.title}, {self.id}>'
@@ -324,6 +345,8 @@ class QuizAttempt(DB.Model):
 
     # each QuizAttempt refers to exactly 1 student
     student_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'))
+
+    course_id = DB.Column(DB.Integer, DB.ForeignKey('course.id'))
 
     # store students answers to all questions
     # FIXME instead of JSON lists of IDs we should have used a proper relational model
@@ -376,6 +399,7 @@ class QuizAttempt(DB.Model):
         return {    "id" : self.id,
                     "quiz_id" : self.quiz_id,
                     "student_id" : self.student_id,
+                    "course_id" : self.course_id,
                     "step_responses" : self.step_responses,
                     "initial_responses" : self.initial_responses,
                     "revised_responses" : self.revised_responses,
@@ -404,11 +428,23 @@ relation_questions_vs_attempts = DB.Table('relation_questions_vs_attempts',
    DB.Column('quiz_question_id',DB.Integer, DB.ForeignKey('quiz_question.id'),primary_key=True)
 )
 
-instructor_student = DB.Table(
-    'InstructorStudent',
-    DB.Column('InstructorId', DB.Integer, DB.ForeignKey('user.id'), primary_key=True),
+# instructor_student = DB.Table(
+#     'InstructorStudent',
+#     DB.Column('InstructorId', DB.Integer, DB.ForeignKey('user.id'), primary_key=True),
+#     DB.Column('StudentId', DB.Integer, DB.ForeignKey('user.id'), primary_key=True)
+# )
+
+Course_student = DB.Table(
+    'CourseStudent',
+    DB.Column('CourseId', DB.Integer, DB.ForeignKey('course.id'), primary_key=True),
     DB.Column('StudentId', DB.Integer, DB.ForeignKey('user.id'), primary_key=True)
-);
+)
+
+Course_quiz = DB.Table(
+    'CourseQuiz',
+    DB.Column('CourseId', DB.Integer, DB.ForeignKey('course.id'), primary_key=True),
+    DB.Column('QuizId', DB.Integer, DB.ForeignKey('quiz.id'), primary_key=True)
+)
 
 class User(UserMixin, DB.Model):
     '''
@@ -431,13 +467,13 @@ class User(UserMixin, DB.Model):
 
     justifications = DB.relationship('Justification', backref='student', lazy=True)
 
-    students = DB.relationship(
-        'User',
-        secondary=instructor_student,
-        primaryjoin=id == instructor_student.c.InstructorId,
-        secondaryjoin=id == instructor_student.c.StudentId,
-        backref=DB.backref('instructors')
-    );
+    # students = DB.relationship(
+    #     'User',
+    #     secondary=instructor_student,
+    #     primaryjoin=id == instructor_student.c.InstructorId,
+    #     secondaryjoin=id == instructor_student.c.StudentId,
+    #     backref=DB.backref('instructors')
+    # );
 
     def is_instructor(self):
         return self.role == ROLE_INSTRUCTOR
@@ -504,6 +540,23 @@ class Justification(DB.Model):
                     "seen" : self.seen,
                 }    
 
+class Course(DB.Model):
+    id = DB.Column(DB.Integer, primary_key=True)
+    name = DB.Column(DB.String, nullable=False)
+    description = DB.Column(DB.String, nullable=False)
+    title = DB.Column(DB.String, nullable=False)
+    instructor_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'), nullable=False)
+    students = DB.relationship('User', secondary=Course_student, backref=DB.backref('courses', lazy='dynamic'))
+    quizzes = DB.relationship('Quiz', secondary=Course_quiz, backref=DB.backref('courses', lazy='dynamic'))
+
+    def dump_as_dict(self):
+        return {    "id" : self.id,
+                    "name" : self.name,
+                    "title" : self.title,
+                    "description" : self.description,
+                    "instructor_id" : self.instructor_id,
+                }
+
 class EvoProcess(DB.Model):
     '''
     Defines major settings of evo process, check columns 
@@ -527,7 +580,16 @@ class EvoProcess(DB.Model):
     __mapper_args__ = {
         "version_id_col": touch_timestamp,
         'version_id_generator': lambda version: datetime.now()
-    }    
+    }   
+
+    def copy(self):
+        new_process = EvoProcess(quiz_id=self.quiz_id, start_timestamp=self.start_timestamp, touch_timestamp=self.touch_timestamp, status=self.status, impl=self.impl, impl_state=self.impl_state, population=self.population, objectives=self.objectives)
+        return new_process 
+    
+    def deepcopy(self):
+        new_process = self.copy()
+        new_process.archive = [archive.copy() for archive in self.archive]
+        return new_process
 
 class EvoProcessArchive(DB.Model):
     '''
@@ -539,6 +601,10 @@ class EvoProcessArchive(DB.Model):
     # objectives = DB.Column(DB.String, nullable=False) #dict with all evaluations 
     genotype = DB.Column(JSONEncodedMutableList, default=[])
     objectives = DB.Column(JSONEncodedMutableDict, default={})
+
+    def copy(self):
+        archive = EvoProcessArchive(genotype_id=self.genotype_id, genotype=self.genotype, objectives=self.objectives)
+        return archive
 
 
 class StudentKnowledge(DB.Model):

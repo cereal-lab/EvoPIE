@@ -104,14 +104,14 @@ const debounce = (func, timeout = 300) => {
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
-const buildQuizSaver = (quizId, quizFormId) => {
+const buildQuizSaver = (quizId, courseId, quizFormId) => {
     const saveAnswers = async () => {
         const form = new FormData(document.getElementById(quizFormId))
         const data = {};
         for (const [name, value] of form.entries()) {
             if (name.startsWith("question_")) data[name.split("_")[1]] = parseInt(value)
         }
-        const {} = await fetchJson(`/quizzes/${quizId}/answers`, {
+        const {} = await fetchJson(`/quizzes/${quizId}/${courseId}/answers`, {
             method: 'PUT',
             headers: {'Content-Type' : 'application/json'},
             body: JSON.stringify(data),

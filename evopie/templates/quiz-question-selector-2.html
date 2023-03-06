@@ -106,25 +106,25 @@
                     Justification for not picking
                 </th>
             </tr>
-{% for distractor in question.distractors %}
-            <tr>
-                <td  style="border:1px solid; padding:  0 0.5em" valign='top'>
-                    <label for="D{{distractor.id}}">
-                        <INPUT TYPE="Checkbox" Name="distractors_checkboxes" ID="D{{distractor.id}}" Value="{{distractor.id}}">
-                        &nbsp;&nbsp;&nbsp;&nbsp;
-                        {{distractor.id}}
-                    </label>
-                </td>
-                <td  style="border:1px solid; padding:  0 0.5em" valign="top">
-                    {{ distractor.answer | safe }}
-                </td>
-                <td  style="border:1px solid; padding:  0 0.5em" valign="top">
-                    {{ distractor.justification | safe }}
-                </td>
-            </tr>
-        </div>
-{% endfor %}
-    </table>
+            {% for distractor in question.distractors %}
+                        <tr>
+                            <td  style="border:1px solid; padding:  0 0.5em" valign='top'>
+                                <label for="D{{distractor.id}}">
+                                    <INPUT TYPE="Checkbox" Name="distractors_checkboxes" ID="D{{distractor.id}}" Value="{{distractor.id}}">
+                                    &nbsp;&nbsp;&nbsp;&nbsp;
+                                    {{distractor.id}}
+                                </label>
+                            </td>
+                            <td  style="border:1px solid; padding:  0 0.5em" valign="top">
+                                {{ distractor.answer | safe }}
+                            </td>
+                            <td  style="border:1px solid; padding:  0 0.5em" valign="top">
+                                {{ distractor.justification | safe }}
+                            </td>
+                        </tr>
+                    </div>
+            {% endfor %}
+        </table>
     </div>
 </div>
 

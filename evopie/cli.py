@@ -97,16 +97,32 @@ def DB_populate():
 from flask.cli import AppGroup
 
 quiz_cli = AppGroup('quiz')
+course_cli = AppGroup('course')
 student_cli = AppGroup('student') #responsible for student simulation
 deca_cli = AppGroup('deca')
 
+@course_cli.command("init")
+@click.option('-i', '--instructor', default='i@usf.edu')
+@click.option('-n', '--name')
+@click.option('-t', '--title')
+@click.option('-d', '--description')
+def start_course_init(instructor, name, title, description):
+    instructor = {"email":instructor, "firstname":"I", "lastname": "I", "password":"pwd"}
+    course = {"name":name, "title":title, "description":description, "instructor_id": 1}
+    with APP.test_client(use_cookies=True) as c:
+        throw_on_http_fail(c.post("/signup", json={**instructor, "retype":instructor["password"]}), status=300)
+        throw_on_http_fail(c.post("/login",json=instructor))
+        throw_on_http_fail(c.post('/courses', json=course))
+
+
 @quiz_cli.command("init")
 @click.option('-i', '--instructor', default='i@usf.edu')
+@click.option('-c', '--course-id', default='1')
 @click.option('-nq', '--num-questions', required = True, type = int)
 @click.option('-nd', '--num-distractors', required = True, type = int)
 @click.option('-qd', '--question-distractors')
 @click.option('-s', '--settings')
-def start_quiz_init(instructor, num_questions, num_distractors, question_distractors, settings):
+def start_quiz_init(instructor, course_id, num_questions, num_distractors, question_distractors, settings):
     ''' Creates instructor, quiz, students for further testing 
         Note: flask app should be running
     '''
@@ -126,7 +142,6 @@ def start_quiz_init(instructor, num_questions, num_distractors, question_distrac
     else:
         question_distractors = {}
     with APP.test_client(use_cookies=True) as c: #instructor session
-        throw_on_http_fail(c.post("/signup", json={**instructor, "retype":instructor["password"]}), status=300)
         throw_on_http_fail(c.post("/login",json=instructor))
         distractor_map = DataFrame(columns=["question", "distractor"])
         qids = []
@@ -153,6 +168,8 @@ def start_quiz_init(instructor, num_questions, num_distractors, question_distrac
         quiz = build_quiz(quiz_id, qids)
         throw_on_http_fail(c.put(f"/quizzes/{quiz_id}", json=quiz))
         sys.stdout.write(f"Quiz with id {quiz_id} was created successfully:\n{distractor_map}\n")
+        # add quiz to course
+        throw_on_http_fail(c.post(f"/course-editor/{course_id}", json={"selected_quizzes": [quiz_id]}))
         settings_for_quiz = { 
             "first_quartile_grade": settings.get("fq", 1),
             "second_quartile_grade": settings.get("sq", 3),
@@ -209,12 +226,13 @@ def create_deca_space(quiz, output, fmt, axis, spanned, best_students_percent, n
                 f.write(deca.save_space_to_json(space))
 
 @student_cli.command("init")
+@click.option('-cs', '--course-id')
 @click.option('-ns', '--num-students', type = int)
 @click.option('--exclude-id', type = int, multiple=True)
 @click.option('-ef', '--email-format', default="s{}@usf.edu")
 @click.option('-i', '--input')
 @click.option('-o', '--output') #csv file to output with student email, id
-def init_students(num_students, exclude_id, input, output, email_format):
+def init_students(course_id, num_students, exclude_id, input, output, email_format):
     if input is None and num_students is None: 
         sys.stderr.write("Either  ")
         sys.exit(1)
@@ -254,8 +272,8 @@ def init_students(num_students, exclude_id, input, output, email_format):
     student_ids = set(students["id"])
     for student_id in student_ids:
         student = models.User.query.get_or_404(student_id)
-        instructor = models.User.query.get_or_404(1)
-        student.instructors.append(instructor)
+        course = models.Course.query.get_or_404(course_id)
+        student.courses.append(course)
         models.DB.session.commit()
     models.StudentKnowledge.query.where(models.StudentKnowledge.student_id.in_(student_ids)).delete()
     models.DB.session.commit()
@@ -458,6 +476,7 @@ KNOWLEDGE_SELECTION_WEIGHT = "KNOWLEDGE_SELECTION_WEIGHT"
 
 @quiz_cli.command("run")
 @click.option('-q', '--quiz', type=int, required=True)
+@click.option('-c', '--course_id', type=int, required=True)
 @click.option('-s', '--step', default = [QUIZ_STEP1], multiple=True)
 @click.option('-n', '--n-times', type=int, default=1)
 @click.option('-kns', '--knowledge-selection', default = KNOWLEDGE_SELECTION_WEIGHT)
@@ -473,7 +492,7 @@ KNOWLEDGE_SELECTION_WEIGHT = "KNOWLEDGE_SELECTION_WEIGHT"
 @click.option('--justify-response', is_flag=True)
 @click.option('-ef', '--email-format', default="s{}@usf.edu")
 @click.option('--random-seed', type=int)
-def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n_times, archive_output, evo_output, step, knowledge_selection, likes, justify_response, email_format, random_seed):        
+def simulate_quiz(quiz, course_id, instructor, password, no_algo, algo, algo_params, rnd, n_times, archive_output, evo_output, step, knowledge_selection, likes, justify_response, email_format, random_seed):        
     rnd_state = np.random.RandomState(random_seed)
     if no_algo:
         set_quiz_model(None)
@@ -488,7 +507,7 @@ def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n
             students = list(students_plain) #[s.id for s in students_plain]
             student_ids = set([s.id for s in students])
             if step == 1:
-                models.QuizAttempt.query.where(models.QuizAttempt.student_id.in_(student_ids), models.QuizAttempt.quiz_id == quiz).delete()
+                models.QuizAttempt.query.where(models.QuizAttempt.student_id.in_(student_ids), models.QuizAttempt.quiz_id == quiz, models.QuizAttempt.course_id==course_id).delete()
                 models.DB.session.commit()
             elif step == 2:
                 models.Likes4Justifications.query.where(models.Likes4Justifications.student_id.in_(student_ids)).delete()
@@ -513,11 +532,11 @@ def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n
                     resp = throw_on_http_fail(c.post("/login", json={"email": email, "password": "pwd"}))
                     if "id" not in resp:
                         continue #ignore non-default students
-                    resp = throw_on_http_fail(c.get(f"/student/{quiz}/start", headers={"Accept": "application/json"}))
-                    resp = throw_on_http_fail(c.get(f"/student/{quiz}", headers={"Accept": "application/json"}))
+                    resp = throw_on_http_fail(c.get(f"/student/{quiz}/{course_id}/start", headers={"Accept": "application/json"}))
+                    resp = throw_on_http_fail(c.get(f"/student/{quiz}/{course_id}", headers={"Accept": "application/json"}))
 
                 with APP.app_context():
-                    attempt = models.QuizAttempt.query.where(models.QuizAttempt.quiz_id == quiz, models.QuizAttempt.student_id == sid).first()
+                    attempt = models.QuizAttempt.query.where(models.QuizAttempt.quiz_id == quiz, models.QuizAttempt.student_id == sid, models.QuizAttempt.course_id == course_id).first()
 
                 student_knowledge = knowledge.get(sid, {})
                 if knowledge_selection == KNOWLEDGE_SELECTION_CHANCE:
@@ -549,10 +568,10 @@ def simulate_quiz(quiz, instructor, password, no_algo, algo, algo_params, rnd, n
                 elif step == 2 and email in likes_map:
                     with APP.app_context():
                         g.ignore_selected_justifications = True
-                        resp = throw_on_http_fail(c.put(f"/quizzes/{quiz}/justifications/like", json=likes_map[email]))
+                        resp = throw_on_http_fail(c.put(f"/quizzes/{quiz}/{course_id}/justifications/like", json=likes_map[email]))
                 with APP.app_context():
                     g.allow_justification_for_selected = True #do not delete justifications for selection
-                    resp = throw_on_http_fail(c.post(f"/student/{quiz}", json=json_resp))
+                    resp = throw_on_http_fail(c.post(f"/student/{quiz}/{course_id}", json=json_resp))
         
     for run_idx in range(n_times):
         #close prev evo process
@@ -649,7 +668,7 @@ def export_quiz_evo(quiz, output):
 def get_quiz_result(quiz, output, instructor, password, expected, diff_o):
     with APP.test_client(use_cookies=True) as c: #instructor session
         throw_on_http_fail(c.post("/login",json={"email": instructor, "password": password}))
-        resp = c.get(f"/quiz/{quiz}/grades?q=csv")
+        resp = c.get(f"/quiz/{quiz}/{1}/grades?q=csv")
         if resp.status_code >= 400:  
             sys.stderr.write(f"[{resp.request.path}] failed:\n {resp.get_data(as_text=True)}")
             sys.exit(1)
@@ -967,5 +986,6 @@ def post_process(data_folder, path_suffix, figure_folder, fig_name, param, legen
     # print(f"Stats:\n{latex_table}\n--------")    
 
 APP.cli.add_command(quiz_cli)
+APP.cli.add_command(course_cli)
 APP.cli.add_command(student_cli)
 APP.cli.add_command(deca_cli)

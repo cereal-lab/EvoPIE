@@ -125,49 +125,55 @@
                   <tr>
                     <th>ID</th>
                     <th>Name</th>
+                    <th>Course</th>
                     <th>Status</th>
                     <th>Actions</th>
                     <th>Instructor</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {% for q in quizzes %}
-                    {% if q.status != 'HIDDEN' %}
-                    <tr>
-                      <td>
-                        {{ q.id }}
-                      </td>
-                      <td>
-                        <p class="pointer-link" data-bs-toggle = "modal" data-bs-target = "#q{{q.id}}">
-                          {{ q.title }}
-                        </p>
-                        <div class="modal fade" id="q{{q.id}}" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" aria-hidden="true">
-                            <div class="modal-dialog modal-lg">
-                                <div class="modal-content">
-                                  {{ q.description | safe }}
-                                </div>
-                            </div>
-                        </div>
-                      </td>
-                      <td>
-                        {{q.status }}
-                      </td>
-                      {% if q.status == 'SOLUTIONS' %}
+                  {% for course in courses %}
+                    {% for q in course.quizzes %}
+                      {% if q.status != 'HIDDEN' %}
+                      <tr>
                         <td>
-                          <a href="/student/{{ q.id }}/start" class="btn btn-primary my-2"> See Solutions </a>
+                          {{ q.id }}
                         </td>
-                      {% else %}
                         <td>
-                          <a href="/student/{{ q.id }}/start" class="btn btn-primary my-2"> Take Quiz </a>
+                          <p class="pointer-link" data-bs-toggle = "modal" data-bs-target = "#q{{q.id}}">
+                            {{ q.title }}
+                          </p>
+                          <div class="modal fade" id="q{{q.id}}" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" aria-hidden="true">
+                              <div class="modal-dialog modal-lg">
+                                  <div class="modal-content">
+                                    {{ q.description | safe }}
+                                  </div>
+                              </div>
+                          </div>
                         </td>
-                      {% endif %}  
-                      <td>
-                        <p data-bs-toggle = "modal" data-bs-target = "#q{{q.id}}">
-                          {{ q.author.first_name | safe }} {{ q.author.last_name | safe }}
-                        </p>
-                      </td>
-                    </tr>
-                    {% endif %}
+                        <td>
+                          {{ course.name | safe }}
+                        </td>
+                        <td>
+                          {{q.status }}
+                        </td>
+                        {% if q.status == 'SOLUTIONS' %}
+                          <td>
+                            <a href="/student/{{ q.id }}/{{ course.id }}/start" class="btn btn-primary my-2"> See Solutions </a>
+                          </td>
+                        {% else %}
+                          <td>
+                            <a href="/student/{{ q.id }}/{{ course.id }}/start" class="btn btn-primary my-2"> Take Quiz </a>
+                          </td>
+                        {% endif %}  
+                        <td>
+                          <p data-bs-toggle = "modal" data-bs-target = "#q{{q.id}}">
+                            {{ q.author.first_name | safe }} {{ q.author.last_name | safe }}
+                          </p>
+                        </td>
+                      </tr>
+                      {% endif %}
+                    {% endfor %}
                   {% endfor %}
                 </tbody>
               </table>

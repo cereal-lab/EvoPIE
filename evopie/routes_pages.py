@@ -47,13 +47,15 @@ pages = Blueprint('pages', __name__)
 def index():
     ''' Index page for the whole thing; used to test out a rudimentary user interface '''
     all_quizzes = []
+    courses = []
     if current_user.is_authenticated and current_user.is_student():
-        instructors = [ instructor.id for instructor in models.User.query.filter_by(id=current_user.id).first().instructors ]
-        all_quizzes = models.Quiz.query.filter(models.Quiz.author_id.in_(instructors)).all()
-        for quiz in all_quizzes:
-            if quiz.deadline_driven == "True":
-                change_quiz_status(quiz)
-    return render_template('index.html', quizzes=all_quizzes)
+        courses = current_user.courses
+        for course in courses:
+            for quiz in course.quizzes:
+                if quiz.deadline_driven == "True":
+                    change_quiz_status(quiz)
+
+    return render_template('index.html', quizzes=all_quizzes, courses=courses)
 
 @pages.route('/questions-browser')
 @login_required
@@ -63,7 +65,7 @@ def questions_browser():
         return redirect(url_for('pages.index'))
     # working on getting rid of the dump_as_dict and instead using Markup(...).unescape when appropriate
     # all_questions = [q.dump_as_dict() for q in models.Question.query.all()]
-    all_questions = models.Question.query.all()
+    all_questions = models.Question.query.filter_by(author_id=current_user.get_id()).all()
     # NOTE TODO #3 this particular one works without doing the following pass on the data, probably bc it's using only the titles in the list
     for q in all_questions:
         q.title = unescape(q.title)
@@ -91,7 +93,14 @@ def quizzes_browser():
     # TODO #3 working on getting rid of the dump_as_dict and instead using Markup(...).unescape when appropriate
     # all_quizzes = [q.dump_as_dict() for q in models.Quiz.query.all()]
     all_quizzes = models.Quiz.query.filter_by(author_id=current_user.get_id()).all()
-    return render_template('quizzes-browser.html', all_quizzes = all_quizzes)
+    new_quizzes = []
+    for q in all_quizzes:
+        courses = [ c.dump_as_dict() for c in q.courses ]
+        if len(courses) == 0:
+            new_quizzes.append(q)
+    courses = models.Course.query.filter_by(instructor_id=current_user.get_id()).all()
+
+    return render_template('quizzes-browser.html', new_quizzes = new_quizzes, courses = courses)
     # version with pagination below
     #page = request.args.get('page',1, type=int)
     #QUESTIONS_PER_PAGE = 5 # FIX ME make this a field in a global config object
@@ -101,6 +110,13 @@ def quizzes_browser():
     #next_url = url_for('pages.quizzes_browser', page=paginated.next_num) if paginated.has_next else None
     #prev_url = url_for('pages.quizzes_browser', page=paginated.prev_num) if paginated.has_prev else None
     #return render_template('quizzes-browser.html', all_quizzes = all_quizzes, next_url=next_url, prev_url=prev_url)
+
+@pages.route('/courses-browser')
+@login_required
+@role_required(ROLE_INSTRUCTOR)
+def courses_browser():
+    all_courses = models.Course.query.filter_by(instructor_id=current_user.get_id()).all()
+    return render_template('courses-browser.html', all_courses = all_courses)
 
 
 # NOTE signed=True because flask router won't accept a negative value (or floats for that matter)
@@ -239,6 +255,41 @@ def add_quiz_question_to_quiz(quiz_id, question_id):
 
     return { "message" : "Question added to Quiz! Redirecting to Quiz Browser...", "redirect": url_for("pages.quizzes_browser"), "status": "success" }, 200
 
+@pages.route('/course-editor/<int:course_id>')
+@login_required
+@role_required(ROLE_INSTRUCTOR)
+def course_editor(course_id):
+    course = models.Course.query.get_or_404(course_id)
+    quizzes = models.Quiz.query.filter_by(author_id = current_user.id).all()
+
+    available_quizzes = []
+    for q in quizzes:
+        if q not in course.quizzes:
+            available_quizzes.append(q)
+            
+    return render_template('course-editor.html', course=course, quizzes=available_quizzes)
+
+@pages.route('/course-editor/<int:course_id>', methods=['POST'])
+@login_required
+@role_required(ROLE_INSTRUCTOR)
+def course_editor_post(course_id):
+    course = models.Course.query.get_or_404(course_id)
+    if request.is_json:
+        selected_quizzes_list = request.json.get('selected_quizzes')
+    else:
+        selected_quizzes_list = request.form.get('selected_quizzes')
+
+    if len(selected_quizzes_list) == 0:
+        return { "message" : "Select atleast one quiz to continue!", "redirect": url_for("pages.courses_browser"), "status": "danger" }, 400
+
+    for quiz_id_str in selected_quizzes_list:
+        quiz_id = int(quiz_id_str)
+        quiz = models.Quiz.query.get_or_404(quiz_id)
+        quiz.courses.append(course)
+    
+    models.DB.session.commit()
+    return { "message" : "Added quizzes to the course!", "redirect": url_for("pages.courses_browser"), "status": "success" }, 200
+
 @pages.route('/quiz-editor/<int:quiz_id>')
 @login_required
 def quiz_editor(quiz_id):
@@ -246,6 +297,7 @@ def quiz_editor(quiz_id):
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
     q = models.Quiz.query.get_or_404(quiz_id)
+    courses = models.Course.query.filter_by(instructor_id=current_user.get_id()).all()
     # TODO #3 we replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
     #q = q.dump_as_dict()
     for qq in q.quiz_questions:
@@ -265,7 +317,7 @@ def quiz_editor(quiz_id):
     justificationsGradeOptions = initialScoreFactorOptions
     participationGradeOptions = initialScoreFactorOptions
     quartileOptions = numJustificationsOptions
-    return render_template('quiz-editor.html', quiz = q.dump_as_dict(), limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, numJustificationsOptions = numJustificationsOptions, quartileOptions = quartileOptions)
+    return render_template('quiz-editor.html', quiz = q.dump_as_dict(), limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, numJustificationsOptions = numJustificationsOptions, quartileOptions = quartileOptions, courses = courses)
 
 @pages.route('/quiz-configuration/<quiz:q>')
 @login_required
@@ -473,9 +525,9 @@ def select_justifications(justifications, num_slots, selection_policy = j_random
                 res[qid][did] = selected
     return res
 
-@pages.route('/quiz/<int:quiz_id>/justification/histogram', methods=['GET'])
+@pages.route('/quiz/<int:quiz_id>/<int:course_id>/justification/histogram', methods=['GET'])
 @login_required 
-def get_justification_distribution(quiz_id):
+def get_justification_distribution(quiz_id, course_id):
     ''' outputs png for shown justification distribution '''
     if not current_user.is_instructor():
         flash("You are not allowed to get justification distribution")
@@ -483,7 +535,7 @@ def get_justification_distribution(quiz_id):
     attempt_quality_attr = request.args.get("attempt_quality", "initial_total_score")   
     def attempt_quality(attempt):
         return getattr(attempt, attempt_quality_attr)    
-    attempts = models.QuizAttempt.query.filter(models.QuizAttempt.quiz_id == quiz_id, models.QuizAttempt.status != QUIZ_ATTEMPT_STEP1).all() # assuming one per student for now 
+    attempts = models.QuizAttempt.query.filter(models.QuizAttempt.quiz_id == quiz_id, models.QuizAttempt.status != QUIZ_ATTEMPT_STEP1, models.QuizAttempt.course_id == course_id).all() # assuming one per student for now 
     quiz_attempt_ids = set(a.id for a in attempts)
     student_attempts = {a.student_id: a for a in attempts} #TODO: one attempt per student per quiz currently 
     # attempt_map = {a.id:a for a in attempts}
@@ -521,8 +573,8 @@ def get_justification_distribution(quiz_id):
     finally:
         plt.close(figure)
 
-def get_or_create_attempt(quiz: models.Quiz, quiz_questions, distractor_per_question):
-    attempt = models.QuizAttempt.query.filter_by(student_id=current_user.id, quiz_id=quiz.id).first()
+def get_or_create_attempt(quiz: models.Quiz, course, quiz_questions, distractor_per_question):
+    attempt = models.QuizAttempt.query.filter_by(student_id=current_user.id, quiz_id=quiz.id, course_id=course.id).first()
     if attempt is None: #first visit 
         quiz_model = get_quiz_builder().load_quiz_model(quiz, create_if_not_exist=True)
         if quiz_model is None: #by default when no evo process - we pick all distractors selected by instructor
@@ -534,18 +586,18 @@ def get_or_create_attempt(quiz: models.Quiz, quiz_questions, distractor_per_ques
         for question_alternatives in selected_distractor_ids:
             question_alternatives["alternatives"].append(-1) #add correct answer 
             random.shuffle(question_alternatives["alternatives"]) #shuffle each question alternatives
-        attempt = models.QuizAttempt(quiz_id=quiz.id, student_id=current_user.id, status = QUIZ_ATTEMPT_STEP1, alternatives=selected_distractor_ids)
+        attempt = models.QuizAttempt(quiz_id=quiz.id, student_id=current_user.id, status = QUIZ_ATTEMPT_STEP1, alternatives=selected_distractor_ids, course_id=course.id)
         models.DB.session.add(attempt)
         models.DB.session.commit()
     return attempt
 
-@pages.route('/student/<quiz:q>', methods=['GET']) #IMPORTANT: see the notation of <quiz:q> in the url template - these are custom converter - check _init__.py APP.url_map.converters 
+@pages.route('/student/<quiz:quiz_course>', methods=['GET']) #IMPORTANT: see the notation of <quiz:q> in the url template - these are custom converter - check _init__.py APP.url_map.converters 
 @login_required
 @role_required(role=ROLE_STUDENT, redirect_route='pages.index', redirect_message="You are not allowed to take this quiz")
-@verify_deadline(quiz_attempt_param = "q", redirect_route='pages.index')
-@verify_instructor_relationship(quiz_attempt_param = "q", redirect_route='pages.index')
+@verify_deadline(quiz_attempt_param = "quiz_course", redirect_route='pages.index')
+@verify_instructor_relationship(quiz_attempt_param = "quiz_course", redirect_route='pages.index')
 @retry_concurrent_update #this will retry the call of this function  in case when two requests try to update db at same time - optimistic concurency 
-def get_quiz(q):
+def get_quiz(quiz_course):
     '''
     Links using this route are meant to be shared with students so that they may take the quiz
     and engage in the asynchronous peer instrution aspects. 
@@ -553,6 +605,8 @@ def get_quiz(q):
     # TODO #3 we replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
     # see lines commented out a ## for originals
     ##quiz_questions = [question.dump_as_dict() for question in q.quiz_questions]
+    q = quiz_course.quiz
+    course = quiz_course.course
     quiz_questions = q.quiz_questions
     # FIXME why are we not unescaping above?
 
@@ -576,7 +630,7 @@ def get_quiz(q):
 
     #unescaping part - left for backward compatibility for now
     
-    attempt = get_or_create_attempt(q, quiz_questions, distractor_per_question)
+    attempt = get_or_create_attempt(q, course, quiz_questions, distractor_per_question)
     quiz_question_ids = [ int(qid) for qid in attempt.alternatives_map.keys() ]
     distractor_ids = [did for _, ds in attempt.alternatives_map.items() for did in ds]
 
@@ -606,7 +660,7 @@ def get_quiz(q):
     if not check_quiz_session_cookie():
         return redirect(url_for("pages.protected_get_quiz", q = q))    
     if attempt.status == QUIZ_ATTEMPT_STEP1:
-        return reset_quiz_session_cookie(make_response(render_template('step1.html', quiz=quiz_model, questions=question_model)))
+        return reset_quiz_session_cookie(make_response(render_template('step1.html', quiz=quiz_model, questions=question_model, course=course)))
     if attempt.status == QUIZ_ATTEMPT_STEP2:
         if attempt.selected_justifications_timestamp is None: #attempt justifications were not initialized yet
             # retrieve the peers' justifications for each question  
@@ -623,7 +677,7 @@ def get_quiz(q):
             #                     fallback_policy = select_random_justification) ))
 
             student_ids = set(j.student_id for (_, d) in possible_justifications.items() for (_, js) in d.items() for j in js)
-            attempts = models.QuizAttempt.query.filter_by(quiz_id = q.id).where(models.QuizAttempt.student_id.in_(student_ids)).all()
+            attempts = models.QuizAttempt.query.filter_by(quiz_id = q.id, course_id=course.id).where(models.QuizAttempt.student_id.in_(student_ids)).all()
             student_attempts = {a.student_id:a for a in attempts}
 
             def get_justification_fitness(justification):
@@ -676,7 +730,7 @@ def get_quiz(q):
             models.Likes4Justifications.justification_id.in_(jids)).all()
             
         likes = set(l.justification_id for l in present_likes)
-        return reset_quiz_session_cookie(make_response(render_template('step2.html', quiz=quiz_model,
+        return reset_quiz_session_cookie(make_response(render_template('step2.html', quiz=quiz_model, course=course,
             questions=question_model, attempt=attempt.dump_as_dict(),
             justifications=selected_justification_map, likes = likes)))
 
@@ -690,16 +744,18 @@ def get_quiz(q):
     return reset_quiz_session_cookie(make_response(render_template("solutions.html", quiz=quiz_model,
         questions=question_model, attempt=attempt.dump_as_dict(), explanations=explanations)))
 
-@pages.route('/student/<quiz:q>/start', methods=['GET', 'POST'])
+@pages.route('/student/<quiz:quiz_course>/start', methods=['GET', 'POST'])
 @login_required
 @role_required(role=ROLE_STUDENT, redirect_route='pages.index', redirect_message="You are not allowed to take this quiz")
-@verify_deadline(quiz_attempt_param = "q", redirect_route='pages.index')
-@verify_instructor_relationship(quiz_attempt_param = "q", redirect_route='pages.index')
-def protected_get_quiz(q: models.Quiz):
+@verify_deadline(quiz_attempt_param = "quiz_course", redirect_route='pages.index')
+@verify_instructor_relationship(quiz_attempt_param = "quiz_course", redirect_route='pages.index')
+def protected_get_quiz(quiz_course):
     '''
     Same to get_quiz but requires login password from student. Instead of GET, POST method is used. 
     This method is entered when student submit login form 
     '''
+    q = quiz_course.quiz
+    course = quiz_course.course
     step_pwd = q.step1_pwd if q.status == QUIZ_STEP1 else q.step2_pwd if q.status == QUIZ_STEP2 else ""
     if step_pwd != "":
         if request.method == 'GET':
@@ -707,9 +763,9 @@ def protected_get_quiz(q: models.Quiz):
         password = request.form.get('password')
         if password != step_pwd:
             flash('Incorrect pass phrase was provided.')
-            return redirect(url_for('pages.protected_get_quiz', q = q))
+            return redirect(url_for('pages.protected_get_quiz', quiz_course = quiz_course))
 
-    response = make_response(redirect(url_for("pages.get_quiz", q = q)))
+    response = make_response(redirect(url_for("pages.get_quiz", quiz_course = quiz_course)))
     response.set_cookie('quiz_session_id', f"{current_user.id}:{q.id}")
     return response
 
@@ -722,7 +778,7 @@ def protected_get_quiz(q: models.Quiz):
 @unmime(delim='_', type_converters={"question":{"*":lambda x: int(x)}})
 @retry_concurrent_update
 def save_quiz_attempt(q, body):
-    quiz, attempt = q
+    quiz, course, attempt = q
 
     body.setdefault("question", {})    
 
@@ -730,7 +786,7 @@ def save_quiz_attempt(q, body):
     #validation that attempt could go to next step 
     for qid in attempt.alternatives_map.keys():
         if qid not in attempt.step_responses:
-            return {"message": "You must select an answer for each question", "redirect": url_for("pages.get_quiz", q = quiz) }, 400
+            return {"message": "You must select an answer for each question", "redirect": url_for("pages.get_quiz", q = quiz, course=course) }, 400
         
     response_set = {(int(qid), did) for qid, did in attempt.step_responses.items()}
 
@@ -756,7 +812,7 @@ def save_quiz_attempt(q, body):
                     if qdid in js_map:
                         js_to_delete.append(js_map[qdid])
                 elif qdid not in js_map:
-                    return { "message" : "You must provide a justification for each unselected option", "redirect": url_for("pages.get_quiz", q = quiz) }, 400
+                    return { "message" : "You must provide a justification for each unselected option", "redirect": url_for("pages.get_quiz", q = quiz, course=course) }, 400
                 else:
                     js_map[qdid].ready = True #justification could be used by student on next step
 
@@ -807,7 +863,7 @@ class QuizStats:
     # total_score: dict #dict student id: score 
     # max_total_score: dict #dict student id: score 
 
-def get_quiz_statistics(qid):
+def get_quiz_statistics(qid, course_id):
     '''
     This page allows to get all stats on a given quiz.
     '''    
@@ -827,9 +883,15 @@ def get_quiz_statistics(qid):
     distractors = { qid : {d.id : unescape(d.answer) for d in ds} 
                     for (qid, ds) in groupby(plain_distractors, key = lambda d: d.question_id) } 
 
-    plain_attempts = models.QuizAttempt.query.where(models.QuizAttempt.quiz_id == qid, models.QuizAttempt.status != QUIZ_ATTEMPT_STEP1).all()
+    plain_attempts = models.QuizAttempt.query.where(models.QuizAttempt.quiz_id == qid, models.QuizAttempt.status != QUIZ_ATTEMPT_STEP1, models.QuizAttempt.course_id == course_id).all()
 
-    stats = QuizStats(quiz.dump_as_dict(), questions, distractors, students = [])
+    quiz_questions = {}
+    quiz_question_distractors = {}
+    for (question_id, quiz_question_id) in zip(question_ids, quiz_question_ids):
+        quiz_questions[quiz_question_id] = questions[question_id]
+        quiz_question_distractors[quiz_question_id] = distractors[question_id]
+
+    stats = QuizStats(quiz.dump_as_dict(), quiz_questions, quiz_question_distractors, students = [])
 
     if len(plain_attempts) == 0:
         return stats  
@@ -942,14 +1004,14 @@ def get_quiz_statistics(qid):
 
     return stats
 
-@pages.route('/quiz/<int:qid>/grades', methods=['GET'])
+@pages.route('/quiz/<int:qid>/<int:course_id>/grades', methods=['GET'])
 @login_required
 @role_required(ROLE_INSTRUCTOR)
-def quiz_grader(qid):
+def quiz_grader(qid, course_id):
     '''
     This page allows to get all stats on a given quiz.
     '''
-    stats = get_quiz_statistics(qid)
+    stats = get_quiz_statistics(qid, course_id)
     accept_mime_type = request.accept_mimetypes.best
     query_mime_type = request.args.get("q", None)
     if accept_mime_type == "text/csv" or query_mime_type == "csv":
@@ -984,21 +1046,54 @@ def quiz_grader(qid):
                 limitingFactorOptions = limitingFactorOptions,
                 # justification_like_count = stats.justification_like_count,
                 numJustificationsOptions = numJustificationsOptions, quartileOptions = quartileOptions,
+                course_id = course_id
                 # justification_grade = stats.justification_scores, total_scores = stats.total_scores, 
                 # max_total_scores = stats.max_total_scores
                 )
 
-@pages.route('/student-list', methods=['GET', 'POST'])
+@pages.route('/quiz-copy/<int:qid>', methods=['GET'])
 @login_required
 @role_required(ROLE_INSTRUCTOR)
-def student_list():
+def quiz_copy(qid):
+    '''
+    This page allows to copy a quiz.
+    '''
+    quiz = models.Quiz.query.get_or_404(qid)
+    evo_process = models.EvoProcess.query.filter_by(quiz_id=qid).first()
+    if quiz is None:
+        flash('Quiz not found', 'danger')
+        return redirect(url_for('pages.home'))
+
+    new_quiz = quiz.copy()
+    models.DB.session.add(new_quiz)
+
+    if evo_process is not None:
+        new_evo_process = evo_process.deepcopy()
+        models.DB.session.add(new_evo_process)
+
+    models.DB.session.commit()
+
+    flash("Quiz copied successfully", "message")
+
+    return redirect(request.referrer)
+
+@pages.route('/courses/<int:cid>/student-list', methods=['GET', 'POST'])
+@login_required
+@role_required(ROLE_INSTRUCTOR)
+def student_list(cid):
     # print(f'In student_list, current_user: {current_user}, get_id: {current_user.get_id()}')
+    course = models.Course.query.filter_by(id=cid).first()
+
+    if course is None:
+        flash('Course not found', 'danger')
+        return redirect(url_for('pages.home'))
+
     instructor = models.User.query.get_or_404(current_user.get_id())
     if request.method == 'GET':
-        return render_template('student-list.html', students=instructor.students)
+        return render_template('student-list.html', students=course.students)
     elif request.method == 'POST':
         # delete current student list if any so latest csv data is used
-        models.DB.session.query(DB.Model.metadata.tables['InstructorStudent']).filter(DB.Model.metadata.tables['InstructorStudent'].c.InstructorId == current_user.get_id()).delete()
+        models.DB.session.query(DB.Model.metadata.tables['CourseStudent']).filter(DB.Model.metadata.tables['CourseStudent'].c.CourseId == cid).delete()
         csvfile = request.files['csvfile']
         csvstring = csvfile.read().decode('utf-8')
         for email in [line.strip() for line in csvstring.splitlines()]:
@@ -1008,7 +1103,7 @@ def student_list():
             if student is None:  # student not in DB
                 # add new User with empty password (needed as sentinel for when they login)
                 student = models.User(email=email)
-            student.instructors.append(instructor)
+            student.courses.append(course)
             DB.session.add(student)
         DB.session.commit()
-        return redirect(url_for('pages.student_list'))
+        return redirect(url_for('pages.student_list', cid=course.id))

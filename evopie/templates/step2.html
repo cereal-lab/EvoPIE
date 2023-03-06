@@ -8,6 +8,7 @@
     <script>
 
         const quizId = "{{quiz.id}}";
+        const courseId = "{{course.id}}";
         const lower = {{ attempt.min_participation_grade_threshold }};
         const upper = {{ attempt.participation_grade_threshold }};
         let likesGiven = {{ likes | length }};
@@ -29,7 +30,7 @@
         }
 
         const saveLikes = async (likes) => {
-            let res = await fetchJson(`/quizzes/${quizId}/justifications/like`, {
+            let res = await fetchJson(`/quizzes/${quizId}/${courseId}/justifications/like`, {
                 method: 'PUT',
                 headers: {'Content-Type' : 'application/json'},
                 body: JSON.stringify(likes),

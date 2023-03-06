@@ -1,0 +1,203 @@
+{% extends 'base.html' %}
+{% import 'widgets.html' as w %}
+
+{% block title %}EvoPIE{% endblock %}
+
+{% block head%}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.css">  
+<script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.js"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='multislider.css') }}">
+<script type="text/javascript" charset="utf8" src="{{ url_for('static', filename='multislider.js') }}"></script>
+<script>
+
+    function submitCourseForm(event){
+
+        let name = document.querySelector('#course_name');
+        let title = document.querySelector('#course_title');
+        let description = document.querySelector('#course_description');
+            
+        let xhr = new XMLHttpRequest();
+        let url = '/courses/{{course.id}}';
+    
+        xhr.open("PUT", url, false);
+        xhr.setRequestHeader("Content-Type", "application/json");
+
+        // Create a state change callback 
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState === 4 && xhr.status === 200) {
+                sendToFlashLand(JSON.parse(this.responseText).message,"primary");
+                }
+        };
+        // FIXED 405 returned: that was the lack of quiz.id on the URL
+        // Converting JSON data to string 
+        // We pass no questions_ids at all since we only want to update the title / description in this page
+        // passing an empty list for that field would result in removing all the questions from the quiz instead
+        var data = JSON.stringify({ "name": name.value, "title": title.value, "description": description.value }); 
+        // Sending data with the request 
+        xhr.send(data);
+        //location.reload();
+
+        
+        // FIXED redirects to URL with arguments in ? format
+        // had to stop propagation of events in the DOM in the onclick handler
+        event.preventDefault();
+        event.stopPropagation();
+
+        return false;
+        // NOTE return false in onSubmit handlers in order to not reload the page
+        // see https://stackoverflow.com/questions/14224366/how-to-avoid-automatic-page-reload-after-xmlhttprequest-call/14224399
+        // NOPE... we are using onclick handler here not onsubmit...
+        // still looks like it's working...
+    }
+
+
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="jumbotron jumbotron-fluid">
+    <div class="container">
+        <h1 class="display-4">Course Editor</h1>
+            <p class="lead">
+                Use this to edit the course details.
+            </p>
+    </div>
+</div>
+
+<div class="card bg-light m-3 mx-auto" style="width: 75%">
+    <div class="card-body" bg-light>
+        <div>
+        <p class="card-text">
+            <form id='CourseForm'>
+                <div class="form-group">
+                    <label for="course_name">Name (Subject & Number)</label>
+                    <input name="course_name" id="course_name" value="{{course.name}}" required>
+                </div>
+                <br>
+                <div class="form-group">
+                    <label for="course_title">Title</label>
+                    <input name="course_title" id="course_title" value="{{course.title}}" required>
+                </div>
+                <br>
+                <div class="form-group">
+                    <label for="course_description">Description</label>
+                    <textarea class="summernote form-control" name="course_description" id="course_description" required>
+                        {{course.description}}
+                    </textarea>
+                </div>
+                <br>
+                <button onclick="submitCourseForm(event)" class="btn btn-primary">Submit Changes</button>
+            </form>
+        </p>
+        </div>
+    </div>
+</div>
+
+<div class="card bg-light m-3 mx-auto" style="width: 75%">
+    <div class="card-body" bg-light>
+        <h5 class="card-title">
+            All quizzes in this course
+        </h5>
+        <table style="border:1px solid">
+            <tr>
+                <th style="border:1px solid; padding:  0 0.5em">
+                    Quiz ID#
+                </th>
+                <th style="border:1px solid; padding:  0 0.5em">
+                    Title
+                </th>
+                <th style="border:1px solid; padding:  0 0.5em">
+                    Description
+                </th>
+            </tr>
+            {% for quiz in course.quizzes %}
+                        <tr>
+                            <td  style="border:1px solid; padding:  0 0.5em" valign='top'>
+                                {{ quiz.id | safe }}
+                            </td>
+                            <td  style="border:1px solid; padding:  0 0.5em" valign="top">
+                                {{ quiz.title | safe }}
+                            </td>
+                            <td  style="border:1px solid; padding:  0 0.5em" valign="top">
+                                {{ quiz.description | safe }}
+                            </td>
+                        </tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+
+<div class="card bg-light m-3 mx-auto" style="width: 75%">
+    <div class="card-body" bg-light>
+        <h5 class="card-title">
+            List of all available quizzes to add to this course
+        </h5>
+        <table style="border:1px solid">
+            <tr>
+                <th style="border:1px solid; padding:  0 0.5em">
+                    Quiz ID#
+                </th>
+                <th style="border:1px solid; padding:  0 0.5em">
+                    Title
+                </th>
+                <th style="border:1px solid; padding:  0 0.5em">
+                    Description
+                </th>
+            </tr>
+            {% for quiz in quizzes %}
+                        <tr>
+                            <td  style="border:1px solid; padding:  0 0.5em" valign='top'>
+                                <label for="D{{quiz.id}}">
+                                    <INPUT TYPE="Checkbox" Name="quizzes_checkboxes" ID="Q{{quiz.id}}" Value="{{quiz.id}}">
+                                    &nbsp;&nbsp;&nbsp;&nbsp;
+                                    {{quiz.id}}
+                                </label>
+                            </td>
+                            <td  style="border:1px solid; padding:  0 0.5em" valign="top">
+                                {{ quiz.title | safe }}
+                            </td>
+                            <td  style="border:1px solid; padding:  0 0.5em" valign="top">
+                                {{ quiz.description | safe }}
+                            </td>
+                        </tr>
+                    </div>
+            {% endfor %}
+        </table>
+        <a class="btn btn-primary my-2 btn-sm" onClick='submitQuizzes()' href="#">
+            Submit with all selected quizzes below
+        </a>
+    </div>
+</div>
+
+<script>
+    async function submitQuizzes(){
+        url="/course-editor/{{course.id}}";
+        const checkboxes = document.querySelectorAll('input[name="quizzes_checkboxes"]:checked');
+        let checked_quizzes = [];
+        checkboxes.forEach((checkbox) => {
+            checked_quizzes.push(checkbox.value);
+        });
+        let response;
+        try {
+            response = await fetch(url,{
+                method:         'POST',
+                headers:        {'Content-Type' : 'application/json'},
+                body:           JSON.stringify({"selected_quizzes" :  checked_quizzes}),
+                credentials:    'same-origin'
+            })
+            response = await response.json();
+            if (response.status === "success") {
+                sendToFlashLand(response.message, response.status);
+                await delay(3000);
+                window.location.href = response.redirect;
+            } else {
+                sendToFlashLand(response.message, response.status);
+            }
+        } catch (error) {
+            console.log(error);
+        }
+    }
+</script>
+
+{% endblock %}
+
