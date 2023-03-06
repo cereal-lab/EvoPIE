@@ -13,7 +13,7 @@ attach database "TARGET" as target_db;
 
 create temp table new_user as 
 select id as old_user_id, 
-    CASE WHEN 'NEW_AUTHOR_ID' = '' THEN coalesce((select max(id) from target_db.user), 0) + 1 ELSE CAST('NEW_AUTHOR_ID' as int) END as new_user_id,
+    CASE WHEN 'NEW_AUTHOR_ID' = '' THEN coalesce((select id from target_db.user where email=CASE WHEN 'NEW_AUTHOR_EMAIL' = '' THEN 'AUTHOR_EMAIL' ELSE 'NEW_AUTHOR_EMAIL' END), coalesce((select max(id) from target_db.user), 0) + 1) ELSE CAST('NEW_AUTHOR_ID' as int) END as new_user_id,
     email as old_author_email,
     CASE WHEN 'NEW_AUTHOR_EMAIL' = '' THEN email ELSE 'NEW_AUTHOR_EMAIL' END as new_author_email
 from source_db.user where email = 'AUTHOR_EMAIL';
@@ -47,7 +47,7 @@ inner join source_db.distractor d on d.question_id = nq.old_question_id;
 insert or ROLLBACK into target_db.user (id, email, USER_COL)
 select nu.new_user_id, nu.new_author_email, USER_VAL from new_user as nu 
 inner join source_db.user as u on u.id = nu.old_user_id
-where nu.new_user_id not in (select id from target_db.user);
+where nu.new_author_email not in (select email from target_db.user) and nu.new_user_id not in (select id from target_db.user);
 
 insert OR ROLLBACK into target_db.quiz (id, author_id, QUIZ_COL)
 select nq.new_quiz_id, new_user_id, QUIZ_VAL from new_quiz as nq 
