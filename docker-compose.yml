@@ -15,8 +15,12 @@ services:
   nginx:
     build: ./nginx
     ports:
-      - "5000:80"
+      - "443:443"
+      - "9443:9443"
     depends_on:
       - web
     restart: always
+    volumes:
+      - /etc/letsencrypt/live/evopie.cse.usf.edu:/etc/certs
+
     
