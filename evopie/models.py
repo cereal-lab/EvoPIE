@@ -120,6 +120,8 @@ class Distractor(DB.Model):
 
     id = DB.Column(DB.Integer, primary_key=True)
 
+    author_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'), default=None)
+
     answer = DB.Column(DB.String, nullable=False)
     
     # The following is used as reference justification for not picking this distractor & 
