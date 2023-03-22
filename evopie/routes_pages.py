@@ -1075,7 +1075,7 @@ def quiz_copy(qid):
 
     flash("Quiz copied successfully", "message")
 
-    return redirect(request.referrer)
+    return redirect(url_for('pages.quizzes_browser'))
 
 @pages.route('/courses/<int:cid>/student-list', methods=['GET', 'POST'])
 @login_required
