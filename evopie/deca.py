@@ -260,14 +260,16 @@ def unique_question_per_axis_constraint(space):
 def gen_test_distractor_mapping_knowledge(space): 
     ''' Generates knowledge in format similar to cli student init -k flag. Use this to init StudentKnowledge database 
     '''
-    knowledge = [*[ {"sid": point['cfs'], "qid": qid, "did": did, "chance": 100 + int(point_id) } 
+    knowledge = [*[ {"sid": point['cfs'], "qid": qid, "did": did, "chance": 1000 + len(point['cfs']) } 
                     for _, points in space['axes'].items()
                     for point_id, point in points.items() 
                     for qid, did in point['dids']],
-                 *[ {"sid": point['cfs'], "qid": qid, "did": did, "chance": 100 * len(axes_ids) + len(point['dids']) } 
+                 *[ {"sid": point['cfs'], "qid": qid, "did": did, "chance": 1000 * len(axes_ids) + len(point['cfs']) } 
                     for axes_ids, point in space['spanned'].items()
                     for qid, did in point['dids']]]
     return knowledge
+
+
 
 #rnd = np.random.RandomState(17)
 #axes = gen_deca_space([1,2,3,4,5,6,7,8,9,10], (2,2), 1, 0.3, rnd = rnd)
@@ -300,11 +302,13 @@ def avg_rank_of_repr(space, population_distractors):
                                                                         for _, did in point['dids'] 
                                                                         if did in population_distractors], key = lambda x: x[0])}
     arr_axes = [axes_rank[axis_id] / len(space['axes'][axis_id]) for axis_id in space['axes'] if axis_id in axes_rank]
+    arra_axes = [(axes_rank[axis_id] / len(space['axes'][axis_id])) if axis_id in axes_rank else 0 for axis_id in space['axes']]
     arr = np.average(arr_axes) if len(arr_axes) > 0 else 0 
+    arra = np.average(arra_axes)
     # arr_with_spanned_axes = [max([axes_rank.get(axis_id, 0), spanned_ranks.get(axis_id, 0)]) / len(space['axes'][axis_id]) 
     #                             for axis_id in space['axes'] if axis_id in axes_rank or axis_id in spanned_ranks]
     # arr_with_spanned = np.average(arr_with_spanned_axes) if len(arr_with_spanned_axes) > 0 else 0 
-    return {"arr": arr}#, "arr_with_spanned": arr_with_spanned}
+    return {"arr": arr, "arra": arra}#, "arr_with_spanned": arr_with_spanned}
 
 # avg_rank_of_repr(space, [5,6,14])
 

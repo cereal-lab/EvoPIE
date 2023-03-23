@@ -11,6 +11,7 @@ from werkzeug.test import TestResponse
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
+import traceback
 
 from evopie import APP, deca, models
 from evopie.config import QUIZ_ATTEMPT_STEP1, QUIZ_STEP1, QUIZ_STEP2, ROLE_STUDENT
@@ -620,7 +621,9 @@ def calc_deca_metrics(algo_input, deca_space, params, input_output):
     with open(deca_space, 'r') as f:
         space = deca.load_space_from_json("\n".join(f.readlines()))
     population_distractors = algo_results["distractors"]
-    metrics_map = {"algo":algo_input,"deca": deca_space, **{p:algo_results.get(p, np.nan) for p in params},
+    algo_name = algo_input.split("/")[-1].split(".")[0]
+    deca_name = deca_space.split("/")[-1].split(".")[0]
+    metrics_map = {"algo":algo_name,"deca": deca_name, #**{p:algo_results.get(p, np.nan) for p in params},
                     **deca.dimension_coverage(space, population_distractors),
                     **deca.avg_rank_of_repr(space, population_distractors),
                     **deca.redundancy(space, population_distractors),
@@ -636,7 +639,7 @@ def calc_deca_metrics(algo_input, deca_space, params, input_output):
     except FileNotFoundError:
         metrics = DataFrame([metrics_map])
     metrics.to_csv(input_output, index=False)   
-    submetrics = metrics[["dim_coverage", "arr", "population_redundancy", "population_duplication", "noninfo"]]
+    submetrics = metrics[["dim_coverage", "arr", "arra", "population_redundancy", "population_duplication", "noninfo"]]
     sys.stdout.write(f"Metrics:\n{submetrics}\n")
 
 @deca_cli.command("space-result")
@@ -793,9 +796,9 @@ def run_experiment(deca_input, algo, algo_folder, random_seed, results_folder, n
             print(f"Start run {i} of {algo_file_name} on {deca_space_id}")
             res = runner.invoke(args=["quiz", "run", "-q", 1, "-s", "STEP1", "--algo", algo_name, "--algo-params", json.dumps(algo_with_params),
                                         "--evo-output", f"{algo_file_name}.json", "--random-seed", run_random_seed ])
-            if res.exit_code != 0:
-                print(res.stdout)
-            assert res.exit_code == 0
+            # if res.exit_code != 0:
+            print(res.stdout)                
+            assert res.exit_code == 0, f" {traceback.format_exception(None, res.exc_info[1], res.exc_info[2])}"
             print(f"Analysing run {i} of {algo_file_name} on {deca_space_id}")
             res = runner.invoke(args=["deca", "result", "--algo-input", f"{algo_file_name}.json", "--deca-space", deca_input, 
                                         "-p", "explored_search_space_size", "-p", "search_space_size", "-io", os.path.join(results_folder, f"{algo_display_name}-on-{deca_space_id}.csv")])

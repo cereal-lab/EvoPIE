@@ -131,14 +131,14 @@ class SamplingQuizModel(QuizModel):
         interaction = self.interactions.get(str(evaluator_id), None)
         given_quiz = interaction['quiz']
         if self.reduced_facts: 
-            result = interaction.setdefault('result', {})
+            present_result = interaction.setdefault('result', {})
             for qid, dids in given_quiz:
                 answer = result.get(qid, -1)
                 if answer == -1:
                     for did in dids:
-                        result[str(did)] = 0 
+                        present_result[str(did)] = 0 
                 else:
-                    result[str(answer)] = 1
+                    present_result[str(answer)] = 1
         else:
             interaction['result'] = {str(did):1 if did == answer else 0 for qid, dids in given_quiz for answer in [result.get(qid, -1)] for did in dids }
         for qid, dids in given_quiz:
@@ -189,10 +189,12 @@ class SamplingQuizModel(QuizModel):
         return distractors
 
     def to_dataframe(self):
-        return DataFrame(data = self.inverted_interactions.values(), index = [int(did) for did in self.inverted_interactions.keys()])
+        dids, students = zip(*sorted([ (int(did), {int(sid):r for sid, r in ints.items()}) for did, ints in self.inverted_interactions.items() ], key=lambda x: x[0]))
+        df = DataFrame(data = students, index = dids)
+        return df.reindex(sorted(list(df.columns)), axis=1)
 
     #strategies should have signatures as next dids -> blocked_dids -> selection
-    def pick_random(self, dids, blocked_dids, num = None):
+    def pick_random(self, dids, blocked_dids, qid, num = None):
         return [int(d) for d in self.rnd.choice(dids, num or self.n, raplce = False)] if len(dids) > (num or self.n) else dids          
 
     def sample_by_score(self, dids, scores):
@@ -209,11 +211,11 @@ class SamplingQuizModel(QuizModel):
             selected_did = self.rnd.choice(dids, p=weights)
         return int(selected_did)
 
-    def max_difficulty(self, dids, blocked_dids):        
+    def max_difficulty(self, dids, blocked_dids, qid):        
         #first for fare game we give each distractor to students at least ones:
         min_num_evals = self.hyperparams.get("min_num_evals", 1)
         high_priority = [did for did in dids if len(self.inverted_interactions.get(int(did), {})) < min_num_evals]
-        selected = self.pick_random(self, high_priority, self.n)
+        selected = self.pick_random(high_priority, [], qid, num = self.n)
 
         did_scores = {}
         def did_score(did):
@@ -236,14 +238,14 @@ class SamplingQuizModel(QuizModel):
                 did_cfs = set(sid for sid, r in did_students.items() if r == 1 and sid in selected_did_sids)
                 # common_students = set.intersection(set(did_students.keys()), set(selected_did_students.keys()))            
                 if len(did_cfs) > 1 and did_cfs.issubset(selected_did_cfs):
-                    p = self.hyperparams.get("penalty", 0.1)
+                    p = self.hyperparams.get("penalty", 0.01)
                     blocked_dids[did] = p #penalty for same behavior
 
     #note that hyperparams could vary with time - at some point we would prefer exploitation against exploration
     def compute_score(self, did, non_dominated, dominated, dids, blocked_dids):
-        a = self.hyperparams.get("a", 100)
-        b = self.hyperparams.get("b", 100)
-        c = self.hyperparams.get("c", 100)
+        a = self.hyperparams.get("a", 1000)
+        b = self.hyperparams.get("b", 1000)
+        c = self.hyperparams.get("c", 0)
         alpha = self.hyperparams.get("alpha", 1)
         beta = self.hyperparams.get("beta", 1)
         gamma = self.hyperparams.get("gamma", 1)
@@ -252,20 +254,23 @@ class SamplingQuizModel(QuizModel):
         knowledge_annealing = self.hyperparams.get("knowledge_annealing", 1) #will degrade knowledge component with time t
         did_interactions = self.inverted_interactions.get(int(did), {})
         interacted_student_count = len(self.interactions)
-        if len(did_interactions) == 0:
-            return 1000 #should be very high - at start we prefer knowledge 
         cfs = [s for s, r in did_interactions.items() if r == 1]
         css = [s for s, r in did_interactions.items() if r == 0]
         penalty = blocked_dids.get(did, 1)
         non_domination_force = (len(non_dominated) / len(dids)) ** alpha
         domination_force = (len(dominated) / len(dids)) ** beta
-        knowledge_force = (1 - len(did_interactions) / interacted_student_count) ** gamma
-        simplicity_force = (1 - len(cfs) / len(did_interactions)) ** delta
-        difficulty_force = (1 - len(css) / len(did_interactions)) ** epsilon
-        res = penalty * (1 + a * sqrt(non_domination_force * domination_force) + b * (knowledge_annealing ** self.t) * knowledge_force + c * sqrt(simplicity_force * difficulty_force))
-        return res
+        knowledge_force = 1 if len(did_interactions) == 0 else (1 - len(did_interactions) / interacted_student_count) ** gamma
+        simplicity_force = 0 if len(did_interactions) == 0 else (1 - len(cfs) / len(did_interactions)) ** delta
+        difficulty_force = 0 if len(did_interactions) == 0 else (1 - len(css) / len(did_interactions)) ** epsilon
+        # key = (penalty, len(non_dominated) * len(dominated), len(cfs) * len(css), interacted_student_count - len(did_interactions))
+        nondominance_vs_dominance = a * sqrt(non_domination_force * domination_force)
+        knowledge_f = b * (knowledge_annealing ** self.t) * knowledge_force
+        simplicity_vs_difficulty = c * sqrt(simplicity_force * difficulty_force)
+        res = penalty * (1 + nondominance_vs_dominance + knowledge_f + simplicity_vs_difficulty)
+        return {"score": res, "nond": nondominance_vs_dominance, "sd": simplicity_vs_difficulty, 
+                    "kn": knowledge_f, "p": penalty }
 
-    def non_domination(self, dids, blocked_dids):                
+    def non_domination(self, dids, blocked_dids, qid):                
         did_relations = {did:(non_domination, domination)
                             for did in dids                             
                             for s in [self.inverted_interactions.get(int(did), {})]
@@ -285,17 +290,115 @@ class SamplingQuizModel(QuizModel):
                                 if s_lst != s1_lst and any(v1 > v2 for v1, v2 in zip(s_lst, s1_lst))]]}
         selected = []
         for i in range(len(selected), self.n):
-            scores = [0 if did in selected else self.compute_score(did, non_dominated, dominated, dids, blocked_dids)
-                        for did, (non_dominated, dominated) in did_relations.items()]
-            selected_did = self.sample_by_score(dids, scores)
+            scores = [{"score": 0} if did in selected else self.compute_score(did, non_dominated, dominated, dids, blocked_dids)
+                        for did, (non_dominated, dominated) in did_relations.items()]            
+            selected_did_index = self.sample_by_score(list(range(len(dids))), [s["score"] for s in scores])
+            selected_did = dids[selected_did_index]
+            selected_did_scores = scores[selected_did_index]
+            # keyed_dids = [ (((0 if did in selected else 1), *key), did)
+            #                     for did, (non_dominated, dominated) in did_relations.items()
+            #                     for key in [self.compute_key(did, non_dominated, dominated, dids, blocked_dids)]]
+            # sorted_dids = sorted(keyed_dids, key = lambda d: d[0], reverse=True)            
+            # best_dids = [sd[1] for sd in sorted_dids if sd[0] == sorted_dids[0][0]]
+            # selected_did = int(self.rnd.choice(best_dids))
+            max_component = max([f for f in selected_did_scores.keys() if f not in ['score']], key = lambda k: selected_did_scores[k])
+            print(f"Sampled d {selected_did} for q {qid}: {selected_did_scores} MAX: {max_component}")
+            self.block_similar(selected_did, blocked_dids)
+            selected.append(selected_did)
+        return selected  
+
+    def build_key(self, keys):
+        return lambda scores: tuple(scores[k] for k in keys)
+        
+    def calc_knowledge_score(self, did, selected_dids):
+        did_interactions = self.inverted_interactions.get(int(did), {})
+        interacted_student_count = len(self.interactions)
+        knowledge_force = 1 if interacted_student_count == 0 else (1 - len(did_interactions) / interacted_student_count)
+        scores = {}
+        scores["kn"] = knowledge_force
+        #next we compute relative knowledge - how many times this distractor was selected with already selected_dids for evaluation
+        scores["rel-kn"] = -(sum(len([sid for sid in s2.keys() if sid in did_interactions]) 
+                                        for selected_did in selected_dids for s2 in [self.inverted_interactions.get(int(selected_did), {})]))
+        scores["kn-n"] = len(did_interactions)
+        return scores
+
+    def calc_domination_score(self, did, dids):
+        did_interactions = self.inverted_interactions.get(int(did), {})
+        non_dominated = [did1 for did1 in dids 
+                                if did1 != did
+                                for s1 in [self.inverted_interactions.get(int(did1), {})]
+                                for common_students in [set.intersection(set(did_interactions.keys()), set(s1.keys()))]
+                                for s_lst in [[did_interactions[sid] for sid in common_students]]
+                                for s1_lst in [[s1[sid] for sid in common_students]]
+                                if any(v1 > v2 for v1, v2 in zip(s_lst, s1_lst)) and any(v1 < v2 for v1, v2 in zip(s_lst, s1_lst))]
+        dominated = [did1 for did1 in dids 
+                                if did1 != did
+                                for s1 in [self.inverted_interactions.get(int(did1), {})]
+                                for common_students in [set.intersection(set(did_interactions.keys()), set(s1.keys()))]
+                                for s_lst in [[did_interactions[sid] for sid in common_students]]
+                                for s1_lst in [[s1[sid] for sid in common_students]]
+                                if s_lst != s1_lst and any(v1 > v2 for v1, v2 in zip(s_lst, s1_lst))]
+        non_domination_score = len(non_dominated) / len(dids)
+        domination_score = len(dominated) / len(dids)
+        scores = {}
+        scores["nond"] = non_domination_score
+        scores["nondb"] = 1 if non_domination_score > 0 else 0
+        scores["dom"] = domination_score
+        return scores
+    
+    def calc_complexity_score(self, did):
+        did_interactions = self.inverted_interactions.get(int(did), {})
+        cfs = [s for s, r in did_interactions.items() if r == 1]
+        css = [s for s, r in did_interactions.items() if r == 0]
+        simplicity_score = 0 if len(did_interactions) == 0 else (1 - len(cfs) / len(did_interactions))
+        difficulty_score = 0 if len(did_interactions) == 0 else (1 - len(css) / len(did_interactions))
+        scores = {}
+        # scores["simple"] = simplicity_score
+        # scores["difficult"] = difficulty_score
+        scores["sd"] = sqrt(simplicity_score * difficulty_score)
+        scores["d"] = len(cfs)
+        scores["-d"] = -scores["d"]
+        scores["s"] = len(css)
+        scores["-s"] = -scores["s"]
+        return scores
+    
+    def slot_based(self, dids, blocked_dids, qid):                
+        selected = []
+        default_one_key = ["rel-kn", "kn", "nond", "sd", "dom"]
+        default_key_spec = [{"t": 0, "keys": [default_one_key] * self.n }]
+        # key_spec_for_best = ["nond", "sd", "dom"]
+        key_spec = self.hyperparams.get("key_spec", default_key_spec)
+        key_spec = sorted(key_spec, key = lambda x: x["t"])
+        if len(key_spec) == 0:
+            key_spec = default_key_spec
+        if key_spec[0]["t"] != 0:
+            key_spec = [*default_key_spec, *key_spec]        
+        curr_key_spec = next(spec for spec in reversed(key_spec) if self.t >= spec["t"])["keys"]
+        for i in range(self.n):
+            # i_key_spec = key_spec_for_best if self.sample_best_one else curr_key_spec[i] if i < len(curr_key_spec) else default_one_key
+            i_key_spec = curr_key_spec[i] if i < len(curr_key_spec) else default_one_key
+            key_selector = self.build_key(i_key_spec)
+            candidate_dids = [ {"did": did, "scores": scores, "key": key_selector(scores) }
+                                    for did in dids if did not in selected and did not in blocked_dids
+                                    for scores in [{**self.calc_knowledge_score(did, selected), **self.calc_domination_score(did, dids), **self.calc_complexity_score(did)}]]
+            sorted_candidate_dids = sorted(candidate_dids, key=lambda x: x["key"], reverse=True)
+            best_candidate_key = sorted_candidate_dids[0]["key"]
+            best_candidates = [c for c in sorted_candidate_dids if c["key"] == best_candidate_key]
+
+            selected_candidate_index = int(self.rnd.choice(len(best_candidates)))
+            selected_candidate = best_candidates[selected_candidate_index]
+            selected_did = selected_candidate["did"]
+            print(f"t={self.t} {i}/{self.n} d={selected_did} from alts {len(best_candidates)} {selected_candidate} kspec: {curr_key_spec[i]}")
             self.block_similar(selected_did, blocked_dids)
             selected.append(selected_did)
         return selected         
-    
+
     def sample_quiz(self) -> 'list[tuple[int, list[int]]]':
         ''' Sample based on interactions and strategy '''
         self.t += 1
         blocked_dids = {} #some info to block same concept distractors across questions
-        return [[qid, sorted(self.sample_strategy(dids, blocked_dids))] for qid, dids in self.distractors_per_question.items()]        
+        res = [[qid, sorted(self.sample_strategy(dids, blocked_dids, qid))] for qid, dids in self.distractors_per_question.items()]        
+        # print("--> ", res)
+        return res
 
 

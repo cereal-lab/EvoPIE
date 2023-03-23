@@ -27,11 +27,47 @@ flask deca init-many -ns 100 -nq 4 -nd 25 \
 flask deca init-many -ns 100 -nq 4 -nd 25 \
     -an 10 \
     -as 5 \
+    --num-spanned 0 \
+    --num-spaces 1 \
+    --best-students-percent 0.1 \
+    --noninfo 0.25 \
+    --timeout 1000 --random-seed 17
+
+flask deca init-many -ns 100 -nq 4 -nd 25 \
+    -an 10 \
+    -as 5 \
+    --num-spanned 5 \
+    --num-spaces 1 \
+    --best-students-percent 0.1 \
+    --noninfo 0.25 \
+    --timeout 1000 --random-seed 17    
+
+flask deca init-many -ns 100 -nq 4 -nd 25 \
+    -an 10 \
+    -as 5 \
     --num-spanned 10 \
     --num-spaces 1 \
-    --best-students-percent 0.05 \
-    --noninfo 0.1 \
-    --timeout 1000 --random-seed 17
+    --best-students-percent 0.1 \
+    --noninfo 0.25 \
+    --timeout 1000 --random-seed 17       
+
+flask deca init-many -ns 100 -nq 4 -nd 25 \
+    -an 10 \
+    -as 5 \
+    --num-spanned 20 \
+    --num-spaces 1 \
+    --best-students-percent 0.1 \
+    --noninfo 0.25 \
+    --timeout 1000 --random-seed 17      
+
+flask deca init-many -ns 100 -nq 4 -nd 25 \
+    -an 4 \
+    -as 3 \
+    --num-spanned 50 \
+    --num-spaces 1 \
+    --best-students-percent 0.1 \
+    --noninfo 0.25 \
+    --timeout 1000 --random-seed 17     
 
     # --algo '{ "id": "rand-5", "algo":"evopie.rand_quiz_model.RandomQuizModel", "n": 5}' \
     # --algo '{ "id": "pphc-1-2-1-3", "algo":"evopie.pphc_quiz_model.PphcQuizModel", "pop_size": 1, "pareto_n": 2, "child_n": 1, "gene_size": 3}' \
@@ -50,7 +86,7 @@ flask quiz deca-experiments \
     --deca-spaces deca-spaces \
     --algo-folder algo \
     --results-folder results \
-    --random-seed 23 --num-runs 30 \
+    --random-seed 23 --num-runs 10 \
     --algo '{ "id": "rand-3", "algo":"evopie.rand_quiz_model.RandomQuizModel", "n": 3}' 
 
 flask quiz deca-experiments \
