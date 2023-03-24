@@ -337,12 +337,13 @@ class SamplingQuizModel(QuizModel):
                                 for common_students in [set.intersection(set(did_interactions.keys()), set(s1.keys()))]
                                 for s_lst in [[did_interactions[sid] for sid in common_students]]
                                 for s1_lst in [[s1[sid] for sid in common_students]]
-                                if s_lst != s1_lst and any(v1 > v2 for v1, v2 in zip(s_lst, s1_lst))]
+                                if len(common_students) >= 2 and all(v1 >= v2 for v1, v2 in zip(s_lst, s1_lst)) and any(v1 > v2 for v1, v2 in zip(s_lst, s1_lst))]
         non_domination_score = len(non_dominated) / len(dids)
         domination_score = len(dominated) / len(dids)
         scores = {}
         scores["nond"] = non_domination_score
-        scores["nondb"] = 1 if non_domination_score > 0 else 0
+        # scores["nondb"] = 1 if non_domination_score > 0 else 0
+        scores["nd"] = sqrt(non_domination_score * domination_score)
         scores["dom"] = domination_score
         return scores
     
