@@ -1,7 +1,7 @@
 #!/bin/bash 
 #SBATCH --job-name=e-smpl
 #SBATCH --time=72:00:00
-#SBATCH --output=e-smpl.out
+#SBATCH --output=e-smpl-%a.out
 #SBATCH --mem=8G
 #SBATCH --array=0-15
 

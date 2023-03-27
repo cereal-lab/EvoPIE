@@ -28,7 +28,7 @@ flask deca init-many -ns 100 -nq 4 -nd 25 \
     -an 10 \
     -as 5 \
     --num-spanned 0 \
-    --num-spaces 1 \
+    --num-spaces 5 \
     --best-students-percent 0.1 \
     --noninfo 0.25 \
     --timeout 1000 --random-seed 17
@@ -37,7 +37,7 @@ flask deca init-many -ns 100 -nq 4 -nd 25 \
     -an 10 \
     -as 5 \
     --num-spanned 5 \
-    --num-spaces 1 \
+    --num-spaces 5 \
     --best-students-percent 0.1 \
     --noninfo 0.25 \
     --timeout 1000 --random-seed 17    
@@ -46,7 +46,7 @@ flask deca init-many -ns 100 -nq 4 -nd 25 \
     -an 10 \
     -as 5 \
     --num-spanned 10 \
-    --num-spaces 1 \
+    --num-spaces 5 \
     --best-students-percent 0.1 \
     --noninfo 0.25 \
     --timeout 1000 --random-seed 17       
@@ -55,7 +55,7 @@ flask deca init-many -ns 100 -nq 4 -nd 25 \
     -an 10 \
     -as 5 \
     --num-spanned 20 \
-    --num-spaces 1 \
+    --num-spaces 5 \
     --best-students-percent 0.1 \
     --noninfo 0.25 \
     --timeout 1000 --random-seed 17      
@@ -64,7 +64,7 @@ flask deca init-many -ns 100 -nq 4 -nd 25 \
     -an 4 \
     -as 3 \
     --num-spanned 50 \
-    --num-spaces 1 \
+    --num-spaces 5 \
     --best-students-percent 0.1 \
     --noninfo 0.25 \
     --timeout 1000 --random-seed 17     
@@ -360,3 +360,5 @@ flask quiz plot-metric-vs-num-of-dims --data-folder data/data-2023-02-12 --path-
 flask deca space-result -r results
 
 flask deca space-result -r results -s D -f D
+
+flask deca space-result -r data/data-2023-03-24 -s ARRA -f ARRA

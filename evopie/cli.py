@@ -647,24 +647,36 @@ def calc_deca_metrics(algo_input, deca_space, params, input_output):
 @click.option('-s', '--sort-column', default='algo')
 @click.option('-f', '--filter-column', default=None)
 def calc_space_result(result_folder, sort_column, filter_column):
-    metrics = ['explored_search_space_size', 'dim_coverage', 'arr', 'population_redundancy', 'population_duplication', 'noninfo']
-    res = DataFrame(columns=['algo', *[c for m in metrics for c in [m, m + '_std']]])
+    metrics = ['dim_coverage', 'arr', 'arra', 'population_redundancy', 'population_duplication', 'noninfo']
+    res = DataFrame(columns=['space', 'algo', *[c for m in metrics for c in [m, m + '_std']]])
+    dframes = {}
     for file_name in os.listdir(result_folder): 
+        key = "-".join(file_name.split(".")[0].split("-")[:-1])        
         space_result = os.path.join(result_folder, file_name)
         algo_stats = pandas.read_csv(space_result)
-        idx = len(res.index)
-        res.loc[idx, 'algo'] = algo_stats.loc[0, 'algo'].split("/")[-1][:-len('.json')]
+        dframes.setdefault(key, []).append(algo_stats)
+        # idx = len(res.index)        
+        # res.loc[idx, 'algo'] = algo_stats.loc[0, 'algo'].split("/")[-1].split(".")[0]
+        # res.loc[idx, metrics] = algo_stats[metrics].mean()
+        # res.loc[idx, [m + '_std' for m in metrics]] = algo_stats[metrics].std().tolist()
+    for key, lst in dframes.items():
+        algo_stats = pandas.concat(lst)
+        idx = len(res.index)   
+        algo, space = key.split("-on-")   
+        res.loc[idx, 'space'] = space
+        res.loc[idx, 'algo'] = algo
         res.loc[idx, metrics] = algo_stats[metrics].mean()
         res.loc[idx, [m + '_std' for m in metrics]] = algo_stats[metrics].std().tolist()
     res[[m + '_std' for m in metrics]] = res[[m + '_std' for m in metrics]].astype(float)
     res[metrics] = res[metrics].astype(float)    
-    res.rename(columns={'explored_search_space_size':'sz', 'dim_coverage':'D', 'arr':'ARR', 'population_redundancy':'R', 'population_duplication':'Dup', 'noninfo':'nI',
-                            'explored_search_space_size_std': 'sz_std','dim_coverage_std':'D_std', 'arr_std':'ARR_std', 'population_redundancy_std':'R_std', 'population_duplication_std':'Dup_std', 'noninfo_std':'nI_std'}, inplace=True)
-    res.sort_values(by = sort_column, inplace=True, ascending=False)
+    res.rename(columns={'dim_coverage':'D', 'arr':'ARR', 'arra': 'ARRA', 'population_redundancy':'R', 'population_duplication':'Dup', 'noninfo':'nI',
+                            'dim_coverage_std':'D_std', 'arr_std':'ARR_std', 'arra_std': 'ARRA_std', 'population_redundancy_std':'R_std', 'population_duplication_std':'Dup_std', 'noninfo_std':'nI_std'}, inplace=True)
+    res.sort_values(by = ['space', sort_column], inplace=True, ascending=False)
     res = res.round(3)
     if filter_column:
         ms = filter_column.split(',')
-        res = res[["algo", *[c for m in ms for c in [m, m + '_std']]]]
+        res = res[['space', "algo", *[c for m in ms for c in [m, m + '_std']]]]
+    res.to_csv(os.path.join(result_folder, 'space-result.csv'), index=False)
     print(res.to_string(index=False))
 
 @quiz_cli.command("export")

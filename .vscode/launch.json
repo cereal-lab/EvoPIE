@@ -351,7 +351,23 @@
                 "-q", "1"
             ],
             "console": "internalConsole"
-        }
+        },
+        {
+            "name": "CLI: deca space result",
+            "type": "python",
+            "request": "launch",
+            "module": "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1"
+            },
+            "args" : [
+                "deca", "space-result",
+                "-r", "data/data-2023-03-24"
+            ],
+            "console": "internalConsole"
+        }        
     ]
 }
 
