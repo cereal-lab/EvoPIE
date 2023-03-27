@@ -8,12 +8,13 @@ attach database "SOURCE" as source_db;
 attach database "TARGET" as target_db;
 
 create temp table migration_tables as 
-select column1 as table_name from (values ('user'), ('quiz'), ('question'), ('distractor'), ('quiz_question'), ('relation_questions_vs_quizzes'), ('quiz_questions_hub'));
+with T(table_name) as (values ('user'), ('quiz'), ('question'), ('distractor'), ('quiz_question'), ('relation_questions_vs_quizzes'), ('quiz_questions_hub'))
+select * from T;
 
 --todo: here we could also add necessary properties of columns (type or affinity type)
 create temp table at_least_required_columns as 
-select column1 as table_name, column2 as column_name, column3 as db_name
-from (values ('user', 'id', 'source_db'),
+with T(table_name, column_name, db_name) as 
+(values ('user', 'id', 'source_db'),
              ('user', 'id', 'target_db'),
              ('user', 'email', 'source_db'),
              ('user', 'email', 'target_db'),
@@ -27,19 +28,22 @@ from (values ('user', 'id', 'source_db'),
              ('distractor', 'id', 'target_db'),
              ('distractor', 'question_id', 'source_db'),
              ('distractor', 'question_id', 'target_db')
-    );
+    )
+select * from T;
 
 create temp table at_most_required_columns as 
-select column1 as table_name, column2 as column_name 
-from (values ('quiz_question', 'id'), 
+with T(table_name, column_name)
+as (values ('quiz_question', 'id'), 
              ('quiz_question', 'question_id'),
              ('relation_questions_vs_quizzes', 'quiz_id'),
              ('relation_questions_vs_quizzes', 'quiz_question_id'),
              ('quiz_questions_hub', 'quiz_question_id'),
-             ('quiz_questions_hub', 'distractor_id'));
+             ('quiz_questions_hub', 'distractor_id'))
+select * from T;
 
 create temp table dbs as 
-select column1 as dbs_name from (values ('source_db'), ('target_db'));
+with T(dbs_name) as (values ('source_db'), ('target_db'))
+select * from T;
 
 --https://www.sqlite.org/pragma.html#pragma_table_xinfo
 create temp table db_schemas as
