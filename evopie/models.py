@@ -120,6 +120,8 @@ class Distractor(DB.Model):
 
     id = DB.Column(DB.Integer, primary_key=True)
 
+    author_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'), default=None)
+
     answer = DB.Column(DB.String, nullable=False)
     
     # The following is used as reference justification for not picking this distractor & 
@@ -137,8 +139,34 @@ class Distractor(DB.Model):
 
     def dump_as_simplified_dict(self):
         return {"id" : self.id, "answer": "", "justification": ""}
+    
         
+class InvalidatedDistractor(DB.Model):
+    '''
+    An InvalidatedDistractor object is a plausible but wrong answer to a Question provided by a student.
+    '''
 
+    id = DB.Column(DB.Integer, primary_key=True)
+
+    author_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'))
+
+    answer = DB.Column(DB.String, nullable=False)
+    
+    # The following is used as reference justification for not picking this distractor & 
+    # is provided by the distractor's author
+    justification = DB.Column(DB.String, nullable=False)
+
+    # to allow for 1-to-many relationship Question / Distractor
+    question_id = DB.Column(None, DB.ForeignKey('question.id'))
+
+    def __repr__(self):
+        return "<InvalidatedDistractor: id='%d',question_id=%d>" % (self.id, self.question_id)
+
+    def dump_as_dict(self): # TODO #3
+        return {"id" : self.id, "answer": unescape(self.answer), "justification": unescape(self.justification)}
+
+    def dump_as_simplified_dict(self):
+        return {"id" : self.id, "answer": "", "justification": ""}
 
 class QuizQuestion(DB.Model):
     '''

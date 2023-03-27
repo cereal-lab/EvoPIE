@@ -114,6 +114,36 @@ def start_course_init(instructor, name, title, description):
         throw_on_http_fail(c.post("/login",json=instructor))
         throw_on_http_fail(c.post('/courses', json=course))
 
+@quiz_cli.command("copy")
+@click.option('-q', '--quiz-id')
+@click.option('-c', '--course-id')
+def start_quiz_copy(quiz_id, course_id):
+    instructor = {"email":"i@usf.edu", "firstname":"I", "lastname": "I", "password":"pwd"}
+    with APP.test_client(use_cookies=True) as c: #instructor session
+        throw_on_http_fail(c.post("/login",json=instructor))
+        c.get(f"/quiz-copy/{quiz_id}", headers={"Accept": "application/json"})
+        new_quiz_id = str(int(quiz_id) + 1)
+        throw_on_http_fail(c.post(f"/course-editor/{course_id}", json={"selected_quizzes": [new_quiz_id]}))
+
+@quiz_cli.command("settings")
+@click.option('-q', '--quiz-id')
+@click.option('-s', '--settings')
+def edit_quiz_settings(quiz_id, settings):
+    settings = json.loads(settings)
+    with APP.test_client(use_cookies=True) as c: #instructor session
+        throw_on_http_fail(c.post(f"/quizzes/{quiz_id}/status", json={ "status" : "HIDDEN" }))
+        settings_for_quiz = { 
+            "first_quartile_grade": settings.get("fq", 1),
+            "second_quartile_grade": settings.get("sq", 3),
+            "third_quartile_grade": settings.get("tq", 5),
+            "fourth_quartile_grade": settings.get("frq", 10),
+            "initial_score": settings.get("is", 40),
+            "revised_score": settings.get("rs", 30),
+            "justification_grade": settings.get("jg", 20),
+            "participation_grade": settings.get("pg", 10)
+        }
+        throw_on_http_fail(c.post(f"/quiz/{quiz_id}/settings", json=settings_for_quiz))
+
 
 @quiz_cli.command("init")
 @click.option('-i', '--instructor', default='i@usf.edu')
@@ -282,6 +312,15 @@ def init_students(course_id, num_students, exclude_id, input, output, email_form
         sys.stdout.write(f"Students were saved to {output}:\n {students}\n")
     else: 
         sys.stdout.write(f"Students were created:\n {students}\n")
+
+@student_cli.command("addToCourse")
+@click.option('-cs', '--course-id')
+def add_to_course(course_id):
+    course = models.Course.query.get_or_404(course_id)
+    students = models.User.query.filter(models.User.id > 1).all()
+    for student in students:
+        student.courses.append(course)
+        models.DB.session.commit()
 
 @student_cli.command("knows")
 # @click.option('-q', '--quiz', type = int, required = True)
