@@ -11,6 +11,7 @@ from werkzeug.test import TestResponse
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
+import traceback
 
 from evopie import APP, deca, models
 from evopie.config import QUIZ_ATTEMPT_STEP1, QUIZ_STEP1, QUIZ_STEP2, ROLE_STUDENT
@@ -344,151 +345,155 @@ def init_knowledge(input, output, email_format, knows, knowledge_replace, deca_i
     #     #NOTE: for additional validation we also could check that distractors exist in Distractor tables
     #     question_distractors = {qid:[q.distractor_id for q in qds] for qid, qds in groupby(quiz_question_distractors, key = lambda x: x.quiz_question_id)}
     #     #NOTE: quiz also should be used to connect instructor to generated students and namespace them from other students
+    print(f"Student knows {input}, {output}, {email_format}, {knows}, {knowledge_replace}, {deca_input}")
+    try:
+        knows_map_input = {}
+        if input is not None:
+            input_students = pandas.read_csv(input)
+            input_students.dropna(subset=["email"])
+            for sid in input_students.index:
+                s = input_students.loc[sid]
+                for c in input_students.columns:
+                    if c.startswith("d_") and s[c]:
+                        qid, did, step = (int(id) for id in c.split("_")[1:])
+                        knows_map_input.setdefault(s["email"], {}).setdefault(qid, {}).setdefault(did, [np.nan, np.nan])[step - 1] = s[c]
+        
+        #NOTE: if step is provided - the knowledge will not be passed to next steps 
+        #NOTE: otherwise if chance is a list - elements are treated as chances for each step sequentially
+        #NOTE: otherwise chance defines value for all steps
+        def dks_reducton(acc, k):
+            ''' adds chances from simple knows record '''
+            if "step" in k:
+                local_step = k["step"] - 1
+                acc[local_step] = k["chance"][local_step] if type(k["chance"]) == list else k["chance"]
+            elif type(k["chance"]) == list:
+                for i in range(min(len(acc), len(k["chance"]))):
+                    acc[i] = k["chance"][i]
+            else: 
+                for i in range(len(acc)):
+                    if acc[i] < 0:
+                        acc[i] = k["chance"]
+            return acc 
 
-    knows_map_input = {}
-    if input is not None:
-        input_students = pandas.read_csv(input)
-        input_students.dropna(subset=["email"])
-        for sid in input_students.index:
-            s = input_students.loc[sid]
-            for c in input_students.columns:
-                if c.startswith("d_") and s[c]:
-                    qid, did, step = (int(id) for id in c.split("_")[1:])
-                    knows_map_input.setdefault(s["email"], {}).setdefault(qid, {}).setdefault(did, [np.nan, np.nan])[step - 1] = s[c]
-    
-    #NOTE: if step is provided - the knowledge will not be passed to next steps 
-    #NOTE: otherwise if chance is a list - elements are treated as chances for each step sequentially
-    #NOTE: otherwise chance defines value for all steps
-    def dks_reducton(acc, k):
-        ''' adds chances from simple knows record '''
-        if "step" in k:
-            local_step = k["step"] - 1
-            acc[local_step] = k["chance"][local_step] if type(k["chance"]) == list else k["chance"]
-        elif type(k["chance"]) == list:
-            for i in range(min(len(acc), len(k["chance"]))):
-                acc[i] = k["chance"][i]
+        knows_map_deca = {} 
+        if deca_input:
+            with open(deca_input, 'r') as deca_input_json_file:
+                deca_input_json_str = "\n".join(deca_input_json_file.readlines())
+                space = deca.load_space_from_json(deca_input_json_str)
+                knows_map_deca_plain = deca.gen_test_distractor_mapping_knowledge(space)
+                knows_unpacked = unpack_key('did', unpack_key('qid', unpack_key('sid', knows_map_deca_plain)))
+                knows_map_deca = {sid: {qid: {did: reduce(dks_reducton, dks, [-1,-1])
+                                    for did, dks in groupby(qks, key = lambda x: x.get("did", "*")) } 
+                                    for qid, qks in groupby(sks, key = lambda x: x.get("qid", "*")) } 
+                                    for sid, sks in groupby(knows_unpacked, key = lambda x: x.get("sid", "*"))} 
+            
+
+        knows = [json.loads(k) for k in knows]  #NOTE: expected format {'sid':<opt, by default all>, 'qid':<opt, by default all>, 'did':<opt, by default all>, choice:num or [step1_c, step2_c] }
+        knows_unpacked = unpack_key('did', unpack_key('qid', unpack_key('sid', knows)))
+
+        knows_map_args = {email_format.format(sid): {qid: {did: reduce(dks_reducton, dks, [-1,-1])
+                            for did, dks in groupby(qks, key = lambda x: x.get("did", "*")) } 
+                            for qid, qks in groupby(sks, key = lambda x: x.get("qid", "*")) } 
+                            for sid, sks in groupby(knows_unpacked, key = lambda x: x.get("sid", "*"))}    
+            
+        distractor_map = None
+        with_wild_did = [(qid, qks) for sks in knows_map_args.values() for qid, qks in sks.items() if qid != "*" and "*" in qks]
+        if len(with_wild_did) > 0: #remove wild dids 
+            if not distractor_map:
+                distractor_ids = models.Distractor.query.with_entities(models.Distractor.id, models.Distractor.question_id)
+                distractor_map = {qid:set(d.id for d in qds) for qid, qds in groupby(distractor_ids, key = lambda x: x.question_id) }
+            for (qid, qks) in with_wild_did:
+                for did in distractor_map.get(qid, []):
+                    qks.setdefault(did, list(qks["*"]))
+                del qks["*"]    
+        
+        with_wild_qid = [(sid, sks) for sid, sks in knows_map_args.items() if "*" in sks]    
+        if len(with_wild_qid) > 0: #remove wildcard for qid        
+            if not distractor_map:
+                distractor_ids = models.Distractor.query.with_entities(models.Distractor.id, models.Distractor.question_id)
+                distractor_map = {qid:set(d.id for d in qds) for qid, qds in groupby(distractor_ids, key = lambda x: x.question_id) }                
+            new_knows = {}
+            for sid, sks in with_wild_qid:            
+                new_sks = new_knows.setdefault(sid, {})
+                qks = sks["*"]
+                for qid, dids in distractor_map.items():
+                    if "*" in qks: #for all distractors
+                        for did in dids:
+                            new_sks.setdefault(qid, {}).setdefault(did, qks["*"])
+                    for did, dks in qks.items():
+                        if did in dids:
+                            new_sks.setdefault(qid, {}).setdefault(did, dks)
+            for sid, sks in new_knows.items():
+                for qid, qks in sks.items():
+                    for did, dks in qks.items():
+                        knows_map_args.setdefault(sid, {}).setdefault(qid, {}).setdefault(did, dks)
+            for _, sks in with_wild_qid: 
+                del sks["*"]
+
+        knows_map = {**knows_map_input, **knows_map_deca, **knows_map_args}        
+        students = DataFrame(columns=["email", "id"])    
+
+        distractor_column_order = list(sorted(set([ (i+1, qid, did) for skn in knows_map.values() for qid, qkn in skn.items() for did, dkn in qkn.items() for i, chance in enumerate(dkn) if chance > 0])))
+        distractor_columns = [f'd_{q}_{d}_{step}' for step, q, d in distractor_column_order]
+
+        with APP.test_client(use_cookies=True) as c:
+            all_students = models.User.query.where(models.User.role == ROLE_STUDENT).with_entities(models.User.email, models.User.id)
+            email_to_id = {}
+            id_to_email = {}
+            for s in all_students:
+                email_to_id[s.email] = s.id 
+                id_to_email[s.id] = s.email
+            def init_knowledge_from_map(knowledge_map):
+                def add_to_students(email, student_id, student_knowledge):
+                    distractors = {(i+1, qid, did):chance for qid, qks in student_knowledge.items() for did, dks in qks.items() for i, chance in enumerate(dks) if chance > 0}
+                    students.loc[student_id, [ "email", "id", *distractor_columns ]] = [email, student_id, *[distractors[kid] if kid in distractors else np.nan for kid in distractor_column_order]]                
+                if "*" in knowledge_map:
+                    for student_id, email in id_to_email.items():
+                        add_to_students(email, student_id, knowledge_map["*"])
+                for student_id, student_knowledge in knowledge_map.items():
+                    if student_id in id_to_email:
+                        email = id_to_email[student_id]
+                        add_to_students(email, student_id, student_knowledge)
+                for student_email, student_knowledge in knowledge_map.items():
+                    if student_email in email_to_id:
+                        student_id = email_to_id[student_email]
+                        add_to_students(student_email, student_id, student_knowledge)
+            init_knowledge_from_map(knows_map_input)
+            init_knowledge_from_map(knows_map_deca)
+            init_knowledge_from_map(knows_map_args)
+
+        student_ids = set(students["id"])
+        present_knowledge_query = models.StudentKnowledge.query.where(models.StudentKnowledge.student_id.in_(student_ids))
+        if knowledge_replace: 
+            present_knowledge_query.delete()
+            present_knowledge = {}
+        else:
+            present_plain = present_knowledge_query.all()
+            present_knowledge = {kid:ks[0] for kid, ks in groupby(present_plain, key=lambda k: (k.student_id, k.question_id, k.distractor_id, k.step_id))}
+        for _, student in students.iterrows(): 
+            for c in student[student.notnull()].index:
+                if c.startswith("d_"):    
+                    question_id, distractor_id, step_id = [int(x) for x in c.split('_')[1:]]
+                    knowledge_id = student.id, question_id, distractor_id, step_id
+                    if knowledge_id in present_knowledge:
+                        present_knowledge[knowledge_id].chance = student[c]
+                    else:
+                        k = models.StudentKnowledge(student_id=student.id, question_id = question_id, distractor_id=distractor_id, step_id = step_id, chance = student[c])
+                        models.DB.session.add(k) 
+        for (sid, qid, did, step), v in present_knowledge.items():
+            if sid in students.index: 
+                column = f'd_{qid}_{did}_{step}'
+                if np.isnan(students.loc[sid, column]):
+                    students.loc[sid, column] = v.chance
+        models.DB.session.commit()
+        if output is not None:
+            students.to_csv(output, index=False)    
+            sys.stdout.write(f"Students were saved to {output}:\n {students}\n")
         else: 
-            for i in range(len(acc)):
-                if acc[i] < 0:
-                    acc[i] = k["chance"]
-        return acc 
-
-    knows_map_deca = {} 
-    if deca_input:
-        with open(deca_input, 'r') as deca_input_json_file:
-            deca_input_json_str = "\n".join(deca_input_json_file.readlines())
-            space = deca.load_space_from_json(deca_input_json_str)
-            knows_map_deca_plain = deca.gen_test_distractor_mapping_knowledge(space)
-            knows_unpacked = unpack_key('did', unpack_key('qid', unpack_key('sid', knows_map_deca_plain)))
-            knows_map_deca = {sid: {qid: {did: reduce(dks_reducton, dks, [-1,-1])
-                                for did, dks in groupby(qks, key = lambda x: x.get("did", "*")) } 
-                                for qid, qks in groupby(sks, key = lambda x: x.get("qid", "*")) } 
-                                for sid, sks in groupby(knows_unpacked, key = lambda x: x.get("sid", "*"))} 
-        
-
-    knows = [json.loads(k) for k in knows]  #NOTE: expected format {'sid':<opt, by default all>, 'qid':<opt, by default all>, 'did':<opt, by default all>, choice:num or [step1_c, step2_c] }
-    knows_unpacked = unpack_key('did', unpack_key('qid', unpack_key('sid', knows)))
-
-    knows_map_args = {email_format.format(sid): {qid: {did: reduce(dks_reducton, dks, [-1,-1])
-                        for did, dks in groupby(qks, key = lambda x: x.get("did", "*")) } 
-                        for qid, qks in groupby(sks, key = lambda x: x.get("qid", "*")) } 
-                        for sid, sks in groupby(knows_unpacked, key = lambda x: x.get("sid", "*"))}    
-        
-    distractor_map = None
-    with_wild_did = [(qid, qks) for sks in knows_map_args.values() for qid, qks in sks.items() if qid != "*" and "*" in qks]
-    if len(with_wild_did) > 0: #remove wild dids 
-        if not distractor_map:
-            distractor_ids = models.Distractor.query.with_entities(models.Distractor.id, models.Distractor.question_id)
-            distractor_map = {qid:set(d.id for d in qds) for qid, qds in groupby(distractor_ids, key = lambda x: x.question_id) }
-        for (qid, qks) in with_wild_did:
-            for did in distractor_map.get(qid, []):
-                qks.setdefault(did, list(qks["*"]))
-            del qks["*"]    
-    
-    with_wild_qid = [(sid, sks) for sid, sks in knows_map_args.items() if "*" in sks]    
-    if len(with_wild_qid) > 0: #remove wildcard for qid        
-        if not distractor_map:
-            distractor_ids = models.Distractor.query.with_entities(models.Distractor.id, models.Distractor.question_id)
-            distractor_map = {qid:set(d.id for d in qds) for qid, qds in groupby(distractor_ids, key = lambda x: x.question_id) }                
-        new_knows = {}
-        for sid, sks in with_wild_qid:            
-            new_sks = new_knows.setdefault(sid, {})
-            qks = sks["*"]
-            for qid, dids in distractor_map.items():
-                if "*" in qks: #for all distractors
-                    for did in dids:
-                        new_sks.setdefault(qid, {}).setdefault(did, qks["*"])
-                for did, dks in qks.items():
-                    if did in dids:
-                        new_sks.setdefault(qid, {}).setdefault(did, dks)
-        for sid, sks in new_knows.items():
-            for qid, qks in sks.items():
-                for did, dks in qks.items():
-                    knows_map_args.setdefault(sid, {}).setdefault(qid, {}).setdefault(did, dks)
-        for _, sks in with_wild_qid: 
-            del sks["*"]
-
-    knows_map = {**knows_map_input, **knows_map_deca, **knows_map_args}        
-    students = DataFrame(columns=["email", "id"])    
-
-    distractor_column_order = list(sorted(set([ (i+1, qid, did) for skn in knows_map.values() for qid, qkn in skn.items() for did, dkn in qkn.items() for i, chance in enumerate(dkn) if chance > 0])))
-    distractor_columns = [f'd_{q}_{d}_{step}' for step, q, d in distractor_column_order]
-
-    with APP.test_client(use_cookies=True) as c:
-        all_students = models.User.query.where(models.User.role == ROLE_STUDENT).with_entities(models.User.email, models.User.id)
-        email_to_id = {}
-        id_to_email = {}
-        for s in all_students:
-            email_to_id[s.email] = s.id 
-            id_to_email[s.id] = s.email
-        def init_knowledge_from_map(knowledge_map):
-            def add_to_students(email, student_id, student_knowledge):
-                distractors = {(i+1, qid, did):chance for qid, qks in student_knowledge.items() for did, dks in qks.items() for i, chance in enumerate(dks) if chance > 0}
-                students.loc[student_id, [ "email", "id", *distractor_columns ]] = [email, student_id, *[distractors[kid] if kid in distractors else np.nan for kid in distractor_column_order]]                
-            if "*" in knowledge_map:
-                for student_id, email in id_to_email.items():
-                    add_to_students(email, student_id, knowledge_map["*"])
-            for student_id, student_knowledge in knowledge_map.items():
-                if student_id in id_to_email:
-                    email = id_to_email[student_id]
-                    add_to_students(email, student_id, student_knowledge)
-            for student_email, student_knowledge in knowledge_map.items():
-                if student_email in email_to_id:
-                    student_id = email_to_id[student_email]
-                    add_to_students(student_email, student_id, student_knowledge)
-        init_knowledge_from_map(knows_map_input)
-        init_knowledge_from_map(knows_map_deca)
-        init_knowledge_from_map(knows_map_args)
-
-    student_ids = set(students["id"])
-    present_knowledge_query = models.StudentKnowledge.query.where(models.StudentKnowledge.student_id.in_(student_ids))
-    if knowledge_replace: 
-        present_knowledge_query.delete()
-        present_knowledge = {}
-    else:
-        present_plain = present_knowledge_query.all()
-        present_knowledge = {kid:ks[0] for kid, ks in groupby(present_plain, key=lambda k: (k.student_id, k.question_id, k.distractor_id, k.step_id))}
-    for _, student in students.iterrows(): 
-        for c in student[student.notnull()].index:
-            if c.startswith("d_"):    
-                question_id, distractor_id, step_id = [int(x) for x in c.split('_')[1:]]
-                knowledge_id = student.id, question_id, distractor_id, step_id
-                if knowledge_id in present_knowledge:
-                    present_knowledge[knowledge_id].chance = student[c]
-                else:
-                    k = models.StudentKnowledge(student_id=student.id, question_id = question_id, distractor_id=distractor_id, step_id = step_id, chance = student[c])
-                    models.DB.session.add(k) 
-    for (sid, qid, did, step), v in present_knowledge.items():
-        if sid in students.index: 
-            column = f'd_{qid}_{did}_{step}'
-            if np.isnan(students.loc[sid, column]):
-                students.loc[sid, column] = v.chance
-    models.DB.session.commit()
-    if output is not None:
-        students.to_csv(output, index=False)    
-        sys.stdout.write(f"Students were saved to {output}:\n {students}\n")
-    else: 
-        sys.stdout.write(f"Students were created:\n {students}\n")
+            sys.stdout.write(f"Students were created:\n {students}\n")
+    except Exception as e:
+        print(e)
+        raise
 
 @student_cli.command("export")        
 @click.option('-o', '--output')
@@ -512,13 +517,14 @@ def export_student_knowledge(output):
 
 KNOWLEDGE_SELECTION_CHANCE = "KNOWLEDGE_SELECTION_CHANCE"
 KNOWLEDGE_SELECTION_WEIGHT = "KNOWLEDGE_SELECTION_WEIGHT"
+KNOWLEDGE_SELECTION_STRENGTH = "KNOWLEDGE_SELECTION_STRENGTH"
 
 @quiz_cli.command("run")
 @click.option('-q', '--quiz', type=int, required=True)
 @click.option('-c', '--course_id', type=int, required=True)
 @click.option('-s', '--step', default = [QUIZ_STEP1], multiple=True)
 @click.option('-n', '--n-times', type=int, default=1)
-@click.option('-kns', '--knowledge-selection', default = KNOWLEDGE_SELECTION_WEIGHT)
+@click.option('-kns', '--knowledge-selection', default = KNOWLEDGE_SELECTION_STRENGTH)
 @click.option('-i', '--instructor', default='i@usf.edu')
 @click.option('-p', '--password', default='pwd') 
 @click.option('--no-algo', is_flag=True) #randomize student order
@@ -595,6 +601,12 @@ def simulate_quiz(quiz, course_id, instructor, password, no_algo, algo, algo_par
                                             for sums in [np.cumsum(weights)]
                                             for level in [(rnd_state.rand() * sums[-1]) if len(sums) > 0 else None]
                                             for selected_d_index in [next((i for i, s in enumerate(sums) if s > level), None)]}
+                elif knowledge_selection == KNOWLEDGE_SELECTION_STRENGTH:
+                    responses = {qid:sorted(ds, key=lambda x: x[1])[-1][0]
+                                            for qid, distractors in attempt.alternatives_map.items() 
+                                            for distractor_strength in [student_knowledge.get(qid, {}) ]
+                                            for ds_distr in [[(alt, distractor_strength[d]) for alt, d in enumerate(distractors) if d in distractor_strength]] 
+                                            for ds in [ds_distr if any(ds_distr) else [(alt,1) for alt, d in enumerate(distractors) if d == -1]]}
                 else: 
                     responses = {}
 
@@ -616,7 +628,6 @@ def simulate_quiz(quiz, course_id, instructor, password, no_algo, algo, algo_par
         #close prev evo process
         if QUIZ_STEP1 in step:
             with APP.app_context():
-                models.EvoProcessArchive.query.delete()
                 models.EvoProcess.query.delete()            
                 models.DB.session.commit()    
             with APP.app_context(), APP.test_client(use_cookies=True) as c: #instructor session
@@ -632,17 +643,19 @@ def simulate_quiz(quiz, course_id, instructor, password, no_algo, algo, algo_par
                 if quiz_model is None:
                     sys.stdout.write(f"[{run_idx + 1}/{n_times}] Step1 quiz {quiz} finished\n")            
                 else:
-                    model_state = quiz_model.get_internal_model()
+                    settings = quiz_model.get_model_state()
+                    best_distractors = quiz_model.get_best_quiz()
 
                     if archive_output is not None: 
                         quiz_model.to_csv(archive_output.format(run_idx))
                     
                     search_space_size = quiz_model.get_search_space_size()
                     explored_search_space_size = quiz_model.get_explored_search_space_size()
-                    sys.stdout.write(f"EVO algo: {quiz_model.__class__}\nEVO settings: {model_state}\n")
+                    sys.stdout.write(f"EVO algo: {quiz_model.__class__}\nEVO settings: {settings}\n")
                     if evo_output: 
                         with open(evo_output, 'w') as evo_output_json_file:
-                            evo_output_json_file.write(json.dumps({**model_state, "algo": quiz_model.__class__.__name__, 
+                            evo_output_json_file.write(json.dumps({"settings": settings, "distractors": best_distractors, 
+                                                        "algo": quiz_model.__class__.__name__, 
                                                         "explored_search_space_size": explored_search_space_size,
                                                         "search_space_size": search_space_size}, indent=4))
                     sys.stdout.write(f"[{run_idx + 1}/{n_times}] Step1 quiz {quiz} finished\n{quiz_model.to_dataframe()}\n")
@@ -666,7 +679,9 @@ def calc_deca_metrics(algo_input, deca_space, params, input_output):
     with open(deca_space, 'r') as f:
         space = deca.load_space_from_json("\n".join(f.readlines()))
     population_distractors = algo_results["distractors"]
-    metrics_map = {"algo":algo_input,"deca": deca_space, **{p:algo_results.get(p, np.nan) for p in params},
+    algo_name = algo_input.split("/")[-1].split(".")[0]
+    deca_name = deca_space.split("/")[-1].split(".")[0]
+    metrics_map = {"algo":algo_name,"deca": deca_name, #**{p:algo_results.get(p, np.nan) for p in params},
                     **deca.dimension_coverage(space, population_distractors),
                     **deca.avg_rank_of_repr(space, population_distractors),
                     **deca.redundancy(space, population_distractors),
@@ -682,8 +697,45 @@ def calc_deca_metrics(algo_input, deca_space, params, input_output):
     except FileNotFoundError:
         metrics = DataFrame([metrics_map])
     metrics.to_csv(input_output, index=False)   
-    submetrics = metrics[["dim_coverage", "arr", "population_redundancy", "population_duplication", "noninfo"]]
+    submetrics = metrics[["dim_coverage", "arr", "arra", "population_redundancy", "population_duplication", "noninfo"]]
     sys.stdout.write(f"Metrics:\n{submetrics}\n")
+
+@deca_cli.command("space-result")
+@click.option('-r', '--result-folder')
+@click.option('-s', '--sort-column', default='algo')
+@click.option('-f', '--filter-column', default=None)
+def calc_space_result(result_folder, sort_column, filter_column):
+    metrics = ['dim_coverage', 'arr', 'arra', 'population_redundancy', 'population_duplication', 'noninfo']
+    res = DataFrame(columns=['space', 'algo', *[c for m in metrics for c in [m, m + '_std']]])
+    dframes = {}
+    for file_name in os.listdir(result_folder): 
+        key = "-".join(file_name.split(".")[0].split("-")[:-1])        
+        space_result = os.path.join(result_folder, file_name)
+        algo_stats = pandas.read_csv(space_result)
+        dframes.setdefault(key, []).append(algo_stats)
+        # idx = len(res.index)        
+        # res.loc[idx, 'algo'] = algo_stats.loc[0, 'algo'].split("/")[-1].split(".")[0]
+        # res.loc[idx, metrics] = algo_stats[metrics].mean()
+        # res.loc[idx, [m + '_std' for m in metrics]] = algo_stats[metrics].std().tolist()
+    for key, lst in dframes.items():
+        algo_stats = pandas.concat(lst)
+        idx = len(res.index)   
+        algo, space = key.split("-on-")   
+        res.loc[idx, 'space'] = space
+        res.loc[idx, 'algo'] = algo
+        res.loc[idx, metrics] = algo_stats[metrics].mean()
+        res.loc[idx, [m + '_std' for m in metrics]] = algo_stats[metrics].std().tolist()
+    res[[m + '_std' for m in metrics]] = res[[m + '_std' for m in metrics]].astype(float)
+    res[metrics] = res[metrics].astype(float)    
+    res.rename(columns={'dim_coverage':'D', 'arr':'ARR', 'arra': 'ARRA', 'population_redundancy':'R', 'population_duplication':'Dup', 'noninfo':'nI',
+                            'dim_coverage_std':'D_std', 'arr_std':'ARR_std', 'arra_std': 'ARRA_std', 'population_redundancy_std':'R_std', 'population_duplication_std':'Dup_std', 'noninfo_std':'nI_std'}, inplace=True)
+    res.sort_values(by = ['space', sort_column], inplace=True, ascending=False)
+    res = res.round(3)
+    if filter_column:
+        ms = filter_column.split(',')
+        res = res[['space', "algo", *[c for m in ms for c in [m, m + '_std']]]]
+    res.to_csv(os.path.join(result_folder, 'space-result.csv'), index=False)
+    print(res.to_string(index=False))
 
 @quiz_cli.command("export")
 @click.option('-q', '--quiz', type=int, required=True)
@@ -788,10 +840,13 @@ def init_experiment(num_questions, num_distractors, num_students, axes_number, a
 @click.option("--num-runs", type=int, default = 1)
 def run_experiment(deca_input, algo, algo_folder, random_seed, results_folder, num_runs):    
     runner = APP.test_cli_runner()
+    print(f"Experiment {deca_input}, {algo}, {algo_folder}, {random_seed}, {results_folder}, {num_runs}")
     res = runner.invoke(args=["student", "knows", "-kr", "--deca-input", deca_input ])
     if res.exit_code != 0:
         print(res.stdout)
+    print("Before assert student")
     assert res.exit_code == 0
+    print("After assert")
     os.makedirs(algo_folder, exist_ok=True)
     os.makedirs(results_folder, exist_ok=True)
     rnd = np.random.RandomState(random_seed)
@@ -811,9 +866,9 @@ def run_experiment(deca_input, algo, algo_folder, random_seed, results_folder, n
             print(f"Start run {i} of {algo_file_name} on {deca_space_id}")
             res = runner.invoke(args=["quiz", "run", "-q", 1, "-s", "STEP1", "--algo", algo_name, "--algo-params", json.dumps(algo_with_params),
                                         "--evo-output", f"{algo_file_name}.json", "--random-seed", run_random_seed ])
-            if res.exit_code != 0:
-                print(res.stdout)
-            assert res.exit_code == 0
+            # if res.exit_code != 0:
+            print(res.stdout)                
+            assert res.exit_code == 0, f" {traceback.format_exception(None, res.exc_info[1], res.exc_info[2])}"
             print(f"Analysing run {i} of {algo_file_name} on {deca_space_id}")
             res = runner.invoke(args=["deca", "result", "--algo-input", f"{algo_file_name}.json", "--deca-space", deca_input, 
                                         "-p", "explored_search_space_size", "-p", "search_space_size", "-io", os.path.join(results_folder, f"{algo_display_name}-on-{deca_space_id}.csv")])
@@ -833,10 +888,12 @@ def run_experiment(deca_spaces, algo, algo_folder, random_seed, results_folder, 
     runner = APP.test_cli_runner() 
     for file_name in os.listdir(deca_spaces):        
         deca_input = os.path.join(deca_spaces, file_name)
-        print(f"--- Working with space {deca_input} ---")
+        print(f"--- Space {deca_input} ---")
         res = runner.invoke(args=["quiz", "deca-experiment", "--deca-input", deca_input, "--algo-folder", algo_folder,
                                     "--results-folder", results_folder, *[p for a in algo for p in ["--algo", a]], 
                                     "--random-seed", random_seed, "--num-runs", num_runs ])
+        # if res.exit_code != 0:
+        #     print(res.exc_info)
         print(res.stdout)
         assert res.exit_code == 0
 
