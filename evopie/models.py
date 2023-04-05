@@ -288,6 +288,7 @@ class Quiz(DB.Model):
     revised_score_weight = DB.Column(DB.Integer, default=0.3)
     justification_grade_weight = DB.Column(DB.Integer, default=0.2)
     participation_grade_weight = DB.Column(DB.Integer, default=0.1)
+    designing_grade_weight = DB.Column(DB.Integer, default = 0.0, server_default='0')
     num_justifications_shown = DB.Column(DB.Integer, default = 3)
     first_quartile_grade = DB.Column(DB.Integer, default = 1)
     second_quartile_grade = DB.Column(DB.Integer, default = 3)
@@ -336,6 +337,7 @@ class Quiz(DB.Model):
                     "revised_score_weight" :  self.revised_score_weight,
                     "justification_grade_weight" : self.justification_grade_weight ,
                     "participation_grade_weight" : self.participation_grade_weight ,                    
+                    "designing_grade_weight" : self.designing_grade_weight,     
                     "num_justifications_shown" : self.num_justifications_shown ,
                     "first_quartile_grade" : self.first_quartile_grade ,
                     "second_quartile_grade" : self.second_quartile_grade,
@@ -357,7 +359,15 @@ class Quiz(DB.Model):
         '''
         Returns a copy of this quiz, with the same questions and answers
         '''
-        new_quiz = Quiz(author_id=self.author_id, title=self.title, description=self.description, status=self.status, limiting_factor=self.limiting_factor, initial_score_weight=self.initial_score_weight, revised_score_weight=self.revised_score_weight, justification_grade_weight=self.justification_grade_weight, participation_grade_weight=self.participation_grade_weight, num_justifications_shown=self.num_justifications_shown, first_quartile_grade=self.first_quartile_grade, second_quartile_grade=self.second_quartile_grade, third_quartile_grade=self.third_quartile_grade, fourth_quartile_grade=self.fourth_quartile_grade, step1_pwd=self.step1_pwd, step2_pwd=self.step2_pwd, deadline_driven=self.deadline_driven, deadline0=self.deadline0, deadline1=self.deadline1, deadline2=self.deadline2, deadline3=self.deadline3, deadline4=self.deadline4)
+        new_quiz = Quiz(author_id=self.author_id, title=self.title, description=self.description, 
+                            status=self.status, limiting_factor=self.limiting_factor, initial_score_weight=self.initial_score_weight, 
+                            revised_score_weight=self.revised_score_weight, justification_grade_weight=self.justification_grade_weight, 
+                            participation_grade_weight=self.participation_grade_weight, designing_grade_weight=self.designing_grade_weight,
+                            num_justifications_shown=self.num_justifications_shown, first_quartile_grade=self.first_quartile_grade, 
+                            second_quartile_grade=self.second_quartile_grade, third_quartile_grade=self.third_quartile_grade, 
+                            fourth_quartile_grade=self.fourth_quartile_grade, step1_pwd=self.step1_pwd, step2_pwd=self.step2_pwd, 
+                            deadline_driven=self.deadline_driven, deadline0=self.deadline0, deadline1=self.deadline1, 
+                            deadline2=self.deadline2, deadline3=self.deadline3, deadline4=self.deadline4)
         for q in self.quiz_questions:
             new_quiz.quiz_questions.append(q.copy())
         return new_quiz

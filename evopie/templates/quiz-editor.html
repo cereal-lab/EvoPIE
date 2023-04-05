@@ -95,7 +95,8 @@
             initialScoreWeight: {{(quiz.initial_score_weight * 100) | round }},
             revisedScoreWeight: {{(quiz.revised_score_weight * 100) | round }},
             justificationWeight: {{ (quiz.justification_grade_weight * 100) | round }},
-            participationWeight: {{ (quiz.participation_grade_weight * 100) | round }}
+            participationWeight: {{ (quiz.participation_grade_weight * 100) | round }},
+            designingWeight: {{ (quiz.designing_grade_weight * 100) | round }}
         }
 
         const noop = async () => {

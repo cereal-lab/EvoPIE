@@ -20,7 +20,9 @@ const onSettingChange = (qid, settingName, cb = false, preprocess = parseInt) =>
     }
 }                
 
-const createWeightSlider = (qid, sliderId, weights, cb, step1WeightElId = "step1-weight", step2WeightElId = "step2-weight", justWeightElId = "justification-weight", partWeightElId = "participation-weight") => {
+const createWeightSlider = (qid, sliderId, weights, cb, step1WeightElId = "step1-weight", step2WeightElId = "step2-weight", 
+                                justWeightElId = "justification-weight", partWeightElId = "participation-weight", 
+                                designWeightElId = "designing-weight") => {
     let tableUpdateTimeout = null
     let slider = createSlider(sliderId, { values: [
         {
@@ -39,21 +41,28 @@ const createWeightSlider = (qid, sliderId, weights, cb, step1WeightElId = "step1
             value: weights.initialScoreWeight + weights.revisedScoreWeight + weights.justificationWeight,
             label: "|value|",
             step: 5,
-            tip: "Weight of justifications: |diff|%. Weight of participation: |leftValue|%"
+            tip: "Weight of justifications: |diff|%"
+        },
+        {
+            value: weights.initialScoreWeight + weights.revisedScoreWeight + weights.justificationWeight + weights.participationWeight,
+            label: "|value|",
+            step: 5,
+            tip: "Weight of participation: |diff|%. Weight of distractor designing: |leftValue|%"
         }
         ], maxValue: 100,
         cb: function (values) {
             let weights = values.map((v, i) => v - (values[i - 1] || 0));
             weights.push(100 - values[values.length - 1]);
-            [ weights.initialScoreWeight, weights.revisedScoreWeight, weights.justificationWeight, weights.participationWeight ] = weights;
+            [ weights.initialScoreWeight, weights.revisedScoreWeight, weights.justificationWeight, weights.participationWeight, weights.designingWeight ] = weights;
             document.getElementById(step1WeightElId).innerHTML = weights.initialScoreWeight
             document.getElementById(step2WeightElId).innerHTML = weights.revisedScoreWeight
             document.getElementById(justWeightElId).innerHTML = weights.justificationWeight
             document.getElementById(partWeightElId).innerHTML = weights.participationWeight
+            document.getElementById(designWeightElId).innerHTML = weights.designingWeight
             clearTimeout(tableUpdateTimeout)
             tableUpdateTimeout = setTimeout(async () => {
                 try {
-                    await updateQuiz(qid, {"initial_score": weights.initialScoreWeight, "revised_score": weights.revisedScoreWeight, "justification_grade": weights.justificationWeight, "participation_grade": weights.participationWeight})
+                    await updateQuiz(qid, {"initial_score": weights.initialScoreWeight, "revised_score": weights.revisedScoreWeight, "justification_grade": weights.justificationWeight, "participation_grade": weights.participationWeight, "designing_grade": weights.designingWeight})
                     await cb(qid)
                 } catch (e) {
                     //TODO: render error on UI

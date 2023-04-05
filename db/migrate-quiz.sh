@@ -1,5 +1,9 @@
 #!/bin/bash -e
-# Migrates all quizes for instructor $3 from source $1 to target $2. If $4 is provided - existing instructor, otherwise reindex
+#NOTE about parameters: 
+# Migrates all quizes for instructor with email $3 (in SOURCE) from source $1 to target $2. 
+# If $4 is provided, it should be existing instructor id in TARGET db (to add quizzes to that instractor instead of creating new one)
+#   otherwise new user for instractor will be added to TARGET and id will be allocated accordingly 
+# Parameter $5 allows to override new instructor email in TARGET (allows to avoid bumpting onto existing account)
 
 # cat check-schema.sql | sed -e "s|SOURCE|$1|g" -e "s|TARGET|$2|g" | sqlite3
 

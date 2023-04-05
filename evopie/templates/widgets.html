@@ -29,6 +29,7 @@
         <div class="me-3">Step #2: <span id="step2-weight">{{(quiz.revised_score_weight * 100) | round | int}}</span>%</div>
         <div class="me-3">Justifications {{ gear_button("#TG-GEARBOX-JUSTIFICATIONS")}}: <span id="justification-weight">{{(quiz.justification_grade_weight * 100) | round | int}}</span>%</div>
         <div class="me-3">Participation {{ gear_button("#TG-GEARBOX-PARTICIPATION")}}: <span id="participation-weight">{{(quiz.participation_grade_weight * 100) | round | int}}</span>%</div>
+        <div class="me-3">Designing: <span id="designing-weight">{{(quiz.designing_grade_weight * 100) | round | int}}</span>%</div>
     </div>
     {{ caller() }}    
 </div>  

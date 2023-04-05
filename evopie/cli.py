@@ -141,7 +141,8 @@ def edit_quiz_settings(quiz_id, settings):
             "initial_score": settings.get("is", 40),
             "revised_score": settings.get("rs", 30),
             "justification_grade": settings.get("jg", 20),
-            "participation_grade": settings.get("pg", 10)
+            "participation_grade": settings.get("pg", 10),
+            "designing_grade": settings.get("dg", 0),
         }
         throw_on_http_fail(c.post(f"/quiz/{quiz_id}/settings", json=settings_for_quiz))
 
@@ -209,7 +210,8 @@ def start_quiz_init(instructor, course_id, num_questions, num_distractors, quest
             "initial_score": settings.get("is", 40),
             "revised_score": settings.get("rs", 30),
             "justification_grade": settings.get("jg", 20),
-            "participation_grade": settings.get("pg", 10)
+            "participation_grade": settings.get("pg", 10),
+            "designing_grade": settings.get("dg", 0),
         }
         throw_on_http_fail(c.post(f"/quiz/{quiz_id}/settings", json=settings_for_quiz))
 

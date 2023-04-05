@@ -57,8 +57,8 @@ insert OR ROLLBACK into target_db.question (id, author_id, QUESTION_COL)
 select nq.new_question_id, nq.new_user_id, QUESTION_VAL from new_questions as nq 
 inner join source_db.question as q on q.id = nq.old_question_id;
 
-insert OR ROLLBACK into target_db.distractor (id, DISTRACTOR_COL, question_id)
-select nd.new_distractor_id, DISTRACTOR_VAL, nd.new_question_id from new_distractors as nd 
+insert OR ROLLBACK into target_db.distractor (id, author_id, DISTRACTOR_COL, question_id)
+select nd.new_distractor_id, NULL, DISTRACTOR_VAL, nd.new_question_id from new_distractors as nd 
 inner join source_db.distractor as d on d.id = nd.old_distractor_id;
 
 --selects questions for quiz 

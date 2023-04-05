@@ -27,7 +27,8 @@ with T(table_name, column_name, db_name) as
              ('distractor', 'id', 'source_db'),
              ('distractor', 'id', 'target_db'),
              ('distractor', 'question_id', 'source_db'),
-             ('distractor', 'question_id', 'target_db')
+             ('distractor', 'question_id', 'target_db'),
+             ('distractor', 'author_id', 'target_db')
     )
 select * from T;
 

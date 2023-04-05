@@ -42,7 +42,8 @@
                 initialScoreWeight: {{(quiz.initial_score_weight * 100) | round }},
                 revisedScoreWeight: {{(quiz.revised_score_weight * 100) | round }},
                 justificationWeight: {{ (quiz.justification_grade_weight * 100) | round }},
-                participationWeight: {{ (quiz.participation_grade_weight * 100) | round }}
+                participationWeight: {{ (quiz.participation_grade_weight * 100) | round }},
+                designingWeight: {{ (quiz.designing_grade_weight *100) | round }}
             }
 
 
@@ -86,6 +87,9 @@
                     <li>
                         Grade for the participation of the student, aka providing the expected number of likes to 
                         other students' justifications during step 2. 
+                    </li>
+                    <li>
+                        Grade for distractor designing. On step 3, student is given task to create new smart but wrong alternatives for given questions to check knowledge of others. 
                     </li>
                     <li>
                         Number of likes that the student's justifications received from other students
@@ -135,8 +139,7 @@
                 </ul>
             </div>
         </div>
-    </div>
-
+    </div>    
 
     <!--
         This is our modal dialog to configure the justifications scoring
@@ -200,9 +203,10 @@
             <th>Step #2</th>
             <th>Step #3</th>
             <th>Justifications</th>
-            <th>Participation</th>
+            <th>Participation</th>            
             <th>Likes Given</th>
             <th>Likes Received</th>
+            <!-- <th>Designing</th> -->
             <th>Total Score</th>
             <th>Total (%)</th>
         </tr>

@@ -1067,7 +1067,9 @@ def post_grading_settings(qid):
         if 'justification_grade' in request.json:
             q.justification_grade_weight = int(request.json['justification_grade']) / 100
         if 'participation_grade' in request.json:
-            q.participation_grade_weight = int(request.json['participation_grade']) / 100 
+            q.participation_grade_weight = int(request.json['participation_grade']) / 100
+        if 'designing_grade' in request.json:
+            q.designing_grade_weight = int(request.json['designing_grade']) / 100
         if 'num_justifications_shown' in request.json:
             q.num_justifications_shown = int(request.json['num_justifications_shown'])  
         if 'first_quartile_grade' in request.json:
