@@ -241,6 +241,169 @@ def post_new_distractor_for_question(question_id):
     else:
         flash("Distractor successfully added to database.", "shiny")
         return redirect(request.referrer)
+    
+# make a similar function to add a distractor made by a student to the invalidated_distractor table
+
+@mcq.route('/questions/<int:question_id>/student_distractors', methods=['POST'])
+@login_required
+@role_required(ROLE_STUDENT, redirect_message="You are not allowed to create distrators")
+def post_new_student_distractor_for_question(question_id):
+    if request.json:
+        distractor = request.json['distractor']
+        justification = request.json['justification']
+    else:
+        distractor = request.form['distractor']
+        justification = request.form['justification']
+    
+    # validate that all required information was sent
+    if distractor is None or justification is None or distractor == "" or justification == "":
+        abort(400, "Unable to create new distractor due to missing data") # bad request
+    
+    q = models.Question.query.get_or_404(question_id)
+
+    escaped_distractor = Markup.escape(distractor) # escapes HTML characters
+    escaped_distractor = sanitize(escaped_distractor)
+
+    escaped_justification = Markup.escape(justification)
+    escaped_justification = sanitize(escaped_justification)
+
+    new_student_distractor = models.InvalidatedDistractor(answer=escaped_distractor,justification=escaped_justification,question_id=q.id, author_id=current_user.get_id())
+    q.invalidated_distractors.append(new_student_distractor)
+    models.DB.session.commit()
+
+    if request.is_json:
+        return jsonify({ "message" : "Student Distractor added to Question in database" }), 201
+    else:
+        flash("Student Distractor successfully added to database.", "shiny")
+        return redirect(request.referrer)
+    
+@mcq.route('/questions/<int:question_id>/student_distractors/distractor', methods=['PUT'])
+@login_required
+@role_required(ROLE_STUDENT, redirect_message="You are not allowed to create distractors")
+def put_student_distractor_for_question(question_id):
+    if request.json:
+        distractor = request.json['distractor']
+    else:
+        distractor = request.form['distractor']
+
+    # validate that all required information was sent
+    if distractor is None or distractor == "":
+        abort(400, "Unable to create new distractor due to missing data")
+
+    q = models.Question.query.get_or_404(question_id)
+
+    escaped_distractor = Markup.escape(distractor) # escapes HTML characters
+    escaped_distractor = sanitize(escaped_distractor)
+
+    # check if the student has already submitted a distractor for this question
+    student_distractor = models.InvalidatedDistractor.query.filter_by(question_id=question_id, author_id=current_user.get_id()).first()
+
+    if student_distractor is None:
+        # if not, create a new one
+        new_student_distractor = models.InvalidatedDistractor(answer=escaped_distractor,question_id=q.id, author_id=current_user.get_id())
+        q.invalidated_distractors.append(new_student_distractor)
+        models.DB.session.commit()
+    else:
+        # if so, update the existing one
+        student_distractor.answer = escaped_distractor
+        models.DB.session.commit()
+
+    return jsonify({ "message" : "Student Distractor added to Question in database" }), 201
+
+@mcq.route('/questions/<int:question_id>/student_distractors/justification', methods=['PUT'])
+@login_required
+@role_required(ROLE_STUDENT, redirect_message="You are not allowed to create distrators")
+def put_student_justification_for_question(question_id):
+    if request.json:
+        justification = request.json['justification']
+    else:
+        justification = request.form['justification']
+
+    # validate that all required information was sent
+    if justification is None or justification == "":
+        abort(400, "Unable to create new distractor due to missing data")
+
+    q = models.Question.query.get_or_404(question_id)
+
+    escaped_justification = Markup.escape(justification)
+    escaped_justification = sanitize(escaped_justification)
+
+    # check if the student has submitted a distractor for this question
+    student_distractor = models.InvalidatedDistractor.query.filter_by(question_id=question_id, author_id=current_user.get_id()).first()
+
+    if student_distractor is None:
+        # if not, create a new one
+        new_student_distractor = models.InvalidatedDistractor(justification=escaped_justification,question_id=q.id, author_id=current_user.get_id())
+        q.invalidated_distractors.append(new_student_distractor)
+        models.DB.session.commit()
+    else:
+        # if so, update the existing one
+        student_distractor.justification = escaped_justification
+        models.DB.session.commit()
+
+    return jsonify({ "message" : "Student Distractor added to Question in database", "id": student_distractor.id }), 201
+
+@mcq.route('/student_distractors/<int:distractor_id>/add_to_pool', methods=['POST'])
+@login_required
+@role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to add distractors to the pool")
+def add_student_distractor_to_pool(distractor_id):
+    distractor = models.InvalidatedDistractor.query.get_or_404(distractor_id)
+    question = models.Question.query.get_or_404(distractor.question_id)
+
+    # check if the distractor already exists in the pool
+    existing_distractor = models.Distractor.query.filter_by(author_id=distractor.author_id, question_id=distractor.question_id).first()
+    if existing_distractor is None:
+        # if not, add it
+        new_distractor = models.Distractor(answer=distractor.answer, justification=distractor.justification, question_id=distractor.question_id, author_id=distractor.author_id)
+        question.distractors.append(new_distractor)
+        models.DB.session.commit()
+    else:
+        return jsonify({ "message" : "Student Distractor already exists in pool" }), 409
+    
+    return jsonify({ "message" : "Student Distractor added to pool" }), 201
+
+@mcq.route('/student_distractors/<int:distractor_id>/remove_from_pool', methods=['POST'])
+@login_required
+@role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to remove distractors from the pool")
+def remove_student_distractor_from_pool(distractor_id):
+    distractor = models.InvalidatedDistractor.query.get_or_404(distractor_id)
+    question = models.Question.query.get_or_404(distractor.question_id)
+
+    # check if the distractor exists in the pool
+    existing_distractor = models.Distractor.query.filter_by(author_id=distractor.author_id, question_id=distractor.question_id).first()
+    if existing_distractor is None:
+        return jsonify({ "message" : "Student Distractor does not exist in pool" }), 404
+    else:
+        # if so, remove it from the database
+        models.DB.session.delete(existing_distractor)
+        models.DB.session.commit()
+    
+    return jsonify({ "message" : "Student Distractor removed from pool" }), 200
+
+@mcq.route('/student_distractors/<int:distractor_id>/comment', methods=['PUT'])
+@login_required
+@role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to comment on distractors")
+def put_student_comment_for_distractor(distractor_id):
+    if request.json:
+        comment = request.json['comment']
+    else:
+        comment = request.form['comment']
+
+    # validate that all required information was sent
+    if comment is None or comment == "":
+        abort(400, "Unable to create new distractor due to missing data")
+
+    student_distractor = models.InvalidatedDistractor.query.get_or_404(distractor_id)
+
+    escaped_comment = Markup.escape(comment)
+    escaped_comment = sanitize(escaped_comment)
+
+    if student_distractor.comment is not None:
+        student_distractor.comment = escaped_comment
+
+    models.DB.session.commit()
+
+    return jsonify({ "message" : "Student Distractor comment added to Question in database" }), 201
 
 @mcq.route('/distractors/<int:distractor_id>', methods=['GET'])
 @login_required
@@ -630,6 +793,12 @@ def put_quizzes(qid):
             question = models.QuizQuestion.query.get_or_404(qid)
             quiz.quiz_questions.append(question)
 
+    step3_enabled = request.json['step3_enabled']
+    if step3_enabled == True:
+        quiz.step3_enabled = "True"
+    elif step3_enabled == False:
+        quiz.step3_enabled = "False"
+
     models.DB.session.commit()
 
     #NOTE see previous note about using 204 vs 200
@@ -656,6 +825,10 @@ def post_quizzes_status(quiz):
     # FIXED how about check that the status is actually valid, eh? :)'
     # done in set_status below
     old_status = quiz.status
+    if new_status == "STEP3" and quiz.step3_enabled == "False":
+        response     = ({ "message" : "STEP3 is not enabled for this quiz" }, 400, {"Content-Type": "application/json"})
+        return make_response(response)
+    
     if(quiz.set_status(new_status)):
         response     = ({ "message" : "OK" }, 200, {"Content-Type": "application/json"})                
         if old_status != new_status:

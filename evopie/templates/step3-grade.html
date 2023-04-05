@@ -1,0 +1,215 @@
+{% extends 'base.html' %}
+{% import 'widgets.html' as w %}
+
+{% block title %}EvoPIE{% endblock %}
+
+{% block content %}
+
+<script>
+
+const saveDistractors = async (distractor_id) => {
+    const {} = await fetchJson(`/student_distractors/${distractor_id}/add_to_pool`, {
+        method: 'POST',
+        headers: {'Content-Type' : 'application/json'},
+        body: JSON.stringify({
+            distractor_id: distractor_id,
+        }),
+        credentials: 'same-origin'
+    })           
+}
+
+const removeDistractors = async (distractor_id) => {
+    const {} = await fetchJson(`/student_distractors/${distractor_id}/remove_from_pool`, {
+        method: 'POST',
+        headers: {'Content-Type' : 'application/json'},
+        body: JSON.stringify({
+            distractor_id: distractor_id,
+        }),
+        credentials: 'same-origin'
+    })           
+}
+
+const saveComment = async (student_distractor_comment, distractorId) => {
+    const {} = await fetchJson(`/student_distractors/${distractorId}/comment`, {
+        method: 'PUT',
+        headers: {'Content-Type' : 'application/json'},
+        body: JSON.stringify(student_distractor_comment),
+        credentials: 'same-origin'
+    })             
+}
+
+const saveInstructorComment = async (ev) => {
+    const distractorId = ev.target.dataset.distractorId;
+    const altId = parseInt(ev.target.dataset.altId);
+    const isEmpty = $(ev.target).summernote("isEmpty")
+    const student_distractor_comment = { "comment": isEmpty ? "" : ev.target.value }
+    await saveComment(student_distractor_comment, distractorId);
+}
+
+$(() => {
+    $("textarea.summernote.comment")
+        .on("summernote.change", (ev) => {
+            ev.target.dataset.state = "changed";
+        })
+        .on("summernote.blur", async (ev) => {
+            if (ev.target.dataset.state == "changed") {                        
+                await saveInstructorComment(ev)
+                ev.target.dataset.state = "";
+            }
+    })
+})
+
+</script>
+
+<div class="jumbotron jumbotron-fluid">
+    <div class="container">
+        <h1 class="display-4">Step 3 Grade - {{quiz.title | safe }}</h1>
+        <h2 class="display-6">Student - {{student.first_name}} {{student.last_name}}</h2>
+        <p class="lead">
+            Hello, {{current_user.first_name}} {{current_user.last_name}}. 
+            Use this page to grade the student's distractors for step 3.
+        </p>
+
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+            data-bs-target=".TG-RUB">
+            Show Rubric
+        </button>
+        <div class="modal fade TG-RUB" tabindex="-1" role="dialog"
+                aria-labelledby="mySmallModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <table class="table table-hover">
+                        <thead>
+                          <tr>
+                            <th scope="col">Criteria</th>
+                            <th scope="col">Ratings</th>
+                            <th scope="col"></th>
+                            <th scope="col">Pts</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <th scope="row">New Distractor : Non Trivial/Random</th>
+                            <td>100 pts Full Marks</td>
+                            <td>0 pts No Marks - Duplicate of seen distractor</td>
+                            <td>100</td>
+                          </tr>
+                          <tr>
+                            <th scope="row">New Distractor : Detailed justification that shows underlying reasoning/corresponding bug</th>
+                            <td>100 pts Full Marks</td>
+                            <td>0 pts No Marks - Duplicate of seen distractor</td>
+                            <td>100</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% for q in questions %}
+    <div class="card bg-light m-3 mx-auto content" style="width: 75%">
+        <div class="card-body" bg-light>
+            <h1 class="card-title">Question #{{loop.index}} - {{q.title |safe|unescapeDoubleQuotes}}</h1>
+            <p class="card-text">{{q.stem|safe|unescapeDoubleQuotes}}</p>
+            
+            <div class="list-group list-group-flush">
+                {% for answer in q.alternatives %}
+                {% set explanation = explanations[q.id|string][loop.index0|string] %}
+                    <div class="list-group-item border border-primaryrounded updateSize"  style="height:fit-content">
+                        <div class="form-group">
+                            <div class="form-check {% if explanation.is_correct -%} bg-warning {%- endif -%}">                            
+                                {{ w.question_option(q, loop.index0, answer, disabled=True) }}
+                                
+                                <div class = "justificationsContainer">
+                                    <table class="expandable-content table">                                        
+                                        <tr>
+                                            <td class='text-start'>
+                                                <p> {{ explanation.justification | safe }} </p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <br>
+
+            {% for student_distractor in student_created_distractors %}
+                {% if student_distractor.question_id == q.id %}
+                    <div class="card">
+                        <div class="card-header">
+                            Here is the distractor submitted by the student
+                        </div>
+                        <div class="card-body">
+                        <blockquote class="blockquote mb-0">
+                            <p>Distractor: {{student_distractor.answer | safe}}</p>
+                            <p>Justification: {{student_distractor.justification | safe}}</p>
+                        </blockquote>
+                        </div>
+                    </div>
+
+                    <br>
+
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                        data-bs-target=".TG-REV-{{q.id}}">
+                        Distractor Pool
+                    </button>
+                    <div class="modal fade TG-REV-{{q.id}}" tabindex="-1" role="dialog"
+                            aria-labelledby="mySmallModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-xl">
+                            <div class="modal-content">
+                                <table>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Distractor</th>
+                                        <th>Justification</th>
+                                    </tr>
+                                    {% for distractor in q.distractors_pool %}
+
+                                        <tr style="border: 1px solid;">
+                                            <td class="text-start align-top">{{ distractor.id | safe }}</td>
+                                            <td class="text-start align-top">{{ distractor.answer | safe }}</td>
+                                            <td class="text-start align-top">{{ distractor.justification | safe }}</td>
+                                        </tr>
+
+                                    {% endfor %}
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <input type="radio" class="btn-check" name="options-outlined" id="student_distractor_accept_{{q.id}}" autocomplete="off" onchange="saveDistractors({{student_distractor.id}})">
+                    <label class="btn btn-outline-success" for="student_distractor_accept_{{q.id}}">Accept Distractor</label>
+
+                    <input type="radio" class="btn-check" name="options-outlined" id="student_distractor_reject_{{q.id}}" autocomplete="off" onchange="removeDistractors({{student_distractor.id}})">
+                    <label class="btn btn-outline-danger" for="student_distractor_reject_{{q.id}}">Reject Distractor</label>
+
+                    <div class="card bg-light m-3">
+                        <div class="card-body" bg-light>
+                            <h5 class="card-title">
+                                Add a comment for their distractor
+                            </h5>
+                            <p class="card-text">
+                                <div>
+                                    <textarea class="summernote comment form-control"
+                                            data-distractor-id="{{student_distractor.id}}" data-alt-id="{{loop.index0}}"
+                                            name="student_distractor_{{student_distractor.id}}_{{loop.index0}}"
+                                            rows="3" onchange="alert('test')"
+                                            placeholder="">{{ student_distractor.comment | safe}}</textarea>  
+                                </div>
+                            </p>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+
+        </div>
+    </div>
+{% endfor %}
+
+{% endblock %}

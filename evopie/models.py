@@ -8,7 +8,7 @@ from random import shuffle # to shuffle lists
 from flask_login import UserMixin
 from sqlalchemy import ForeignKey
 from evopie import DB
-from .config import QUIZ_ATTEMPT_STEP1, QUIZ_HIDDEN, QUIZ_STEP1, QUIZ_STEP2, QUIZ_SOLUTIONS, ROLE_INSTRUCTOR, ROLE_STUDENT, ROLE_ADMIN
+from .config import QUIZ_ATTEMPT_STEP1, QUIZ_HIDDEN, QUIZ_STEP1, QUIZ_STEP2, QUIZ_STEP3, QUIZ_SOLUTIONS, ROLE_INSTRUCTOR, ROLE_STUDENT, ROLE_ADMIN
 from .utils import unescape
 from datetime import datetime
 from pytz import timezone
@@ -63,6 +63,8 @@ class Question(DB.Model):
 
     # 1-to-many with Distractor
     distractors = DB.relationship('Distractor', backref='question', lazy=True)
+
+    invalidated_distractors = DB.relationship('InvalidatedDistractor', backref='question', lazy=True)
     # The above are ALL the distractors that are associated with this question
     # We will later select a few and make them part of a QuizQuestion
     
@@ -150,11 +152,15 @@ class InvalidatedDistractor(DB.Model):
 
     author_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'))
 
-    answer = DB.Column(DB.String, nullable=False)
+    answer = DB.Column(DB.String, nullable=False, default="")
     
     # The following is used as reference justification for not picking this distractor & 
     # is provided by the distractor's author
-    justification = DB.Column(DB.String, nullable=False)
+    justification = DB.Column(DB.String, nullable=False, default="")
+
+    status = DB.Column(DB.String, nullable=False, default="incomplete")
+
+    comment = DB.Column(DB.String, nullable=False, default="")
 
     # to allow for 1-to-many relationship Question / Distractor
     question_id = DB.Column(None, DB.ForeignKey('question.id'))
@@ -290,6 +296,8 @@ class Quiz(DB.Model):
     step1_pwd = DB.Column(DB.String, default="")
     step2_pwd = DB.Column(DB.String, default="")
 
+    step3_enabled = DB.Column(DB.String, default="False")
+
     deadline_driven = DB.Column(DB.String, default="False")
 
     tzinfo = timezone('US/Eastern')
@@ -306,7 +314,7 @@ class Quiz(DB.Model):
 
     def set_status(self, stat):
         ustat = stat.upper()
-        if ustat != QUIZ_HIDDEN and ustat != QUIZ_STEP1 and ustat != QUIZ_STEP2 and ustat != QUIZ_SOLUTIONS:
+        if ustat != QUIZ_HIDDEN and ustat != QUIZ_STEP1 and ustat != QUIZ_STEP2 and ustat != QUIZ_STEP3 and ustat != QUIZ_SOLUTIONS:
             return False
         else:
             self.status = ustat
@@ -335,6 +343,7 @@ class Quiz(DB.Model):
                     "fourth_quartile_grade" : self.fourth_quartile_grade,
                     "step1_pwd": self.step1_pwd,
                     "step2_pwd": self.step2_pwd,
+                    "step3_enabled": self.step3_enabled,
                     "deadline_driven": self.deadline_driven,
                     "deadline0": self.deadline0.strftime("%Y-%m-%dT%H:%M"),
                     "deadline1": self.deadline1.strftime("%Y-%m-%dT%H:%M"),

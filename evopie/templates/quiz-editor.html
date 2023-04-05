@@ -47,9 +47,9 @@
     function submitQuizForm(event){
         // This method only updates an existing quiz' title & description
 
-        let result = document.querySelector('#quiz_result');
         let title = document.querySelector('#quiz_title');
         let description = document.querySelector('#quiz_description');
+        let step3_enabled = document.querySelector('#quiz_step3_enabled');
             
         let xhr = new XMLHttpRequest();
         let url = '/quizzes/{{quiz.id}}';
@@ -67,7 +67,7 @@
         // Converting JSON data to string 
         // We pass no questions_ids at all since we only want to update the title / description in this page
         // passing an empty list for that field would result in removing all the questions from the quiz instead
-        var data = JSON.stringify({ "title": title.value, "description": description.value }); 
+        var data = JSON.stringify({ "title": title.value, "description": description.value, "step3_enabled": step3_enabled.checked }); 
         // Sending data with the request 
         xhr.send(data);
         //location.reload();
@@ -259,8 +259,11 @@
                     </textarea>
                 </div>
                 <br>
-                <p name="quiz_result" id="quiz_result">
-                </p>
+                <div class="form-group">
+                    <input type="checkbox" id="quiz_step3_enabled" name="quiz_step3_enabled" {{ "checked" if quiz.step3_enabled == "True" }}>
+                    <label for="quiz_step3_enabled">Enable Step #3</label>
+                </div>
+                <br>
                 <button onclick="submitQuizForm(event)" class="btn btn-primary">Submit Changes</button>
             </form>
         </p>

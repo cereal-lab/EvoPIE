@@ -1,6 +1,6 @@
 from datetime import datetime
 from pytz import timezone
-from evopie.config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_HIDDEN, QUIZ_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, ROLE_STUDENT
+from evopie.config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_ATTEMPT_STEP3, QUIZ_HIDDEN, QUIZ_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, QUIZ_STEP3, ROLE_STUDENT
 from flask import flash, g, jsonify, redirect, url_for, request, abort
 from flask_login import current_user
 from functools import wraps
@@ -107,6 +107,7 @@ def verify_deadline(quiz_attempt_param = "q", redirect_to_referrer = False, redi
             else:
                 if (status == QUIZ_ATTEMPT_STEP1 and q.status == QUIZ_STEP1
                  or status == QUIZ_ATTEMPT_STEP2 and q.status == QUIZ_STEP2
+                 or status == QUIZ_ATTEMPT_STEP3 and (q.status == QUIZ_STEP3 or q.status == QUIZ_STEP2)
                  or status == QUIZ_ATTEMPT_SOLUTIONS and q.status == QUIZ_SOLUTIONS):
                     return f(*args, **kwargs)
 

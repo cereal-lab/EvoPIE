@@ -25,7 +25,7 @@ from werkzeug.security import check_password_hash
 from evopie.utils import find_median, unescape, groupby
 from evopie.decorators import role_required, retry_concurrent_update
 
-from .config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_HIDDEN, QUIZ_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT, get_attempt_next_step, get_k_tournament_size, get_least_seen_slots_num
+from .config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_ATTEMPT_STEP3, QUIZ_HIDDEN, QUIZ_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, QUIZ_STEP3, ROLE_INSTRUCTOR, ROLE_STUDENT, get_attempt_next_step, get_k_tournament_size, get_least_seen_slots_num
 from evopie.decorators import unmime, validate_quiz_attempt_step, verify_deadline, verify_instructor_relationship, change_quiz_status
 
 from dataclasses import dataclass
@@ -46,7 +46,6 @@ pages = Blueprint('pages', __name__)
 @pages.route('/')
 def index():
     ''' Index page for the whole thing; used to test out a rudimentary user interface '''
-    all_quizzes = []
     courses = []
     if current_user.is_authenticated and current_user.is_student():
         courses = current_user.courses
@@ -55,7 +54,7 @@ def index():
                 if quiz.deadline_driven == "True":
                     change_quiz_status(quiz)
 
-    return render_template('index.html', quizzes=all_quizzes, courses=courses)
+    return render_template('index.html', courses=courses)
 
 @pages.route('/questions-browser')
 @login_required
@@ -632,6 +631,10 @@ def get_quiz(quiz_course):
     
     attempt = get_or_create_attempt(q, course, quiz_questions, distractor_per_question)
     quiz_question_ids = [ int(qid) for qid in attempt.alternatives_map.keys() ]
+    question_ids = [ qq.question_id for qq in quiz_questions ]
+    # student created distractors where ids are in quiz_question_ids
+    student_created_distractors = models.InvalidatedDistractor.query.where(models.InvalidatedDistractor.question_id.in_(question_ids), models.InvalidatedDistractor.author_id == current_user.id).all()
+    student_created_distractors = {d.question_id:d for d in student_created_distractors}
     distractor_ids = [did for _, ds in attempt.alternatives_map.items() for did in ds]
 
     justifications = models.Justification.query.where(models.Justification.quiz_question_id.in_(quiz_question_ids), models.Justification.distractor_id.in_(distractor_ids), models.Justification.student_id == current_user.id).all()
@@ -642,6 +645,7 @@ def get_quiz(quiz_course):
                                                 for alternative in attempt.alternatives_map[str(qq.id)]
                                                 if alternative in distractor_map or alternative == -1],
                         "choice": next((i for i, d in enumerate(attempt.alternatives_map[str(qq.id)]) if d == attempt.step_responses.get(str(qq.id), None)), -1), 
+                        "invalidated_distractors": student_created_distractors,
                         "justifications": {a:js[did].justification for a, did in enumerate(attempt.alternatives_map[str(qq.id)]) if did in js},
                         **{attr:unescape(getattr(qq.question, attr)) for attr in [ "title", "stem", "answer" ]}}
                         for qq in quiz_questions
@@ -734,13 +738,16 @@ def get_quiz(quiz_course):
             questions=question_model, attempt=attempt.dump_as_dict(),
             justifications=selected_justification_map, likes = likes)))
 
-    #else status is SOLUTIONS
-
     # finding the reference justifications for each distractor
     explanations = {qid:{str(aid):{"justification": "Correct answer!" if did == -1 else unescape(distractor_map[did].justification), "is_correct": did == -1 } 
                         for aid, did in enumerate(alternatives) if did in distractor_map or did == -1}
                     for qid, alternatives in attempt.alternatives_map.items()}
-
+    
+    if attempt.status == QUIZ_ATTEMPT_STEP3:
+        return render_template('step3.html', quiz=quiz_model, course=course,
+            questions=question_model, attempt=attempt.dump_as_dict(), explanations=explanations)
+    
+    #else status is SOLUTIONS
     return reset_quiz_session_cookie(make_response(render_template("solutions.html", quiz=quiz_model,
         questions=question_model, attempt=attempt.dump_as_dict(), explanations=explanations)))
 
@@ -786,7 +793,7 @@ def save_quiz_attempt(q, body):
     #validation that attempt could go to next step 
     for qid in attempt.alternatives_map.keys():
         if qid not in attempt.step_responses:
-            return {"message": "You must select an answer for each question", "redirect": url_for("pages.get_quiz", q = quiz, course=course) }, 400
+            return {"message": "You must select an answer for each question", "redirect": url_for("pages.get_quiz", quiz_course = q) }, 400
         
     response_set = {(int(qid), did) for qid, did in attempt.step_responses.items()}
 
@@ -812,7 +819,7 @@ def save_quiz_attempt(q, body):
                     if qdid in js_map:
                         js_to_delete.append(js_map[qdid])
                 elif qdid not in js_map:
-                    return { "message" : "You must provide a justification for each unselected option", "redirect": url_for("pages.get_quiz", q = quiz, course=course) }, 400
+                    return { "message" : "You must provide a justification for each unselected option", "redirect": url_for("pages.get_quiz", quiz_course=q) }, 400
                 else:
                     js_map[qdid].ready = True #justification could be used by student on next step
 
@@ -830,8 +837,28 @@ def save_quiz_attempt(q, body):
         if quiz_model is not None: 
             answers = { int(q_id): answer for q_id, answer in attempt.initial_responses.items() }
             quiz_model.evaluate(current_user.id, answers)
+    elif attempt.status == QUIZ_ATTEMPT_STEP3:
+        for quiz_question in quiz.quiz_questions:
+            student_created_distractor = models.InvalidatedDistractor.query.filter_by(question_id=quiz_question.question_id, author_id=current_user.id).first()
+            if student_created_distractor is None or student_created_distractor.answer == "" or student_created_distractor.justification == "":
+                return { "message" : "You must provide a distractor and justification for each question", "redirect": url_for("pages.get_quiz", quiz_course=q) }, 400
 
-    attempt.status = get_attempt_next_step(attempt.status)        
+        # get question ids from the quiz questions
+        question_ids = [question.question_id for question in quiz.quiz_questions]
+        
+        # get the student's distractors for the question ids
+        student_distractors = models.InvalidatedDistractor.query.filter_by(author_id=current_user.id).where(models.InvalidatedDistractor.question_id.in_(question_ids)).all()
+
+        # change the status of the distractors
+        for distractor in student_distractors:
+            distractor.status = "complete"
+
+
+    if quiz.step3_enabled == "True" and attempt.status == QUIZ_ATTEMPT_STEP2:
+        attempt.status = QUIZ_ATTEMPT_STEP3
+    else: 
+        attempt.status = get_attempt_next_step(attempt.status)     
+
             
     models.DB.session.commit()
     return {"message": "Quiz sumbission was saved!", "redirect": url_for("pages.index") }
@@ -852,6 +879,7 @@ def users_browser():
 @dataclass
 class QuizStats:
     quiz: dict # 1 level dict: props, one quiz with name-value props
+    course: dict # 1 level dict: props, one course with name-value props
     questions: dict # 2 level dict: question_id: props. key question_id and value is another dict 
     distractors: dict # 3 level dict: question_id:distractor_id:props
     students: list # list of quiz students: list of props
@@ -868,6 +896,7 @@ def get_quiz_statistics(qid, course_id):
     This page allows to get all stats on a given quiz.
     '''    
     quiz = models.Quiz.query.get_or_404(qid)
+    course = models.Course.query.get_or_404(course_id)
 
     quiz_questions = quiz.quiz_questions
     question_ids = set(qu.question_id for qu in quiz_questions)
@@ -891,7 +920,7 @@ def get_quiz_statistics(qid, course_id):
         quiz_questions[quiz_question_id] = questions[question_id]
         quiz_question_distractors[quiz_question_id] = distractors[question_id]
 
-    stats = QuizStats(quiz.dump_as_dict(), quiz_questions, quiz_question_distractors, students = [])
+    stats = QuizStats(quiz.dump_as_dict(), course.dump_as_dict(), quiz_questions, quiz_question_distractors, students = [])
 
     if len(plain_attempts) == 0:
         return stats  
@@ -953,7 +982,7 @@ def get_quiz_statistics(qid, course_id):
         grade_parts = []
         if len(attempt.initial_responses) > 0:
             grade_parts.append((attempt.initial_total_score, len(attempt.initial_responses), quiz.initial_score_weight))
-        if attempt.status == QUIZ_ATTEMPT_SOLUTIONS:
+        if attempt.status == QUIZ_ATTEMPT_SOLUTIONS or attempt.status == QUIZ_STEP3:
             grade_parts.append((attempt.revised_total_score, len(attempt.revised_responses), quiz.revised_score_weight))
         if sid in justification_scores:
             grade_parts.append((justification_scores[sid], max_justfication_grade, quiz.justification_grade_weight))
@@ -980,13 +1009,14 @@ def get_quiz_statistics(qid, course_id):
                         "likes_given_count": len(likes_given[s.id]) if s.id in likes_given else None,
                         "like_score": like_scores.get(s.id, None),
                         "initial_total_score": a.initial_total_score if len(a.initial_responses) > 0 else None,
-                        "revised_total_score": a.revised_total_score if a.status == QUIZ_ATTEMPT_SOLUTIONS else None,
+                        "revised_total_score": a.revised_total_score if a.status == QUIZ_ATTEMPT_SOLUTIONS or a.status == QUIZ_STEP3 else None,
+                        "step3_total_score": None,
                         "justification_score": justification_scores.get(s.id, None),
                         "likes_received": likes_received.get(s.id, None),
                         "likes_received_count": sum(j["num_likes"] for j in likes_received[s.id]) if s.id in likes_received else None,
                         "justification_like_count": justification_like_count.get(s.id, {}),
-                        "min_participation_grade_threshold": int(a.get_min_participation_grade_threshold()) if a.status == QUIZ_ATTEMPT_SOLUTIONS else None,
-                        "participation_grade_threshold": int(a.participation_grade_threshold) if a.status == QUIZ_ATTEMPT_SOLUTIONS else None,
+                        "min_participation_grade_threshold": int(a.get_min_participation_grade_threshold()) if a.status == QUIZ_ATTEMPT_SOLUTIONS or a.status == QUIZ_STEP3 else None,
+                        "participation_grade_threshold": int(a.participation_grade_threshold) if a.status == QUIZ_ATTEMPT_SOLUTIONS or a.status == QUIZ_STEP3 else None,
                         "participation_score": int(participation_scores[s.id]) if s.id in participation_scores else None,
                         "total_score": student_score,
                         "max_total_score": max_student_score,
@@ -1039,7 +1069,7 @@ def quiz_grader(qid, course_id):
     quartileOptions = numJustificationsOptions
 
     return render_template('quiz-grader.html', current_user=current_user, 
-                quiz = stats.quiz, questions = stats.questions, distractors = stats.distractors, 
+                quiz = stats.quiz, course = stats.course, questions = stats.questions, distractors = stats.distractors, 
                 students = stats.students, 
                 # attempts = stats.attempts,
                 # likes_given = stats.likes_given, likes_received = stats.likes_received, 
@@ -1050,6 +1080,71 @@ def quiz_grader(qid, course_id):
                 # justification_grade = stats.justification_scores, total_scores = stats.total_scores, 
                 # max_total_scores = stats.max_total_scores
                 )
+
+@pages.route('/quiz/<int:qid>/<int:course_id>/<int:student_id>/step3_grade', methods=['GET'])
+@login_required
+@role_required(ROLE_INSTRUCTOR)
+def step3_grade(qid, course_id, student_id):
+    q = models.Quiz.query.get_or_404(qid)
+    course = models.Course.query.get_or_404(course_id)
+    student = models.User.query.get_or_404(student_id)
+    quiz_questions = q.quiz_questions
+
+    quiz_question_ids = set(q.id for q in quiz_questions)
+    quiz_question_distractors = models.DB.session.query(models.quiz_questions_hub).where(models.quiz_questions_hub.c.quiz_question_id.in_(quiz_question_ids)).all()
+    distractor_ids = [d.distractor_id for d in quiz_question_distractors]
+    plain_distractors = models.Distractor.query.where(models.Distractor.id.in_(distractor_ids))
+    distractor_per_question = {q_id: ds for q_id, ds in groupby(plain_distractors, key = lambda d: d.question_id)}    
+    distractor_map = {d.id:d for d in plain_distractors}
+
+    #unescaping part - left for backward compatibility for now
+    
+    attempt = models.QuizAttempt.query.filter_by(student_id=student.id, quiz_id=q.id, course_id=course.id).first()
+    quiz_question_ids = [ int(qid) for qid in attempt.alternatives_map.keys() ]
+    question_ids = [ qq.question_id for qq in quiz_questions ]
+    # student created distractors where ids are in quiz_question_ids
+    student_created_distractors = models.InvalidatedDistractor.query.where(models.InvalidatedDistractor.question_id.in_(question_ids), models.InvalidatedDistractor.author_id == current_user.id).all()
+    student_created_distractors = {d.question_id:d for d in student_created_distractors}
+    distractor_ids = [did for _, ds in attempt.alternatives_map.items() for did in ds]
+
+    justifications = models.Justification.query.where(models.Justification.quiz_question_id.in_(quiz_question_ids), models.Justification.distractor_id.in_(distractor_ids), models.Justification.student_id == current_user.id).all()
+    justification_map = {qid:{j.distractor_id:j for j in js} for qid, js in groupby(justifications, key=lambda x:x.quiz_question_id)}
+
+    # we have all question_ids, using that we will find the all distractors for each question
+    all_distractors = models.Distractor.query.where(models.Distractor.question_id.in_(question_ids)).all()
+
+    question_model = [ { "id": qq.id, 
+                        "alternatives": [ unescape(distractor_map[alternative].answer) if alternative in distractor_map else unescape(qq.question.answer) 
+                                                for alternative in attempt.alternatives_map[str(qq.id)]
+                                                if alternative in distractor_map or alternative == -1],
+                        "choice": next((i for i, d in enumerate(attempt.alternatives_map[str(qq.id)]) if d == attempt.step_responses.get(str(qq.id), None)), -1), 
+                        "invalidated_distractors": student_created_distractors,
+                        "distractors_pool": [d for d in all_distractors if d.question_id == qq.question_id], 
+                        "justifications": {a:js[did].justification for a, did in enumerate(attempt.alternatives_map[str(qq.id)]) if did in js},
+                        **{attr:unescape(getattr(qq.question, attr)) for attr in [ "title", "stem", "answer" ]}}
+                        for qq in quiz_questions
+                        if str(qq.id) in attempt.alternatives_map
+                        # for (qq, alternatives) in zip(quiz_questions, attempt.alternatives) 
+                        for js in [justification_map.get(qq.id, {})]]
+
+    quiz_model = { "id" : q.id, "title" : q.title, "description" : q.description, "deadline0": q.deadline0, "deadline1": q.deadline1, "deadline2": q.deadline2, "deadline3": q.deadline3, "deadline4": q.deadline4 } #we do not need any other fields from dump_as_dict
+
+    # finding the reference justifications for each distractor
+    explanations = {qid:{str(aid):{"justification": "Correct answer!" if did == -1 else unescape(distractor_map[did].justification), "is_correct": did == -1 } 
+                        for aid, did in enumerate(alternatives) if did in distractor_map or did == -1}
+                    for qid, alternatives in attempt.alternatives_map.items()}
+
+    if q is None:
+        flash('Quiz not found', 'danger')
+        return redirect(url_for('pages.home'))
+    
+    if course is None:
+        flash('Course not found', 'danger')
+        return redirect(url_for('pages.home'))
+    
+    student_created_distractors = models.InvalidatedDistractor.query.where(models.InvalidatedDistractor.question_id.in_(question_ids), models.InvalidatedDistractor.author_id == student.id).all()
+    
+    return render_template('step3-grade.html', quiz = quiz_model, questions = question_model, course = course, student = student, explanations = explanations, student_created_distractors = student_created_distractors)
 
 @pages.route('/quiz-copy/<int:qid>', methods=['GET'])
 @login_required

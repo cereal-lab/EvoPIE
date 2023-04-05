@@ -158,7 +158,7 @@ def start_quiz_init(instructor, course_id, num_questions, num_distractors, quest
     '''
     instructor = {"email":instructor, "firstname":"I", "lastname": "I", "password":"pwd"}
     def build_quiz(i, questions):
-        return { "title": f"Quiz {i}", "description": "Test quiz", "questions_ids": questions}
+        return { "title": f"Quiz {i}", "description": "Test quiz", "questions_ids": questions, "step3_enabled": True}
     def build_question(i):
         return { "title": f"Question {i}", "stem": f"Question {i} Stem?", "answer": f"a{i}"}
     def build_distractor(i, question):

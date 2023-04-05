@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+{% import 'widgets.html' as w %}
+
+{% block title %}EvoPIE{% endblock %}
+
+{% block content %}
+
+<script>
+    const quizId = "{{quiz.id}}";
+    const courseId = "{{course.id}}";
+
+    const saveStudentDistractors = async (student_distractors, question_id) => {
+        const {} = await fetchJson(`/questions/${question_id}/student_distractors/distractor`, {
+            method: 'PUT',
+            headers: {'Content-Type' : 'application/json'},
+            body: JSON.stringify(student_distractors),
+            credentials: 'same-origin'
+        })             
+    }
+
+    const saveStudentJustifications = async (student_distractor_justification, question_id) => {
+        const {} = await fetchJson(`/questions/${question_id}/student_distractors/justification`, {
+            method: 'PUT',
+            headers: {'Content-Type' : 'application/json'},
+            body: JSON.stringify(student_distractor_justification),
+            credentials: 'same-origin'
+        })             
+    }
+        
+    const saveStudentDistractor = async (ev) => {                    
+        const questionId = ev.target.dataset.questionId;
+        const altId = parseInt(ev.target.dataset.altId);
+        const isEmpty = $(ev.target).summernote("isEmpty");
+        const distractor = $($(ev.target).summernote("code")).text();
+        const student_distractors = { "distractor": isEmpty ? "" : distractor };
+        await saveStudentDistractors(student_distractors, questionId);
+    }
+
+    const saveStudentJustification = async (ev) => {
+        const questionId = ev.target.dataset.questionId;
+        const altId = parseInt(ev.target.dataset.altId);
+        const isEmpty = $(ev.target).summernote("isEmpty")
+        const justification = $($(ev.target).summernote("code")).text();
+        const student_distractor_justification = { "justification": isEmpty ? "" : justification }
+        await saveStudentJustifications(student_distractor_justification, questionId);
+    }
+
+    const submitForm = () => {
+        $("#quizForm textarea.summernote.distractor").each(function () {
+            if ($(this).summernote("isEmpty")) $(this).val("")
+        })
+        $("#quizForm textarea.summernote.justification").each(function () {
+            if ($(this).summernote("isEmpty")) $(this).val("")
+        })
+    }
+
+    $(() => {
+        $("#quizForm textarea.summernote.distractor")
+            .on("summernote.change", (ev) => {
+                ev.target.dataset.state = "changed";
+            })
+            .on("summernote.blur", async (ev) => {
+                if (ev.target.dataset.state == "changed") {                        
+                    await saveStudentDistractor(ev)
+                    ev.target.dataset.state = "";
+                }
+        })
+
+        $("#quizForm textarea.summernote.justification")
+            .on("summernote.change", (ev) => {
+                ev.target.dataset.state = "changed";
+            })
+            .on("summernote.blur", async (ev) => {
+                if (ev.target.dataset.state == "changed") {                        
+                    await saveStudentJustification(ev)
+                    ev.target.dataset.state = "";
+                }
+        })
+    })
+
+</script>
+
+    <div class="jumbotron jumbotron-fluid">
+        <div class="container">
+            <h1 class="display-4">Step 3 - {{quiz.title | safe }}</h1>
+            <h3>Deadline - {{quiz.deadline4|date}}</h3>
+            <p class="lead">
+                Hello, {{current_user.first_name}} {{current_user.last_name}} ({{current_user.email}}). 
+                Provide distractors for the questions below from the quiz you just took.
+            </p>
+
+            <p class="lead">
+                <h2>About this quiz:</h2>
+                {{quiz.description | safe}}
+            </p>
+        </div>
+    </div>
+
+    <form id="quizForm" method="post" onsubmit="submitForm()">
+        {% for q in questions %}
+            <div class="card bg-light m-3 mx-auto content" style="width: 75%">
+                <div class="card-body" bg-light>
+                    <h1 class="card-title">Question #{{loop.index}} - {{q.title |safe|unescapeDoubleQuotes}}</h1>
+                    <p class="card-text">{{q.stem|safe|unescapeDoubleQuotes}}</p>
+                    
+                    <dl>
+                        <dt>Your answer is pre-selected below</dt>
+                    </dl>
+                    
+                    <div class="list-group list-group-flush">
+                    
+                    {% for answer in q.alternatives %}
+                    {% set explanation = explanations[q.id|string][loop.index0|string] %}
+                        <div class="list-group-item border border-primaryrounded updateSize"  style="height:fit-content">
+                            <div class="form-group">
+                                <div class="form-check {% if explanation.is_correct -%} bg-warning {%- endif -%}">                            
+                                    {{ w.question_option(q, loop.index0, answer, disabled=True) }}
+                                    
+                                    <div class = "justificationsContainer">
+                                        <table class="expandable-content table">                                        
+                                            <tr>
+                                                <td class='text-start'>
+                                                    <p> {{ explanation.justification | safe }} </p>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                    
+                        <div class="card bg-light m-3 mx-auto" style="width: 75%">
+                            <div class="card-body" bg-light>
+                                <h5 class="card-title">
+                                    Create a new distractor for this question
+                                </h5>
+                                <p class="card-text">
+                                    <div>
+                                        <label for="student_distractor_{{q.id}}_{{loop.index0}}">Add your distractor</label>
+                                        <textarea class="summernote distractor form-control"
+                                                data-question-id="{{q.id}}" data-alt-id="{{loop.index0}}"
+                                                name="student_distractor_{{q.id}}_{{loop.index0}}"
+                                                rows="3">{{ q.invalidated_distractors.get(q.id, '').answer | safe }}</textarea>  
+                                    </div>
+                                    <br>
+                                    <div>
+                                        <label for="student_distractor_{{q.id}}_{{loop.index0}}">Provide a justification for your distractor</label>
+                                        <textarea class="summernote justification form-control"
+                                                data-question-id="{{q.id}}" data-alt-id="{{loop.index0}}"
+                                                name="student_distractor_justification_{{q.id}}_{{loop.index0}}"
+                                                rows="3">{{ q.invalidated_distractors.get(q.id, '').justification | safe }}</textarea>  
+                                    </div>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+
+        {{ w.submit_quiz_button() }}
+    </form>
+
+{% endblock %}
