@@ -260,14 +260,16 @@ def unique_question_per_axis_constraint(space):
 def gen_test_distractor_mapping_knowledge(space): 
     ''' Generates knowledge in format similar to cli student init -k flag. Use this to init StudentKnowledge database 
     '''
-    knowledge = [*[ {"sid": point['cfs'], "qid": qid, "did": did, "chance": 1 } 
+    knowledge = [*[ {"sid": point['cfs'], "qid": qid, "did": did, "chance": 1000 + len(point['cfs']) } 
                     for _, points in space['axes'].items()
-                    for _, point in points.items() 
+                    for point_id, point in points.items() 
                     for qid, did in point['dids']],
-                 *[ {"sid": point['cfs'], "qid": qid, "did": did, "chance": 1 } 
-                    for _, point in space['spanned'].items()
+                 *[ {"sid": point['cfs'], "qid": qid, "did": did, "chance": 1000 * len(axes_ids) + len(point['cfs']) } 
+                    for axes_ids, point in space['spanned'].items()
                     for qid, did in point['dids']]]
     return knowledge
+
+
 
 #rnd = np.random.RandomState(17)
 #axes = gen_deca_space([1,2,3,4,5,6,7,8,9,10], (2,2), 1, 0.3, rnd = rnd)
@@ -282,8 +284,8 @@ def dimension_coverage(space, population_distractors):
     spanned_axes = {axis_id for spanned_id, point in space['spanned'].items() for _, did in point['dids'] if did in population_distractors for axis_id, _ in spanned_id}
     did_axes = {axis_id for axis_id, points in space["axes"].items() for point in points.values() for _, did in point["dids"] if did in population_distractors}    
     dim_coverage = len(did_axes) / len(space["axes"])
-    dim_coverage_with_spanned = len(did_axes.union(spanned_axes)) / len(space["axes"])
-    return {"dim_coverage":dim_coverage, "dim_coverage_with_spanned": dim_coverage_with_spanned}
+    # dim_coverage_with_spanned = len(did_axes.union(spanned_axes)) / len(space["axes"])
+    return {"dim_coverage":dim_coverage} # "dim_coverage_with_spanned": dim_coverage_with_spanned}
 
 # dimension_coverage(space, [5,6,14])
 
@@ -300,11 +302,13 @@ def avg_rank_of_repr(space, population_distractors):
                                                                         for _, did in point['dids'] 
                                                                         if did in population_distractors], key = lambda x: x[0])}
     arr_axes = [axes_rank[axis_id] / len(space['axes'][axis_id]) for axis_id in space['axes'] if axis_id in axes_rank]
+    arra_axes = [(axes_rank[axis_id] / len(space['axes'][axis_id])) if axis_id in axes_rank else 0 for axis_id in space['axes']]
     arr = np.average(arr_axes) if len(arr_axes) > 0 else 0 
-    arr_with_spanned_axes = [max([axes_rank.get(axis_id, 0), spanned_ranks.get(axis_id, 0)]) / len(space['axes'][axis_id]) 
-                                for axis_id in space['axes'] if axis_id in axes_rank or axis_id in spanned_ranks]
-    arr_with_spanned = np.average(arr_with_spanned_axes) if len(arr_with_spanned_axes) > 0 else 0 
-    return {"arr": arr, "arr_with_spanned": arr_with_spanned}
+    arra = np.average(arra_axes)
+    # arr_with_spanned_axes = [max([axes_rank.get(axis_id, 0), spanned_ranks.get(axis_id, 0)]) / len(space['axes'][axis_id]) 
+    #                             for axis_id in space['axes'] if axis_id in axes_rank or axis_id in spanned_ranks]
+    # arr_with_spanned = np.average(arr_with_spanned_axes) if len(arr_with_spanned_axes) > 0 else 0 
+    return {"arr": arr, "arra": arra}#, "arr_with_spanned": arr_with_spanned}
 
 # avg_rank_of_repr(space, [5,6,14])
 
@@ -314,7 +318,7 @@ def redundancy(space, population_distractors):
     population_spanned_distractors = [did for _, point in space['spanned'].items() for _, did in point['dids'] if did in population_distractors]
     pop_r = len(population_spanned_distractors) / len(population_distractors) 
     deca_r = len(space['spanned']) / (len(space['spanned']) + sum([len(points) for points in space["axes"].values()]))
-    return {"population_redundancy":pop_r, "deca_redundancy":deca_r, 'num_spanned': len(space['spanned']) }
+    return {"population_redundancy":pop_r} #, "deca_redundancy":deca_r} #, 'num_spanned': len(space['spanned']) }
 
 # redundancy(space, [5,6,14])
 
@@ -338,7 +342,7 @@ def duplication(space, population_distractors):
                                                             for _, did in point['dids'] 
                                                             if did in population_distractors], key = lambda x: x) ]
     duplication = (sum(duplication_on_axes) + sum(duplication_spanned)) / len(population_distractors)
-    return {"deca_duplication": deca_duplicates, "population_duplication": duplication}
+    return {"population_duplication": duplication} #"deca_duplication": deca_duplicates} }
 
 # duplication(space, [5,6,14])
 

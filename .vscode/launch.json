@@ -161,6 +161,27 @@
             ]
         },
         {
+            "name": "CLI: quiz run deca-pphc Sampling",
+            "type": "python",
+            "request": "launch",
+            "module" : "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1",
+                // "EVOPIE_DATABASE_LOG": "db.log" 
+            },
+            "args" : [
+                "quiz",
+                "run",
+                "-q", "1",
+                "-s", "STEP1",
+                "--algo", "evopie.sampling_quiz_model.SamplingQuizModel", "--algo-params", "{ \"n\": 3, \"min_num_evals\": 1, \"group_size\": 2, \"strategy\": \"non_domination\"}",
+                "--evo-output", "algo/s-nond.json", "--archive-output", "algo/a.csv",
+                "--random-seed", "17"
+            ]
+        },
+        {
             "name": "CLI: deca init",
             "type": "python",
             "request": "launch",
@@ -174,7 +195,7 @@
                 "deca",
                 "init", "-q", "1",
                 "-o", "deca-spaces",
-                "-a", "2", "-a", "3", "--spanned", "1", "--best-students-percent", "0.1", "--spanned-geometric-p", "0.8",
+                "-a", "2", "-a", "3", "--spanned", "1", "--best-students-percent", "0.1",
                 "--noninfo", "0.1", "-n", "3"
             ]
         },
@@ -214,12 +235,11 @@
                 "-nq", "4",
                 "-nd", "25",
                 "-ns", "100",
-                "-an", "2", "-an", "3", "-an", "4", "-an", "5", "-an", "6", "-an", "7", "-an", "8", "-an", "9", "-an", "10",
-                "-as", "1", "-as", "2",  "-as", "3", "-as", "4",  "-as", "5",
-                "--num-spanned", "0", "--num-spanned", "1", "--num-spanned", "2", "--num-spanned", "3", "--num-spanned", "5", "--num-spanned", "10", "--num-spanned", "20",
-                "--num-spaces", "30", 
-                "--best-students-percent", "0.3", 
-                "--noninfo", "0.3"
+                "-an", "4", "-as", "4", 
+                "--num-spanned", "4",
+                "--num-spaces", "1", 
+                "--best-students-percent", "0.05", 
+                "--noninfo", "0.1"
             ]
         },
         {
@@ -238,7 +258,7 @@
                 "--result-folder", "data/data-8/results",
                 "--figure-folder", "figures",
                 "--file-name-pattern", ".*_20-\\d+.csv",
-                "-p", "dim_coverage_with_spanned", "--group-by-space"
+                "--group-by-space"
             ]
         },
         {
@@ -281,6 +301,24 @@
             "console": "internalConsole"
         },
         {
+            "name": "CLI: quiz deca-experiment Sampling",
+            "type": "python",
+            "request": "launch",
+            "module": "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1"
+            },
+            "args" : [
+                "quiz", "deca-experiment",
+                "--deca-input", "deca-spaces/space-5_5_5_5_5_5_5_5_5_5-s_10-0.json",
+                "--num-runs", "2",
+                "--algo", "{ \"id\": \"s-nond\", \"algo\":\"evopie.sampling_quiz_model.SamplingQuizModel\", \"n\": 3, \"group_size\": 2, \"strategy\": \"slot_based\", \"hyperparams\": { \"key_spec\": [{\"t\":10, \"keys\":[[\"nond\", \"sd\", \"dom\", \"rel-kn\", \"kn\"], [\"rel-kn\", \"nond\", \"sd\", \"dom\", \"kn\"], [\"rel-kn\", \"kn\", \"nond\", \"sd\", \"dom\"]]}, {\"t\":30, \"keys\":[[\"nond\", \"sd\", \"dom\", \"rel-kn\", \"kn\"], [\"nond\", \"sd\", \"rel-kn\", \"kn\", \"dom\"], [\"rel-kn\", \"kn\", \"nond\", \"sd\", \"dom\"]]}]}}"
+            ],
+            "console": "internalConsole"
+        },
+        {
             "name": "CLI: quiz deca-experiment RAND",
             "type": "python",
             "request": "launch",
@@ -313,7 +351,23 @@
                 "-q", "1"
             ],
             "console": "internalConsole"
-        }
+        },
+        {
+            "name": "CLI: deca space result",
+            "type": "python",
+            "request": "launch",
+            "module": "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1"
+            },
+            "args" : [
+                "deca", "space-result",
+                "-r", "data/data-2023-03-24"
+            ],
+            "console": "internalConsole"
+        }        
     ]
 }
 
