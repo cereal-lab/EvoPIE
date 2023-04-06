@@ -162,6 +162,8 @@ class InvalidatedDistractor(DB.Model):
 
     comment = DB.Column(DB.String, nullable=False, default="")
 
+    grade = DB.Column(DB.Integer, nullable=False, default=0)
+
     # to allow for 1-to-many relationship Question / Distractor
     question_id = DB.Column(None, DB.ForeignKey('question.id'))
 

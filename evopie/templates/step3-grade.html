@@ -46,6 +46,17 @@ const saveInstructorComment = async (ev) => {
     await saveComment(student_distractor_comment, distractorId);
 }
 
+const saveDistractorGrade = async (distractorId, sliderValue) => {
+    const {} = await fetchJson(`/student_distractors/${distractorId}/grade`, {
+        method: 'PUT',
+        headers: {'Content-Type' : 'application/json'},
+        body: JSON.stringify({
+            "grade": sliderValue,
+        }),
+        credentials: 'same-origin'
+    })
+}
+
 $(() => {
     $("textarea.summernote.comment")
         .on("summernote.change", (ev) => {
@@ -58,6 +69,26 @@ $(() => {
             }
     })
 })
+
+$(document).ready(function() {
+    // Get all the sliders
+    const sliders = document.querySelectorAll('input[type="range"]');
+
+    // Loop through each slider and add an event listener
+    sliders.forEach(slider => {
+        slider.addEventListener('input', event => {
+            // Get the distractor ID from the slider ID
+            const distractorId = event.target.id.split('_')[3];
+            // Get the value of the slider
+            const sliderValue = event.target.value;
+            // Update the display element with the slider value
+            const displayElement = document.querySelector(`#slider-display-${distractorId}`);
+            displayElement.textContent = sliderValue;
+
+            saveDistractorGrade(distractorId, sliderValue);
+        });
+    });
+});
 
 </script>
 
@@ -150,6 +181,16 @@ $(() => {
                             <p>Distractor: {{student_distractor.answer | safe}}</p>
                             <p>Justification: {{student_distractor.justification | safe}}</p>
                         </blockquote>
+                        </div>
+                    </div>
+                    
+                    <br>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <label for="student_distractor_grade_{{student_distractor.id}}" class="form-label">Grade</label>
+                            <input type="range" class="form-range" min="0" max="100" step="20" id="student_distractor_grade_{{student_distractor.id}}" value="{{student_distractor.grade}}">
+                            <span id="slider-display-{{student_distractor.id}}">{{student_distractor.grade | safe}}</span>
                         </div>
                     </div>
 

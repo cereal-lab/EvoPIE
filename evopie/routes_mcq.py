@@ -343,6 +343,27 @@ def put_student_justification_for_question(question_id):
 
     return jsonify({ "message" : "Student Distractor added to Question in database", "id": student_distractor.id }), 201
 
+@mcq.route('/student_distractors/<int:distractor_id>/grade', methods=['PUT'])
+@login_required
+@role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to grade distractors")
+def grade_student_distractor(distractor_id):
+    grade = request.json['grade']
+
+    # validate that all required information was sent
+    if distractor_id is None:
+        abort(400, "Unable to grade distractor due to missing data")
+
+    # check if the student has submitted a distractor for this question
+    distractor = models.InvalidatedDistractor.query.get_or_404(distractor_id)
+
+    if distractor is None:
+        abort(400, "Unable to grade distractor due to missing data")
+
+    distractor.grade = int(grade)
+    models.DB.session.commit()
+
+    return jsonify({ "message" : "Student Distractor graded in database" }), 201
+
 @mcq.route('/student_distractors/<int:distractor_id>/add_to_pool', methods=['POST'])
 @login_required
 @role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to add distractors to the pool")
