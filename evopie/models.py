@@ -369,7 +369,7 @@ class Quiz(DB.Model):
                             second_quartile_grade=self.second_quartile_grade, third_quartile_grade=self.third_quartile_grade, 
                             fourth_quartile_grade=self.fourth_quartile_grade, step1_pwd=self.step1_pwd, step2_pwd=self.step2_pwd, 
                             deadline_driven=self.deadline_driven, deadline0=self.deadline0, deadline1=self.deadline1, 
-                            deadline2=self.deadline2, deadline3=self.deadline3, deadline4=self.deadline4)
+                            deadline2=self.deadline2, deadline3=self.deadline3, deadline4=self.deadline4, step3_enabled=self.step3_enabled)
         for q in self.quiz_questions:
             new_quiz.quiz_questions.append(q.copy())
         return new_quiz
@@ -648,9 +648,9 @@ class EvoProcess(DB.Model):
 #     genotype = DB.Column(JSONEncodedMutableList, default=[])
 #     objectives = DB.Column(JSONEncodedMutableDict, default={})
 
-    def copy(self):
-        archive = EvoProcessArchive(genotype_id=self.genotype_id, genotype=self.genotype, objectives=self.objectives)
-        return archive
+    # def copy(self):
+    #     archive = EvoProcessArchive(genotype_id=self.genotype_id, genotype=self.genotype, objectives=self.objectives)
+    #     return archive
 
 
 class StudentKnowledge(DB.Model):

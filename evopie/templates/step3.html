@@ -31,8 +31,8 @@
         const questionId = ev.target.dataset.questionId;
         const altId = parseInt(ev.target.dataset.altId);
         const isEmpty = $(ev.target).summernote("isEmpty");
-        const distractor = $($(ev.target).summernote("code")).text();
-        const student_distractors = { "distractor": isEmpty ? "" : distractor };
+        // const distractor = $($(ev.target).summernote("code")).text();
+        const student_distractors = { "distractor": isEmpty ? "" : ev.target.value };
         await saveStudentDistractors(student_distractors, questionId);
     }
 
@@ -40,8 +40,8 @@
         const questionId = ev.target.dataset.questionId;
         const altId = parseInt(ev.target.dataset.altId);
         const isEmpty = $(ev.target).summernote("isEmpty")
-        const justification = $($(ev.target).summernote("code")).text();
-        const student_distractor_justification = { "justification": isEmpty ? "" : justification }
+        // const justification = $($(ev.target).summernote("code")).text();
+        const student_distractor_justification = { "justification": isEmpty ? "" : ev.target.value }
         await saveStudentJustifications(student_distractor_justification, questionId);
     }
 

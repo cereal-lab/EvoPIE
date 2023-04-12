@@ -47,14 +47,16 @@ pages = Blueprint('pages', __name__)
 def index():
     ''' Index page for the whole thing; used to test out a rudimentary user interface '''
     courses = []
+    attempts = {}
     if current_user.is_authenticated and current_user.is_student():
         courses = current_user.courses
         for course in courses:
             for quiz in course.quizzes:
+                attempts[quiz.id] = models.QuizAttempt.query.filter_by(quiz_id=quiz.id, student_id=current_user.get_id(), course_id=course.id).first()
                 if quiz.deadline_driven == "True":
                     change_quiz_status(quiz)
 
-    return render_template('index.html', courses=courses)
+    return render_template('index.html', courses=courses, attempts=attempts)
 
 @pages.route('/questions-browser')
 @login_required

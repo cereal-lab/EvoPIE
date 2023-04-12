@@ -107,7 +107,8 @@
                         you will not be able to participate to it when it transitions to STEP2.</li>
                   <li> Click on "Take Quiz" to take a quiz. You may open a quiz multiple times but submit your answers only once.</li>
                   <li> Once you submit your answers for a quiz in STEP1, you will have to wait for your instructor before to be able to retake it as STEP2.</li>
-                  <li> Once you submit your answers for a quiz in STEP2, you are done with the whole quiz.</li>
+                  <li> Once you submit your answers for a quiz in STEP2, you can immediately take STEP3 if it is enabled. It has to be completed before the deadline.</li>
+                  <li> Once you submit your answers for a quiz in STEP3, you are done with that quiz.</li>
                 </ul>
               </p>
             </div>
@@ -155,7 +156,15 @@
                           {{ course.name | safe }}
                         </td>
                         <td>
-                          {{q.status }}
+                          {% if q.step3_enabled == 'True' %}
+                            {% if q.status == 'STEP2' or q.status == 'STEP3' %}
+                              STEP2/STEP3
+                            {% else %}
+                              {{ q.status }}
+                            {% endif %}
+                          {% else %}
+                            {{ q.status }}
+                          {% endif %}
                         </td>
                         {% if q.status == 'SOLUTIONS' %}
                           <td>
