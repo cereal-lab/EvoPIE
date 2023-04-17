@@ -167,14 +167,13 @@ class InvalidatedDistractor(DB.Model):
     # to allow for 1-to-many relationship Question / Distractor
     question_id = DB.Column(None, DB.ForeignKey('question.id'))
 
+    accepted = DB.Column(DB.String, nullable=False, default="False")
+
     def __repr__(self):
         return "<InvalidatedDistractor: id='%d',question_id=%d>" % (self.id, self.question_id)
 
-    def dump_as_dict(self): # TODO #3
-        return {"id" : self.id, "answer": unescape(self.answer), "justification": unescape(self.justification)}
-
-    def dump_as_simplified_dict(self):
-        return {"id" : self.id, "answer": "", "justification": ""}
+    def dump_as_dict(self):
+        return {"id" : self.id, "answer": unescape(self.answer), "justification": unescape(self.justification), "status": self.status, "comment": unescape(self.comment), "grade": self.grade, "accepted": self.accepted}
 
 class QuizQuestion(DB.Model):
     '''

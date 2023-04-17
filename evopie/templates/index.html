@@ -156,15 +156,7 @@
                           {{ course.name | safe }}
                         </td>
                         <td>
-                          {% if q.step3_enabled == 'True' %}
-                            {% if q.status == 'STEP2' or q.status == 'STEP3' %}
-                              STEP2/STEP3
-                            {% else %}
-                              {{ q.status }}
-                            {% endif %}
-                          {% else %}
                             {{ q.status }}
-                          {% endif %}
                         </td>
                         {% if q.status == 'SOLUTIONS' %}
                           <td>

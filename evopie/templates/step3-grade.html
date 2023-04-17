@@ -9,7 +9,7 @@
 
 const saveDistractors = async (distractor_id) => {
     const {} = await fetchJson(`/student_distractors/${distractor_id}/add_to_pool`, {
-        method: 'POST',
+        method: 'PUT',
         headers: {'Content-Type' : 'application/json'},
         body: JSON.stringify({
             distractor_id: distractor_id,
@@ -20,7 +20,7 @@ const saveDistractors = async (distractor_id) => {
 
 const removeDistractors = async (distractor_id) => {
     const {} = await fetchJson(`/student_distractors/${distractor_id}/remove_from_pool`, {
-        method: 'POST',
+        method: 'PUT',
         headers: {'Content-Type' : 'application/json'},
         body: JSON.stringify({
             distractor_id: distractor_id,
@@ -46,12 +46,12 @@ const saveInstructorComment = async (ev) => {
     await saveComment(student_distractor_comment, distractorId);
 }
 
-const saveDistractorGrade = async (distractorId, sliderValue) => {
+const saveDistractorGrade = async (distractorId, value) => {
     const {} = await fetchJson(`/student_distractors/${distractorId}/grade`, {
         method: 'PUT',
         headers: {'Content-Type' : 'application/json'},
         body: JSON.stringify({
-            "grade": sliderValue,
+            "grade": value,
         }),
         credentials: 'same-origin'
     })
@@ -71,23 +71,42 @@ $(() => {
 })
 
 $(document).ready(function() {
-    // Get all the sliders
-    const sliders = document.querySelectorAll('input[type="range"]');
 
-    // Loop through each slider and add an event listener
-    sliders.forEach(slider => {
-        slider.addEventListener('input', event => {
-            // Get the distractor ID from the slider ID
-            const distractorId = event.target.id.split('_')[3];
-            // Get the value of the slider
-            const sliderValue = event.target.value;
-            // Update the display element with the slider value
-            const displayElement = document.querySelector(`#slider-display-${distractorId}`);
-            displayElement.textContent = sliderValue;
+    const acceptDistractorButtons = document.querySelectorAll('input[id^="student_distractor_accept_"]');
+    const rejectDistractorButtons = document.querySelectorAll('input[id^="student_distractor_reject_"]');
 
-            saveDistractorGrade(distractorId, sliderValue);
+    acceptDistractorButtons.forEach(function(button) {
+        const distractorId = button.id.split('_')[3];
+        button.addEventListener('click', async function() {
+            const respectiveRejectButton = document.getElementById(`student_distractor_reject_${distractorId}`);
+            respectiveRejectButton.nextElementSibling.classList.remove("active");
         });
     });
+
+    rejectDistractorButtons.forEach(function(button) {
+        const distractorId = button.id.split('_')[3];
+        button.addEventListener('click', async function() {
+            const respectiveAcceptButton = document.getElementById(`student_distractor_accept_${distractorId}`);
+            respectiveAcceptButton.nextElementSibling.classList.remove("active");
+        });
+    });
+
+    const rubricRows = document.querySelectorAll('tr[id^="student_distractor_"]');
+    rubricRows.forEach(function(row) {
+        const cells = row.querySelectorAll('td');
+        cells.forEach(function(cell) {
+            cell.addEventListener('click', function() {
+                const distractorId = row.id.split('_')[3];
+                const value = cell.getAttribute("value")
+                const previousSelectedCell = row.querySelector('td.table-info');
+                if (previousSelectedCell) {
+                    previousSelectedCell.classList.remove("table-info");
+                }
+                cell.classList.toggle("table-info");
+                saveDistractorGrade(distractorId, value);
+            });
+        });
+    }); 
 });
 
 </script>
@@ -100,64 +119,6 @@ $(document).ready(function() {
             Hello, {{current_user.first_name}} {{current_user.last_name}}. 
             Use this page to grade the student's distractors for step 3.
         </p>
-
-        <button type="button" class="btn btn-primary" data-bs-toggle="modal"
-            data-bs-target=".TG-RUB">
-            Show Rubric
-        </button>
-        <div class="modal fade TG-RUB" tabindex="-1" role="dialog"
-                aria-labelledby="mySmallModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-xl">
-                <div class="modal-content">
-                    <table class="table table-hover" style="margin-bottom: 0px;">
-                        <thead>
-                          <tr>
-                            <th scope="col">Criteria</th>
-                            <th scope="col">Ratings</th>
-                            <th scope="col"></th>
-                            <th scope="col"></th>
-                            <th scope="col"></th>
-                            <th scope="col"></th>
-                            <th scope="col"></th>
-                            <th scope="col">Pts</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr>
-                            <th scope="row">New Distractor : Non Trivial/Random</th>
-                            <td>100 pts Full Marks</td>
-                            <td>80 pts Partial Marks</td>
-                            <td>60 pts Partial Marks</td>
-                            <td>40 pts Partial Marks</td>
-                            <td>20 pts Partial Marks</td>
-                            <td>0 pts No Marks - Duplicate of seen distractor</td>
-                            <td>100</td>
-                          </tr>
-                          <tr>
-                            <th scope="row">New Distractor : Detailed justification that shows underlying reasoning/corresponding bug</th>
-                            <td>100 pts Full Marks</td>
-                            <td>80 pts Partial Marks</td>
-                            <td>60 pts Partial Marks</td>
-                            <td>40 pts Partial Marks</td>
-                            <td>20 pts Partial Marks</td>
-                            <td>0 pts No Marks - Duplicate of seen distractor</td>
-                            <td>100</td>
-                          </tr>
-                          <tr>
-                            <th scope="row">Improved Existing Distractor : Refinement of existing distractor</th>
-                            <td>100 pts Full Marks</td>
-                            <td>80 pts Partial Marks</td>
-                            <td>60 pts Partial Marks</td>
-                            <td>40 pts Partial Marks</td>
-                            <td>20 pts Partial Marks</td>
-                            <td>0 pts No Marks - Duplicate of seen distractor</td>
-                            <td>100</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
 
@@ -200,21 +161,36 @@ $(document).ready(function() {
                         </div>
                         <div class="card-body">
                         <blockquote class="blockquote mb-0">
-                            <p>Distractor: {{student_distractor.answer | safe}}</p>
-                            <p>Justification: {{student_distractor.justification | safe}}</p>
+                            <p><u>Distractor:</u> {{student_distractor.answer | striptags | safe}}</p>
+                            <p><u>Justification:</u> {{student_distractor.justification | striptags | safe}}</p>
                         </blockquote>
                         </div>
                     </div>
-                    
+
                     <br>
 
-                    <div class="card">
-                        <div class="card-header">
-                            <label for="student_distractor_grade_{{student_distractor.id}}" class="form-label">Grade</label>
-                            <input type="range" class="form-range" min="0" max="100" step="20" id="student_distractor_grade_{{student_distractor.id}}" value="{{student_distractor.grade}}">
-                            <span id="slider-display-{{student_distractor.id}}">{{student_distractor.grade | safe}}</span>
-                        </div>
-                    </div>
+                    <table class="table table-bordered" style="margin-bottom: 0px;">
+                        <thead>
+                          <tr>
+                            <th scope="col">Criteria</th>
+                            <th scope="col">Ratings</th>
+                            <th scope="col"></th>
+                            <th scope="col"></th>
+                            <th scope="col"></th>
+                            <th scope="col">Pts</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr id="student_distractor_grade_{{student_distractor.id}}" class="pointer-link">
+                            <th scope="row">New or Modified Distractor</th>
+                            <td value="100" {% if student_distractor.grade == 100 %} class="table-info" {% endif %}>100 pts Full Marks</td>
+                            <td value="85" {% if student_distractor.grade == 85 %} class="table-info" {% endif %}>85 pts Partial Marks</td>
+                            <td value="70" {% if student_distractor.grade == 70 %} class="table-info" {% endif %}>70 pts Partial Marks</td>
+                            <td value="0" {% if student_distractor.grade == 0 %} class="table-info" {% endif %}>0 pts No Marks - Duplicate of seen distractor or incorrect distractor</td>
+                            <th>100</th>
+                          </tr>
+                        </tbody>
+                    </table>
 
                     <br>
 
@@ -247,10 +223,10 @@ $(document).ready(function() {
                     </div>
 
                     <input type="radio" class="btn-check" name="options-outlined" id="student_distractor_accept_{{q.id}}" autocomplete="off" onchange="saveDistractors({{student_distractor.id}})">
-                    <label class="btn btn-outline-success" for="student_distractor_accept_{{q.id}}">Accept Distractor</label>
+                    <label {% if student_distractor.accepted == "True" %} class="btn btn-outline-success active" {% else %} class="btn btn-outline-success" {% endif %} for="student_distractor_accept_{{q.id}}">Accept Distractor</label>
 
                     <input type="radio" class="btn-check" name="options-outlined" id="student_distractor_reject_{{q.id}}" autocomplete="off" onchange="removeDistractors({{student_distractor.id}})">
-                    <label class="btn btn-outline-danger" for="student_distractor_reject_{{q.id}}">Reject Distractor</label>
+                    <label {% if student_distractor.accepted == "False" %} class="btn btn-outline-danger active" {% else %} class="btn btn-outline-danger" {% endif %} for="student_distractor_reject_{{q.id}}">Reject Distractor</label>
 
                     <div class="card bg-light m-3">
                         <div class="card-body" bg-light>

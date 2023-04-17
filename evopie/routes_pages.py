@@ -863,6 +863,10 @@ def save_quiz_attempt(q, body):
 
             
     models.DB.session.commit()
+    
+    if attempt.status == QUIZ_ATTEMPT_STEP3:
+        return {"message": "Quiz sumbission was saved!", "redirect": url_for("pages.get_quiz", quiz_course=q) }
+    
     return {"message": "Quiz sumbission was saved!", "redirect": url_for("pages.index") }
 
 @pages.route('/users/', methods=['GET'])

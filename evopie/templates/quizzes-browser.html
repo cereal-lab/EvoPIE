@@ -121,9 +121,6 @@
                                 <option value="HIDDEN"      {% if single_quiz.status == 'HIDDEN' %} selected {% endif %}>       Hidden</option>
                                 <option value="STEP1"       {% if single_quiz.status == 'STEP1' %} selected {% endif %}>        Step #1</option>
                                 <option value="STEP2"       {% if single_quiz.status == 'STEP2' %} selected {% endif %}>        Step #2</option>
-                                {% if single_quiz.step3_enabled == "True" %}
-                                    <option value="STEP3"       {% if single_quiz.status == 'STEP3' %} selected {% endif %}>        Step #3</option>
-                                {% endif %}
                                 <option value="SOLUTIONS"   {% if single_quiz.status == 'SOLUTIONS' %} selected {% endif %}>    Show Answers</option>
                             </select>
                         </td>
@@ -255,9 +252,6 @@
                             <option value="HIDDEN"      {% if single_quiz.status == 'HIDDEN' %} selected {% endif %}>       Hidden</option>
                             <option value="STEP1"       {% if single_quiz.status == 'STEP1' %} selected {% endif %}>        Step #1</option>
                             <option value="STEP2"       {% if single_quiz.status == 'STEP2' %} selected {% endif %}>        Step #2</option>
-                            {% if single_quiz.step3_enabled == "True" %}
-                                    <option value="STEP3"       {% if single_quiz.status == 'STEP3' %} selected {% endif %}>        Step #3</option>
-                            {% endif %}
                             <option value="SOLUTIONS"   {% if single_quiz.status == 'SOLUTIONS' %} selected {% endif %}>    Show Answers</option>
                         </select>
                     </td>
