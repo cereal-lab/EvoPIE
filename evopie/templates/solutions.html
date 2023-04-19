@@ -18,6 +18,40 @@
                 <h2>About this quiz:</h2>
                 {{quiz.description | safe}}
             </p>
+
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+            data-bs-target=".TG-RUB">
+            Show Rubric
+            </button>
+            <div class="modal fade TG-RUB" tabindex="-1" role="dialog"
+                    aria-labelledby="mySmallModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <table class="table table-bordered" style="margin-bottom: 0px;">
+                            <thead>
+                              <tr>
+                                <th scope="col">Criteria</th>
+                                <th scope="col">Ratings</th>
+                                <th scope="col"></th>
+                                <th scope="col"></th>
+                                <th scope="col"></th>
+                                <th scope="col">Pts</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <th scope="row">New or Modified Distractor</th>
+                                <td value="100">100 pts Full Marks</td>
+                                <td value="85">85 pts Partial Marks</td>
+                                <td value="70">70 pts Partial Marks</td>
+                                <td value="0">0 pts No Marks - Duplicate of seen distractor or incorrect distractor</td>
+                                <td>100</td>
+                              </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -53,6 +87,35 @@
                         </div>
                     </div>
                 {% endfor %}
+                </div>
+
+                <br>
+
+                <div class="card text-white bg-dark">
+                    <div class="card-header">
+                        Here is the distractor you submitted for this question
+                    </div>
+                    <div class="card-body">
+                    <blockquote class="blockquote mb-0">
+                        <p><u>Distractor:</u> {{q.invalidated_distractors[q.id].answer | striptags | safe}}</p>
+                        <p><u>Justification:</u> {{q.invalidated_distractors[q.id].justification | striptags | safe}}</p>
+                    </blockquote>
+                    </div>
+                </div>
+
+                <br>
+
+                <div class="card text-white bg-primary">
+                    <div class="card-header">
+                        Grade and comment from the instructor
+                    </div>
+                    <div class="card-body">
+                    <blockquote class="blockquote mb-0">
+                        <p><u>Grade:</u></p>
+                        <p>{{q.invalidated_distractors[q.id].grade | safe}} / 100</p>
+                        <p><u>Instructor's Comment:</u> {{q.invalidated_distractors[q.id].comment | striptags| safe}}</p>
+                    </blockquote>
+                    </div>
                 </div>
             </div>
         </div>

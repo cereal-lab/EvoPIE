@@ -364,7 +364,7 @@ def grade_student_distractor(distractor_id):
 
     return jsonify({ "message" : "Student Distractor graded in database" }), 201
 
-@mcq.route('/student_distractors/<int:distractor_id>/add_to_pool', methods=['POST'])
+@mcq.route('/student_distractors/<int:distractor_id>/add_to_pool', methods=['PUT'])
 @login_required
 @role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to add distractors to the pool")
 def add_student_distractor_to_pool(distractor_id):
@@ -381,9 +381,13 @@ def add_student_distractor_to_pool(distractor_id):
     else:
         return jsonify({ "message" : "Student Distractor already exists in pool" }), 409
     
+    distractor.accepted = "True"
+
+    models.DB.session.commit()
+    
     return jsonify({ "message" : "Student Distractor added to pool" }), 201
 
-@mcq.route('/student_distractors/<int:distractor_id>/remove_from_pool', methods=['POST'])
+@mcq.route('/student_distractors/<int:distractor_id>/remove_from_pool', methods=['PUT'])
 @login_required
 @role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to remove distractors from the pool")
 def remove_student_distractor_from_pool(distractor_id):
@@ -398,6 +402,10 @@ def remove_student_distractor_from_pool(distractor_id):
         # if so, remove it from the database
         models.DB.session.delete(existing_distractor)
         models.DB.session.commit()
+
+    distractor.accepted = "False"
+
+    models.DB.session.commit()
     
     return jsonify({ "message" : "Student Distractor removed from pool" }), 200
 
