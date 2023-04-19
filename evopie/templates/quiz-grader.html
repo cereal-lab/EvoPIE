@@ -23,13 +23,9 @@
                 if (e) { 
                     e.innerHTML = (s.justification_score == null) ? "N/A" : s.justification_score; 
                 }
-                let total_score = document.querySelector('#total_score-' + s.id);
                 let final_percentage = document.querySelector('#final_percentage-' + s.id);
-                if (total_score) {
-                    total_score.innerHTML = (Math.round(s.total_score * 10) / 10) + " / " + (Math.round(s.max_total_score * 10) / 10)
-                }
                 if (final_percentage) {
-                    final_percentage.innerHTML = Math.round(s.total_score * 100 / s.max_total_score) + "%";
+                    final_percentage.innerHTML = Math.round(s.total_percent) + "%";
                 } 
             }
         }
@@ -201,13 +197,12 @@
             <th>Email</th>
             <th>Step #1</th>
             <th>Step #2</th>
-            <th>Step #3</th>
             <th>Justifications</th>
             <th>Participation</th>            
+            <th>Designing</th>
             <th>Likes Given</th>
-            <th>Likes Received</th>
-            <!-- <th>Designing</th> -->
-            <th>Total Score</th>
+            <th>Likes Received</th>            
+            <!-- <th>Total Score</th> -->
             <th>Total (%)</th>
         </tr>
     </thead>
@@ -303,55 +298,6 @@
                 </div>
                 {% endif %}
             </td>
-            <td data-bs-order="{{s.step3_total_score}}">
-                {%- if s.step3_total_score is none -%}
-                N/A
-                {% else %}                
-                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal"
-                        data-bs-target=".TG-REV-{{s.id}}">
-                    {{s.revised_total_score}} / {{s.revised_responses | length}}
-                </button>
-                <div class="modal fade TG-REV-{{s.id}}" tabindex="-1" role="dialog"
-                        aria-labelledby="mySmallModalLabel" aria-hidden="true">
-                    <div class="modal-dialog modal-xl">
-                      <div class="modal-content">
-                        <table>
-                            <tr>
-                                <!-- <th>QID</th> -->
-                                <th>Question</th>
-                                <th>Correct Answer</th>
-                                <th></th>
-                                <!-- <th>RID</th> -->
-                                <th>Student's Revised Response</th>
-                            </tr>
-                            {% for item in s.revised_responses %}                            
-                                {% set j = s.revised_responses[item] | int %}
-                                {% set question = questions[item] %}
-                                <tr style="border: 1px solid;">
-                                    <!-- <td class="text-start align-top">{{ item | safe }}</td> -->
-                                    <td class="text-start align-top">{{ question.stem | safe }}</td>
-                                    <td class="text-start align-top">{{ question.answer | safe }}</td>
-                                    {% if j == -1 %}
-                                    <td class="align-top">{{ w.success_glif() }}</td>
-                                    <td class="text-start align-top">{{ question.answer | safe }}</td>
-                                    {% else %}
-                                    <td class="align-top">{{ w.fail_glif() }}</td>
-                                    <td class="text-start align-top">{{ distractors[item][j] | safe }}</td>
-                                    {% endif %}
-                                </tr>
-                            {% endfor %}
-                        </table>
-                      </div>
-                    </div>
-                </div>
-                {% endif %}
-                <a  href='{{url_for('pages.step3_grade', qid=quiz.id, course_id=course.id, student_id=s.id)}}' type="button" class="">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-card-checklist" viewBox="0 0 16 16">
-                        <path d="M14.5 3a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h13zm-13-1A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2h-13z"/>
-                        <path d="M7 5.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm-1.496-.854a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 1 1 .708-.708l.146.147 1.146-1.147a.5.5 0 0 1 .708 0zM7 9.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm-1.496-.854a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 0 1 .708-.708l.146.147 1.146-1.147a.5.5 0 0 1 .708 0z"/>
-                        </svg>
-                </a>
-            </td>
             <td data-bs-order="{{s.justification_score}}">
                 {%- if s.justification_score is none -%}
                 N/A
@@ -429,6 +375,55 @@
                         {{ w.fail_glif() }}
                     {% endif %}                                
                 {% endif %}
+            </td>
+            <td data-bs-order="{{s.designing_score}}">
+                {%- if s.designing_score is none -%}
+                N/A
+                {% else %}                
+                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal"
+                        data-bs-target=".TG-REV-{{s.id}}">
+                    {{s.designing_score | round(0)}}%
+                </button>
+                <div class="modal fade TG-REV-{{s.id}}" tabindex="-1" role="dialog"
+                        aria-labelledby="mySmallModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-xl">
+                      <div class="modal-content">
+                        <table>
+                            <tr>
+                                <!-- <th>QID</th> -->
+                                <th>Question</th>
+                                <th>Correct Answer</th>
+                                <th></th>
+                                <!-- <th>RID</th> -->
+                                <th>Student's Revised Response</th>
+                            </tr>
+                            {% for item in s.revised_responses %}                            
+                                {% set j = s.revised_responses[item] | int %}
+                                {% set question = questions[item] %}
+                                <tr style="border: 1px solid;">
+                                    <!-- <td class="text-start align-top">{{ item | safe }}</td> -->
+                                    <td class="text-start align-top">{{ question.stem | safe }}</td>
+                                    <td class="text-start align-top">{{ question.answer | safe }}</td>
+                                    {% if j == -1 %}
+                                    <td class="align-top">{{ w.success_glif() }}</td>
+                                    <td class="text-start align-top">{{ question.answer | safe }}</td>
+                                    {% else %}
+                                    <td class="align-top">{{ w.fail_glif() }}</td>
+                                    <td class="text-start align-top">{{ distractors[item][j] | safe }}</td>
+                                    {% endif %}
+                                </tr>
+                            {% endfor %}
+                        </table>
+                      </div>
+                    </div>
+                </div>
+                {% endif %}
+                <a  href='{{url_for('pages.step3_grade', qid=quiz.id, course_id=course.id, student_id=s.id)}}' type="button" class="">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-card-checklist" viewBox="0 0 16 16">
+                        <path d="M14.5 3a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h13zm-13-1A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2h-13z"/>
+                        <path d="M7 5.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm-1.496-.854a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 1 1 .708-.708l.146.147 1.146-1.147a.5.5 0 0 1 .708 0zM7 9.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5zm-1.496-.854a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 0 1 .708-.708l.146.147 1.146-1.147a.5.5 0 0 1 .708 0z"/>
+                        </svg>
+                </a>
             </td>
             <td data-bs-order="{{s.likes_given_count}}">
                 {%- if s.likes_given is none -%}
@@ -548,16 +543,10 @@
                     </div>
                 {% endif %}
             </td>
-            <td data-bs-order="{{s.total_score | round(1) }}">
-                <button id="total_score-{{s.id}}" type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal"
-                data-bs-target=".TG-TOTAL-{{s.id}}">
-                {{s.total_score | round(1) }} / {{s.max_total_score | round(1)}}
-                </button>
-            </td>
-            <td data-bs-order="{{(s.total_score * 100 / s.max_total_score) | round(0) | int }}">
+            <td data-bs-order="{{ s.total_percent | round(0) | int }}">
                 <button id="final_percentage-{{s.id}}" type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal"
                 data-bs-target=".TG-FINAL-{{s.id}}">
-                {{(s.total_score * 100 / s.max_total_score) | round(0) | int }}%
+                {{ s.total_percent | round(0) | int }}%
                 </button>
             </td>
         </tr>
