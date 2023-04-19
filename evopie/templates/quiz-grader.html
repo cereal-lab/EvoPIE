@@ -8,9 +8,12 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='multislider.css') }}">
     <script type="text/javascript" charset="utf8" src="{{ url_for('static', filename='multislider.js') }}"></script>
     <script> 
+        const qid = {{quiz.id}};
+        const course_id = {{course_id}};
+
         var table = null; //DataTable - initialized on dom load
 
-        const updateTable = async (qid) => {
+        const updateTable = async () => {
             let response = await fetch('/quiz/' + qid + '/' + course_id + '/grades', {
                 method:         'GET',
                 headers:        {'Accept' : 'application/json'},
@@ -31,8 +34,6 @@
         }
 
         $(document).ready( function () {
-            const qid = {{quiz.id}};
-            const course_id = {{course_id}}
 
             let weights = {
                 initialScoreWeight: {{(quiz.initial_score_weight * 100) | round }},

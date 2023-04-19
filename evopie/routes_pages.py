@@ -979,7 +979,7 @@ def get_quiz_statistics(qid, course_id):
 
     #designing score compute 
     invalidated_distractors_plain = models.InvalidatedDistractor.query.where(models.InvalidatedDistractor.author_id.in_(student_ids), models.InvalidatedDistractor.question_id.in_(question_ids)).all()
-    designing_grades = {student_id:0 if len(designed_distractors) else (sum(d.grade for d in designed_distractors) / len(designed_distractors)) 
+    designing_grades = {student_id:0 if len(designed_distractors) == 0 else (sum(d.grade for d in designed_distractors) / len(designed_distractors)) 
                             for student_id, designed_distractors in groupby(invalidated_distractors_plain, key=lambda x: x.author_id)}
 
     #compute total scores 
