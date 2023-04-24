@@ -985,35 +985,35 @@ def get_quiz_statistics(qid, course_id):
     #compute total scores 
     max_justfication_grade = max(quiz.first_quartile_grade, quiz.second_quartile_grade, quiz.third_quartile_grade, quiz.fourth_quartile_grade)
     percent_scores = {}
+    cetagory_percent_scores = {}
     participation_scores = {}
     designing_scores = {}
     for attempt in plain_attempts:    
         sid = attempt.student_id
-        grade_parts = []
         if len(attempt.initial_responses) > 0:
             student_initial_score = attempt.initial_total_score
             student_max_initial_score = len(attempt.initial_responses)
-            grade_parts.append((student_initial_score / student_max_initial_score, student_initial_score, student_max_initial_score, quiz.initial_score_weight))
+            cetagory_percent_scores.setdefault(sid, {}).setdefault("initial", (student_initial_score / student_max_initial_score, quiz.initial_score_weight))
         if attempt.status == QUIZ_ATTEMPT_SOLUTIONS or attempt.status == QUIZ_STEP3:
             student_revised_score = attempt.revised_total_score
             student_max_revised_score = len(attempt.revised_responses)
-            grade_parts.append((student_revised_score / student_max_revised_score, student_revised_score, student_max_revised_score, quiz.revised_score_weight))
+            cetagory_percent_scores.setdefault(sid, {}).setdefault("revised", (student_revised_score / student_max_revised_score, quiz.revised_score_weight))
         if sid in justification_scores:
             student_justification_score = justification_scores[sid]
             student_max_justification_score = max_justfication_grade
-            grade_parts.append((student_justification_score / student_max_justification_score, student_justification_score, student_max_justification_score, quiz.justification_grade_weight))
+            cetagory_percent_scores.setdefault(sid, {}).setdefault("justification", (student_justification_score / student_max_justification_score, quiz.justification_grade_weight))
         if sid in likes_given:
             likes_given_length = len(likes_given[sid])
             participation_scores[sid] = 1 if likes_given_length >= round(attempt.get_min_participation_grade_threshold()) and likes_given_length <= attempt.participation_grade_threshold else 0
             student_participation_score = participation_scores[sid]
             student_max_participation_score = 1
-            grade_parts.append((student_participation_score / student_max_participation_score, student_participation_score, student_max_participation_score, quiz.participation_grade_weight))   
+            cetagory_percent_scores.setdefault(sid, {}).setdefault("participation", (student_participation_score / student_max_participation_score, quiz.participation_grade_weight))   
         if sid in designing_grades:
             designing_scores[sid] = designing_grades[sid]
             student_design_score = designing_scores[sid]
             student_max_design_score = 100
-            grade_parts.append((student_design_score / student_max_design_score, student_design_score, student_max_design_score, quiz.designing_grade_weight))
-        percents, attempt_grades, max_grades, weights = tuple(zip(*grade_parts)) #unzip 
+            cetagory_percent_scores.setdefault(sid, {}).setdefault("designing", (student_design_score / student_max_design_score, quiz.designing_grade_weight))
+        percents, weights = tuple(zip(*[grade for grade in cetagory_percent_scores.get(sid, {}).values()])) #unzip 
         # weights should sum up to 100 - so in case when some of grades are not available - we rescale 
         total_weights = sum(weights) 
         total_weights = 1 if total_weights == 0 else total_weights
@@ -1025,6 +1025,8 @@ def get_quiz_statistics(qid, course_id):
     
     justifications_by_student = {sid: js for sid, js in groupby(plain_justifications, key = lambda x: x.student_id)}
     
+    roundNotNone = lambda v: v if v is None else (round(v[0], 2) * 100)
+    
     stats.students = [{**a.dump_as_dict(), **s.dump_as_dict(), 
                         "likes_given": likes_given.get(s.id, None),
                         "likes_given_count": len(likes_given[s.id]) if s.id in likes_given else None,
@@ -1032,6 +1034,7 @@ def get_quiz_statistics(qid, course_id):
                         "initial_total_score": a.initial_total_score if len(a.initial_responses) > 0 else None,
                         "revised_total_score": a.revised_total_score if a.status == QUIZ_ATTEMPT_SOLUTIONS or a.status == QUIZ_STEP3 else None,
                         "justification_score": justification_scores.get(s.id, None),
+                        "max_justification_score": quiz.fourth_quartile_grade,
                         "likes_received": likes_received.get(s.id, None),
                         "likes_received_count": sum(j["num_likes"] for j in likes_received[s.id]) if s.id in likes_received else None,
                         "justification_like_count": justification_like_count.get(s.id, {}),
@@ -1044,6 +1047,11 @@ def get_quiz_statistics(qid, course_id):
                         # "justifications": ast.literal_eval(unescape(a.justifications).replace("\\n", "a").replace('\\"', '\"')),
                         "justifications": {qid: {j.distractor_id:j.justification for j in js} for qid, js in groupby(justifications_by_student.get(s.id, []), key = lambda x: x.quiz_question_id)
                                                 if str(qid) in a.alternatives_map},
+                        "initial_percent": roundNotNone(cetagory_percent_scores.get(s.id, {}).get("initial", None)),
+                        "revised_percent": roundNotNone(cetagory_percent_scores.get(s.id, {}).get("revised", None)),
+                        "justfication_percent": roundNotNone(cetagory_percent_scores.get(s.id, {}).get("justification", None)),
+                        "participation_percent": roundNotNone(cetagory_percent_scores.get(s.id, {}).get("participation", None)),
+                        "designing_percent": roundNotNone(cetagory_percent_scores.get(s.id, {}).get("designing", None)),
                         "total_percent": student_percent_score * 100}
                         for s in plain_students 
                         if s.id in attempts_map 
@@ -1063,14 +1071,23 @@ def quiz_grader(qid, course_id):
     accept_mime_type = request.accept_mimetypes.best
     query_mime_type = request.args.get("q", None)
     if accept_mime_type == "text/csv" or query_mime_type == "csv":
-        columns = [ 'Last Name', 'First Name', 'Email', 'Initial Score', 'Revised Score', 'Grade for Justifications',
-                    'Min Participation','Likes Given', 'Max Participation', 'Grade for Participation', 'Grade for Designing', 'Likes Received', 'Final Percentage' ]
+        columns = [ 'Last Name', 'First Name', 'Email', 'Initial Score', 'Max Initial Score', 'Revised Score', 'Max Revised Score', 
+                    'Justification Score', 'Max Justification Score',
+                    'Participation Score', 'Min Participation', 'Max Participation', 'Likes Given', 'Likes Received', 
+                    'Designing Score', 
+                    'Initial Score %', 'Revised Score %', 'Justifications %', 'Participation %', 'Designing %',
+                    'Final Percentage' ]
+        seqLen = lambda v: v if v is None else len(v)
         data = DataFrame([ [ s["last_name"], s["first_name"], s["email"], 
-                s.get("initial_total_score", None), s.get("revised_total_score", None), 
-                s.get("justification_score", None), s.get("min_participation_grade_threshold", None), 
-                s.get("likes_given_count", None), s.get("participation_grade_threshold", None), s.get("participation_score", None),
-                s.get("designing_score", None),
-                s.get("likes_received_count", None), s.get("total_percent", None) ] 
+                s.get("initial_total_score", None), seqLen(s.get("initial_responses", None)), 
+                s.get("revised_total_score", None), seqLen(s.get("revised_responses", None)), 
+                s.get("justification_score", None), s.get("max_justification_score", None), 
+                s.get("participation_score", None),
+                s.get("min_participation_grade_threshold", None), s.get("participation_grade_threshold", None), 
+                s.get("likes_given_count", None), s.get("likes_received_count", None), 
+                s.get("designing_score", None), 
+                s.get("initial_percent", None), s.get("revised_percent", None), s.get("justfication_percent", None), 
+                s.get("participation_percent", None), s.get("designing_percent", None), s.get("total_percent", None) ] 
             for s in stats.students ],
             columns=columns, index=[student["id"] for student in stats.students])        
         headers = {}
