@@ -119,6 +119,7 @@ $(document).ready(function() {
             Hello, {{current_user.first_name}} {{current_user.last_name}}. 
             Use this page to grade the student's distractors for step 3.
         </p>
+        <a class="btn btn-primary btn-lg" href="{{url_for('pages.quiz_grader', qid=quiz.id, course_id=course.id)}}" role="button">Back to Quiz Grader</a>
     </div>
 </div>
 
