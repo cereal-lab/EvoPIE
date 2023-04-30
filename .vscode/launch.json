@@ -243,6 +243,30 @@
             ]
         },
         {
+            "name": "CLI: deca init-many 2AXES_BEST",
+            "type": "python",
+            "request": "launch",
+            "module" : "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1"
+            },
+            "args" : [
+                "deca",
+                "init-many",
+                "-nq", "4",
+                "-nd", "25",
+                "-ns", "100",
+                "-an", "4", "-as", "4", 
+                "--spanned-strategy", "BEST",
+                "--num-spanned", "4",
+                "--num-spaces", "1", 
+                "--best-students-percent", "0.05", 
+                "--noninfo", "0.1"
+            ]
+        },
+        {
             "name": "CLI: quiz post-process",
             "type": "python",
             "request": "launch",

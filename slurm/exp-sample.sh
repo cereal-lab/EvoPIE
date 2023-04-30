@@ -44,5 +44,5 @@ pipenv run flask quiz deca-experiments \
     --deca-spaces $WORK/evopie/spaces \
     --algo-folder $WORK/evopie/tmp-algo \
     --results-folder $WORK/evopie/results \
-    --random-seed 23 --num-runs 5 \
+    --random-seed 23 --num-runs 30 \
     --algo "$algo"

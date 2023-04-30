@@ -31,22 +31,22 @@ def test_extensive(runner, settings, fileName):
     res = runner.invoke(args=["course", "init", "-n", "COP 3000 FALL", "-t", "Test Course for Comp Sci", "-d", "This is a test course for the Comp Sci department at USF."])
     assert res.exit_code == 0
 
-    res = runner.invoke(args=["quiz", "init", "-c", 1, "-nq", 5, "-nd", 4, "-qd", json.dumps({"2":[5,6,7],"3":[9,10,11],"4":[13,14,16]}), "-s", json.dumps(settings)])
+    res = runner.invoke(args=["quiz", "init", "-cid", 1, "-nq", 5, "-nd", 4, "-qd", json.dumps({"2":[5,6,7],"3":[9,10,11],"4":[13,14,16]}), "-s", json.dumps(settings)])
     assert res.exit_code == 0
     print(res.stdout)
     #TODO: add assert that quiz is inited 
 
-    res = runner.invoke(args=["quiz", "copy", "-q", 1, "-c", 2])
+    res = runner.invoke(args=["quiz", "copy", "-q", 1, "-cid", 2])
     assert res.exit_code == 0
 
     res = runner.invoke(args=["quiz", "settings", "-q", 2, "-s", json.dumps({"fq": 1, "sq": 3, "tq": 5, "frq": 10, "is": 40, "rs": 30, "jg": 20, "pg": 10})])
     assert res.exit_code == 0
     
-    res = runner.invoke(args=[ "student", "init", "-cs", 1, "-ns", 20, "--exclude-id", 12, "-ef", 'student{}@usf.edu' ])
+    res = runner.invoke(args=[ "student", "init", "-cid", 1, "-ns", 20, "--exclude-id", 12, "-ef", 'student{}@usf.edu' ])
     assert res.exit_code == 0
     print(res.stdout)
 
-    res = runner.invoke(args=[ "student", "addToCourse", "-cs", 2])
+    res = runner.invoke(args=[ "student", "addToCourse", "-cid", 2])
     
     knowledge = [{"sid":{"range":[1,4]},"qid":1,"did":3,"step":1,"chance":1}, 
         {"sid":{"ranges":[[1,4],[10,18]]},"qid":2,"did":7,"step":1,"chance":1},
@@ -73,7 +73,7 @@ def test_extensive(runner, settings, fileName):
         {"sid":{"range":[11,14]},"jid":{"ranges":[[1,9],26,27,17,22,24,30,33,37,57,67,71,[89,91],[95,104]]}},
         {"sid":{"range":[15,19]},"jid":{"ranges":[[1,9],[23,27],17,22,24,30,33,37,57,[67,71],[89,101]]}},
         {"sid":20,"jid":{"ranges":[[1,9],[23,27],17,22,24,30,33,37,57,[67,71],[89,115]]}}]
-    res = runner.invoke(args=[ "quiz", "run", "-q", 1, "-c", 1, "-s", "STEP1", "-s", "STEP2", 
+    res = runner.invoke(args=[ "quiz", "run", "-q", 1, "-cid", 1, "-s", "STEP1", "-s", "STEP2", 
                             "--no-algo", "--justify-response", "-ef", 'student{}@usf.edu',
                             *[ v for l in likes for v in ["-l", json.dumps(l)]]])        
     #TODO: add assert for run
@@ -85,7 +85,7 @@ def test_extensive(runner, settings, fileName):
     print(res.stdout)
     assert res.exit_code == 0
     
-    res = runner.invoke(args=[ "quiz", "run", "-q", 2, "-c", 2, "-s", "STEP1", "-s", "STEP2", 
+    res = runner.invoke(args=[ "quiz", "run", "-q", 2, "-cid", 2, "-s", "STEP1", "-s", "STEP2", 
                             "--no-algo", "--justify-response", "-ef", 'student{}@usf.edu',
                             *[ v for l in likes for v in ["-l", json.dumps(l)]]])        
     #TODO: add assert for run

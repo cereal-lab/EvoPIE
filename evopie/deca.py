@@ -60,7 +60,13 @@ from evopie.utils import groupby
 # def flatten_spanned(processed_spanned):
 #     return [tuple(sorted([i for s in sets for i in s])) for sets in processed_spanned]
 
-def gen_deca_space(candidates: npt.ArrayLike, dims: 'list[int]', num_spanned: int, best_candidates_percent: float = 0, p=0.75, timeout = 1000000, rnd: np.random.RandomState = np.random): 
+SPANNED_STRATEGY_NONE = "NONE"
+SPANNED_STRATEGY_RANDOM = "RANDOM"
+SPANNED_STRATEGY_BEST = "BEST"
+SPANNED_STRATEGY_2AXES_BEST = "2AXES_BEST"
+SPANNED_STRATEGY_CENTER = "CENTER"
+
+def gen_deca_space(candidates: npt.ArrayLike, dims: 'list[int]', spanned_strategy: str,  num_spanned: int = 0, best_candidates_percent: float = 0, p=0.75, timeout = 1000000, rnd: np.random.RandomState = np.random): 
     assert len(dims) > 0
     assert len(candidates) >= len(dims) #number of dimansions could not be bigger than number of candidates
     assert all(dim > 0 for dim in dims)    
@@ -92,17 +98,36 @@ def gen_deca_space(candidates: npt.ArrayLike, dims: 'list[int]', num_spanned: in
             point['cfs'] = axis_candidates
     # now we calculate spanned 
     if len(dims) >= 2: 
-        #spanned point should have at least 2 axes combined        
+        #spanned point should have at least 2 axes combined  
         axes_ids = list(range(len(dims)))
-        while len(space['spanned']) < num_spanned and timeout > 0: #repeat loop till we find necessary number of spanned or timeout
-            # rnd.binomial
-            spanned_axes_num = 2 if len(dims) == 2 else (2 + ((rnd.geometric(p) - 1) % (len(dims) - 1)))
-            # spanned_axes_num = rnd.randint(2, len(axes)+1) #select number of axes
-            selected_axes_ids = rnd.choice(axes_ids, spanned_axes_num, replace=False) 
-            # spanned_coords = [0 for _ in range(len(axes))]
-            spanned_point = tuple(sorted([ (int(axis_id), int(rnd.randint(0, dims[axis_id]))) for axis_id in selected_axes_ids ]))
+        if spanned_strategy == SPANNED_STRATEGY_RANDOM:                  
+            while len(space['spanned']) < num_spanned and timeout > 0: #repeat loop till we find necessary number of spanned or timeout
+                # rnd.binomial
+                spanned_axes_num = 2 if len(dims) == 2 else (2 + ((rnd.geometric(p) - 1) % (len(dims) - 1)))
+                # spanned_axes_num = rnd.randint(2, len(axes)+1) #select number of axes
+                selected_axes_ids = rnd.choice(axes_ids, spanned_axes_num, replace=False) 
+                # spanned_coords = [0 for _ in range(len(axes))]
+                spanned_point = tuple(sorted([ (int(axis_id), int(rnd.randint(0, dims[axis_id]))) for axis_id in selected_axes_ids ]))
+                space['spanned'].setdefault(spanned_point, {})['cfs'] = [c for (axis_id, point_id) in spanned_point for c in space['axes'][axis_id][point_id]['cfs']]
+                timeout -= 1
+        elif spanned_strategy == SPANNED_STRATEGY_BEST:
+            spanned_point = tuple((int(axis_id), dims[axis_id] - 1) for axis_id in axes_ids)
             space['spanned'].setdefault(spanned_point, {})['cfs'] = [c for (axis_id, point_id) in spanned_point for c in space['axes'][axis_id][point_id]['cfs']]
-            timeout -= 1
+        elif spanned_strategy == SPANNED_STRATEGY_2AXES_BEST:
+            for first_axis_id in range(0, len(axes_ids)):
+                if num_spanned == 0: 
+                    break
+                first_axis = axes_ids[first_axis_id]
+                for second_axis_id in range(first_axis_id + 1, len(axes_ids)):
+                    if num_spanned == 0: 
+                        break                    
+                    second_axis = axes_ids[second_axis_id]
+                    spanned_point = ((first_axis, dims[first_axis] - 1), (second_axis, dims[second_axis] - 1))
+                    space['spanned'].setdefault(spanned_point, {})['cfs'] = [c for (axis_id, point_id) in spanned_point for c in space['axes'][axis_id][point_id]['cfs']]
+                    num_spanned -= 1
+        elif spanned_strategy == SPANNED_STRATEGY_CENTER:
+            spanned_point = tuple((int(axis_id), dims[axis_id] // 2) for axis_id in axes_ids)
+            space['spanned'].setdefault(spanned_point, {})['cfs'] = [c for (axis_id, point_id) in spanned_point for c in space['axes'][axis_id][point_id]['cfs']]
     return space
 
 # axes = gen_deca_space(list(range(20)), [2,3], 2, 0.5)
@@ -258,13 +283,13 @@ def unique_question_per_axis_constraint(space):
 #     return knowledge
 
 def gen_test_distractor_mapping_knowledge(space): 
-    ''' Generates knowledge in format similar to cli student init -k flag. Use this to init StudentKnowledge database 
-    '''
-    knowledge = [*[ {"sid": point['cfs'], "qid": qid, "did": did, "chance": 1000 + len(point['cfs']) } 
+    ''' Generates knowledge in format similar to cli student init -k flag. Use this to init StudentKnowledge database '''
+    #NOTE: chance was changed to be the size of point cfs
+    knowledge = [*[ {"sid": point['cfs'], "qid": qid, "did": did, "chance": len(point['cfs']) } 
                     for _, points in space['axes'].items()
                     for point_id, point in points.items() 
                     for qid, did in point['dids']],
-                 *[ {"sid": point['cfs'], "qid": qid, "did": did, "chance": 1000 * len(axes_ids) + len(point['cfs']) } 
+                 *[ {"sid": point['cfs'], "qid": qid, "did": did, "chance": len(point['cfs']) } 
                     for axes_ids, point in space['spanned'].items()
                     for qid, did in point['dids']]]
     return knowledge

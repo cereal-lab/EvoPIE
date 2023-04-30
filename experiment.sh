@@ -81,6 +81,168 @@ flask deca init-many -ns 100 -nq 4 -nd 25 \
     --noninfo 0.1 \
     --timeout 1000 --random-seed 17
 
+#---------------- new deca spaces with strategies
+# this is log of created deca spaces for experimentation at 23-04-30
+flask deca init-many -ns 100 -nq 4 -nd 25 \
+    -an 10 \
+    -as 5 \
+    --spanned-strategy NONE\
+    --num-spanned 0 \
+    --num-spaces 1 \
+    --best-students-percent 0.05 \
+    --noninfo 0.2 \
+    --timeout 1000 --random-seed 29      
+
+#space s1-2
+flask deca init-many -ns 100 -nq 4 -nd 25 \
+    -an 10 \
+    -as 5 \
+    --spanned-strategy BEST\
+    --num-spanned 1 \
+    --num-spaces 1 \
+    --best-students-percent 0.05 \
+    --noninfo 0.2 \
+    --timeout 1000 --random-seed 29      
+
+flask deca init-many -ns 100 -nq 4 -nd 25 \
+    -an 10 \
+    -as 5 \
+    --spanned-strategy "2AXES_BEST"\
+    --num-spanned 10 \
+    --num-spaces 1 \
+    --best-students-percent 0.05 \
+    --noninfo 0.2 \
+    --timeout 1000 --random-seed 29      
+
+#space s1-1
+flask deca init-many -ns 100 -nq 4 -nd 25 \
+    -an 10 \
+    -as 5 \
+    --spanned-strategy "CENTER"\
+    --num-spanned 2 \
+    --num-spaces 1 \
+    --best-students-percent 0.05 \
+    --noninfo 0.2 \
+    --timeout 1000 --random-seed 29      
+
+#space s1-0
+flask deca init-many -ns 100 -nq 4 -nd 25 \
+    -an 10 \
+    -as 5 \
+    --spanned-strategy "2AXES_BEST"\
+    --num-spanned 1 \
+    --num-spaces 1 \
+    --best-students-percent 0.05 \
+    --noninfo 0.2 \
+    --timeout 1000 --random-seed 29      
+
+
+flask deca init-many -ns 100 -nq 4 -nd 25 \
+    -an 10 \
+    -as 5 \
+    --spanned-strategy "2AXES_BEST"\
+    --num-spanned 20 \
+    --num-spaces 1 \
+    --best-students-percent 0.05 \
+    --noninfo 0.2 \
+    --timeout 1000 --random-seed 29      
+
+flask deca init-many -ns 100 -nq 4 -nd 25 \
+    -an 10 \
+    -as 5 \
+    --spanned-strategy "2AXES_BEST"\
+    --num-spanned 5 \
+    --num-spaces 1 \
+    --best-students-percent 0.05 \
+    --noninfo 0.2 \
+    --timeout 1000 --random-seed 29      
+
+# spaces 4x3
+flask deca init-many -ns 100 -nq 4 -nd 25 \
+    -an 4 \
+    -as 3 \
+    --spanned-strategy NONE\
+    --num-spanned 0 \
+    --num-spaces 1 \
+    --best-students-percent 0.05 \
+    --noninfo 0.2 \
+    --timeout 1000 --random-seed 29      
+
+#space s1-2
+flask deca init-many -ns 100 -nq 4 -nd 25 \
+    -an 4 \
+    -as 3 \
+    --spanned-strategy BEST\
+    --num-spanned 1 \
+    --num-spaces 1 \
+    --best-students-percent 0.05 \
+    --noninfo 0.2 \
+    --timeout 1000 --random-seed 29      
+
+flask deca init-many -ns 100 -nq 4 -nd 25 \
+    -an 4 \
+    -as 3 \
+    --spanned-strategy "2AXES_BEST"\
+    --num-spanned 10 \
+    --num-spaces 1 \
+    --best-students-percent 0.05 \
+    --noninfo 0.2 \
+    --timeout 1000 --random-seed 29      
+
+#space s1-1
+flask deca init-many -ns 100 -nq 4 -nd 25 \
+    -an 4 \
+    -as 3 \
+    --spanned-strategy "CENTER"\
+    --num-spanned 2 \
+    --num-spaces 1 \
+    --best-students-percent 0.05 \
+    --noninfo 0.2 \
+    --timeout 1000 --random-seed 29      
+
+#space s1-0
+flask deca init-many -ns 100 -nq 4 -nd 25 \
+    -an 4 \
+    -as 3 \
+    --spanned-strategy "2AXES_BEST"\
+    --num-spanned 1 \
+    --num-spaces 1 \
+    --best-students-percent 0.05 \
+    --noninfo 0.2 \
+    --timeout 1000 --random-seed 29      
+
+
+flask deca init-many -ns 100 -nq 4 -nd 25 \
+    -an 4 \
+    -as 3 \
+    --spanned-strategy "2AXES_BEST"\
+    --num-spanned 20 \
+    --num-spaces 1 \
+    --best-students-percent 0.05 \
+    --noninfo 0.2 \
+    --timeout 1000 --random-seed 29      
+
+flask deca init-many -ns 100 -nq 4 -nd 25 \
+    -an 4 \
+    -as 3 \
+    --spanned-strategy "2AXES_BEST"\
+    --num-spanned 5 \
+    --num-spaces 1 \
+    --best-students-percent 0.05 \
+    --noninfo 0.2 \
+    --timeout 1000 --random-seed 29      
+
+flask deca init-many -ns 100 -nq 4 -nd 25 \
+    -an 4 \
+    -as 3 \
+    --spanned-strategy "RANDOM"\
+    --num-spanned 50 \
+    --num-spaces 1 \
+    --best-students-percent 0.05 \
+    --noninfo 0.2 \
+    --timeout 1000 --random-seed 29      
+
+#----- 
 
 flask quiz deca-experiments \
     --deca-spaces deca-spaces \

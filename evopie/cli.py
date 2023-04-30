@@ -104,9 +104,9 @@ deca_cli = AppGroup('deca')
 
 @course_cli.command("init")
 @click.option('-i', '--instructor', default='i@usf.edu')
-@click.option('-n', '--name')
-@click.option('-t', '--title')
-@click.option('-d', '--description')
+@click.option('-n', '--name', default="")
+@click.option('-t', '--title', default="")
+@click.option('-d', '--description', default="")
 def start_course_init(instructor, name, title, description):
     instructor = {"email":instructor, "firstname":"I", "lastname": "I", "password":"pwd"}
     course = {"name":name, "title":title, "description":description, "instructor_id": 1}
@@ -117,7 +117,7 @@ def start_course_init(instructor, name, title, description):
 
 @quiz_cli.command("copy")
 @click.option('-q', '--quiz-id')
-@click.option('-c', '--course-id')
+@click.option('-cid', '--course-id', type=int, default=1)
 def start_quiz_copy(quiz_id, course_id):
     instructor = {"email":"i@usf.edu", "firstname":"I", "lastname": "I", "password":"pwd"}
     with APP.test_client(use_cookies=True) as c: #instructor session
@@ -149,7 +149,7 @@ def edit_quiz_settings(quiz_id, settings):
 
 @quiz_cli.command("init")
 @click.option('-i', '--instructor', default='i@usf.edu')
-@click.option('-c', '--course-id', default='1')
+@click.option('-cid', '--course-id', type=int, default=1)
 @click.option('-nq', '--num-questions', required = True, type = int)
 @click.option('-nd', '--num-distractors', required = True, type = int)
 @click.option('-qd', '--question-distractors')
@@ -220,6 +220,7 @@ def start_quiz_init(instructor, course_id, num_questions, num_distractors, quest
 @click.option('-o', '--output') #folder were we should put generated spaces
 @click.option('--fmt', default='space-{}.json') #folder were we should put generated spaces
 @click.option('-a', "--axis", multiple=True, type = int, required=True) #generate knowledge from deca axes
+@click.option('-ss', '--spanned-strategy', type=str, default=None)
 @click.option('--spanned', type=int, default=0)
 @click.option('--best-students-percent', type=float, default=0)
 @click.option('--spanned-geometric-p', type=float, default=0.75)
@@ -227,7 +228,7 @@ def start_quiz_init(instructor, course_id, num_questions, num_distractors, quest
 @click.option('-n', type=int, default=1) #number of spaces to create
 @click.option("--random-seed", type=int) #seed
 @click.option("--timeout", default=1000000, type=int)
-def create_deca_space(quiz, output, fmt, axis, spanned, best_students_percent, n, random_seed, spanned_geometric_p, noninfo, timeout):
+def create_deca_space(quiz, output, fmt, axis, spanned_strategy, spanned, best_students_percent, n, random_seed, spanned_geometric_p, noninfo, timeout):
 
     rnd = np.random.RandomState(random_seed) #here random_seed is None if not specified therefore we reassign it on next line
     random_seed = int(rnd.get_state()[1][0])
@@ -248,7 +249,10 @@ def create_deca_space(quiz, output, fmt, axis, spanned, best_students_percent, n
         #NOTE: quiz also should be used to connect instructor to generated students and namespace them from other students
 
     for i in range(n):
-        space = deca.gen_deca_space(emails, tuple(axis), spanned, best_students_percent, spanned_geometric_p, timeout=timeout, rnd = rnd)
+        spanned_strategy = spanned_strategy if spanned_strategy is not None else deca.SPANNED_STRATEGY_RANDOM if spanned > 0 else deca.SPANNED_STRATEGY_NONE
+        space = deca.gen_deca_space(emails, tuple(axis), spanned_strategy, 
+                    num_spanned = spanned, best_candidates_percent=best_students_percent, 
+                    p = spanned_geometric_p, timeout=timeout, rnd = rnd)
         space = deca.gen_test_distractor_mapping(space, question_distractors, noninformative_percent=noninfo, rnd = rnd)
         space['meta'] = {'id': i, 'rnd': random_seed}
         # knowledge = deca.gen_test_distractor_mapping_knowledge(space)
@@ -259,7 +263,7 @@ def create_deca_space(quiz, output, fmt, axis, spanned, best_students_percent, n
                 f.write(deca.save_space_to_json(space))
 
 @student_cli.command("init")
-@click.option('-cs', '--course-id')
+@click.option('-cid', '--course-id', type=int, default=1)
 @click.option('-ns', '--num-students', type = int)
 @click.option('--exclude-id', type = int, multiple=True)
 @click.option('-ef', '--email-format', default="s{}@usf.edu")
@@ -317,7 +321,7 @@ def init_students(course_id, num_students, exclude_id, input, output, email_form
         sys.stdout.write(f"Students were created:\n {students}\n")
 
 @student_cli.command("addToCourse")
-@click.option('-cs', '--course-id')
+@click.option('-cid', '--course-id', type=int, default=1)
 def add_to_course(course_id):
     course = models.Course.query.get_or_404(course_id)
     students = models.User.query.filter(models.User.id > 1).all()
@@ -523,7 +527,7 @@ KNOWLEDGE_SELECTION_STRENGTH = "KNOWLEDGE_SELECTION_STRENGTH"
 
 @quiz_cli.command("run")
 @click.option('-q', '--quiz', type=int, required=True)
-@click.option('-c', '--course_id', type=int, required=True)
+@click.option('-cid', '--course_id', type=int, default=1)
 @click.option('-s', '--step', default = [QUIZ_STEP1], multiple=True)
 @click.option('-n', '--n-times', type=int, default=1)
 @click.option('-kns', '--knowledge-selection', default = KNOWLEDGE_SELECTION_STRENGTH)
@@ -796,13 +800,14 @@ def get_quiz_result(quiz, output, instructor, password, expected, diff_o):
 @click.option('-an', '--axes-number', multiple=True, required=True, type = int)
 @click.option('-as', '--axes-size', multiple=True, required=True, type = int)
 @click.option('--num-spaces', default=1, type = int)
+@click.option('--spanned-strategy', type = str, default=None)
 @click.option('--num-spanned', multiple=True, type = int)
 @click.option('--best-students-percent', multiple=True, type = float)
 @click.option('--noninfo', multiple=True, type = float)
 @click.option("-of", "--output-folder", default="deca-spaces")
 @click.option("--random-seed", type=int)
 @click.option("--timeout", default = 1000000, type = int)
-def init_experiment(num_questions, num_distractors, num_students, axes_number, axes_size, num_spaces, num_spanned, best_students_percent, noninfo, output_folder, timeout, random_seed): 
+def init_experiment(num_questions, num_distractors, num_students, axes_number, axes_size, num_spaces, spanned_strategy, num_spanned, best_students_percent, noninfo, output_folder, timeout, random_seed): 
     if len(num_spanned) == 0: 
         num_spanned.append(0)
     if len(best_students_percent) == 0:
@@ -811,6 +816,8 @@ def init_experiment(num_questions, num_distractors, num_students, axes_number, a
         noninfo.append(0)
     runner = APP.test_cli_runner()
     res = runner.invoke(args=["DB-reboot"])
+    assert res.exit_code == 0
+    res = runner.invoke(args=["course", "init" ])    
     assert res.exit_code == 0
     res = runner.invoke(args=["quiz", "init", "-nq", num_questions, "-nd", num_distractors ])
     assert res.exit_code == 0
@@ -826,7 +833,9 @@ def init_experiment(num_questions, num_distractors, num_students, axes_number, a
         a_param = [p for a in dim for p in ["-a", a]]
         axes_str = "_".join([str(a) for a in dim ])
         spanned_str = "s_" + str(spanned)
-        res = runner.invoke(args=["deca", "init", "-q", 1, "-o", output_folder, *a_param, "--spanned", spanned, "--spanned-geometric-p", 0.8, 
+        res = runner.invoke(args=["deca", "init", "-q", 1, "-o", output_folder, *a_param, 
+                                    *[el for el in (["--spanned-strategy", spanned_strategy] if spanned_strategy is not None else [])],
+                                    "--spanned", spanned, "--spanned-geometric-p", 0.8, 
                                     "--best-students-percent", bsp, "--noninfo", ni, "-n", num_spaces, 
                                     '--fmt', 'space-' + axes_str + '-' + spanned_str + '-{}.json',
                                     "--timeout", timeout, "--random-seed", rnd.randint(1000) ])
