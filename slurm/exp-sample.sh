@@ -37,6 +37,7 @@ export EVOPIE_DATABASE_URI=sqlite:///$WORK/evopie/pswp-a-e/db-$SLURM_ARRAY_TASK_
 export PYTHONPATH=$(pipenv run which python)
 
 pipenv run flask DB-reboot 
+pipenv run flask course init
 pipenv run flask quiz init -nq 4 -nd 25 #search space size
 pipenv run flask student init -ns 100
 
