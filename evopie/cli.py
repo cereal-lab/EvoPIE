@@ -779,7 +779,7 @@ def get_quiz_result(quiz, output, instructor, password, expected, diff_o):
             # ne = result_frame != expected_frame
             joined = pandas.merge(expected_frame, result_frame, how='inner', left_on = 'Email', right_on = 'Email', suffixes=(' EXPECTED', ' ACTUAL'))
             diff = DataFrame()
-            for c in ['Initial Score','Revised Score','Grade for Justifications','Min Participation','Likes Given','Max Participation','Grade for Participation','Likes Received','Total Score','Max Possible Score','Final Percentage']:
+            for c in ['Initial Score', 'Max Initial Score', 'Revised Score', 'Max Revised Score', 'Justification Score', 'Max Justification Score', 'Participation Score', 'Min Participation', 'Max Participation', 'Likes Given','Likes Received', 'Initial Score %', 'Revised Score %', 'Justifications %', 'Participation %','Final Percentage']:
                 expected_column = c + " EXPECTED"
                 actual_column = c + " ACTUAL"
                 for sid, columns in joined.loc[joined[expected_column] != joined[actual_column], [ expected_column, actual_column ]].iterrows():

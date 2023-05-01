@@ -1,20 +1,20 @@
-Last Name,First Name,Email,Initial Score,Revised Score,Grade for Justifications,Min Participation,Likes Given,Max Participation,Grade for Participation,Likes Received,Total Score,Max Possible Score,Final Percentage
-8,BB,student7@usf.edu,2,2,8,26,19,33,0,0,2.4,5.1,47.1
-Ashraf,Aoun,student13@usf.edu,3,3,8,26,33,33,1,0,3.3,5.1,64.7
-Binks,Jar-Jar,student10@usf.edu,3,2,8,26,41,33,0,0,3.0,5.1,58.8
-D2,R2,student8@usf.edu,2,3,8,26,22,33,0,0,2.6,5.1,51.0
-Gupta,Akshat,student15@usf.edu,3,5,8,26,38,33,0,0,3.6,5.1,70.6
-Kakkar,Richa,student16@usf.edu,3,5,8,26,38,33,0,0,3.6,5.1,70.6
-Kenobi,Obi-Wan,student3@usf.edu,0,2,10,26,16,33,0,14,1.4,5.1,27.5
-Pandey,Mayank,student11@usf.edu,3,3,8,26,33,33,1,0,3.3,5.1,64.7
-Pandey,Naman,student19@usf.edu,5,5,8,26,38,33,0,0,4.8,5.1,94.1
-Pandey,Sarthak,student20@usf.edu,5,5,8,26,52,33,0,0,4.8,5.1,94.1
-PO,C3,student9@usf.edu,2,3,8,26,22,33,0,0,2.6,5.1,51.0
-Sharma,Mukund,student18@usf.edu,3,5,8,26,38,33,0,0,3.6,5.1,70.6
-Shukla,Gopal Krishna,student14@usf.edu,3,3,8,26,33,33,1,0,3.3,5.1,64.7
-Singh,Shashank,student17@usf.edu,3,5,8,26,38,33,0,0,3.6,5.1,70.6
-Skywalker,Anakin,student1@usf.edu,0,2,10,26,14,33,0,165,1.4,5.1,27.5
-Skywalker,Rey,student4@usf.edu,0,2,10,26,17,33,0,45,1.4,5.1,27.5
-Skywalker,Luke,student6@usf.edu,2,2,8,26,18,33,0,5,2.4,5.1,47.1
-Tano,Ahsoka,student2@usf.edu,0,2,10,26,15,33,0,112,1.4,5.1,27.5
-Windu,Mace,student5@usf.edu,2,2,10,26,20,33,0,204,2.6,5.1,51.0
+Last Name,First Name,Email,Initial Score,Max Initial Score,Revised Score,Max Revised Score,Justification Score,Max Justification Score,Participation Score,Min Participation,Max Participation,Likes Given,Likes Received,Designing Score,Initial Score %,Revised Score %,Justifications %,Participation %,Designing %,Final Percentage
+S,S,student1@usf.edu,0,5,2,5,10,10,0,26,33,14,165,,0,40,100,0,,18
+S,S,student2@usf.edu,0,5,2,5,10,10,0,26,33,15,112,,0,40,100,0,,18
+S,S,student3@usf.edu,0,5,2,5,10,10,0,26,33,16,14,,0,40,100,0,,18
+S,S,student4@usf.edu,0,5,2,5,10,10,0,26,33,17,45,,0,40,100,0,,18
+S,S,student5@usf.edu,2,5,2,5,10,10,0,26,33,20,204,,40,40,100,0,,42
+S,S,student6@usf.edu,2,5,2,5,8,10,0,26,33,18,5,,40,40,80,0,,40
+S,S,student7@usf.edu,2,5,2,5,8,10,0,26,33,19,0,,40,40,80,0,,40
+S,S,student8@usf.edu,2,5,3,5,8,10,0,26,33,22,0,,40,60,80,0,,44
+S,S,student9@usf.edu,2,5,3,5,8,10,0,26,33,22,0,,40,60,80,0,,44
+S,S,student10@usf.edu,3,5,2,5,8,10,0,26,33,41,0,,60,40,80,0,,52
+S,S,student11@usf.edu,3,5,3,5,8,10,1,26,33,33,0,,60,60,80,100,,66
+S,S,student13@usf.edu,3,5,3,5,8,10,1,26,33,33,0,,60,60,80,100,,66
+S,S,student14@usf.edu,3,5,3,5,8,10,1,26,33,33,0,,60,60,80,100,,66
+S,S,student15@usf.edu,3,5,5,5,8,10,0,26,33,38,0,,60,100,80,0,,64
+S,S,student16@usf.edu,3,5,5,5,8,10,0,26,33,38,0,,60,100,80,0,,64
+S,S,student17@usf.edu,3,5,5,5,8,10,0,26,33,38,0,,60,100,80,0,,64
+S,S,student18@usf.edu,3,5,5,5,8,10,0,26,33,38,0,,60,100,80,0,,64
+S,S,student19@usf.edu,5,5,5,5,8,10,0,26,33,38,0,,100,100,80,0,,88
+S,S,student20@usf.edu,5,5,5,5,8,10,0,26,33,52,0,,100,100,80,0,,88

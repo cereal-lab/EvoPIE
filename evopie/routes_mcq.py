@@ -119,7 +119,7 @@ def put_question(question_id):
     # validation - All of the quizzes containing question_id must be HIDDEN to be able to update
     for quiz in models.Quiz.query.filter_by(author_id=current_user.get_id()):
         for qq in quiz.quiz_questions:
-            if qq.question_id == question_id and quiz.status != "HIDDEN":
+            if qq.question_id == int(question_id) and quiz.status != "HIDDEN":
                 response     = ({ "message" : "Quiz not accessible at this time" }, 403, {"Content-Type": "application/json"})
                 return make_response(response)
     
@@ -169,7 +169,7 @@ def delete_question(question_id):
     # validation - All of the quizzes containing question_id must be HIDDEN to be able to update
     for quiz in models.Quiz.query.filter_by(author_id=current_user.get_id()):
         for qq in quiz.quiz_questions:
-            if qq.question_id == question_id and quiz.status != "HIDDEN":
+            if qq.question_id == int(question_id) and quiz.status != "HIDDEN":
                 response     = ({ "message" : "Quiz not accessible at this time" }, 403, {"Content-Type": "application/json"})
                 return make_response(response)
     
@@ -453,7 +453,7 @@ def put_distractor(distractor_id):
         for qq in quiz.quiz_questions:
             question = models.Question.query.get(qq.question_id)
             for d in question.distractors:
-                if d.id == distractor_id and quiz.status != "HIDDEN":
+                if d.id == int(distractor_id) and quiz.status != "HIDDEN":
                     response = ({ "message" : "Quiz not accessible at this time, unable to update distractors." }, 403, {"Content-Type": "application/json"})
                     return make_response(response)
     
@@ -507,7 +507,7 @@ def delete_distractor(distractor_id):
         for qq in quiz.quiz_questions:
             question = models.Question.query.get(qq.question_id)
             for d in question.distractors:
-                if d.id == distractor_id and quiz.status != "HIDDEN":
+                if d.id == int(distractor_id) and quiz.status != "HIDDEN":
                     response     = ({ "message" : "Quiz not accessible at this time" }, 403, {"Content-Type": "application/json"})
                     return make_response(response)
     
@@ -605,7 +605,7 @@ def delete_quiz_questions(qq_id):
     # validation - All of the quizzes using this qq_id must be HIDDEN to be able to delete
     for quiz in models.Quiz.query.filter_by(author_id=current_user.get_id()):
         for qq in quiz.quiz_questions:
-            if qq.id == qq_id and quiz.status != "HIDDEN":
+            if qq.id == int(qq_id) and quiz.status != "HIDDEN":
                 response     = ({ "message" : "Quiz not accessible at this time" }, 403, {"Content-Type": "application/json"})
                 return make_response(response)
     
@@ -631,7 +631,7 @@ def put_quiz_questions(qq_id):
     # validation - All of the quizzes using this qq_id must be HIDDEN to be able to update
     for quiz in models.Quiz.query.filter_by(author_id=current_user.get_id()):
         for qq in quiz.quiz_questions:
-            if qq.id == qq_id and quiz.status != "HIDDEN":
+            if qq.id == int(qq_id) and quiz.status != "HIDDEN":
                 response     = ({ "message" : "Quiz not accessible at this time" }, 403, {"Content-Type": "application/json"})
                 return make_response(response)
         

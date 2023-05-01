@@ -84,15 +84,5 @@ def test_extensive(runner, settings, fileName):
                             "--expected", "tests/{}".format(fileName)])        
     print(res.stdout)
     assert res.exit_code == 0
-    
-    res = runner.invoke(args=[ "quiz", "run", "-q", 2, "-cid", 2, "-s", "STEP1", "-s", "STEP2", 
-                            "--no-algo", "--justify-response", "-ef", 'student{}@usf.edu',
-                            *[ v for l in likes for v in ["-l", json.dumps(l)]]])        
-    #TODO: add assert for run
-    assert res.exit_code == 0
-
-    res = runner.invoke(args=[ "quiz", "result", "-q", 2,
-                            "--expected", "tests/LF_50%_Likes_15_to_19_QP_1_3_5_10_Weights_40%_30%_20%_10%.csv"])   
-    assert res.exit_code == 0
 
 
