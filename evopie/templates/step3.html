@@ -88,8 +88,10 @@
         const carousel = document.getElementById('questions_carousel');
         const prevButton = document.getElementById('prevButton');
         const nextButton = document.getElementById('nextButton');
+        const submitButton = document.getElementById('submitButton');
 
         prevButton.style.display = 'none';
+        submitButton.style.display = 'none';
 
         carousel.addEventListener('slid.bs.carousel', function () {
         const firstSlide = carousel.querySelector('.carousel-item:first-of-type');
@@ -104,7 +106,9 @@
         
         if (currentSlide === lastSlide) {
             nextButton.style.display = 'none';
+            submitButton.style.display = 'block';
         } else {
+            submitButton.style.display = 'none';
             nextButton.style.display = 'block';
         }
         });
@@ -124,6 +128,23 @@
             <p class="lead">
                 <h2>About this quiz:</h2>
                 {{quiz.description | safe}}
+            </p>
+
+            <p class="lead">
+                <p>
+                    <h2>How to take Step 3 of the quiz:</h2>
+                    <ul>
+                        <li>For each question, construct your own distractor (wrong answer choice).</li>
+                        <li>Provide a justification for each distractor.</li>
+                        <li>Click the "Next" button to move to the next question.</li>
+                        <li>Click the "Previous" button to move to the previous question.</li>
+                        <li>
+                            When you are done taking the quiz, press the submit button. Remember: you may close this page
+                            then come back later to re-open the quiz, however, once you submit, you will not be available
+                            to reopen this quiz.
+                        </li>
+                    </ul>
+                </p>
             </p>
         </div>
     </div>
@@ -200,20 +221,20 @@
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <div class="float-start">
                             <button id="prevButton" class="btn btn-dark" type="button" data-bs-target="#questions_carousel" data-bs-slide="prev">
-                                Previous
+                                Previous Question
                             </button>
                         </div>
                         <div class="float-end">
                             <button id="nextButton" class="btn btn-dark" type="button" data-bs-target="#questions_carousel" data-bs-slide="next">
-                                Next
+                                Next Question
                             </button>
+                            <button id="submitButton" class="btn btn-danger" type="submit">Submit Quiz</button>
                         </div>
                     </div>
                 </div>
             </div>            
         </div>  
 
-        {{ w.submit_quiz_button() }}
     </form>
 
 {% endblock %}
