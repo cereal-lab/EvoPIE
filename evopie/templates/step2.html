@@ -58,6 +58,42 @@
             })          
         })
 
+        $(document).ready(function(){
+            $('#questions_carousel').carousel({
+                interval: false,
+                keyboard: false,
+                touch: false
+            });
+
+            const carousel = document.getElementById('questions_carousel');
+            const prevButton = document.getElementById('prevButton');
+            const nextButton = document.getElementById('nextButton');
+            const submitButton = document.getElementById('submitButton');
+
+            prevButton.style.display = 'none';
+            submitButton.style.display = 'none';
+
+            carousel.addEventListener('slid.bs.carousel', function () {
+            const firstSlide = carousel.querySelector('.carousel-item:first-of-type');
+            const lastSlide = carousel.querySelector('.carousel-item:last-of-type');
+            const currentSlide = carousel.querySelector('.carousel-item.active');
+            
+            if (currentSlide === firstSlide) {
+                prevButton.style.display = 'none';
+            } else {
+                prevButton.style.display = 'block';
+            }
+            
+            if (currentSlide === lastSlide) {
+                nextButton.style.display = 'none';
+                submitButton.style.display = 'block';
+            } else {
+                submitButton.style.display = 'none';
+                nextButton.style.display = 'block';
+            }
+            });
+        });
+
     </script>
 
 
@@ -90,6 +126,11 @@
                         <li>
                             In order to receive participation points, ensure that you give likes in the following range: {{ (0.8 * attempt.participation_grade_threshold) | round | int }} to {{ attempt.participation_grade_threshold }}
                         </li>
+                        <li>
+                            When you are done taking the quiz, press the submit button. Remember: you may close this page
+                            then come back later to re-open the quiz, however, once you submit, you will not be available
+                            to reopen this quiz.
+                        </li>
                     </ul>
                     <div class="bar">
                         <div class="progressbar sticky">
@@ -105,60 +146,82 @@
     </div>
 
     <form id="quizForm" method="post">
-        {% for q in questions %}
-            <div class="card bg-light m-3 mx-auto content" style="width: 75%">
-                <div class="card-body" bg-light>
-                    <h1 class="card-title">Question #{{loop.index}} - {{q.title |safe|unescapeDoubleQuotes}}</h1>
-                    <p class="card-text">{{q.stem|safe|unescapeDoubleQuotes}}</p>
-                    
-                    <dl>
-                        <dt>Your orginal answer is pre-selected below</dt>
-                    </dl>
-                    
-                    <div class="list-group list-group-flush">
-                    
-                    {% for answer in q.alternatives %}
-                        <div class="list-group-item border border-primaryrounded updateSize" style="height:fit-content">
-                            <div class="form-group">
-                                <div class="form-check">
-                                    {{ w.question_option(q, loop.index0, answer) }}
-                                    {% if ((justifications | length) == 0) or ((justifications[q.id|string] | length) == 0) or ((justifications[q.id|string][loop.index0|string] | length) == 0) %}
-                                    <p> None of your classmates provided a justification for not chosing this possible answer.</p>                                        
-                                    {% else %}
-                                    <p> Reasons suggested by your peers for not selecting this possible answer.</p>                                    
-                                    <p>
-                                        <div class = "justificationsContainer">
-                                            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#justificationsTable_{{q.id}}_{{loop.index0}}">Show Justifications</button>
-                                            <table id="justificationsTable_{{q.id}}_{{loop.index0}}" class="table collapse">
-                                                {% for justification in justifications[q.id|string][loop.index0|string] %}
-                                                    <tr>
-                                                        <td width="25px" class="align-middle">
-                                                            <p id="like_element_{{justification.id}}" class="mb-0">                                                                
-                                                                <a href="#" class="like_justification {% if justification.id in likes -%} text-primary {%- else -%} text-secondary {%- endif %}">
-                                                                    <i data-justification-id="{{justification.id}}" 
-                                                                        class="{% if justification.id in likes -%} fa-solid {%- else -%} fa-regular {%- endif %} fa-thumbs-up"></i>
-                                                                </a>
-                                                            </p>
-                                                        </td>
-                                                        <td class='text-start align-middle'>
-                                                            <p> {{ justification["justification"] | safe }} </p>
-                                                        </td>
-                                                    </tr>
-                                                {% endfor %}
-                                                </table>
+        <div id="questions_carousel" class="carousel slide" data-bs-ride="carousel" style="height: fit-content;">
+            <div class="carousel-inner">
+                {% for q in questions %}
+                    <div class="carousel-item {% if loop.first %}active{% endif %}">
+                        <div class="card bg-light m-3 mx-auto content" style="width: 75%">
+                            <div class="card-body" bg-light>
+                                <h1 class="card-title">Question #{{loop.index}} - {{q.title |safe|unescapeDoubleQuotes}}</h1>
+                                <p class="card-text">{{q.stem|safe|unescapeDoubleQuotes}}</p>
+                                
+                                <dl>
+                                    <dt>Your orginal answer is pre-selected below</dt>
+                                </dl>
+                                
+                                <div class="list-group list-group-flush">
+                                
+                                {% for answer in q.alternatives %}
+                                    <div class="list-group-item border border-primaryrounded updateSize" style="height:fit-content">
+                                        <div class="form-group">
+                                            <div class="form-check">
+                                                {{ w.question_option(q, loop.index0, answer) }}
+                                                {% if ((justifications | length) == 0) or ((justifications[q.id|string] | length) == 0) or ((justifications[q.id|string][loop.index0|string] | length) == 0) %}
+                                                <p> None of your classmates provided a justification for not chosing this possible answer.</p>                                        
+                                                {% else %}
+                                                <p> Reasons suggested by your peers for not selecting this possible answer.</p>                                    
+                                                <p>
+                                                    <div class = "justificationsContainer">
+                                                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#justificationsTable_{{q.id}}_{{loop.index0}}">Show Justifications</button>
+                                                        <table id="justificationsTable_{{q.id}}_{{loop.index0}}" class="table collapse">
+                                                            {% for justification in justifications[q.id|string][loop.index0|string] %}
+                                                                <tr>
+                                                                    <td width="25px" class="align-middle">
+                                                                        <p id="like_element_{{justification.id}}" class="mb-0">                                                                
+                                                                            <a href="#" class="like_justification {% if justification.id in likes -%} text-primary {%- else -%} text-secondary {%- endif %}">
+                                                                                <i data-justification-id="{{justification.id}}" 
+                                                                                    class="{% if justification.id in likes -%} fa-solid {%- else -%} fa-regular {%- endif %} fa-thumbs-up"></i>
+                                                                            </a>
+                                                                        </p>
+                                                                    </td>
+                                                                    <td class='text-start align-middle'>
+                                                                        <p> {{ justification["justification"] | safe }} </p>
+                                                                    </td>
+                                                                </tr>
+                                                            {% endfor %}
+                                                            </table>
+                                                    </div>
+                                                </p>
+                                                {% endif %}
+                                            </div>
                                         </div>
-                                    </p>
-                                    {% endif %}
+                                    </div>
+                                {% endfor %}
                                 </div>
                             </div>
                         </div>
-                    {% endfor %}
+                    </div>
+                {% endfor %}    
+            </div>
+            <div class="card bg-light m-3 mx-auto" style="width: 75%">
+                <div class="card-body" style="padding-bottom: 0px;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="float-start">
+                            <button id="prevButton" class="btn btn-dark" type="button" data-bs-target="#questions_carousel" data-bs-slide="prev">
+                                Previous Question
+                            </button>
+                        </div>
+                        <div class="float-end">
+                            <button id="nextButton" class="btn btn-dark" type="button" data-bs-target="#questions_carousel" data-bs-slide="next">
+                                Next Question
+                            </button>
+                            <button id="submitButton" class="btn btn-danger" type="submit">Submit Quiz</button>
+                        </div>
                     </div>
                 </div>
-            </div>
-        {% endfor %}    
+            </div>            
+        </div>
 
-        {{ w.submit_quiz_button() }}
     </form>
 
 {% endblock %}
