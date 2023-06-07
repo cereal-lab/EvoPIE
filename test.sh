@@ -10,14 +10,14 @@ flask quiz init -nq 5 -nd 4 -qd '{"2":[5,6,7],"3":[9,10,11],"4":[13,14,16]}'
 flask student init -ns 20 --exclude-id 12 -ef 'student{}@usf.edu'
 
 #user id 1 is reserved for instructor in this test
-flask student knows -kr -ef 'student{}@usf.edu' -k '{"sid":{"range":[1,4]},"qid":1,"did":3,"step":1,"chance":1}' \
-    -k '{"sid":{"ranges":[[1,4],[10,18]]},"qid":2,"did":7,"step":1,"chance":1}' \
-    -k '{"sid":{"range":[1,9]},"qid":3,"did":11,"step":1,"chance":1}' \
-    -k '{"sid":{"range":[1,9]},"qid":4,"did":13,"step":1,"chance":1}' \
-    -k '{"sid":{"range":[1,18]},"qid":5,"did":17,"step":1,"chance":1}' \
-    -k '{"sid":{"range":[1,14]},"qid":1,"did":4,"step":2,"chance":1}' \
-    -k '{"sid":{"ranges":[[1,7],10]},"qid":4,"did":13,"step":2,"chance":1}' \
-    -k '{"sid":{"range":[1,14]},"qid":5,"did":17,"step":2,"chance":1}' \
+flask student knows -kr -ef 'student{}@usf.edu' -k '{"sid":{"range":[1,4]},"qid":1,"did":3,"step":1,"metrics":{"chance":1}}' \
+    -k '{"sid":{"ranges":[[1,4],[10,18]]},"qid":2,"did":7,"step":1,"metrics":{"chance":1}}' \
+    -k '{"sid":{"range":[1,9]},"qid":3,"did":11,"step":1,"metrics":{"chance":1}}' \
+    -k '{"sid":{"range":[1,9]},"qid":4,"did":13,"step":1,"metrics":{"chance":1}}' \
+    -k '{"sid":{"range":[1,18]},"qid":5,"did":17,"step":1,"metrics":{"chance":1}}' \
+    -k '{"sid":{"range":[1,14]},"qid":1,"did":4,"step":2,"metrics":{"chance":1}}' \
+    -k '{"sid":{"ranges":[[1,7],10]},"qid":4,"did":13,"step":2,"metrics":{"chance":1}}' \
+    -k '{"sid":{"range":[1,14]},"qid":5,"did":17,"step":2,"metrics":{"chance":1}}' \
     -o testing/students.csv
 
 flask quiz run -q 1 -s STEP1 -s STEP2 --no-algo --justify-response -ef 'student{}@usf.edu' \

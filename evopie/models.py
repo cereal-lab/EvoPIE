@@ -663,5 +663,5 @@ class StudentKnowledge(DB.Model):
     question_id = DB.Column(DB.Integer, primary_key=True)
     distractor_id = DB.Column(DB.Integer, primary_key=True) #-1 - correct answer
     step_id = DB.Column(DB.Integer, primary_key=True)
-    chance = DB.Column(DB.Float, nullable=False)  # chance that student picks this option
-    # meta = DB.Column(JSONEncodedMutableDict, nullable=True) #used to store DECA info 
+    metrics = DB.Column(JSONEncodedMutableDict, default={})  # qualities of this distractor from student perspective. 
+    # Could inclide chance. Check deca.py and different KNOWLEDGE_SELECTION_ strategies

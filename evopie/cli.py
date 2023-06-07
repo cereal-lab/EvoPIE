@@ -365,20 +365,21 @@ def init_knowledge(input, output, email_format, knows, knowledge_replace, deca_i
                         knows_map_input.setdefault(s["email"], {}).setdefault(qid, {}).setdefault(did, [np.nan, np.nan])[step - 1] = s[c]
         
         #NOTE: if step is provided - the knowledge will not be passed to next steps 
-        #NOTE: otherwise if chance is a list - elements are treated as chances for each step sequentially
-        #NOTE: otherwise chance defines value for all steps
+        #NOTE: otherwise if metrics is a list - elements are treated as chances for each step sequentially
+        #NOTE: otherwise metrics defines value for all steps
         def dks_reducton(acc, k):
             ''' adds chances from simple knows record '''
             if "step" in k:
                 local_step = k["step"] - 1
-                acc[local_step] = k["chance"][local_step] if type(k["chance"]) == list else k["chance"]
-            elif type(k["chance"]) == list:
-                for i in range(min(len(acc), len(k["chance"]))):
-                    acc[i] = k["chance"][i]
+                metrics = k["metrics"]
+                acc[local_step] = metrics[local_step] if type(metrics) == list else metrics
+            elif type(k["metrics"]) == list:
+                for i in range(min(len(acc), len(k["metrics"]))):
+                    acc[i] = k["metrics"][i]
             else: 
                 for i in range(len(acc)):
                     if acc[i] < 0:
-                        acc[i] = k["chance"]
+                        acc[i] = k["metrics"]
             return acc 
 
         knows_map_deca = {} 
@@ -439,7 +440,7 @@ def init_knowledge(input, output, email_format, knows, knowledge_replace, deca_i
         knows_map = {**knows_map_input, **knows_map_deca, **knows_map_args}        
         students = DataFrame(columns=["email", "id"])    
 
-        distractor_column_order = list(sorted(set([ (i+1, qid, did) for skn in knows_map.values() for qid, qkn in skn.items() for did, dkn in qkn.items() for i, chance in enumerate(dkn) if chance > 0])))
+        distractor_column_order = list(sorted(set([ (i+1, qid, did) for skn in knows_map.values() for qid, qkn in skn.items() for did, dkn in qkn.items() for i, metrics in enumerate(dkn)])))
         distractor_columns = [f'd_{q}_{d}_{step}' for step, q, d in distractor_column_order]
 
         with APP.test_client(use_cookies=True) as c:
@@ -451,7 +452,7 @@ def init_knowledge(input, output, email_format, knows, knowledge_replace, deca_i
                 id_to_email[s.id] = s.email
             def init_knowledge_from_map(knowledge_map):
                 def add_to_students(email, student_id, student_knowledge):
-                    distractors = {(i+1, qid, did):chance for qid, qks in student_knowledge.items() for did, dks in qks.items() for i, chance in enumerate(dks) if chance > 0}
+                    distractors = {(i+1, qid, did):metrics for qid, qks in student_knowledge.items() for did, dks in qks.items() for i, metrics in enumerate(dks)}
                     students.loc[student_id, [ "email", "id", *distractor_columns ]] = [email, student_id, *[distractors[kid] if kid in distractors else np.nan for kid in distractor_column_order]]                
                 if "*" in knowledge_map:
                     for student_id, email in id_to_email.items():
@@ -482,15 +483,15 @@ def init_knowledge(input, output, email_format, knows, knowledge_replace, deca_i
                     question_id, distractor_id, step_id = [int(x) for x in c.split('_')[1:]]
                     knowledge_id = student.id, question_id, distractor_id, step_id
                     if knowledge_id in present_knowledge:
-                        present_knowledge[knowledge_id].chance = student[c]
+                        present_knowledge[knowledge_id].metrics = student[c]
                     else:
-                        k = models.StudentKnowledge(student_id=student.id, question_id = question_id, distractor_id=distractor_id, step_id = step_id, chance = student[c])
+                        k = models.StudentKnowledge(student_id=student.id, question_id = question_id, distractor_id=distractor_id, step_id = step_id, metrics = student[c])
                         models.DB.session.add(k) 
         for (sid, qid, did, step), v in present_knowledge.items():
             if sid in students.index: 
                 column = f'd_{qid}_{did}_{step}'
                 if np.isnan(students.loc[sid, column]):
-                    students.loc[sid, column] = v.chance
+                    students.loc[sid, column] = v.metrics
         models.DB.session.commit()
         if output is not None:
             students.to_csv(output, index=False)    
@@ -507,7 +508,7 @@ def export_student_knowledge(output):
     students = models.User.query.where(models.User.role == ROLE_STUDENT).all()
     knowledge = models.StudentKnowledge.query.all()
     ids = list(sorted(set([ (k.step_id, k.question_id, k.distractor_id) for k in knowledge ])))
-    knowledge_map = {sid:{f'd_{k.question_id}_{k.distractor_id}_{k.step_id}':k.chance for k in ks} for sid, ks in groupby(knowledge, key=lambda k: k.student_id) }
+    knowledge_map = {sid:{f'd_{k.question_id}_{k.distractor_id}_{k.step_id}':k.metrics for k in ks} for sid, ks in groupby(knowledge, key=lambda k: k.student_id) }
     distractor_columns = [ f'd_{qid}_{did}_{step}' for step, qid, did in ids ]
     df = DataFrame(columns=['email', 'id', *distractor_columns])
     for s in students:
@@ -553,7 +554,7 @@ def simulate_quiz(quiz, course_id, instructor, password, no_algo, algo, algo_par
     def simulate_step(step):
         with APP.app_context():
             k_plain = models.StudentKnowledge.query.where(models.StudentKnowledge.step_id == step).all() #TODO: students should be per instructor eventually 
-            knowledge = {student_id: { str(qid): {x.distractor_id: x.chance for x in qks} for qid, qks in groupby(ks, key=lambda x: x.question_id)} for student_id, ks in groupby(k_plain, key=lambda k: k.student_id) }
+            knowledge = {student_id: { str(qid): {x.distractor_id: x.metrics for x in qks} for qid, qks in groupby(ks, key=lambda x: x.question_id)} for student_id, ks in groupby(k_plain, key=lambda k: k.student_id) }
             students_plain = models.User.query.filter_by(role=ROLE_STUDENT).all()
             students = list(students_plain) #[s.id for s in students_plain]
             student_ids = set([s.id for s in students])
@@ -593,15 +594,15 @@ def simulate_quiz(quiz, course_id, instructor, password, no_algo, algo, algo_par
                 if knowledge_selection == KNOWLEDGE_SELECTION_CHANCE:
                     responses = {qid:rnd_state.choice(known_distractors)
                                             for qid, distractors in attempt.alternatives_map.items() 
-                                            for qskn in [student_knowledge.get(qid, {-1:1}) ]
-                                            for ds_distr in [[(alt, qskn[d]) for alt, d in enumerate(distractors) if d in qskn]] 
+                                            for qskn in [student_knowledge.get(qid, {-1:{"chance":1}}) ]
+                                            for ds_distr in [[(alt, qskn[d]["chance"]) for alt, d in enumerate(distractors) if d in qskn]] 
                                             for ds in [ds_distr if any(ds_distr) else [(alt, 1) for alt, d in enumerate(distractors) if d == -1]]
                                             for known_distractors in [[alt for alt, w in ds if rnd_state.rand() < w ]]}
                 elif knowledge_selection == KNOWLEDGE_SELECTION_WEIGHT:
                     responses = {qid:ds[selected_d_index][0]
                                             for qid, distractors in attempt.alternatives_map.items() 
-                                            for qskn in [student_knowledge.get(qid, {-1:1}) ]
-                                            for ds_distr in [[(alt, qskn[d]) for alt, d in enumerate(distractors) if d in qskn]] 
+                                            for qskn in [student_knowledge.get(qid, {-1:{"weight":1}}) ]
+                                            for ds_distr in [[(alt, qskn[d]["weight"]) for alt, d in enumerate(distractors) if d in qskn]] 
                                             for ds in [ds_distr if any(ds_distr) else [(alt,1) for alt, d in enumerate(distractors) if d == -1]]
                                             for weights in [[w for _, w in ds]]
                                             for sums in [np.cumsum(weights)]
@@ -611,7 +612,7 @@ def simulate_quiz(quiz, course_id, instructor, password, no_algo, algo, algo_par
                     responses = {qid:sorted(ds, key=lambda x: x[1])[-1][0]
                                             for qid, distractors in attempt.alternatives_map.items() 
                                             for distractor_strength in [student_knowledge.get(qid, {}) ]
-                                            for ds_distr in [[(alt, distractor_strength[d]) for alt, d in enumerate(distractors) if d in distractor_strength]] 
+                                            for ds_distr in [[(alt, distractor_strength[d]["order"]) for alt, d in enumerate(distractors) if d in distractor_strength]] 
                                             for ds in [ds_distr if any(ds_distr) else [(alt,1) for alt, d in enumerate(distractors) if d == -1]]}
                 else: 
                     responses = {}
@@ -710,26 +711,37 @@ def calc_deca_metrics(algo_input, deca_space, params, input_output):
 @click.option('-r', '--result-folder')
 @click.option('-s', '--sort-column', default='algo')
 @click.option('-f', '--filter-column', default=None)
-def calc_space_result(result_folder, sort_column, filter_column):
+@click.option('--stats-column', default=None)
+@click.option('--no-group', is_flag=True)
+def calc_space_result(result_folder, sort_column, filter_column, stats_column, no_group):
     metrics = ['dim_coverage', 'arr', 'arra', 'population_redundancy', 'population_duplication', 'noninfo']
     res = DataFrame(columns=['space', 'algo', *[c for m in metrics for c in [m, m + '_std']]])
     dframes = {}
     for file_name in os.listdir(result_folder): 
-        key = "-".join(file_name.split(".")[0].split("-")[:-1])        
+        key = file_name if no_group else "-".join(file_name.split(".")[0].split("-")[:-1])        
         space_result = os.path.join(result_folder, file_name)
         algo_stats = pandas.read_csv(space_result)
         dframes.setdefault(key, []).append(algo_stats)
         # idx = len(res.index)        
         # res.loc[idx, 'algo'] = algo_stats.loc[0, 'algo'].split("/")[-1].split(".")[0]
         # res.loc[idx, metrics] = algo_stats[metrics].mean()
-        # res.loc[idx, [m + '_std' for m in metrics]] = algo_stats[metrics].std().tolist()
+        # res.loc[idx, [m + '_std' for m in metrics]] = algo_stats[metrics].std().tolist()    
+    if stats_column is not None: 
+        #NOTE: need to install scipy, scikit-posthocs
+        import scipy.stats as stats
+        import scikit_posthocs as sp
+        stats_samples = {}
+
     for key, lst in dframes.items():
         algo_stats = pandas.concat(lst)
         idx = len(res.index)   
         algo, space = key.split("-on-")   
         res.loc[idx, 'space'] = space
-        res.loc[idx, 'algo'] = algo
-        res.loc[idx, metrics] = algo_stats[metrics].mean()
+        res.loc[idx, 'algo'] = algo        
+        algo_mean = algo_stats[metrics].mean()
+        if stats_column is not None: 
+            stats_samples.setdefault(space, {})[algo] = (algo_stats[stats_column].tolist(), algo_mean[stats_column])
+        res.loc[idx, metrics] = algo_mean
         res.loc[idx, [m + '_std' for m in metrics]] = algo_stats[metrics].std().tolist()
     res[[m + '_std' for m in metrics]] = res[[m + '_std' for m in metrics]].astype(float)
     res[metrics] = res[metrics].astype(float)    
@@ -740,8 +752,41 @@ def calc_space_result(result_folder, sort_column, filter_column):
     if filter_column:
         ms = filter_column.split(',')
         res = res[['space', "algo", *[c for m in ms for c in [m, m + '_std']]]]
-    res.to_csv(os.path.join(result_folder, 'space-result.csv'), index=False)
+    if stats_column is not None:
+        for space, algos in stats_samples.items():  
+            plain_algo_res = [(a, v, m) for (a, (v, m)) in algos.items()]
+            sorted_algo_res = sorted(plain_algo_res, key=lambda x: -x[2])
+            algo_names, algo_values, algo_means = zip(*sorted_algo_res)
+            data = np.array([algo_res for algo_res in algo_values]).T
+            friedman_res = stats.friedmanchisquare(*data.T)
+            nemenyi_res = sp.posthoc_nemenyi_friedman(data) 
+            p=0.10
+            algo_m = {algo: algo_means[i] for i, algo in enumerate(algo_names)}
+            print(f"\n----------------------------------")
+            print(f"Stat result for space {space}")
+            print(f"Algo: {algo_m}")
+            print(f"Friedman: {friedman_res}")
+            # print(f"Nemenyi:\n{nemenyi_res}")
+            #we now assign score for each algo based on nemenyi p-value result 
+            domination = {algo_name: {algo_names[j]: p_val for j, p_val in enumerate(nemenyi_res[i]) if p_val <= p and j > i}
+                            for i, algo_name in enumerate(algo_names) }
+            for algo_name, dominated in domination.items():
+                if len(dominated) > 0: 
+                    print(f"\t{algo_name} (mean {algo_m[algo_name]}) dominates {dominated}")
+                # cur_group.append(algo_name)
+                # for j in range(i + 1, len(nemenyi_res[i])):
+                #     if nemenyi_res[i, j] > p: 
+                #         cur_group.append()
+
+    res.to_csv(os.path.join(result_folder, '../space-result.csv'), index=False)
     print(res.to_string(index=False))
+
+    # return { 'm_std': moments,
+    #         'friedman': stats.friedmanchisquare(*fsa),
+    #         'nemenyi': sp.posthoc_nemenyi_friedman(fsa.T) 
+    #         # 'ttest': stats.ttest_ind(fs[0], fs[1], equal_var=False, alternative='two-sided'), 'utest': stats.mannwhitneyu(fs[0], fs[1],alternative='two-sided')
+    #         }
+
 
 @quiz_cli.command("export")
 @click.option('-q', '--quiz', type=int, required=True)

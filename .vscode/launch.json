@@ -64,14 +64,14 @@
                 // "-k {\"did\":2,\"chance\":[1,0.5]}",
                 // "-k {\"qid\":3,\"chance\":[0.4,0.2]}",
                 // "-k {\"sid\":4,\"chance\":[0.3,0.15]}",
-                "-k {\"sid\":{\"range\":[1,4]},\"qid\":1,\"did\":3,\"step\":1,\"chance\":1}",
-                "-k {\"sid\":{\"ranges\":[[1,4],[10,18]]},\"qid\":2,\"did\":7,\"step\":1,\"chance\":1}",
-                "-k {\"sid\":{\"range\":[1,9]},\"qid\":3,\"did\":11,\"step\":1,\"chance\":1}",
-                "-k {\"sid\":{\"range\":[1,9]},\"qid\":4,\"did\":13,\"step\":1,\"chance\":1}",
-                "-k {\"sid\":{\"range\":[1,18]},\"qid\":5,\"did\":17,\"step\":1,\"chance\":1}",
-                "-k {\"sid\":{\"range\":[1,14]},\"qid\":1,\"did\":4,\"step\":2,\"chance\":1}",
-                "-k {\"sid\":{\"ranges\":[[1,7],10]},\"qid\":4,\"did\":13,\"step\":2,\"chance\":1}",
-                "-k {\"sid\":{\"range\":[1,14]},\"qid\":5,\"did\":17,\"step\":2,\"chance\":1}",
+                "-k {\"sid\":{\"range\":[1,4]},\"qid\":1,\"did\":3,\"step\":1,\"metrics\":{\"chance\":1}}",
+                "-k {\"sid\":{\"ranges\":[[1,4],[10,18]]},\"qid\":2,\"did\":7,\"step\":1,\"metrics\":{\"chance\":1}}",
+                "-k {\"sid\":{\"range\":[1,9]},\"qid\":3,\"did\":11,\"step\":1,\"metrics\":{\"chance\":1}}",
+                "-k {\"sid\":{\"range\":[1,9]},\"qid\":4,\"did\":13,\"step\":1,\"metrics\":{\"chance\":1}}",
+                "-k {\"sid\":{\"range\":[1,18]},\"qid\":5,\"did\":17,\"step\":1,\"metrics\":{\"chance\":1}}",
+                "-k {\"sid\":{\"range\":[1,14]},\"qid\":1,\"did\":4,\"step\":2,\"metrics\":{\"chance\":1}}",
+                "-k {\"sid\":{\"ranges\":[[1,7],10]},\"qid\":4,\"did\":13,\"step\":2,\"metrics\":{\"chance\":1}}",
+                "-k {\"sid\":{\"range\":[1,14]},\"qid\":5,\"did\":17,\"step\":2,\"metrics\":{\"chance\":1}}",
                 "-o", "testing/students.csv"
             ]
         },
@@ -307,7 +307,7 @@
             "console": "internalConsole"
         },
         {
-            "name": "CLI: quiz deca-experiment",
+            "name": "CLI: quiz deca-experiment PPHC",
             "type": "python",
             "request": "launch",
             "module": "flask",
@@ -318,9 +318,9 @@
             },
             "args" : [
                 "quiz", "deca-experiment",
-                "--deca-input", "deca-spaces/space-1_1_1-s_0-2.json",
+                "--deca-input", "deca-spaces/space-5_5_5_5_5_5_5_5_5_5-s_1-0.json",
                 "--num-runs", "2",
-                "--algo", "{ \"id\": \"pphc-1-2-1-3\", \"algo\":\"evopie.pphc_quiz_model.PphcQuizModel\", \"pop_size\": 1, \"pareto_n\": 2, \"child_n\": 1, \"gene_size\": 3}"
+                "--algo", "{ \"id\": \"pphc-1-2-1-2\", \"algo\":\"evopie.pphc_quiz_model.PphcQuizModel\", \"pop_size\": 1, \"pareto_n\": 2, \"child_n\": 1, \"gene_size\": 2, \"mutation\": \"mutate_one_point_worst_to_best\"}"
             ],
             "console": "internalConsole"
         },
@@ -354,7 +354,7 @@
             },
             "args" : [
                 "quiz", "deca-experiment",
-                "--deca-input", "deca-spaces/space-1_1_1-s_0-2.json",
+                "--deca-input", "deca-spaces/space-5_5_5_5_5_5_5_5_5_5-s_1-0.json",
                 "--num-runs", "2",
                 "--algo", "{ \"id\": \"rand-3\", \"algo\":\"evopie.rand_quiz_model.RandomQuizModel\", \"n\": 3, \"seed\": 313}"
             ],
@@ -388,7 +388,8 @@
             },
             "args" : [
                 "deca", "space-result",
-                "-r", "data/data-2023-03-24"
+                "-r", "data/data-2023-04-06",
+                "--stats-column", "arra"
             ],
             "console": "internalConsole"
         }        

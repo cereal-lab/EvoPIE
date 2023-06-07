@@ -3,7 +3,7 @@
 #SBATCH --time=72:00:00
 #SBATCH --output=e-smpl-%a.out
 #SBATCH --mem=8G
-#SBATCH --array=0-21
+#SBATCH --array=0-23
 
 algos=('{ "id": "rand-3", "algo":"evopie.rand_quiz_model.RandomQuizModel", "n": 3}'
     '{ "id": "s-0k", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "slot_based", "hyperparams": { "key_spec": [{"t":0, "keys":[["kn", "rel-kn"], ["rel-kn", "kn"], ["rel-kn", "kn"]]}]}}'
@@ -26,7 +26,9 @@ algos=('{ "id": "rand-3", "algo":"evopie.rand_quiz_model.RandomQuizModel", "n": 
     '{ "id": "s-0nXd-17nXd-34nXd", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "slot_based", "hyperparams": { "key_spec": [{"t":0, "keys":[["nd", "sd", "rel-kn", "kn"], ["rel-kn", "kn", "nd", "sd"], ["rel-kn", "kn", "nd", "sd"]]}, {"t":17, "keys":[["nd", "sd", "rel-kn", "kn"], ["rel-kn", "nd", "sd", "kn"], ["rel-kn", "kn", "nd", "sd"]]}, {"t":34, "keys":[["nd", "sd", "rel-kn", "kn"], ["nd", "sd", "rel-kn", "kn"], ["nd", "rel-kn", "sd", "kn"]]}]}}'        
     '{ "id": "s-0k-17d-34d", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "slot_based", "hyperparams": { "key_spec": [{"t":0, "keys":[["kn", "rel-kn"], ["rel-kn", "kn"], ["rel-kn", "kn"]]}, {"t":17, "keys":[["d", "kn"], ["rel-kn", "d", "kn"], ["rel-kn", "kn", "d"]]}, {"t":34, "keys":[["d", "kn"], ["d", "rel-kn", "kn"], ["d", "rel-kn", "kn"]]}]}}'    
     '{ "id": "s-0k-17dn-34nd", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "slot_based", "hyperparams": { "key_spec": [{"t":0, "keys":[["kn", "rel-kn"], ["rel-kn", "kn"], ["rel-kn", "kn"]]}, {"t":17, "keys":[["nond", "sd", "rel-kn", "kn"], ["d", "kn"], ["d", "rel-kn", "kn"]]}, {"t":34, "keys":[["nond", "sd", "rel-kn", "kn"], ["d", "rel-kn", "kn"], ["nond", "sd", "rel-kn", "kn"]]}]}}'    
-    '{ "id": "s-0k-17dnXd-34nXdd", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "slot_based", "hyperparams": { "key_spec": [{"t":0, "keys":[["kn", "rel-kn"], ["rel-kn", "kn"], ["rel-kn", "kn"]]}, {"t":17, "keys":[["nd", "sd", "rel-kn", "kn"], ["d", "kn"], ["d", "rel-kn", "kn"]]}, {"t":34, "keys":[["nd", "sd", "rel-kn", "kn"], ["d", "rel-kn", "kn"], ["nd", "sd", "rel-kn", "kn"]]}]}}') 
+    '{ "id": "s-0k-17dnXd-34nXdd", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "slot_based", "hyperparams": { "key_spec": [{"t":0, "keys":[["kn", "rel-kn"], ["rel-kn", "kn"], ["rel-kn", "kn"]]}, {"t":17, "keys":[["nd", "sd", "rel-kn", "kn"], ["d", "kn"], ["d", "rel-kn", "kn"]]}, {"t":34, "keys":[["nd", "sd", "rel-kn", "kn"], ["d", "rel-kn", "kn"], ["nd", "sd", "rel-kn", "kn"]]}]}}'
+    '{ "id": "phc-1-2-1-2-r", "algo":"evopie.pphc_quiz_model.PphcQuizModel", "pop_size": 1, "pareto_n": 2, "child_n": 1, "gene_size": 2, "mutation": "mutate_random"}'
+    '{ "id": "phc-1-2-1-2-b", "algo":"evopie.pphc_quiz_model.PphcQuizModel", "pop_size": 1, "pareto_n": 2, "child_n": 1, "gene_size": 2, "mutation": "mutate_one_point_worst_to_best"}') 
 
 algo=${algos[$SLURM_ARRAY_TASK_ID]}
 

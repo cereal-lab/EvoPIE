@@ -48,14 +48,14 @@ def test_extensive(runner, settings, fileName):
 
     res = runner.invoke(args=[ "student", "addToCourse", "-cid", 2])
     
-    knowledge = [{"sid":{"range":[1,4]},"qid":1,"did":3,"step":1,"chance":1}, 
-        {"sid":{"ranges":[[1,4],[10,18]]},"qid":2,"did":7,"step":1,"chance":1},
-        {"sid":{"range":[1,9]},"qid":3,"did":11,"step":1,"chance":1},
-        {"sid":{"range":[1,9]},"qid":4,"did":13,"step":1,"chance":1},
-        {"sid":{"range":[1,18]},"qid":5,"did":17,"step":1,"chance":1},
-        {"sid":{"range":[1,14]},"qid":1,"did":4,"step":2,"chance":1},
-        {"sid":{"ranges":[[1,7],10]},"qid":4,"did":13,"step":2,"chance":1},
-        {"sid":{"range":[1,14]},"qid":5,"did":17,"step":2,"chance":1}]
+    knowledge = [{"sid":{"range":[1,4]},"qid":1,"did":3,"step":1,"metrics":{"chance":1}}, 
+        {"sid":{"ranges":[[1,4],[10,18]]},"qid":2,"did":7,"step":1,"metrics":{"chance":1}}, 
+        {"sid":{"range":[1,9]},"qid":3,"did":11,"step":1,"metrics":{"chance":1}}, 
+        {"sid":{"range":[1,9]},"qid":4,"did":13,"step":1,"metrics":{"chance":1}}, 
+        {"sid":{"range":[1,18]},"qid":5,"did":17,"step":1,"metrics":{"chance":1}}, 
+        {"sid":{"range":[1,14]},"qid":1,"did":4,"step":2,"metrics":{"chance":1}}, 
+        {"sid":{"ranges":[[1,7],10]},"qid":4,"did":13,"step":2,"metrics":{"chance":1}}, 
+        {"sid":{"range":[1,14]},"qid":5,"did":17,"step":2,"metrics":{"chance":1}}]
     res = runner.invoke(args=[ "student", "knows", "-kr", "-ef", 'student{}@usf.edu', *[ v for k in knowledge for v in ["-k", json.dumps(k)]] ])
 
     assert res.exit_code == 0

@@ -75,7 +75,7 @@ class Archive():
 
 class PphcQuizModel(QuizModel): 
     ''' Base class for evolution process (but still of specific form)'''
-    default_settings = { "pop_size": 1, "pareto_n": 2, "child_n": 1, "gene_size": 3}
+    default_settings = { "pop_size": 1, "pareto_n": 2, "child_n": 1, "gene_size": 2, "mutation": "mutate_random"}
 
     def __init__(self, quiz_id: int, process: models.EvoProcess, distractors_per_question: 'dict[int, list[int]]'):
         super(PphcQuizModel, self).__init__(quiz_id, process, distractors_per_question)
@@ -86,10 +86,12 @@ class PphcQuizModel(QuizModel):
         self.pop_size: int = settings.get("pop_size", 1)
         self.pareto_n: int = settings.get("pareto_n", 2)
         self.child_n: int = settings.get("child_n", 1)
-        self.gene_size: int = settings.get("gene_size", 3)
+        self.gene_size: int = settings.get("gene_size", 2)
+        self.mutation_strategy = settings.get("mutation", "mutate_one_point_worst_to_best")
         self.population = settings.get("population",[])
         self.objectives = settings.get("objectives",[])        
         self.archive = Archive(settings.get("archive",[]), self.objectives)        
+        self.gene_stats = settings.get("gene_stats", {})
         self.coevaluation_groups: dict[str, CoevaluationGroup] = { cgid:CoevaluationGroup(g["inds"], g["objs"], g['ppos']) 
                                                                     for cgid, g in settings.get("coevaluation_groups", {}).items()}
         self.evaluator_coevaluation_groups: dict[int, str] = { int(evaluator_id):str(group_id)
@@ -204,9 +206,54 @@ class PphcQuizModel(QuizModel):
             genotype.append((qid, sorted(group)))
         ind = self.archive.add(genotype)
         return ind 
+    
+    def mutate_one_point_worst_to_best_1child(self, parent_id): 
+        ''' mutation on per question basis, take one question gene and replace it. Stats are considered '''
+        genotype = self.archive.get(parent_id)                
 
-    def mutate(self, parent_id): 
-        ''' produce children of a parent'''
+        def delete_score(gene_stats):
+            ''' defines the chance of gene to be selected for removal and replacement by other gene '''
+            return (1 - gene_stats.get('num_0', 0) / (gene_stats.get('num_any', 0) + 1)) * (1 - gene_stats.get('num_1', 0) / (gene_stats.get('num_any', 0) + 1))
+
+        genotype_stats = [ (qid, [(did, delete_score(self.gene_stats.get(f"{qid}:{did}", {}))) for did in genes]) for qid, genes in genotype ]
+    
+        genotype_stats = [ (qid, [(did, s / genes_removal_score) for did, s in dids]) 
+                                for qid, dids in genotype_stats 
+                                for genes_removal_score in [sum(s for _, s in dids)]]
+        
+        genes_to_remove = {qid: int(self.rnd.choice([did for did, _ in dids], 1, p = [s for _, s in dids])) for qid, dids in genotype_stats }
+
+        def select_score(gene_stats):
+            return 0.01 + (0 if gene_stats.get('num_any', 0) == 0 else (gene_stats.get('num_0', 0) * gene_stats.get('num_1', 0) / gene_stats.get('num_any', 0) / gene_stats.get('num_any', 0)))
+        
+        candidate_distractors = [ (qid, [(candidate_did, select_score(self.gene_stats.get(f"{qid}:{candidate_did}", {}))) 
+                                            for candidate_did in self.distractors_per_question.get(qid, []) 
+                                            if candidate_did not in ignored_dids])
+                            for qid, used_dids_with_scores in genotype_stats 
+                            for ignored_dids in [set(did for did, _ in used_dids_with_scores)] ]
+        
+        candidate_distractors = [ (qid, [(did, s / genes_total_score) for did, s in dids]) 
+                                for qid, dids in candidate_distractors 
+                                if len(dids) > 0
+                                for genes_total_score in [sum(s for _, s in dids)]]
+                
+        selected_candidates = {qid: int(self.rnd.choice([did for did, _ in dids], 1, p = [s for _, s in dids]))
+                                    for qid, dids in candidate_distractors}
+        
+        child = [(qid, sorted(candidate if did == deleted and candidate is not None else did for did in genes)) 
+                    for qid, genes in genotype 
+                    for candidate in [selected_candidates.get(qid, None)]
+                    for deleted in [genes_to_remove.get(qid, None)]]
+        
+        child_id = self.archive.add(child)     
+
+        return child_id    
+        
+    def mutate_one_point_worst_to_best(self, parent_id): 
+        children = [self.mutate_one_point_worst_to_best_1child(parent_id) for _ in range(self.child_n)]
+        return children
+
+    def mutate_random(self, parent_id):
         genotype = self.archive.get(parent_id)        
         children = []
         for _ in range(self.child_n):
@@ -233,6 +280,10 @@ class PphcQuizModel(QuizModel):
                     break
                 tries -= 1
         return children
+
+    def mutate(self, parent_id): 
+        ''' produce children of a parent'''
+        return getattr(self, self.mutation_strategy)(parent_id)
         
     def get_sampling_size(self):
         return self.gene_size
@@ -266,15 +317,14 @@ class PphcQuizModel(QuizModel):
                     "gene_size": self.gene_size, "pareto_n": self.pareto_n, "child_n": self.child_n,
                     "coevaluation_groups":  {id: {"inds": g.inds, "objs": g.objs, "ppos": g.ppos} for id, g in self.coevaluation_groups.items()},
                     "evaluator_coevaluation_groups": self.evaluator_coevaluation_groups,
-                    "population": self.population, 
+                    "population": self.population, "gene_stats": self.gene_stats, "mutation": self.mutation_strategy,
                     "objectives": self.objectives,
                     "archive": archive}   
         return settings
 
     def get_best_quiz(self):
-        population = [self.archive.get(genotype_id) for genotype_id in self.population]
-        distractors = [d for genotype in population for (_, dids) in genotype for d in dids ] 
-        return distractors
+        population = set(did for _, dids in self.prepare_for_evaluation(-1) for did in dids)
+        return list(population)
 
     def update_fitness(self, ind: int, evaluator_id: int, result: 'dict[int, int]') -> None:  
         # cur_score = self.archive.loc[ind, evaluator_id]
@@ -282,9 +332,14 @@ class PphcQuizModel(QuizModel):
         ind_genotype = self.archive.get(ind)
         for qid, genes in ind_genotype: #result - dict where for each question we provide some data                        
             if qid in result:
-                for deception in genes:
-                    if deception == result[qid]:
+                for did in genes:
+                    gene_stats = self.gene_stats.setdefault(f"{qid}:{did}", {})
+                    if did == result[qid]:
                         cur_score += 1
+                        gene_stats["num_1"] = gene_stats.get("num_1", 0) + 1
+                    else:
+                        gene_stats["num_0"] = gene_stats.get("num_0", 0) + 1
+                    gene_stats["num_any"] = gene_stats.get("num_any", 0) + 1
         self.archive.set_interraction(ind, evaluator_id, cur_score)
 
     def to_csv(self, file_name) -> None: 

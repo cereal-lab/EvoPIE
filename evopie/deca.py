@@ -284,14 +284,15 @@ def unique_question_per_axis_constraint(space):
 
 def gen_test_distractor_mapping_knowledge(space): 
     ''' Generates knowledge in format similar to cli student init -k flag. Use this to init StudentKnowledge database '''
-    #NOTE: chance was changed to be the size of point cfs
-    knowledge = [*[ {"sid": point['cfs'], "qid": qid, "did": did, "chance": len(point['cfs']) } 
+    knowledge = [*[ {"sid": point['cfs'], "qid": qid, "did": did, "metrics" : { "weight": len(point['cfs']), "chance": 1, "order": point_id } } 
                     for _, points in space['axes'].items()
                     for point_id, point in points.items() 
                     for qid, did in point['dids']],
-                 *[ {"sid": point['cfs'], "qid": qid, "did": did, "chance": len(point['cfs']) } 
+                 *[ {"sid": sid, "qid": qid, "did": did, "metrics": { "weight": len(point['cfs']), "chance": 1, "order": point_id + (len(axes_ids) - 1) / len(space['axes'])} } 
                     for axes_ids, point in space['spanned'].items()
-                    for qid, did in point['dids']]]
+                    for qid, did in point['dids']
+                    for (axis_id, point_id) in axes_ids 
+                    for sid in space['axes'][axis_id][point_id]['cfs']]]
     return knowledge
 
 
@@ -390,3 +391,58 @@ def save_space_to_json(space):
 
 # NOTE: there are other algo specific metrics: def uncovered_search_space():
 #     pass
+
+
+#  d1 - d25 n = 20
+#  1. Pick k/n distractors which fail students. 
+#  2. Case of very hard distractor - same hard for all 
+#  c1: d1 > d2 > ... > dx
+#  c2: d1 > d2 > ... > di ... > dz
+# 
+# 1. One chain for all students 
+# 2. One chain but subchains for students 
+# 3. One base chain but k permutations of 2 of it added but with fixed mosst difficult
+# 4. One base chain but k permutations of 2 of it added    
+# 5. One base chain but with whole permutations.  
+
+# Info: 
+# 1. We genenrate chains  
+# 2. 
+
+
+
+#                        | [d1,d2,d3] | [d1,d3,d2] | [d2,d1,d3] | [d2,d3,d1] | [d3,d1,d2] | [d3,d2,d1] | [d1,d2] | [d1,d3] | [d2,d1] | [d2,d3] | [d3,d1] | [d3,d2] | [d1] | [d2] | [d3] | [ ] |
+# P d1 & P d2 & P d3, d1 |      1     |      1     |      _     |      _     |      _     |      _     |    1    |    1    |    _    |    _    |    _    |    _    |   1  |   _  |   _  |  _  |
+#                   , d2 |      _     |      _     |      1     |      1     |      _     |      _     |    _    |    _    |    1    |    1    |    _    |    _    |   _  |   1  |   _  |  _  |
+#                   , d3 |      _     |      _     |      _     |      _     |      1     |      1     |    _    |    _    |    _    |    _    |    1    |    1    |   _  |   _  |   1  |  _  |
+# P d1 & P d2 & A d3, d1 |      1     |      1     |      _     |      _     |      1     |      _     |    1    |    1    |    _    |    _    |    1    |    _    |   1  |   _  |   _  |  _  |
+#                   , d2 |      _     |      _     |      1     |      1     |      _     |      1     |    _    |    _    |    1    |    1    |    _    |    1    |   _  |   1  |   _  |  _  |
+# A d1 & P d2 & P d3, d2 |      1     |      _     |      1     |      1     |      _     |      _     |    1    |    _    |    1    |    1    |    _    |    _    |   _  |   1  |   _  |  _  |
+#                   , d3 |      _     |      1     |      _     |      _     |      1     |      1     |    _    |    1    |    _    |    _    |    1    |    1    |   _  |   _  |   1  |  _  |
+# P d1 & A d2 & P d3, d1 |      1     |      1     |      1     |      _     |      _     |      _     |    1    |    1    |    1    |    _    |    _    |    _    |   1  |   _  |   _  |  _  |
+#                   , d3 |      _     |      _     |      _     |      1     |      1     |      1     |    _    |    _    |    _    |    1    |    1    |    1    |   _  |   _  |   1  |  _  |
+# P d1 & A d2 & A d3, d1 |      1     |      1     |      1     |      1     |      1     |      1     |    1    |    1    |    1    |    _    |    1    |    _    |   1  |   _  |   _  |  _  | o1
+# A d1 & P d2 & A d3, d2 |      1     |      1     |      1     |      1     |      1     |      1     |    1    |    _    |    1    |    1    |    _    |    1    |   _  |   1  |   _  |  _  | o2
+# A d1 & A d2 & P d3, d3 |      1     |      1     |      1     |      1     |      1     |      1     |    _    |    1    |    _    |    1    |    1    |    1    |   _  |   _  |   1  |  _  | o3
+# *                      |      _     |      _     |      _     |      _     |      _     |      _     |    _    |    _    |    _    |    _    |    _    |    _    |   _  |   _  |   _  |  _  |
+
+#             $C$   & $O$ & [d_3,d_2,d_1] & [d_3,d_2] & [d_3] \\
+# P d_1,P d_2,P d_3 & d_1 &      0     &    0    &   0  \\
+#                   & d_2 &      0     &    0    &   0  \\
+#                   & d_3 &      1     &    1    &   1  \\
+# P d_1,P d_2,A d_3 & d_1 &      0     &    0    &   0  \\
+#                   & d_2 &      1     &    1    &   0  \\
+# A d_1,P d_2,P d_3 & d_2 &      0     &    0    &   0  \\
+#                   & d_3 &      1     &    1    &   1  \\
+# P d_1,A d_2,P d_3 & d_1 &      0     &    0    &   0  \\
+#                   , d_3 &      1     &    1    &   1  \\
+# P d_1,A d_2,A d_3 & d_1 &      1     &    0    &   0  \\
+# A d_1,P d_2,A d_3 & d_2 &      1     &    1    &   0  \\
+# A d_1,A d_2,P d_3 & d_3 &      1     &    1    &   1  \\
+# A d_1,A d_2,A d_3 & *   &      0     &    0    &   0  \\
+
+#                        | [d1,d2,d3] + [d1,d3,d2] | [d1,d2,d3] | [d1,d2,d3] |
+# P d1, d1               |      1     |      1     |      1     |
+# A d1 & P d2, d2        |      1     |      1     |      1     |
+# A d1 & A d2 & P d3, d3 |      1     |      1     |      1     |
+# *                      |      _     |      _     |      _     |

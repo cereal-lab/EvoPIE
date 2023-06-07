@@ -11,7 +11,7 @@ flask quiz init -nq 2 -nd 10
 
 flask student init -ns 20
 
-# flask student knows -kr -ef 's{}@usf.edu' -k '{"sid":{"range":[1,10]},"qid":1,"did":4,"step":1,"chance":1}' -k '{"sid":{"range":[1,20]},"qid":1,"did":8,"step":1,"chance":1}' -k '{"sid":{"range":[11,20]},"qid":2,"did":12,"step":1,"chance":1}' -k '{"sid":{"range":[1,20]},"qid":2,"did":16,"step":1,"chance":1}'
+# flask student knows -kr -ef 's{}@usf.edu' -k '{"sid":{"range":[1,10]},"qid":1,"did":4,"step":1,"metrics":{"chance":1}}' -k '{"sid":{"range":[1,20]},"qid":1,"did":8,"step":1,"metrics":{"chance":1}}' -k '{"sid":{"range":[11,20]},"qid":2,"did":12,"step":1,"metrics":{"chance":1}}' -k '{"sid":{"range":[1,20]},"qid":2,"did":16,"step":1,"metrics":{"chance":1}}'
 
 # flask deca init -q 1 -o deca-spaces -a 2 -a 3 --spanned 1 --best-students-percent 0.1 --spanned-geometric-p 0.8 --noninfo 0.1 -n 1
 flask deca init-many -ns 100 -nq 4 -nd 25 \
@@ -243,6 +243,13 @@ flask deca init-many -ns 100 -nq 4 -nd 25 \
     --timeout 1000 --random-seed 29      
 
 #----- 
+
+flask quiz deca-experiments \
+    --deca-spaces deca-spaces \
+    --algo-folder algo \
+    --results-folder results \
+    --random-seed 23 --num-runs 2 \
+    --algo '{ "id": "rand-3", "algo":"evopie.rand_quiz_model.RandomQuizModel", "n": 3}' 
 
 flask quiz deca-experiments \
     --deca-spaces deca-spaces \
@@ -524,3 +531,11 @@ flask deca space-result -r results
 flask deca space-result -r results -s D -f D
 
 flask deca space-result -r data/data-2023-03-24 -s ARRA -f ARRA
+
+
+flask deca space-result -r data/data-2023-04-06 -s ARRA -f ARRA
+
+flask deca space-result -r data/data-2023-04-06 -s ARRA -f ARRA --stats-column arra
+
+
+flask deca space-result -r data/data-2023-05-01 --no-group -s ARRA -f ARRA --stats-column arra
