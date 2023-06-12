@@ -138,7 +138,8 @@ class PphcQuizModel(QuizModel):
                     return False 
                 else: #non-pareto-comparable
                     #NOTE: if we use aggregation here - it will be same to non-Pareto comparison
-                    return child_genotype_evaluation_count <= parent_genotype_evaluation_count  #pick child if less evaluated
+                    # return child_genotype_evaluation_count <= parent_genotype_evaluation_count  #pick child if less evaluated
+                    return False
                     # child_sum = (child_genotype_evaluation.sum(), child_domination.sum())
                     # parent_sum = (parent_genotype_evaluation.sum(), parent_domination.sum())
                     # if child_sum == parent_sum: 

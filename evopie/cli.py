@@ -712,8 +712,9 @@ def calc_deca_metrics(algo_input, deca_space, params, input_output):
 @click.option('-s', '--sort-column', default='algo')
 @click.option('-f', '--filter-column', default=None)
 @click.option('--stats-column', default=None)
+@click.option('--scale', default=1, type=float)
 @click.option('--no-group', is_flag=True)
-def calc_space_result(result_folder, sort_column, filter_column, stats_column, no_group):
+def calc_space_result(result_folder, sort_column, filter_column, stats_column, no_group, scale):
     metrics = ['dim_coverage', 'arr', 'arra', 'population_redundancy', 'population_duplication', 'noninfo']
     res = DataFrame(columns=['space', 'algo', *[c for m in metrics for c in [m, m + '_std']]])
     dframes = {}
@@ -736,24 +737,28 @@ def calc_space_result(result_folder, sort_column, filter_column, stats_column, n
         algo_stats = pandas.concat(lst)
         idx = len(res.index)   
         algo, space = key.split("-on-")   
-        res.loc[idx, 'space'] = space
+        _, space_axes, space_spanned, *space_other = space.split("-")
+        _, spanned_str = space_spanned.split('_')
+        axes_str = space_axes.split('_')
+        space_id = (int(spanned_str), len(axes_str), int(axes_str[0]), "" if len(space_other) == 0 else '-'.join(space_other))
+        res.loc[idx, 'space'] = space_id
         res.loc[idx, 'algo'] = algo        
         algo_mean = algo_stats[metrics].mean()
         if stats_column is not None: 
-            stats_samples.setdefault(space, {})[algo] = (algo_stats[stats_column].tolist(), algo_mean[stats_column])
+            stats_samples.setdefault(space_id, {})[algo] = (algo_stats[stats_column].tolist(), algo_mean[stats_column])
         res.loc[idx, metrics] = algo_mean
         res.loc[idx, [m + '_std' for m in metrics]] = algo_stats[metrics].std().tolist()
     res[[m + '_std' for m in metrics]] = res[[m + '_std' for m in metrics]].astype(float)
     res[metrics] = res[metrics].astype(float)    
     res.rename(columns={'dim_coverage':'D', 'arr':'ARR', 'arra': 'ARRA', 'population_redundancy':'R', 'population_duplication':'Dup', 'noninfo':'nI',
                             'dim_coverage_std':'D_std', 'arr_std':'ARR_std', 'arra_std': 'ARRA_std', 'population_redundancy_std':'R_std', 'population_duplication_std':'Dup_std', 'noninfo_std':'nI_std'}, inplace=True)
-    res.sort_values(by = ['space', sort_column], inplace=True, ascending=False)
+    res.sort_values(by = ['space', sort_column, f"{sort_column}_std"], inplace=True, ascending=[True, False, True])
     res = res.round(3)
     if filter_column:
         ms = filter_column.split(',')
         res = res[['space', "algo", *[c for m in ms for c in [m, m + '_std']]]]
     if stats_column is not None:
-        for space, algos in stats_samples.items():  
+        for space, algos in sorted(stats_samples.items(), key = lambda x: x[0]):  
             plain_algo_res = [(a, v, m) for (a, (v, m)) in algos.items()]
             sorted_algo_res = sorted(plain_algo_res, key=lambda x: -x[2])
             algo_names, algo_values, algo_means = zip(*sorted_algo_res)
@@ -773,13 +778,42 @@ def calc_space_result(result_folder, sort_column, filter_column, stats_column, n
             for algo_name, dominated in domination.items():
                 if len(dominated) > 0: 
                     print(f"\t{algo_name} (mean {algo_m[algo_name]}) dominates {dominated}")
+
+            space_res = res[res['space'] == space].drop(columns = 'space')
+            print("\\# & ", end="")
+            for col_id in space_res.columns:
+                if not col_id.endswith("_std"):
+                    print(f"{col_id} & ", end="")
+            print(">_{0.1}\\\\\\hline")
+            algo_index = {data['algo']: (i + 1) for i, (_, data) in enumerate(space_res.iterrows())}
+            for i, (_, data) in enumerate(space_res.iterrows()):                
+                print("{0: <3} & ".format(i+1), end="")
+                for col_id, col_val in data.iteritems():
+                    if col_id.endswith("_std"):
+                        print(" $\pm$ {:.1f}\t& ".format(col_val * scale), end="")
+                    else:
+                        if type(col_val) == float: 
+                            print("{:.1f}".format(col_val * scale), end = "")
+                        else:
+                            print("{0: <20}& ".format(col_val), end="")
+                dominated = sorted([algo_index[algo_name] for algo_name in domination[data['algo']].keys()])
+                dominated_fmtd = [] 
+                for idx in dominated: 
+                    if len(dominated_fmtd) == 0:
+                        dominated_fmtd.append([idx, idx])
+                    elif dominated_fmtd[-1][-1] == idx - 1:
+                        dominated_fmtd[-1][-1] = idx
+                    else:
+                        dominated_fmtd.append([idx, idx])
+                print(",".join([f'{s}-{e}' if s != e else str(s) for s, e in dominated_fmtd]), end="")
+                print("\\\\")
                 # cur_group.append(algo_name)
                 # for j in range(i + 1, len(nemenyi_res[i])):
                 #     if nemenyi_res[i, j] > p: 
                 #         cur_group.append()
 
     res.to_csv(os.path.join(result_folder, '../space-result.csv'), index=False)
-    print(res.to_string(index=False))
+    # print(res.to_string(index=False))
 
     # return { 'm_std': moments,
     #         'friedman': stats.friedmanchisquare(*fsa),
