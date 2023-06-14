@@ -745,7 +745,7 @@ def calc_space_result(result_folder, sort_column, filter_column, stats_column, n
         res.loc[idx, 'algo'] = algo        
         algo_mean = algo_stats[metrics].mean()
         if stats_column is not None: 
-            stats_samples.setdefault(space_id, {})[algo] = (algo_stats[stats_column].tolist(), algo_mean[stats_column])
+            stats_samples.setdefault(space_id, {})[algo] = (algo_stats[stats_column].tolist()[-30:], algo_mean[stats_column])
         res.loc[idx, metrics] = algo_mean
         res.loc[idx, [m + '_std' for m in metrics]] = algo_stats[metrics].std().tolist()
     res[[m + '_std' for m in metrics]] = res[[m + '_std' for m in metrics]].astype(float)
@@ -795,7 +795,9 @@ def calc_space_result(result_folder, sort_column, filter_column, stats_column, n
                         if type(col_val) == float: 
                             print("{:.1f}".format(col_val * scale), end = "")
                         else:
-                            print("{0: <20}& ".format(col_val), end="")
+                            col_val = col_val.replace('_', '\_').replace('|', '+')
+                            # col_val = col_val + '(2)' if col_val.startswith('phc') else col_val
+                            print("{0: <40}& ".format(col_val), end="")
                 dominated = sorted([algo_index[algo_name] for algo_name in domination[data['algo']].keys()])
                 dominated_fmtd = [] 
                 for idx in dominated: 

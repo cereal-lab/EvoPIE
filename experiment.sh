@@ -541,3 +541,5 @@ flask deca space-result -r data/data-2023-04-06 -s ARRA -f ARRA --stats-column a
 flask deca space-result -r data/data-2023-05-01 --no-group -s ARRA -f ARRA --stats-column arra
 
 flask deca space-result -r data/data-2023-06-08 --no-group -s ARRA -f 'ARRA,D,ARR,Dup,nI' --stats-column arra
+
+flask deca space-result -r data/data-2023-06-13 --no-group -s ARRA -f 'ARRA,D,ARR,Dup,nI' --stats-column arra > res4.txt

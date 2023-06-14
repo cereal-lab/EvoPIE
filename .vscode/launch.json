@@ -336,7 +336,7 @@
             },
             "args" : [
                 "quiz", "deca-experiment",
-                "--deca-input", "deca-spaces/space-5_5_5_5_5_5_5_5_5_5-s_10-0.json",
+                "--deca-input", "deca-spaces/space-5_5_5_5_5_5_5_5_5_5-s_0-0.json",
                 "--num-runs", "2",
                 "--algo", "{ \"id\": \"s-nond\", \"algo\":\"evopie.sampling_quiz_model.SamplingQuizModel\", \"n\": 3, \"group_size\": 2, \"strategy\": \"slot_based\", \"hyperparams\": { \"key_spec\": [{\"t\":0, \"keys\":[[\"sp\", \"dup\", \"d\", \"rel-kn\", \"kn\"], [\"sp\", \"dup\", \"d\", \"rel-kn\", \"kn\"], [\"sp\", \"dup\", \"d\", \"rel-kn\", \"kn\"]]}]}}"
             ],
