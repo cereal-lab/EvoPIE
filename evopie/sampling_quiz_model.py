@@ -338,11 +338,23 @@ class SamplingQuizModel(QuizModel):
         dominated = [did1 for did1, student_ints in common_students_interactions.items()
                             if all(did_outcome >= did1_outcome for _, (did_outcome, did1_outcome) in student_ints.items()) and 
                             any(did_outcome > did1_outcome for _, (did_outcome, did1_outcome) in student_ints.items())]        
-        duplication = [did1 for did1, student_ints in common_students_interactions.items()
+        # duplication = [did1 for did1, student_ints in common_students_interactions.items()
+        #                         if did1 in selected and 
+        #                             all(did1_outcome >= did_outcome for _, (did_outcome, did1_outcome) in student_ints.items())]
+
+        #NOTE: duplication could only happen for distractors of different questions 
+        # the idea that whenever current distractor of qX fails student, the already selected distractor qY also fails the student ==> cur distractor is duplicate
+        duplicate_of_selected = any(did1 for did1, student_ints in common_students_interactions.items()
                                 if did1 in selected and 
-                                    all(did1_outcome >= did_outcome for _, (did_outcome, did1_outcome) in student_ints.items())]
-        spanned = any((did1, did2) for did1 in dominated
-                        for did2 in dominated if did2 != did1 
+                                    all(did1_outcome == did_outcome for _, (did_outcome, did1_outcome) in student_ints.items() if did_outcome == 1))
+
+        #NOTE: next spanned does not work IF WE USE JUST dominated - runs on spaces without spanned shows that it tend to block and axis by two other axes. 
+        # check launch.json with space with s0. Config changed from dominated to selected_dominated        
+
+        selected_dominated = [did1 for did1 in selected if did1 in dominated]
+
+        spanned_of_selected = any((did1, did2) for did1 in selected_dominated
+                        for did2 in selected_dominated if did2 != did1 
                         for did1_interactions in [self.inverted_interactions.get(int(did1), {})]
                         for did2_interactions in [self.inverted_interactions.get(int(did2), {})]
                         for interactions in [{sid: (did1_interactions[sid], did2_interactions[sid]) 
@@ -350,6 +362,9 @@ class SamplingQuizModel(QuizModel):
                         if len(interactions) >= 2 and
                             any(did1_outcome > did2_outcome for _, (did1_outcome, did2_outcome) in interactions.items()) and 
                             any(did2_outcome > did1_outcome for _, (did1_outcome, did2_outcome) in interactions.items()))
+
+        #NOTE: spanned_of_selected vs spanned: spanned is peramnent while spanned_of_selected is only temporary block
+
         non_domination_score = len(non_dominated) / len(dids)
         domination_score = len(dominated) / len(dids)
         scores = {}
@@ -357,8 +372,8 @@ class SamplingQuizModel(QuizModel):
         # scores["nondb"] = 1 if non_domination_score > 0 else 0
         scores["nd"] = sqrt(non_domination_score * domination_score)
         scores["dom"] = domination_score
-        scores["dup"] = -len(duplication) #goes from 0 downto -num of similar+dominating in selected
-        scores["sp"] = -1 if spanned else 1 #prefer nonspanned
+        scores["dup"] = -1 if duplicate_of_selected else 1 #prefer non-duplicants
+        scores["sp"] = -1 if spanned_of_selected else 1 #prefer nonspanned
         return scores
     
     def calc_complexity_score(self, did):

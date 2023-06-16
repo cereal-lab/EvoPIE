@@ -242,6 +242,17 @@ flask deca init-many -ns 100 -nq 4 -nd 25 \
     --noninfo 0.2 \
     --timeout 1000 --random-seed 29      
 
+#---
+# this is log of created deca spaces for experimentation at 23-06-16 - 10 spaces of same shape
+flask deca init-many -ns 100 -nq 4 -nd 25 \
+    -an 10 \
+    -as 5 \
+    --spanned-strategy NONE\
+    --num-spanned 0 \
+    --num-spaces 10 \
+    --best-students-percent 0.05 \
+    --noninfo 0.2 \
+    --timeout 1000 --random-seed 29 --output-folder $WORK/evopie/spaces
 #----- 
 
 flask quiz deca-experiments \
