@@ -688,7 +688,7 @@ def calc_deca_metrics(algo_input, deca_space, params, input_output):
     population_distractors = algo_results["distractors"]
     algo_name = algo_input.split("/")[-1].split(".")[0]
     deca_name = deca_space.split("/")[-1].split(".")[0]
-    metrics_map = {"algo":algo_name,"deca": deca_name, #**{p:algo_results.get(p, np.nan) for p in params},
+    metrics_map = {"algo":algo_name,"deca": deca_name, "seed": algo_results.get("settings", {}).get("seed", 0),
                     **deca.dimension_coverage(space, population_distractors),
                     **deca.avg_rank_of_repr(space, population_distractors),
                     **deca.redundancy(space, population_distractors),
