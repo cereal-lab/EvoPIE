@@ -345,8 +345,9 @@ class SamplingQuizModel(QuizModel):
         #NOTE: duplication could only happen for distractors of different questions 
         # the idea that whenever current distractor of qX fails student, the already selected distractor qY also fails the student ==> cur distractor is duplicate
         duplicate_of_selected = any(did1 for did1, student_ints in common_students_interactions.items()
-                                if did1 in selected and 
-                                    all(did1_outcome == did_outcome for _, (did_outcome, did1_outcome) in student_ints.items() if did_outcome == 1))
+                                if did1 in selected
+                                for did_cfs in [[(did_outcome, did1_outcome) for _, (did_outcome, did1_outcome) in student_ints.items() if did_outcome == 1]] 
+                                if len(did_cfs) >= 1 and all(did1_outcome == did_outcome for (did_outcome, did1_outcome) in did_cfs))
 
         #NOTE: next spanned does not work IF WE USE JUST dominated - runs on spaces without spanned shows that it tend to block and axis by two other axes. 
         # check launch.json with space with s0. Config changed from dominated to selected_dominated        
@@ -420,6 +421,7 @@ class SamplingQuizModel(QuizModel):
             selected_did = selected_candidate["did"]
             # print(f"t={self.t} {i}/{self.n} d={selected_did} from alts {len(best_candidates)} {selected_candidate} kspec: {curr_key_spec[i]}")
             # self.block_similar(selected_did, blocked_dids)
+            print(f"\t selected {qid}: {selected_did}. {selected_dids}")
             selected_for_qids[qid].append(selected_did)
 
     def sample_quiz(self) -> 'list[tuple[int, list[int]]]':

@@ -612,7 +612,7 @@ def simulate_quiz(quiz, course_id, instructor, password, no_algo, algo, algo_par
                     responses = {qid:sorted(ds, key=lambda x: x[1])[-1][0]
                                             for qid, distractors in attempt.alternatives_map.items() 
                                             for distractor_strength in [student_knowledge.get(qid, {}) ]
-                                            for ds_distr in [[(alt, distractor_strength[d]["order"]) for alt, d in enumerate(distractors) if d in distractor_strength]] 
+                                            for ds_distr in [[(alt, distractor_strength[d]["order"] + 0.001 * d) for alt, d in enumerate(distractors) if d in distractor_strength]] 
                                             for ds in [ds_distr if any(ds_distr) else [(alt,1) for alt, d in enumerate(distractors) if d == -1]]}
                 else: 
                     responses = {}
