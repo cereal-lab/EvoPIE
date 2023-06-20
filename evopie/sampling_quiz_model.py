@@ -423,7 +423,7 @@ class SamplingQuizModel(QuizModel):
             selected_did = selected_candidate["did"]
             # print(f"t={self.t} {i}/{self.n} d={selected_did} from alts {len(best_candidates)} {selected_candidate} kspec: {curr_key_spec[i]}")
             # self.block_similar(selected_did, blocked_dids)
-            print(f"\t selected {qid}: {selected_did}. {selected_dids}")
+            # print(f"\t selected {qid}: {selected_did}. {selected_dids}")
             selected_for_qids[qid].append(selected_did)
 
     def sample_quiz(self) -> 'list[tuple[int, list[int]]]':
