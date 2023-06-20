@@ -322,15 +322,17 @@ class SamplingQuizModel(QuizModel):
         scores["kn-n"] = len(did_interactions)
         return scores
 
-    def calc_domination_score(self, did, selected, dids):
+    def calc_domination_score(self, did, selected, pool_dids):
         did_interactions = self.inverted_interactions.get(int(did), {})
         did_students = set(did_interactions.keys())
-        common_students_interactions =  {did1: interactions
-                                            for did1 in dids if did1 != did
-                                            for did1_interactions in [self.inverted_interactions.get(int(did1), {})]
-                                            for interactions in [{sid: (did_interactions[sid], did1_interactions[sid]) 
-                                                for sid in set.intersection(did_students, set(did1_interactions.keys()))}]
-                                            if len(interactions) > 0} #non-empty interactions set
+        def build_common_students_interactions(possible_dids):
+            return {did1: interactions
+                        for did1 in possible_dids if did1 != did
+                        for did1_interactions in [self.inverted_interactions.get(int(did1), {})]
+                        for interactions in [{sid: (did_interactions[sid], did1_interactions[sid]) 
+                            for sid in set.intersection(did_students, set(did1_interactions.keys()))}]
+                        if len(interactions) > 0} #non-empty interactions set
+        common_students_interactions = build_common_students_interactions(pool_dids)
         non_dominated = [did1 for did1, student_ints in common_students_interactions.items()
                                 if len(student_ints) >= 2 and
                                     any(did_outcome > did1_outcome for _, (did_outcome, did1_outcome) in student_ints.items()) and 
@@ -344,10 +346,10 @@ class SamplingQuizModel(QuizModel):
 
         #NOTE: duplication could only happen for distractors of different questions 
         # the idea that whenever current distractor of qX fails student, the already selected distractor qY also fails the student ==> cur distractor is duplicate
-        duplicate_of_selected = any(did1 for did1, student_ints in common_students_interactions.items()
-                                if did1 in selected
+        selected_common_students_interactions = build_common_students_interactions(selected)
+        duplicate_of_selected = any(did1 for did1, student_ints in selected_common_students_interactions.items()
                                 for did_cfs in [[(did_outcome, did1_outcome) for _, (did_outcome, did1_outcome) in student_ints.items() if did_outcome == 1]] 
-                                if len(did_cfs) >= 1 and all(did1_outcome == did_outcome for (did_outcome, did1_outcome) in did_cfs))
+                                if len(did_cfs) > 1 and all(did1_outcome == did_outcome for (did_outcome, did1_outcome) in did_cfs))
 
         #NOTE: next spanned does not work IF WE USE JUST dominated - runs on spaces without spanned shows that it tend to block and axis by two other axes. 
         # check launch.json with space with s0. Config changed from dominated to selected_dominated        
@@ -366,8 +368,8 @@ class SamplingQuizModel(QuizModel):
 
         #NOTE: spanned_of_selected vs spanned: spanned is peramnent while spanned_of_selected is only temporary block
 
-        non_domination_score = len(non_dominated) / len(dids)
-        domination_score = len(dominated) / len(dids)
+        non_domination_score = len(non_dominated) / len(pool_dids)
+        domination_score = len(dominated) / len(pool_dids)
         scores = {}
         scores["nond"] = non_domination_score
         # scores["nondb"] = 1 if non_domination_score > 0 else 0
