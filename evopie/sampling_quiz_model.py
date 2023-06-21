@@ -322,7 +322,7 @@ class SamplingQuizModel(QuizModel):
         scores["kn-n"] = len(did_interactions)
         return scores
 
-    def calc_domination_score(self, did, selected, pool_dids):
+    def calc_domination_score(self, did, pool_dids, all_dids, selected_dids):
         did_interactions = self.inverted_interactions.get(int(did), {})
         did_students = set(did_interactions.keys())
         def build_common_students_interactions(possible_dids):
@@ -332,7 +332,7 @@ class SamplingQuizModel(QuizModel):
                         for interactions in [{sid: (did_interactions[sid], did1_interactions[sid]) 
                             for sid in set.intersection(did_students, set(did1_interactions.keys()))}]
                         if len(interactions) > 0} #non-empty interactions set
-        common_students_interactions = build_common_students_interactions(pool_dids)
+        common_students_interactions = build_common_students_interactions(all_dids)
         non_dominated = [did1 for did1, student_ints in common_students_interactions.items()
                                 if len(student_ints) >= 2 and
                                     any(did_outcome > did1_outcome for _, (did_outcome, did1_outcome) in student_ints.items()) and 
@@ -346,15 +346,15 @@ class SamplingQuizModel(QuizModel):
 
         #NOTE: duplication could only happen for distractors of different questions 
         # the idea that whenever current distractor of qX fails student, the already selected distractor qY also fails the student ==> cur distractor is duplicate
-        selected_common_students_interactions = build_common_students_interactions(selected)
+        selected_common_students_interactions = build_common_students_interactions(selected_dids)
         duplicate_of_selected = any(did1 for did1, student_ints in selected_common_students_interactions.items()
                                 for did_cfs in [[(did_outcome, did1_outcome) for _, (did_outcome, did1_outcome) in student_ints.items() if did_outcome == 1]] 
-                                if len(did_cfs) > 1 and all(did1_outcome == did_outcome for (did_outcome, did1_outcome) in did_cfs))
+                                if len(did_cfs) >= 1 and all(did1_outcome == did_outcome for (did_outcome, did1_outcome) in did_cfs))
 
         #NOTE: next spanned does not work IF WE USE JUST dominated - runs on spaces without spanned shows that it tend to block and axis by two other axes. 
         # check launch.json with space with s0. Config changed from dominated to selected_dominated        
 
-        selected_dominated = [did1 for did1 in selected if did1 in dominated]
+        selected_dominated = [did1 for did1 in selected_dids if did1 in dominated]
 
         spanned_of_selected = any((did1, did2) for did1 in selected_dominated
                         for did2 in selected_dominated if did2 != did1 
@@ -395,7 +395,7 @@ class SamplingQuizModel(QuizModel):
         scores["-s"] = -scores["s"]
         return scores
     
-    def slot_based(self, qid, dids, selected_for_qids):
+    def slot_based(self, qid, pool_dids, all_dids, selected_for_qids):
         default_one_key = ["rel-kn", "kn", "nond", "sd", "dom"]
         default_key_spec = [{"t": 0, "keys": [default_one_key] * self.n }]
         # key_spec_for_best = ["nond", "sd", "dom"]
@@ -412,8 +412,8 @@ class SamplingQuizModel(QuizModel):
             key_selector = self.build_key(i_key_spec)
             selected_dids = [did for _, sdids in selected_for_qids.items() for did in sdids]
             candidate_dids = [ {"did": did, "scores": scores, "key": key_selector(scores) }
-                                    for did in dids if did not in selected_dids
-                                    for scores in [{**self.calc_knowledge_score(did, selected_dids), **self.calc_domination_score(did, selected_dids, dids), **self.calc_complexity_score(did)}]]
+                                    for did in pool_dids if did not in selected_dids
+                                    for scores in [{**self.calc_knowledge_score(did, selected_dids), **self.calc_domination_score(did, pool_dids, all_dids, selected_dids), **self.calc_complexity_score(did)}]]
             sorted_candidate_dids = sorted(candidate_dids, key=lambda x: x["key"], reverse=True)
             best_candidate_key = sorted_candidate_dids[0]["key"]
             best_candidates = [c for c in sorted_candidate_dids if c["key"] == best_candidate_key]
@@ -431,9 +431,10 @@ class SamplingQuizModel(QuizModel):
         self.t += 1
         # blocked_dids = {} #some info to block same concept distractors across questions
         selected  = {}
-        for qid, dids in self.distractors_per_question.items():            
+        all_dids = [did for pool_dids in self.distractors_per_question.values() for did in pool_dids]
+        for qid, pool_dids in self.distractors_per_question.items():            
             selected.setdefault(qid, [])
-            self.sample_strategy(qid, dids, selected)
+            self.sample_strategy(qid, pool_dids, all_dids, selected)
         # print("--> ", res)
         res = sorted([[qid, sorted(dids)] for qid, dids in selected.items()], key=lambda x:x[0])
         return res

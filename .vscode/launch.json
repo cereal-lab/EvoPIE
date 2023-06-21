@@ -424,7 +424,7 @@
             },
             "args" : [
                 "deca", "space-distr",
-                "-s", "deca-spaces/rq1-2"
+                "-s", "deca-spaces/rq3"
             ],
             "console": "internalConsole"
         }                
