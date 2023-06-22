@@ -3,7 +3,7 @@
 #SBATCH --time=72:00:00
 #SBATCH --output=rq1-2-%a.out
 #SBATCH --mem=8G
-#SBATCH --array=0-30
+#SBATCH --array=0-16
 
 #RQ1: What is the best (in terms ARR*) algo (no multi-step) on spaces without spanned points?
 #RQ2: How performance varies for different space of same shape?
@@ -28,21 +28,7 @@ algos=('{ "id": "rand-3", "algo":"evopie.rand_quiz_model.RandomQuizModel", "n": 
     '{ "id": "s-0_dp_Zs", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "slot_based", "hyperparams": { "key_spec": [{"t":0, "keys":[["dup", "-s", "kn"], ["dup", "-s", "kn"], ["dup", "-s", "kn"]]}]}}'
     '{ "id": "s-0_dp_dm", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "slot_based", "hyperparams": { "key_spec": [{"t":0, "keys":[["dup", "dom", "kn"], ["dup", "dom", "kn"], ["dup", "dom", "kn"]]}]}}'
     '{ "id": "s-0_dp_nd", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "slot_based", "hyperparams": { "key_spec": [{"t":0, "keys":[["dup", "nond", "kn"], ["dup", "nond", "kn"], ["dup", "nond", "kn"]]}]}}'
-    '{ "id": "s-0_dp_ndXdm", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "slot_based", "hyperparams": { "key_spec": [{"t":0, "keys":[["dup", "nd", "kn"], ["dup", "nd", "kn"], ["dup", "nd", "kn"]]}]}}'     
-    '{ "id": "s-0_sp_k", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "slot_based", "hyperparams": { "key_spec": [{"t":0, "keys":[["sp","kn"], ["sp","kn"], ["sp","kn"]]}]}}'
-    '{ "id": "s-0_sp_d", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "slot_based", "hyperparams": { "key_spec": [{"t":0, "keys":[["sp", "d", "kn"], ["sp", "d", "kn"], ["sp", "d", "kn"]]}]}}'
-    '{ "id": "s-0_sp_sXd", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "slot_based", "hyperparams": { "key_spec": [{"t":0, "keys":[["sp", "sd", "kn"], ["sp", "sd", "kn"], ["sp", "sd", "kn"]]}]}}'
-    '{ "id": "s-0_sp_Zs", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "slot_based", "hyperparams": { "key_spec": [{"t":0, "keys":[["sp", "-s", "kn"], ["sp", "-s", "kn"], ["sp", "-s", "kn"]]}]}}'
-    '{ "id": "s-0_sp_dm", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "slot_based", "hyperparams": { "key_spec": [{"t":0, "keys":[["sp", "dom", "kn"], ["sp", "dom", "kn"], ["sp", "dom", "kn"]]}]}}'
-    '{ "id": "s-0_sp_nd", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "slot_based", "hyperparams": { "key_spec": [{"t":0, "keys":[["sp", "nond", "kn"], ["sp", "nond", "kn"], ["sp", "nond", "kn"]]}]}}'
-    '{ "id": "s-0_sp_ndXdm", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "slot_based", "hyperparams": { "key_spec": [{"t":0, "keys":[["sp", "nd", "kn"], ["sp", "nd", "kn"], ["sp", "nd", "kn"]]}]}}'     
-    '{ "id": "s-0_dp_sp_k", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "slot_based", "hyperparams": { "key_spec": [{"t":0, "keys":[["dup", "sp","kn"], ["dup", "sp","kn"], ["dup", "sp","kn"]]}]}}'
-    '{ "id": "s-0_dp_sp_d", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "slot_based", "hyperparams": { "key_spec": [{"t":0, "keys":[["dup", "sp", "d", "kn"], ["dup", "sp", "d", "kn"], ["dup", "sp", "d", "kn"]]}]}}'
-    '{ "id": "s-0_dp_sp_sXd", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "slot_based", "hyperparams": { "key_spec": [{"t":0, "keys":[["dup", "sp", "sd", "kn"], ["dup", "sp", "sd", "kn"], ["dup", "sp", "sd", "kn"]]}]}}'
-    '{ "id": "s-0_dp_sp_Zs", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "slot_based", "hyperparams": { "key_spec": [{"t":0, "keys":[["dup", "sp", "-s", "kn"], ["dup", "sp", "-s", "kn"], ["dup", "sp", "-s", "kn"]]}]}}'
-    '{ "id": "s-0_dp_sp_dm", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "slot_based", "hyperparams": { "key_spec": [{"t":0, "keys":[["dup", "sp", "dom", "kn"], ["dup", "sp", "dom", "kn"], ["dup", "sp", "dom", "kn"]]}]}}'
-    '{ "id": "s-0_dp_sp_nd", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "slot_based", "hyperparams": { "key_spec": [{"t":0, "keys":[["dup", "sp", "nond", "kn"], ["dup", "sp", "nond", "kn"], ["dup", "sp", "nond", "kn"]]}]}}'
-    '{ "id": "s-0_dp_sp_ndXdm", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "slot_based", "hyperparams": { "key_spec": [{"t":0, "keys":[["dup", "sp", "nd", "kn"], ["dup", "sp", "nd", "kn"], ["dup", "sp", "nd", "kn"]]}]}}') 
+    '{ "id": "s-0_dp_ndXdm", "algo":"evopie.sampling_quiz_model.SamplingQuizModel", "n": 3, "group_size": 2, "strategy": "slot_based", "hyperparams": { "key_spec": [{"t":0, "keys":[["dup", "nd", "kn"], ["dup", "nd", "kn"], ["dup", "nd", "kn"]]}]}}')
 
 algo=${algos[$SLURM_ARRAY_TASK_ID]}
 
