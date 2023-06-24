@@ -369,6 +369,7 @@ def init_knowledge(input, output, email_format, knows, knowledge_replace, deca_i
         #NOTE: otherwise metrics defines value for all steps
         def dks_reducton(acc, k):
             ''' adds chances from simple knows record '''
+            # try:
             if "step" in k:
                 local_step = k["step"] - 1
                 metrics = k["metrics"]
@@ -380,6 +381,8 @@ def init_knowledge(input, output, email_format, knows, knowledge_replace, deca_i
                 for i in range(len(acc)):
                     if acc[i] < 0:
                         acc[i] = k["metrics"]
+            # except Exception as e: 
+            #     print(e)
             return acc 
 
         knows_map_deca = {} 
@@ -738,8 +741,8 @@ def calc_space_result(result_folder, sort_column, filter_column, stats_column, n
         idx = len(res.index)   
         algo, space = key.split("-on-")   
         # if "_sp" in algo or "_dp" in algo: 
-        if "_sp" in algo: 
-            continue
+        # if "_sp" in algo: 
+            # continue
         _, space_axes, space_spanned, *space_other = space.split("-")
         _, spanned_str = space_spanned.split('_')
         axes_str = space_axes.split('_')
@@ -891,20 +894,36 @@ def calc_space_ranks(result_folder):
 
 @deca_cli.command("space-distr")
 @click.option('-s', '--space-folder')
-def calc_space_ranks(space_folder):
-    res = []
-    for file_name in os.listdir(space_folder): 
-        space_file = os.path.join(space_folder, file_name)
+@click.option('-f', '--file-name')
+@click.option('--from-point', type=int)
+@click.option('--to-point', type=int)
+def calc_space_ranks(space_folder, file_name, from_point, to_point):
+    if file_name is not None and from_point is not None and to_point is not None: 
+        space_file = os.path.join(os.path.abspath(space_folder), file_name)
         with open(space_file, 'r') as f:
             space = json.loads("\n".join(f.readlines()))
-        total_distrs = sum(len(point['dids']) for axis_id, axis in space['axes'].items() for point_id, point in axis.items()) + len(space['zero']['dids'])
-        dstr = [len(axis[str(space['dims'][int(axis_id)] -  1)]['dids']) 
-                            for axis_id, axis in space['axes'].items()]
-        distrs_at_ends = sum(dstr) / total_distrs * 100
-        res.append((file_name, distrs_at_ends, np.mean(dstr), np.std(dstr)))
-    res.sort(key = lambda x:x[0])
-    for r in res:
-        print(r)
+        for points in space['axes'].values():
+            a, b = points[str(from_point)]['dids'], points[str(to_point)]['dids']
+            points[str(to_point)]['dids'] = a  
+            points[str(from_point)]['dids'] = b
+        with open(space_file, 'w') as f:
+            f.write(json.dumps(space))
+    else:
+        res = []
+        for file_name in os.listdir(space_folder): 
+            space_file = os.path.join(space_folder, file_name)
+            with open(space_file, 'r') as f:
+                space = json.loads("\n".join(f.readlines()))
+            distr_cnt = [len(point['dids']) for axis_id, axis in space['axes'].items() for point_id, point in axis.items()]        
+            total_distrs = sum(distr_cnt) + len(space['zero']['dids'])
+            dstr = [len(axis[str(space['dims'][int(axis_id)] -  1)]['dids']) 
+                                for axis_id, axis in space['axes'].items()]
+            distrs_at_ends = sum(dstr) / total_distrs * 100
+            distr_cnt = set([tuple([len(point['dids']) for point_id, point in axis.items()]) for axis_id, axis in space['axes'].items()])
+            res.append((file_name, distrs_at_ends, np.mean(dstr), np.std(dstr), distr_cnt))
+        res.sort(key = lambda x:x[0])
+        for r in res:
+            print(r)
 
 
     

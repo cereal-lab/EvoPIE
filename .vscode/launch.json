@@ -336,7 +336,7 @@
             },
             "args" : [
                 "quiz", "deca-experiment",
-                "--deca-input", "deca-spaces/space-5_5_5_5_5_5_5_5_5_5-s_0-0.json",
+                "--deca-input", "deca-spaces/rq3/space-5_5_5_5_5_5_5_5_5_5-s_0-2.json",
                 "--num-runs", "2", "--random-seed", "23",
                 "--algo", "{ \"id\": \"s-0_dp_d\", \"algo\":\"evopie.sampling_quiz_model.SamplingQuizModel\", \"n\": 3, \"group_size\": 2, \"strategy\": \"slot_based\", \"hyperparams\": { \"key_spec\": [{\"t\":0, \"keys\":[[\"dup\", \"d\", \"kn\"], [\"dup\", \"d\", \"kn\"], [\"dup\", \"d\", \"kn\"]]}]}}"
             ],
@@ -388,7 +388,7 @@
             },
             "args" : [
                 "deca", "space-result",
-                "-r", "data/rq1-2",
+                "-r", "data/rq3",
                 "--stats-column", "arra",
                 "-s", "ARRA",
                 "-f", "ARRA,Dup,nI",
@@ -408,7 +408,7 @@
             },
             "args" : [
                 "deca", "space-ranks",
-                "-r", "data/rq1-2"
+                "-r", "data/rq3"
             ],
             "console": "internalConsole"
         },
@@ -424,7 +424,9 @@
             },
             "args" : [
                 "deca", "space-distr",
-                "-s", "deca-spaces/rq3"
+                "-s", "deca-spaces/rq302",
+                // "-f", "space-5_5_5_5_5_5_5_5_5_5-s_0-3.json",
+                // "--from-point", "0", "--to-point", "3"
             ],
             "console": "internalConsole"
         }                
