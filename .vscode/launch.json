@@ -338,7 +338,7 @@
                 "quiz", "deca-experiment",
                 "--deca-input", "deca-spaces/rq3/space-5_5_5_5_5_5_5_5_5_5-s_0-2.json",
                 "--num-runs", "2", "--random-seed", "23",
-                "--algo", "{ \"id\": \"s-0_dp_d\", \"algo\":\"evopie.sampling_quiz_model.SamplingQuizModel\", \"n\": 3, \"group_size\": 2, \"strategy\": \"slot_based\", \"hyperparams\": { \"key_spec\": [{\"t\":0, \"keys\":[[\"dup\", \"d\", \"kn\"], [\"dup\", \"d\", \"kn\"], [\"dup\", \"d\", \"kn\"]]}]}}"
+                "--algo", "{ \"id\": \"s-0_dp_d\", \"algo\":\"evopie.sampling_quiz_model.SamplingQuizModel\", \"n\": 3, \"group_size\": 2, \"strategy\": \"slot_based\", \"hyperparams\": { \"softmax\": \"d\", \"key_spec\": [{\"t\":0, \"keys\":[[\"dup\", \"d\", \"kn\"], [\"dup\", \"d\", \"kn\"], [\"dup\", \"d\", \"kn\"]]}]}}"
             ],
             "console": "internalConsole"
         },
@@ -388,11 +388,117 @@
             },
             "args" : [
                 "deca", "space-result",
-                "-r", "data/rq3",
+                "-r", "data/rq1-2-2",
                 "--stats-column", "arra",
                 "-s", "ARRA",
                 "-f", "ARRA,Dup,nI",
                 "--scale", "100", "--no-group"
+            ],
+            "console": "internalConsole"
+        },
+        {
+            "name": "CLI: deca space result plot",
+            "type": "python",
+            "request": "launch",
+            "module": "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1"
+            },
+            "args" : [
+                "deca", "space-result-plot",
+                "-r", "data/rq3",
+                "-m", "arra"
+            ],
+            "console": "internalConsole"
+        }, 
+        {
+            "name": "CLI: deca space result per space",
+            "type": "python",
+            "request": "launch",
+            "module": "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1"
+            },
+            "args" : [
+                "deca", "space-result-per-space",
+                "-r", "data/rq7",
+                "-s", "space-5_5_5_5_5_5_5_5_5_5-s_1-0.csv",
+                "-s", "space-5_5_5_5_5_5_5_5_5_5-s_1-center.csv",
+                "-s", "space-5_5_5_5_5_5_5_5_5_5-s_1-hardest.csv",
+                "-m", "arra"
+            ],
+            "console": "internalConsole"
+        },            
+        {
+            "name": "CLI: deca space result plot T",
+            "type": "python",
+            "request": "launch",
+            "module": "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1"
+            },
+            "args" : [
+                "deca", "space-result-plot-t",
+                "-r", "data/rq5",
+                "-m", "arra"
+            ],
+            "console": "internalConsole"
+        },          
+        {
+            "name": "CLI: deca space result plot spanned",
+            "type": "python",
+            "request": "launch",
+            "module": "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1"
+            },
+            "args" : [
+                "deca", "space-result-plot-spanned",
+                "-r", "data/rq7",
+                "-f", "0.csv"
+            ],
+            "console": "internalConsole"
+        },          
+        {
+            "name": "CLI: deca space result plot S",
+            "type": "python",
+            "request": "launch",
+            "module": "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1"
+            },
+            "args" : [
+                "deca", "space-result-plot-s",
+                "-r", "data/rq6-2",                
+                "-m", "arra", "-s"
+            ],
+            "console": "internalConsole"
+        },               
+        {
+            "name": "CLI: deca space t test",
+            "type": "python",
+            "request": "launch",
+            "module": "flask",
+            "env" : {
+                "FLASK_APP" : "app.py",
+                "FLASK_ENV" : "development",
+                "FLASK_DEBUG" : "1"
+            },
+            "args" : [
+                "deca", "space-t-test",
+                "-r1", "data/rq5/s-0_dp_k-0_dp_d-on-space-5_5_5_5_5_5_5_5_5_5-s_0-0.csv",
+                "-r2", "data/rq5/s-0_dp_k-15_dp_d-on-space-5_5_5_5_5_5_5_5_5_5-s_0-0.csv",
+                "--metric", "arra"
             ],
             "console": "internalConsole"
         },

@@ -830,6 +830,361 @@ def calc_space_result(result_folder, sort_column, filter_column, stats_column, n
     #         }
 
 
+@deca_cli.command("space-result-plot")
+@click.option('-r', '--result-folder')
+@click.option('-m', '--metric')
+def calc_space_result(result_folder, metric):
+    res = {}
+    for file_name in os.listdir(result_folder): 
+        algo, space = file_name.split('-on-')
+        space_id = int(space.split('.')[0].split('-')[-1])
+        space_result = os.path.join(result_folder, file_name)
+        algo_stats = pandas.read_csv(space_result)
+        algo_metric_mean = algo_stats[metric].mean()
+        algo_metric_std = algo_stats[metric].std()
+        res.setdefault(algo, {}).setdefault(space_id, (list(algo_stats[metric]), algo_metric_mean, algo_metric_std))
+    for algo_id, space_res in res.items():
+        res[algo_id] = [res for _, res in sorted(space_res.items(), key=lambda x: x[0])]
+
+    # print(res)
+    import matplotlib
+    matplotlib.rcParams['text.usetex'] = True
+    matplotlib.rcParams['text.latex.preamble'] = [ r"\usepackage{times}" ]
+    matplotlib.rcParams['pdf.fonttype'] = 42
+    matplotlib.rcParams['ps.fonttype'] = 42
+    matplotlib.rcParams['font.family'] = ['Times']    
+
+    fig, ax = plt.subplots()
+
+    # mm = list(zip(min_data[y_name], max_data[y_name]))
+    # print(mean_data[y_name], std_data[y_name])
+    # yerr = [mean_data[y_name] - min_data[y_name], max_data[y_name] - mean_data[y_name]]
+    # yerr = std_data[y_name]
+    # plt.axvline(x = 0, color = 'tab:gray', linewidth=0.5, linestyle = 'dashed', label = 'GE enabled')
+    # plt.axvline(x = 1, color = 'tab:gray', linewidth=0.5, linestyle = 'dashed', label = 'GE disabled')
+    plt.axhline(y = 50, color = 'tab:gray', linewidth=0.5, linestyle = 'dashed')
+    # plt.axhline(y = 25, color = 'tab:gray', linewidth=0.5, linestyle = 'dashed')
+    # to_show = {'rand-3':'rand-3', 's-0_dp_sXd': 'dp sXd', 's-0_dp_d': 'dp d', 's-0_dp_dm': 'dp dm', 's-0_dp_nd': 'dp nd', 's-0_dp_ndXdm': 'dp ndXdm'}
+    to_show = {'rand-3': {'color': '#000', 'label': 'rand-3'}, 's-0_dp_d': {'color': '#777', 'label': 'dp d'}, 's-0_dp_nd': {'color':'#e6e6e6', 'label': 'dp nd'}}
+
+    import matplotlib.patches as mpatches
+    labels = []
+    def add_label(v, label):
+        color = v["bodies"][0].get_facecolor().flatten()
+        labels.append((mpatches.Patch(color=color), label))    
+    for algo, params in to_show.items():
+        v = ax.violinplot([[v * 100 for v in p] for p, _, _ in res[algo]], showextrema = False, showmedians=True)
+        for pc in v['bodies']:
+            pc.set_facecolor(params['color'])
+            pc.set_edgecolor('black')
+            # pc.set_alpha(1) 
+            # 
+        v['cmedians'].set_color(params['color'])
+        v['cmedians'].set_alpha(1)
+        add_label(v, params['label'])
+    
+    plt.legend(*zip(*labels), loc=4)
+    # for algo_id, space_res in res.items():
+    #     ax.errorbar(mean_data.index, mean_data[y_name] * 100, yerr=yerr * 100, marker='o', color='k', linewidth=1, capsize=6)
+    # ax.fill_between(mean_data.index, mean_data[y_name] - std_data[y_name], mean_data[y_name] + std_data[y_name], alpha=.5, linewidth=0)
+    # ax.plot(mean_data.index, mean_data[y_name] * 100, linewidth=0.5, marker='o', color="k")
+
+    #Welch ttest
+    # ttest = ttest_ind(plain_data[plain_data['down_level'] == 0.0][y_name].to_numpy(), plain_data[plain_data['down_level'] == 1.0][y_name].to_numpy(), equal_var = False, alternative='greater')
+    # print(ttest) #exact match Ttest_indResult(statistic=3.1980107453341544, pvalue=0.008130031236723555) - ge has statistically significant effect
+
+    # plt.xticks(rotation = 25)
+    plt.xlabel('Spaces', size=14)
+    plt.ylabel('ARR*, \%', size=14)
+    ax.tick_params(axis='both', which='major', labelsize=14)
+    ax.set_xticklabels(['', '4,1,1,1,1', '1,4,1,1,1', '1,1,4,1,1', '1,1,1,4,1', '1,1,1,1,4'])
+    # plt.title('Weather Report', fontsize = 20)
+    # legend = plot.legend("Exact match accuracy", fontsize=16)
+    # plot.xaxis.label.set_fontsize(18)
+    # plot.yaxis.label.set_fontsize(18)
+    # fig = plot.get_figure()  
+    fig.set_tight_layout(True)      
+    fig.savefig(f"rq3.pdf", format='pdf')        
+
+@deca_cli.command("space-t-test")
+@click.option('-r1')
+@click.option('-r2')
+@click.option('--metric')
+def calc_space_result(r1, r2, metric):
+    r1v = list(pandas.read_csv(r1)[metric])
+    r2v = list(pandas.read_csv(r2)[metric])
+    from scipy.stats import ttest_ind
+    ttest = ttest_ind(r1v, r2v, equal_var = False, alternative='greater')
+    print(ttest) #exact match Ttest_indResult(statistic=3.1980107453341544, pvalue=0.008130031236723555) - ge has statistically significant effect
+
+@deca_cli.command("space-result-per-space")
+@click.option('-r', '--result-folder')
+@click.option('-s', '--spaces', multiple=True)
+@click.option('-m', '--metric')
+def calc_space_result(result_folder, spaces, metric):
+    res = {}
+    for file_name in os.listdir(result_folder): 
+        algo_id, space = file_name.split('-on-')
+        if space not in spaces:
+            continue
+        space_result = os.path.join(result_folder, file_name)
+        algo_stats = pandas.read_csv(space_result)
+        algo_metric_mean = algo_stats[metric].mean()
+        algo_metric_std = algo_stats[metric].std()
+        res.setdefault(algo_id, []).append((space, algo_metric_mean, algo_metric_std))
+    space_ids = {s:i for i, s in enumerate(spaces)}
+    for algo_id, space_res in list(res.items()):
+        space_res.sort(key = lambda x: space_ids[x[0]])
+    print("algo ", end="")
+    for s in spaces:
+        print("& {0}".format(s), end="")
+    print("\\\\\\hline")
+    space_res_l = sorted(list(res.items()), key = lambda x: x[1][0][1], reverse=True)
+    for algo_id, space_res in space_res_l:
+        print("{0: <40}".format(algo_id.replace("_", "\_")), end="")
+        for space_id, mean, std in space_res:
+            print("& {0:.1f} $\\pm$ {1:.1f}".format(mean * 100, std * 100, space_id), end="")
+        print("\\\\")
+    print("\\hline")
+
+
+@deca_cli.command("space-result-plot-t")
+@click.option('-r', '--result-folder')
+@click.option('-m', '--metric')
+def calc_space_result(result_folder, metric):
+    res = {}
+    for file_name in os.listdir(result_folder): 
+        algo = file_name.split('-on-')[0]
+        algo_parts = algo.split('-')[2].split('_')
+        T = int(algo_parts[0])
+        algo_id = "_".join(algo_parts[2:])
+        space_result = os.path.join(result_folder, file_name)
+        algo_stats = pandas.read_csv(space_result)
+        algo_metric_mean = algo_stats[metric].mean()
+        algo_metric_std = algo_stats[metric].std()
+        res.setdefault(algo_id, {}).setdefault(T, (T, list(algo_stats[metric]), algo_metric_mean, algo_metric_std))
+    x = {}
+    ys = {}
+    for algo_id, space_res in res.items():
+        x[algo_id], ys[algo_id] = zip(*sorted(space_res.items(), key=lambda x: x[0]))
+    # print(res)
+    import matplotlib
+    matplotlib.rcParams['text.usetex'] = True
+    matplotlib.rcParams['text.latex.preamble'] = [ r"\usepackage{times}" ]
+    matplotlib.rcParams['pdf.fonttype'] = 42
+    matplotlib.rcParams['ps.fonttype'] = 42
+    matplotlib.rcParams['font.family'] = ['Times']    
+
+    fig, ax = plt.subplots()
+
+    # mm = list(zip(min_data[y_name], max_data[y_name]))
+    # print(mean_data[y_name], std_data[y_name])
+    # yerr = [mean_data[y_name] - min_data[y_name], max_data[y_name] - mean_data[y_name]]
+    # yerr = std_data[y_name]
+    # plt.axvline(x = 0, color = 'tab:gray', linewidth=0.5, linestyle = 'dashed', label = 'GE enabled')
+    plt.axvline(x = 15, color = 'tab:gray', linewidth=0.5, linestyle = 'dashed')
+    # plt.axhline(y = 77, color = 'tab:gray', linewidth=0.5, linestyle = 'dashed')
+    # plt.axhline(y = 25, color = 'tab:gray', linewidth=0.5, linestyle = 'dashed')
+    # to_show = {'rand-3':'rand-3', 's-0_dp_sXd': 'dp sXd', 's-0_dp_d': 'dp d', 's-0_dp_dm': 'dp dm', 's-0_dp_nd': 'dp nd', 's-0_dp_ndXdm': 'dp ndXdm'}
+    # to_show = {'rand-3': {'color': '#000', 'label': 'rand-3'}, 's-0_dp_d': {'color': '#777', 'label': 'dp d'}, 's-0_dp_nd': {'color':'#e6e6e6', 'label': 'dp nd'}}
+
+    # import matplotlib.patches as mpatches
+    # labels = []
+    # def add_label(v, label):
+    #     color = v["bodies"][0].get_facecolor().flatten()
+    #     labels.append((mpatches.Patch(color=color), label))    
+    # x = list(range(0, 55, 5))
+    for algo, t_res in ys.items():
+
+        sorted_algo_res = sorted(t_res, key=lambda x: -x[2])
+        Ts, algo_values, algo_means, algo_errors  = zip(*sorted_algo_res)
+        data = np.array([algo_res for algo_res in algo_values]).T
+        import scipy.stats as stats
+        import scikit_posthocs as sp
+        friedman_res = stats.friedmanchisquare(*data.T)
+        nemenyi_res = sp.posthoc_nemenyi_friedman(data) 
+        p=0.15
+        algo_m = {algo: algo_means[i] for i, algo in enumerate(Ts)}
+        print(f"\n----------------------------------")
+        print(f"Stat result for algo {algo}")
+        print(f"Algo: {algo_m}")
+        print(f"Friedman: {friedman_res}")
+        # print(f"Nemenyi:\n{nemenyi_res}")
+        #we now assign score for each algo based on nemenyi p-value result 
+        domination = {algo_name: {Ts[j]: p_val for j, p_val in enumerate(nemenyi_res[i]) if p_val <= p and j > i}
+                        for i, algo_name in enumerate(Ts) }
+        for algo_name, dominated in domination.items():
+            if len(dominated) > 0: 
+                print(f"\t{algo_name} (mean {algo_m[algo_name]}) dominates {dominated}")
+
+        y = np.array([m * 100 for _, _, m, _ in t_res])
+        yerr = np.array([e * 100 for _, _, _, e in t_res])
+        ymin = y - yerr 
+        ymax = y + yerr
+        # ax.errorbar(x, , yerr=, marker='o', color='k', linewidth=1, capsize=6)
+        if algo in ['d']:
+            ax.fill_between(x[algo], ymin, ymax, alpha=.1, linewidth=0)
+        ax.plot(x[algo], y, linewidth=1, markersize=5, marker='o', label=algo.replace("_", "\\_"))        
+    ax.set_xlim(0, 45)
+    # ax.set_ylim(0, 100)
+    
+    # plt.legend(*zip(*labels), loc=4)
+    plt.legend(loc=3)
+    # for algo_id, space_res in res.items():
+    # ax.fill_between(mean_data.index, mean_data[y_name] - std_data[y_name], mean_data[y_name] + std_data[y_name], alpha=.5, linewidth=0)
+    # ax.plot(mean_data.index, mean_data[y_name] * 100, linewidth=0.5, marker='o', color="k")
+
+    #Welch ttest
+    # ttest = ttest_ind(plain_data[plain_data['down_level'] == 0.0][y_name].to_numpy(), plain_data[plain_data['down_level'] == 1.0][y_name].to_numpy(), equal_var = False, alternative='greater')
+    # print(ttest) #exact match Ttest_indResult(statistic=3.1980107453341544, pvalue=0.008130031236723555) - ge has statistically significant effect
+
+    # plt.xticks(rotation = 25)
+    plt.xlabel('Simulated time, T', size=14)
+    plt.ylabel('ARR*, \%', size=14)
+    ax.tick_params(axis='both', which='major', labelsize=14)
+    # ax.set_xticklabels(['', '4,1,1,1,1', '1,4,1,1,1', '1,1,4,1,1', '1,1,1,4,1', '1,1,1,1,4'])
+    # plt.title('Weather Report', fontsize = 20)
+    # legend = plot.legend("Exact match accuracy", fontsize=16)
+    # plot.xaxis.label.set_fontsize(18)
+    # plot.yaxis.label.set_fontsize(18)
+    # fig = plot.get_figure()  
+    fig.set_tight_layout(True)      
+    fig.savefig(f"rq5.pdf", format='pdf')     
+
+@deca_cli.command("space-result-plot-spanned")
+@click.option('-r', '--result-folder')
+@click.option('-f', '--filter')
+@click.option('--algos', multiple=True)
+def calc_space_result(result_folder, filter, algos):
+    res = {}
+    for file_name in os.listdir(result_folder): 
+        algo_id, space = file_name.split('-on-')
+        if not space.endswith(filter) or (len(algos) > 0 and algo_id not in algos): 
+            continue
+        spanned = int(space.split("-")[-2].split("_")[-1])
+        space_result = os.path.join(result_folder, file_name)
+        algo_stats = pandas.read_csv(space_result)
+        algo_arra_mean = algo_stats["arra"].mean()
+        algo_arra_std = algo_stats["arra"].std()
+        algo_r_mean = algo_stats["population_redundancy"].mean()
+        algo_r_std = algo_stats["population_redundancy"].std()        
+        res.setdefault(algo_id, {}).setdefault(spanned, (algo_arra_mean, algo_arra_std, algo_r_mean, algo_r_std))
+    x = {}
+    ys = {}
+    for algo_id, space_res in res.items():
+        x[algo_id], ys[algo_id] = zip(*sorted(space_res.items(), key=lambda x: x[0]))
+    # print(res)
+    import matplotlib
+    matplotlib.rcParams['text.usetex'] = True
+    matplotlib.rcParams['text.latex.preamble'] = [ r"\usepackage{times}" ]
+    matplotlib.rcParams['pdf.fonttype'] = 42
+    matplotlib.rcParams['ps.fonttype'] = 42
+    matplotlib.rcParams['font.family'] = ['Times']    
+
+    fig, ax = plt.subplots()
+
+    # mm = list(zip(min_data[y_name], max_data[y_name]))
+    # print(mean_data[y_name], std_data[y_name])
+    # yerr = [mean_data[y_name] - min_data[y_name], max_data[y_name] - mean_data[y_name]]
+    # yerr = std_data[y_name]
+    # plt.axvline(x = 0, color = 'tab:gray', linewidth=0.5, linestyle = 'dashed', label = 'GE enabled')
+    # plt.axvline(x = 15, color = 'tab:gray', linewidth=0.5, linestyle = 'dashed')
+    # plt.axhline(y = 77, color = 'tab:gray', linewidth=0.5, linestyle = 'dashed')
+    # plt.axhline(y = 25, color = 'tab:gray', linewidth=0.5, linestyle = 'dashed')
+    # to_show = {'rand-3':'rand-3', 's-0_dp_sXd': 'dp sXd', 's-0_dp_d': 'dp d', 's-0_dp_dm': 'dp dm', 's-0_dp_nd': 'dp nd', 's-0_dp_ndXdm': 'dp ndXdm'}
+    # to_show = {'rand-3': {'color': '#000', 'label': 'rand-3'}, 's-0_dp_d': {'color': '#777', 'label': 'dp d'}, 's-0_dp_nd': {'color':'#e6e6e6', 'label': 'dp nd'}}
+
+    # import matplotlib.patches as mpatches
+    # labels = []
+    # def add_label(v, label):
+    #     color = v["bodies"][0].get_facecolor().flatten()
+    #     labels.append((mpatches.Patch(color=color), label))    
+    # x = list(range(0, 55, 5))
+    for algo, t_res in ys.items():
+
+        # sorted_algo_res = sorted(t_res, key=lambda x: -x[2])
+        # Ts, algo_values, algo_means, algo_errors  = zip(*sorted_algo_res)
+        # data = np.array([algo_res for algo_res in algo_values]).T
+        # import scipy.stats as stats
+        # import scikit_posthocs as sp
+        # friedman_res = stats.friedmanchisquare(*data.T)
+        # nemenyi_res = sp.posthoc_nemenyi_friedman(data) 
+        # p=0.15
+        # algo_m = {algo: algo_means[i] for i, algo in enumerate(Ts)}
+        # print(f"\n----------------------------------")
+        # print(f"Stat result for algo {algo}")
+        # print(f"Algo: {algo_m}")
+        # print(f"Friedman: {friedman_res}")
+        # # print(f"Nemenyi:\n{nemenyi_res}")
+        # #we now assign score for each algo based on nemenyi p-value result 
+        # domination = {algo_name: {Ts[j]: p_val for j, p_val in enumerate(nemenyi_res[i]) if p_val <= p and j > i}
+        #                 for i, algo_name in enumerate(Ts) }
+        # for algo_name, dominated in domination.items():
+        #     if len(dominated) > 0: 
+        #         print(f"\t{algo_name} (mean {algo_m[algo_name]}) dominates {dominated}")
+
+        y = np.array([m * 100 for m, _, _, _ in t_res])
+        yerr = np.array([e * 100 for _, e, _, _ in t_res])
+        ymin = y - yerr 
+        ymax = y + yerr
+        # ax.errorbar(x, , yerr=, marker='o', color='k', linewidth=1, capsize=6)
+        pl = ax.plot(x[algo], y, linewidth=1, markersize=5, marker='o', label=algo.replace("_", "\\_"))        
+        if algo in ['rand-3', 's-0_dp_nd']:
+            ax.fill_between(x[algo], ymin, ymax, alpha=.1, linewidth=0, color=pl[0].get_color())
+    ax.set_xlim(1, 20)
+    ax.set_xticks(x["rand-3"])
+    # ax.set_ylim(0, 100)
+    
+    # plt.legend(*zip(*labels), loc=4)
+    plt.legend(loc=2)
+    # for algo_id, space_res in res.items():
+    # ax.fill_between(mean_data.index, mean_data[y_name] - std_data[y_name], mean_data[y_name] + std_data[y_name], alpha=.5, linewidth=0)
+    # ax.plot(mean_data.index, mean_data[y_name] * 100, linewidth=0.5, marker='o', color="k")
+
+    #Welch ttest
+    # ttest = ttest_ind(plain_data[plain_data['down_level'] == 0.0][y_name].to_numpy(), plain_data[plain_data['down_level'] == 1.0][y_name].to_numpy(), equal_var = False, alternative='greater')
+    # print(ttest) #exact match Ttest_indResult(statistic=3.1980107453341544, pvalue=0.008130031236723555) - ge has statistically significant effect
+
+    # plt.xticks(rotation = 25)
+    plt.xlabel('Number of spanned points', size=14)
+    plt.ylabel('ARR*, \%', size=14)
+    ax.tick_params(axis='both', which='major', labelsize=14)
+    # ax.set_xticklabels(['', '4,1,1,1,1', '1,4,1,1,1', '1,1,4,1,1', '1,1,1,4,1', '1,1,1,1,4'])
+    # plt.title('Weather Report', fontsize = 20)
+    # legend = plot.legend("Exact match accuracy", fontsize=16)
+    # plot.xaxis.label.set_fontsize(18)
+    # plot.yaxis.label.set_fontsize(18)
+    # fig = plot.get_figure()  
+    fig.set_tight_layout(True)      
+    fig.savefig(f"rq7-3.pdf", format='pdf')     
+
+@deca_cli.command("space-result-plot-s")
+@click.option('-r', '--result-folder')
+@click.option('-m', '--metric')
+@click.option('-s', is_flag=True)
+def calc_space_result(result_folder, metric, s):
+    res = {}
+    for file_name in os.listdir(result_folder): 
+        algo = file_name.split('-on-')[0]
+        algo_parts = algo.split("!")
+        if s:
+            S = ""
+            algo_id = algo
+        else: 
+            S = 0 if "!" not in algo else len(algo_parts[1])
+            algo_id = algo_parts[0]
+        space_result = os.path.join(result_folder, file_name)
+        algo_stats = pandas.read_csv(space_result)
+        algo_metric_mean = algo_stats[metric].mean()
+        algo_metric_std = algo_stats[metric].std()
+        res.setdefault(algo_id, {}).setdefault(S, (list(algo_stats[metric]), algo_metric_mean, algo_metric_std))
+    print("algo & $S=0$ & $S=1$ & $S=2$")
+    for algo_id, space_res in res.items():
+        print("{0: <40} ".format(algo_id), end="")
+        for S, (_, mean, std) in sorted(space_res.items(), key = lambda x: x[0]):
+            print(" & {0:.1f} $\\pm$ {1:.1f} ".format(mean * 100, std * 100, S), end="")
+        print("\\\\")
+    
 @deca_cli.command("space-ranks")
 @click.option('-r', '--result-folder')
 def calc_space_ranks(result_folder):

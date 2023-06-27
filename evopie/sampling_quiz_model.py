@@ -400,6 +400,9 @@ class SamplingQuizModel(QuizModel):
         default_key_spec = [{"t": 0, "keys": [default_one_key] * self.n }]
         # key_spec_for_best = ["nond", "sd", "dom"]
         key_spec = self.hyperparams.get("key_spec", default_key_spec)
+        epsilon = self.hyperparams.get("epsilon", None) #implements epsilon greedy algo
+        softmax = self.hyperparams.get("softmax", None)
+        tau = self.hyperparams.get("tau", 1)
         key_spec = sorted(key_spec, key = lambda x: x["t"])
         if len(key_spec) == 0:
             key_spec = default_key_spec
@@ -409,6 +412,12 @@ class SamplingQuizModel(QuizModel):
         for i in range(self.n):
             # i_key_spec = key_spec_for_best if self.sample_best_one else curr_key_spec[i] if i < len(curr_key_spec) else default_one_key
             i_key_spec = curr_key_spec[i] if i < len(curr_key_spec) else default_one_key
+            epsilon_p = self.rnd.rand()
+            if (epsilon is not None) and (epsilon_p < epsilon): #apply default epsilon strategy - ordered exploration
+                i_key_spec = ["kn", "nond", "d"]
+            elif softmax is not None:
+                softmax_idx = [i for i, k in enumerate(i_key_spec) if k == softmax][0]
+                i_key_spec = i_key_spec[:softmax_idx]
             key_selector = self.build_key(i_key_spec)
             selected_dids = [did for _, sdids in selected_for_qids.items() for did in sdids]
             candidate_dids = [ {"did": did, "scores": scores, "key": key_selector(scores) }
@@ -417,9 +426,19 @@ class SamplingQuizModel(QuizModel):
             sorted_candidate_dids = sorted(candidate_dids, key=lambda x: x["key"], reverse=True)
             best_candidate_key = sorted_candidate_dids[0]["key"]
             best_candidates = [c for c in sorted_candidate_dids if c["key"] == best_candidate_key]
-
-            selected_candidate_index = int(self.rnd.choice(len(best_candidates)))
-            selected_candidate = best_candidates[selected_candidate_index]
+            if softmax is not None: 
+                softmax_sum = 0
+                from math import e
+                for candidate_did in best_candidates:
+                    fitness = candidate_did['scores'][softmax] #first criterion
+                    candidate_did['softmax'] = e ** (fitness / tau)
+                    softmax_sum += candidate_did['softmax']
+                for candidate_did in best_candidates:
+                    candidate_did['softmax'] = candidate_did['softmax'] / softmax_sum
+                selected_candidate = self.rnd.choice(best_candidates, p = [d['softmax'] for d in best_candidates])
+            else:                 
+                selected_candidate_index = int(self.rnd.choice(len(best_candidates)))
+                selected_candidate = best_candidates[selected_candidate_index]
             selected_did = selected_candidate["did"]
             # print(f"t={self.t} {i}/{self.n} d={selected_did} from alts {len(best_candidates)} {selected_candidate} kspec: {curr_key_spec[i]}")
             # self.block_similar(selected_did, blocked_dids)
