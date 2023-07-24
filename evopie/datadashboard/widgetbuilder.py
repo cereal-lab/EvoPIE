@@ -6,10 +6,10 @@ from dash import dcc
 from dash import html
 from dash.dependencies import Input, Output
 
-#import dashboard.datalayer.generator as da
-import dashboard.datalayer.dbaccess as da
-import dashboard.datalayer.utils as dataUtils
-import dashboard.plotter as plotter
+#import evopie.datadashboard.datalayer.generator as da
+import evopie.datadashboard.datalayer.dbaccess as da
+import evopie.datadashboard.datalayer.utils as dataUtils
+import evopie.datadashboard.plotter as plotter
 
 import threading
 

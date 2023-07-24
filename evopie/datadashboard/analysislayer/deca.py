@@ -1,9 +1,9 @@
 import sys
 from turtle import st
 import numpy as np
-import dashboard.datalayer.generator as da
-#import dashboard.datalayer.dbaccess as da
-import dashboard.datalayer.utils as dataUtils
+import evopie.datadashboard.datalayer.generator as da
+#import evopie.datadashboard.datalayer.dbaccess as da
+import evopie.datadashboard.datalayer.utils as dataUtils
 import pandas as pd
 
 def cleanupForStudentAnalysis(results, questionSubset=[], scoreThreshold=1.0):

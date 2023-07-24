@@ -12,12 +12,12 @@ from dash.dependencies import Input, Output, State
 from matplotlib.patches import Wedge
 
 #from dashapp import dashapp
-import dashboard.utils as appUtils
+import evopie.datadashboard.utils as appUtils
 
-#import dashboard.datalayer.generator as da
-import dashboard.datalayer.dbaccess as da
-import dashboard.datalayer.utils as dataUtils
-import dashboard.widgetbuilder as widgetbuilder
+#import evopie.datadashboard.datalayer.generator as da
+import evopie.datadashboard.datalayer.dbaccess as da
+import evopie.datadashboard.datalayer.utils as dataUtils
+import evopie.datadashboard.widgetbuilder as widgetbuilder
 
 
 gWhichView = "QuestionView"
@@ -48,8 +48,8 @@ def PopulateViewLayout():
       # The drop-down quiz selector at the top
       html.Div(id="nav-topbar", className="rectangle", children=[
           html.Li(className="nav", children=[
-              dcc.Link('Analysis by Question', href='/dashboard/question/', className="nav-link here"),
-              dcc.Link('Analysis by Student', href='/dashboard/student/', className="nav-link")
+              dcc.Link('Analysis by Question', href='/datadashboard/question/', className="nav-link here"),
+              dcc.Link('Analysis by Student', href='/datadashboard/student/', className="nav-link")
           ]),
           dcc.Dropdown(id="quizselect-dropdown-question", 
                       options=appUtils.gApplicationState.QuizOptions,

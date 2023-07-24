@@ -2,11 +2,11 @@ import re
 import numpy as np
 import pandas as pd
 
-import dashboard.datalayer.generator as da
-#import dashboard.datalayer.dbaccess as da
+import evopie.datadashboard.datalayer.generator as da
+#import evopie.datadashboard.datalayer.dbaccess as da
 
 gFakeScoresDF=None
-import dashboard.analysislayer.deca as deca #Asha: imported deca
+import evopie.datadashboard.analysislayer.deca as deca #Asha: imported deca
 
 def convertDFToScoresMatrix(df):
   """

@@ -1,6 +1,8 @@
 # pylint: disable=no-member
 # pylint: disable=E1101
 
+## RPW:  Is theis file even needed?
+
 import os, sys
 import numpy as np
 
@@ -23,7 +25,7 @@ The idea would be for all Winthrop/DataAnalysis pieces to go
 in this datadashboard directory.
 '''
 
-@APP.route('/data-dashboard')
+@APP.route('/datadashboard')
 def dataDashboard():
     '''
     A test route to make sure we understand how to hook into the

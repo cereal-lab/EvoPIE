@@ -189,3 +189,11 @@ login_manager.init_app(APP)
 # from . import utils
 # from . import quiz_model
 from . import cli #adds cli commands to app
+
+
+## vvv --- RPW: This register the Dash applications
+##         This must happen **after** the DB init step
+from evopie.datadashboard import register_dashapps
+dashapp_context = APP.app_context()
+register_dashapps(APP)
+## ^^^ ---

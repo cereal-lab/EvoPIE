@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 import scipy.stats as stats
 
-import dashboard.datalayer.generator as da
-#import dashboard.datalayer.dbaccess as da
+import evopie.datadashboard.datalayer.generator as da
+#import evopie.datadashboard.datalayer.dbaccess as da
 
 
 # Reminder of the columns of the standard dataframe we will

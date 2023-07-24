@@ -5,14 +5,14 @@ import pandas as pd
 import numpy as np
 import sys
 
-import dashboard.datalayer.utils as dataUtils
+import evopie.datadashboard.datalayer.utils as dataUtils
 
-import dashboard.analysislayer.heatmap as heatmap
-import dashboard.analysislayer.deca as deca
-import dashboard.analysislayer.itemdiscrim as itemdescrim
-import dashboard.analysislayer.cluster as cluster
-import dashboard.analysislayer.traditional as traditional
-import dashboard.analysislayer.distribution as dist
+import evopie.datadashboard.analysislayer.heatmap as heatmap
+import evopie.datadashboard.analysislayer.deca as deca
+import evopie.datadashboard.analysislayer.itemdiscrim as itemdescrim
+import evopie.datadashboard.analysislayer.cluster as cluster
+import evopie.datadashboard.analysislayer.traditional as traditional
+import evopie.datadashboard.analysislayer.distribution as dist
 
 try:
   import plotly.express as px

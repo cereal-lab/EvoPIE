@@ -10,7 +10,7 @@ from flask_login import login_required
 
 
 def register_dashapps(flask_server):
-    from dashboard import questionview, studentview
+    from evopie.datadashboard import questionview, studentview
 
     # Meta tags for viewport responsiveness
     meta_viewport = {
@@ -20,7 +20,7 @@ def register_dashapps(flask_server):
     # Create the Dash applications    
     dashboardViewApp = dash.Dash(__name__,
                                  server=flask_server,
-                                 url_base_pathname='/dashboard/',
+                                 url_base_pathname='/datadashboard/',
                                  assets_folder=get_root_path(__name__) + '/../assets/',
                                  meta_tags=[meta_viewport])
 
@@ -85,7 +85,7 @@ def select_page_layout(pathname, questionLayout, studentLayout):
         return studentLayout
     
     # If it's just for the dashboard, assume we want the question view by default
-    elif (pathname == '') or (pathname == "dashboard"):
+    elif (pathname == '') or (pathname == "datadashboard"):
         return questionLayout # for now "Analysis by Question" will be the entry point until we integrate with EvoPie
     
     # Anything else is a problem ... so return 404.  Probably this should be a valid HTML object, but hey ...

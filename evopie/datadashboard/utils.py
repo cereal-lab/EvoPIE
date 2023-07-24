@@ -1,6 +1,6 @@
 ## General utility function shared by both application views
-#import dashboard.datalayer.generator as da
-import dashboard.datalayer.dbaccess as da
+#import evopie.datadashboard.datalayer.generator as da
+import evopie.datadashboard.datalayer.dbaccess as da
 
 
 class ApplicationStateSingletonClass:
