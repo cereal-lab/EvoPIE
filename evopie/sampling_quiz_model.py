@@ -424,6 +424,8 @@ class SamplingQuizModel(QuizModel):
                                     for did in pool_dids if did not in selected_dids
                                     for scores in [{**self.calc_knowledge_score(did, selected_dids), **self.calc_domination_score(did, pool_dids, all_dids, selected_dids), **self.calc_complexity_score(did)}]]
             sorted_candidate_dids = sorted(candidate_dids, key=lambda x: x["key"], reverse=True)
+            if len(sorted_candidate_dids) == 0:
+                break
             best_candidate_key = sorted_candidate_dids[0]["key"]
             best_candidates = [c for c in sorted_candidate_dids if c["key"] == best_candidate_key]
             if softmax is not None: 
