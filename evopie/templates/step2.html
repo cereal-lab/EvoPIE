@@ -70,28 +70,34 @@
             const nextButton = document.getElementById('nextButton');
             const submitButton = document.getElementById('submitButton');
 
-            prevButton.style.display = 'none';
-            submitButton.style.display = 'none';
-
-            carousel.addEventListener('slid.bs.carousel', function () {
-            const firstSlide = carousel.querySelector('.carousel-item:first-of-type');
-            const lastSlide = carousel.querySelector('.carousel-item:last-of-type');
-            const currentSlide = carousel.querySelector('.carousel-item.active');
-            
-            if (currentSlide === firstSlide) {
+            if (carousel.querySelectorAll('.carousel-item').length > 1) {
                 prevButton.style.display = 'none';
+                submitButton.style.display = 'none';
+
+                carousel.addEventListener('slid.bs.carousel', function () {
+                    const firstSlide = carousel.querySelector('.carousel-item:first-of-type');
+                    const lastSlide = carousel.querySelector('.carousel-item:last-of-type');
+                    const currentSlide = carousel.querySelector('.carousel-item.active');
+                    
+                    if (currentSlide === firstSlide) {
+                        prevButton.style.display = 'none';
+                    } else {
+                        prevButton.style.display = 'block';
+                    }
+                    
+                    if (currentSlide === lastSlide) {
+                        nextButton.style.display = 'none';
+                        submitButton.style.display = 'block';
+                    } else {
+                        submitButton.style.display = 'none';
+                        nextButton.style.display = 'block';
+                    }
+                });
             } else {
-                prevButton.style.display = 'block';
-            }
-            
-            if (currentSlide === lastSlide) {
+                prevButton.style.display = 'none';
                 nextButton.style.display = 'none';
                 submitButton.style.display = 'block';
-            } else {
-                submitButton.style.display = 'none';
-                nextButton.style.display = 'block';
             }
-            });
         });
 
     </script>
@@ -146,7 +152,7 @@
     </div>
 
     <form id="quizForm" method="post">
-        <div id="questions_carousel" class="carousel slide" data-bs-ride="carousel" style="height: fit-content;">
+        <div id="questions_carousel" class="carousel slide" style="height: fit-content;">
             <div class="carousel-inner">
                 {% for q in questions %}
                     <div class="carousel-item {% if loop.first %}active{% endif %}">

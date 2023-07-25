@@ -5,6 +5,7 @@ if [ $# -eq 1 ]; then
     echo $EVOPIE_DATABASE_URI
 fi
 flask DB-reboot
+flask course init
 flask quiz init -nq 5 -nd 4 -qd '{"2":[5,6,7],"3":[9,10,11],"4":[13,14,16]}'
 
 flask student init -ns 20 --exclude-id 12 -ef 'student{}@usf.edu'
@@ -20,7 +21,7 @@ flask student knows -kr -ef 'student{}@usf.edu' -k '{"sid":{"range":[1,4]},"qid"
     -k '{"sid":{"range":[1,14]},"qid":5,"did":17,"step":2,"metrics":{"chance":1}}' \
     -o testing/students.csv
 
-flask quiz run -q 1 -s STEP1 -s STEP2 --no-algo --justify-response -ef 'student{}@usf.edu' \
+flask quiz run -q 1 -s STEP1 -s STEP2 --no-algo -kns KNOWLEDGE_SELECTION_CHANCE --justify-response -ef 'student{}@usf.edu' \
     -l '{"sid":1,"jid":{"range":[90,103]}}' \
     -l '{"sid":2,"jid":{"range":[90,104]}}' \
     -l '{"sid":3,"jid":{"range":[89,104]}}' \
@@ -35,5 +36,4 @@ flask quiz run -q 1 -s STEP1 -s STEP2 --no-algo --justify-response -ef 'student{
     -l '{"sid":20,"jid":{"ranges":[[1,9],[23,27],17,22,24,30,33,37,57,[67,71],[89,115]]}}'
     
 
-flask quiz result -q 1 --expected 'testing/Extensive Test/LF_50%_Likes_15_to_19_QP_1_3_5_10_Weights_40%_30%_20%_10%.csv' \
-    --diff-o 'testing/diff-o.csv'
+flask quiz result -q 1 --expected 'tests/LF_50%_Likes_15_to_19_QP_1_3_5_10_Weights_40%_30%_20%_10%.csv'
