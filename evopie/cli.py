@@ -379,7 +379,7 @@ def init_knowledge(input, output, email_format, knows, knowledge_replace, deca_i
                     acc[i] = k["metrics"][i]
             else: 
                 for i in range(len(acc)):
-                    if acc[i] < 0:
+                    if acc[i] is None:
                         acc[i] = k["metrics"]
             # except Exception as e: 
             #     print(e)
@@ -392,7 +392,7 @@ def init_knowledge(input, output, email_format, knows, knowledge_replace, deca_i
                 space = deca.load_space_from_json(deca_input_json_str)
                 knows_map_deca_plain = deca.gen_test_distractor_mapping_knowledge(space)
                 knows_unpacked = unpack_key('did', unpack_key('qid', unpack_key('sid', knows_map_deca_plain)))
-                knows_map_deca = {sid: {qid: {did: reduce(dks_reducton, dks, [-1,-1])
+                knows_map_deca = {sid: {qid: {did: reduce(dks_reducton, dks, [None,None])
                                     for did, dks in groupby(qks, key = lambda x: x.get("did", "*")) } 
                                     for qid, qks in groupby(sks, key = lambda x: x.get("qid", "*")) } 
                                     for sid, sks in groupby(knows_unpacked, key = lambda x: x.get("sid", "*"))} 
@@ -401,7 +401,7 @@ def init_knowledge(input, output, email_format, knows, knowledge_replace, deca_i
         knows = [json.loads(k) for k in knows]  #NOTE: expected format {'sid':<opt, by default all>, 'qid':<opt, by default all>, 'did':<opt, by default all>, choice:num or [step1_c, step2_c] }
         knows_unpacked = unpack_key('did', unpack_key('qid', unpack_key('sid', knows)))
 
-        knows_map_args = {email_format.format(sid): {qid: {did: reduce(dks_reducton, dks, [-1,-1])
+        knows_map_args = {email_format.format(sid): {qid: {did: reduce(dks_reducton, dks, [None,None])
                             for did, dks in groupby(qks, key = lambda x: x.get("did", "*")) } 
                             for qid, qks in groupby(sks, key = lambda x: x.get("qid", "*")) } 
                             for sid, sks in groupby(knows_unpacked, key = lambda x: x.get("sid", "*"))}    
@@ -443,7 +443,7 @@ def init_knowledge(input, output, email_format, knows, knowledge_replace, deca_i
         knows_map = {**knows_map_input, **knows_map_deca, **knows_map_args}        
         students = DataFrame(columns=["email", "id"])    
 
-        distractor_column_order = list(sorted(set([ (i+1, qid, did) for skn in knows_map.values() for qid, qkn in skn.items() for did, dkn in qkn.items() for i, metrics in enumerate(dkn)])))
+        distractor_column_order = list(sorted(set([ (i+1, qid, did) for skn in knows_map.values() for qid, qkn in skn.items() for did, dkn in qkn.items() for i, _ in enumerate(dkn)])))
         distractor_columns = [f'd_{q}_{d}_{step}' for step, q, d in distractor_column_order]
 
         with APP.test_client(use_cookies=True) as c:
@@ -455,7 +455,7 @@ def init_knowledge(input, output, email_format, knows, knowledge_replace, deca_i
                 id_to_email[s.id] = s.email
             def init_knowledge_from_map(knowledge_map):
                 def add_to_students(email, student_id, student_knowledge):
-                    distractors = {(i+1, qid, did):metrics for qid, qks in student_knowledge.items() for did, dks in qks.items() for i, metrics in enumerate(dks)}
+                    distractors = {(i+1, qid, did):metrics for qid, qks in student_knowledge.items() for did, dks in qks.items() for i, metrics in enumerate(dks) if metrics is not None}
                     students.loc[student_id, [ "email", "id", *distractor_columns ]] = [email, student_id, *[distractors[kid] if kid in distractors else np.nan for kid in distractor_column_order]]                
                 if "*" in knowledge_map:
                     for student_id, email in id_to_email.items():
@@ -482,7 +482,7 @@ def init_knowledge(input, output, email_format, knows, knowledge_replace, deca_i
             present_knowledge = {kid:ks[0] for kid, ks in groupby(present_plain, key=lambda k: (k.student_id, k.question_id, k.distractor_id, k.step_id))}
         for _, student in students.iterrows(): 
             for c in student[student.notnull()].index:
-                if c.startswith("d_"):    
+                if c.startswith("d_") and student[c] != -1:    
                     question_id, distractor_id, step_id = [int(x) for x in c.split('_')[1:]]
                     knowledge_id = student.id, question_id, distractor_id, step_id
                     if knowledge_id in present_knowledge:
@@ -595,7 +595,7 @@ def simulate_quiz(quiz, course_id, instructor, password, no_algo, algo, algo_par
 
                 student_knowledge = knowledge.get(sid, {})
                 if knowledge_selection == KNOWLEDGE_SELECTION_CHANCE:
-                    responses = {qid:rnd_state.choice(known_distractors)
+                    responses = {qid:int(rnd_state.choice(known_distractors))
                                             for qid, distractors in attempt.alternatives_map.items() 
                                             for qskn in [student_knowledge.get(qid, {-1:{"chance":1}}) ]
                                             for ds_distr in [[(alt, qskn[d]["chance"]) for alt, d in enumerate(distractors) if d in qskn]] 

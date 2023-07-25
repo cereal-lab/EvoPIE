@@ -89,7 +89,7 @@ from pandas import DataFrame
 
 class SamplingQuizModel(QuizModel): 
     ''' Samples n distractors from interactions. Does not change sampling for group_size interactions '''
-    default_settings = { "n": 3, "min_num_evals": 1, "group_size": 2, "strategy": "slot_based", "hyperparams": {}, "reduced_facts": False}
+    default_settings = { "n": 3, "min_num_evals": 1, "group_size": 2, "strategy": "slot_based", "hyperparams": { "key_spec": [{"t":0, "keys":[["dup", "nond", "kn"], ["dup", "nond", "kn"], ["dup", "nond", "kn"]]}] }, "reduced_facts": False}
 
     def __init__(self, quiz_id: int, process: models.EvoProcess, distractors_per_question: 'dict[int, list[int]]'):
         super(SamplingQuizModel, self).__init__(quiz_id, process, distractors_per_question)
