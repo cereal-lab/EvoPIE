@@ -1,0 +1,544 @@
+/* Reset Stylesheet */
+/* http://meyerweb.com/eric/tools/css/reset/ 
+   v2.0 | 20110126
+   License: none (public domain)
+*/
+
+html, body, div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+b, u, i, center,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, embed, 
+figure, figcaption, footer, header, hgroup, 
+menu, nav, output, ruby, section, summary,
+time, mark, audio, video {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	font-size: 100%;
+	font: inherit;
+	vertical-align: baseline;
+  /*overflow-y: scroll;*/
+}
+/* HTML5 display-role reset for older browsers */
+article, aside, details, figcaption, figure, 
+footer, header, hgroup, menu, nav, section {
+	display: block;
+}
+body {
+	line-height: 1;
+}
+ol, ul {
+	list-style: none;
+}
+blockquote, q {
+	quotes: none;
+}
+blockquote:before, blockquote:after,
+q:before, q:after {
+	content: '';
+	content: none;
+}
+table {
+	border-collapse: collapse;
+	border-spacing: 0;
+}
+/* end of reset */
+
+
+/* --- Defaults --- */
+body {
+  font-family: Segoe UI;
+  font-style: normal;
+  font-weight: normal;
+  background: #F2F2F2;
+  overflow-x: hidden;
+}
+
+div#main, #nav-topbar {
+    width: 77vw;
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-column-gap: 1vw;
+    grid-row-gap: 1vw;
+    margin-left: 20vw;
+    padding: 1vw;
+  }
+
+/* --- Information / Graph Panes --- */
+.infopane {
+  /* change span from 12 for full width to 6 for halfwidth */
+  grid-column: span 6;
+  background: #FFFFFF;
+  border-radius: 15px;
+  height: fit-content;
+}
+/* }
+#left-infopane {
+  grid-column: 1/6;
+
+  background: #FFFFFF;
+  border-radius: 15px;
+}
+
+#right-infopane {
+  grid-column: 6/12;
+
+  background: #FFFFFF;
+  border-radius: 15px;
+}
+*/
+#top-infopane-question, #top-infopane-student {
+  grid-column: 1/-1;
+  padding: 1%;
+  background: #FFFFFF;
+  border-radius: 15px;
+} 
+
+.top-pane-message {
+  font-size: 1.5em;
+  padding: 3%;
+}
+
+/* #bottom-spacer {
+  position: absolute;
+  width: 1026px;
+  height: 1008px;
+  left: 384px;
+  top: 1024px;
+
+  background: #FFFFFF;
+  border-radius: 15px;
+} */
+
+
+/* --- Navigation Box Containers --- */
+#nav-topbar, #titlebox {
+  height: 7vh;
+  padding: 1vw;
+  
+
+  background: #000000;
+}
+
+li.nav {
+  grid-column: 2/6;
+  display: flex;
+  justify-content: space-around;
+  align-content: space-between;
+  align-items: center;
+}
+
+a.nav-link {
+  text-decoration: none;
+  color: #FFFFFF;
+}
+
+a.nav-link.here {
+  color: #FF6D19;
+}
+
+#quizselect-dropdown-question, #quizselect-dropdown-student {
+  float: right;
+  height: fit-content;
+  margin-top: auto;
+  margin-bottom: auto;
+  grid-column: 10/-1;
+  background: #FFFFFF;
+  border-radius: 5px;
+}
+.Select-control {
+  border: none;
+  margin-top: 1%;
+}
+
+#nav-sidebar {
+  position: fixed;
+  width: 20vw;
+  min-width: 20%;
+  height: 100%;
+  left: 0px;
+  top: 0px;
+}
+
+/* Top-Left "EvoPIE" title box */
+#titlebox {
+  /*width: 20vw;*/
+  width: 100%;
+  padding-right: 0;
+  padding-left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(108, 117, 125, 0.9);
+}
+
+/* Box surrounding the menu in the nav bar */
+#menubox {
+  /*width: 20vw;*
+  /*height: 934px;*/
+  width: 100%;
+  height: fit-content;
+  left: 0px;
+  top: 90px;
+  
+  background: #6C757D;
+}  
+
+#helpbox {
+  /*width: 20vw;*/
+  /*height: 934px;*/
+  padding-top: 1em;
+  padding-bottom: 1em;
+  text-indent: 1em;
+  width: 100%;
+  height: fit-content;
+  left: 0px;
+  top: 90px;
+  
+  background: #6C757D;
+}  
+
+
+
+/* The actual menu tabs */
+#side-menu-question, #side-menu-student{
+  font-family: Segoe UI;
+  font-style: normal;
+  font-weight: normal;
+  font-size: 22px;
+  line-height: 26px;
+  display: flex;
+  align-items: left;
+
+  /*color: #FF6D19;*/
+  color: black;
+  background-color: #6C757D;
+  border: none !important;
+}
+
+
+
+/* --- Labels & Headers ---*/
+.header {
+  font-family: Segoe UI;
+  font-style: normal;
+  font-weight: bold;
+  font-size: 36px;
+  line-height: 38px;
+  display: flex;
+  align-items: center;
+  color: #000000;
+  margin: 15px;    
+}
+
+
+#evopie-title {
+  /* width: 302px;
+  height: 36px; */
+  text-align: center;
+  
+
+  font-family: Segoe UI;
+  font-style: normal;
+  font-weight: normal;
+  font-size: 1.5em;
+  line-height: 38px;
+  /* display: table-cell;
+  align-items: start;
+  vertical-align: top; */
+
+  color: #FFFFFF;
+}
+
+/* Tabs styling */
+.menu-tab {
+  border: none !important;
+  background: none !important;
+  color: #FFFFFF !important;
+  
+}
+
+.tab--selected {
+  width: inherit;
+  box-shadow: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-top: none !important;
+  border-bottom: none !important;
+  color: #FF6D19 !important;
+}
+
+/* Set up for responsive design. This can be left alone for now */
+@media (max-width: 1024px) {
+  #container {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-column-gap: 30px;
+  }
+  .infopane {
+    grid-column: span 12;
+    margin: 30px;
+  }
+}
+
+/* --- Tooltip --- */
+.tooltip-inner{
+  width: 400px;
+  background-color: black;
+  color: #fff;
+  text-align: center;
+  padding: .5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.tooltip-header{
+  text-align: center;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 5px 0;
+}
+
+/* --- Glossary/Modal --- */
+
+.gloss-button{
+  width: 240px;
+    height: 40px;
+    cursor: pointer;
+    border: 0px;
+    border-radius: 5px;
+    background-color: black;
+    color: white;
+    text-transform: uppercase;
+    font-size: 15px
+}
+
+.gloss-button:active{
+  background-color: #FF6D19;
+}
+
+.modal-open {
+  overflow: hidden;
+}
+
+.modal-open .modal {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1050;
+  display: none;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  outline: 0;
+}
+
+.modal-dialog {
+  position: relative;
+  width: auto;
+  margin: 0.5rem;
+  pointer-events: none;
+}
+
+.modal.show .modal-dialog {
+  -webkit-transform: none;
+  transform: none;
+}
+
+.modal.modal-static .modal-dialog {
+  -webkit-transform: scale(1.02);
+  transform: scale(1.02);
+}
+
+.modal-dialog-scrollable {
+  display: -ms-flexbox;
+  display: flex;
+  max-height: calc(100% - 1rem);
+}
+
+.modal-dialog-scrollable .modal-content {
+  max-height: calc(100vh - 1rem);
+  overflow: hidden;
+}
+
+.modal-dialog-scrollable .modal-header,
+.modal-dialog-scrollable .modal-footer {
+  -ms-flex-negative: 0;
+  flex-shrink: 0;
+}
+
+.modal-dialog-scrollable .modal-body {
+  overflow-y: auto;
+}
+
+.modal-dialog-centered {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-align: center;
+  align-items: center;
+  min-height: calc(100% - 1rem);
+}
+
+.modal-dialog-centered::before {
+  display: block;
+  height: calc(100vh - 1rem);
+  height: -webkit-min-content;
+  height: -moz-min-content;
+  height: min-content;
+  content: "";
+}
+
+.modal-dialog-centered.modal-dialog-scrollable {
+  -ms-flex-direction: column;
+  flex-direction: column;
+  -ms-flex-pack: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.modal-dialog-centered.modal-dialog-scrollable .modal-content {
+  max-height: none;
+}
+
+.modal-dialog-centered.modal-dialog-scrollable::before {
+  content: none;
+}
+
+.modal-content {
+  position: relative;
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-direction: column;
+  flex-direction: column;
+  width: 100%;
+  pointer-events: auto;
+  background-color: #fff;
+  background-clip: padding-box;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 0.3rem;
+  outline: 0;
+}
+
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1040;
+  width: 100vw;
+  height: 100vh;
+  background-color: #000;
+}
+
+.modal-backdrop.fade {
+  opacity: 0;
+}
+
+.modal-backdrop.show {
+  opacity: 0.5;
+}
+
+.modal-header {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-align: start;
+  align-items: flex-start;
+  -ms-flex-pack: justify;
+  justify-content: space-between;
+  padding: 1rem 1rem;
+  border-bottom: 1px solid #dee2e6;
+  border-top-left-radius: calc(0.3rem - 1px);
+  border-top-right-radius: calc(0.3rem - 1px);
+  color: #fff;
+  background-color: #000;
+}
+
+.modal-header .close {
+  padding: 1rem 1rem;
+  margin: -1rem -1rem -1rem auto;
+}
+
+.modal-title {
+  margin-bottom: 0;
+  line-height: 1.5;
+}
+
+.modal-table th{
+  font-weight: bold;
+}
+
+.modal-table, .modal-table td{
+  padding: 10px;
+}
+
+.modal-body {
+  position: relative;
+  -ms-flex: 1 1 auto;
+  flex: 1 1 auto;
+  padding: 1rem;
+}
+
+.modal-footer {
+  display: -ms-flexbox;
+  display: flex;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
+  -ms-flex-align: center;
+  align-items: center;
+  -ms-flex-pack: end;
+  justify-content: flex-end;
+  padding: 0.75rem;
+  border-top: 1px solid #dee2e6;
+  border-bottom-right-radius: calc(0.3rem - 1px);
+  border-bottom-left-radius: calc(0.3rem - 1px);
+  background-color: #000;
+}
+
+.modal-footer > * {
+  margin: 0.25rem;
+}
+
+.modal-scrollbar-measure {
+  position: absolute;
+  top: -9999px;
+  width: 50px;
+  height: 50px;
+  overflow: scroll;
+}
+
+@media (min-width: 576px) {
+  .modal-dialog {
+    max-width: 500px;
+    margin: 1.75rem auto;
+  }
+  .modal-dialog-scrollable {
+    max-height: calc(100% - 3.5rem);
+  }
+  .modal-dialog-scrollable .modal-content {
+    max-height: calc(100vh - 3.5rem);
+  }
+  .modal-dialog-centered {
+    min-height: calc(100% - 3.5rem);
+  }
+  .modal-dialog-centered::before {
+    height: calc(100vh - 3.5rem);
+    height: -webkit-min-content;
+    height: -moz-min-content;
+    height: min-content;
+  }
+  .modal-sm {
+    max-width: 300px;
+  }
+}
+

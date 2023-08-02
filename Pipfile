@@ -26,6 +26,7 @@ dash_bootstrap_components = "==1.4.1"
 dash_cytoscape = "==0.2.0"
 scipy = "==1.10.1"
 scikit-learn = "1.2.2"
+ipywidgets = "==7.0.0"
 
 [dev-packages]
 pylint = "==2.12.2"

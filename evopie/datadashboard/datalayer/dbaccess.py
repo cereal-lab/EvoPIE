@@ -7,7 +7,7 @@
 import numpy as np
 import pandas as pd
 import ast
-import os
+import sys
 
 #import evopie.datadashboard.datalayer.models as models
 import evopie.models as models
@@ -38,9 +38,8 @@ def GetScoresDataframe(quizID, numQuestions=None, branching=None, maxNumStudents
     for studentInstance in models.QuizAttempt.query.filter(models.QuizAttempt.quiz_id == quizID):
       try:
         # Convert the question results into python dictionaries
-        initScores = ast.literal_eval(studentInstance.initial_scores)
-        reviScores = ast.literal_eval(studentInstance.revised_scores)
-        #print("DBG:  student=", studentInstance.student_id, ",  initScores=", initScores)
+        initScores = studentInstance.initial_scores #ast.literal_eval(studentInstance.initial_scores)
+        reviScores = studentInstance.revised_scores #ast.literal_eval(studentInstance.revised_scores)
 
         # Assume the same questions on the initial and revised quizzes, spin through these
         for questionStr in initScores:
@@ -61,6 +60,8 @@ def GetScoresDataframe(quizID, numQuestions=None, branching=None, maxNumStudents
       except:
         if not quiet:
           print("WARNING: QuizAttempt record", studentInstance.id, "was incomplete.  Ignoring this record.")
+          #print("DBG:  student=", studentInstance.student_id, ",  initScores=", studentInstance.initial_scores, "  type(initScores)=", type(studentInstance.initial_scores))
+          #sys.exit(1)
 
   return df
 

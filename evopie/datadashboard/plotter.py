@@ -72,7 +72,7 @@ def GenerateStudentDistributionGraph(df, studentID=0, contextDict=dict()):
   The distribution will have 2 entries for each student. Then create a distribution graph that 
   highlights the particualr student that was selected.
   """
-  print("trying analyze students")
+  print("trying analyze students, studentID=", studentID)
   resultsDF = dist.analyzeStudents(df, "both", contextDict)
   print(resultsDF)
 

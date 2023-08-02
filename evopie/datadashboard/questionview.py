@@ -49,7 +49,8 @@ def PopulateViewLayout():
       html.Div(id="nav-topbar", className="rectangle", children=[
           html.Li(className="nav", children=[
               dcc.Link('Analysis by Question', href='/datadashboard/question/', className="nav-link here"),
-              dcc.Link('Analysis by Student', href='/datadashboard/student/', className="nav-link")
+              dcc.Link('Analysis by Student', href='/datadashboard/student/', className="nav-link"),
+              dcc.Link('Back to EvoPIE', href='/', className="nav-link")
           ]),
           dcc.Dropdown(id="quizselect-dropdown-question", 
                       options=appUtils.gApplicationState.QuizOptions,
@@ -60,7 +61,7 @@ def PopulateViewLayout():
       html.Div(id="nav-sidebar", className="rectangle", children=[
           # The title
           html.Div(id="titlebox", className="rectangle", children=[
-            html.H3(children="EvoPIE Dashboard", id="evopie-title"),
+            html.H3(children="EvoPIE Data Dashboard", id="evopie-title"),
           ]),
 
           # The left-side menu to select the analysis approach
