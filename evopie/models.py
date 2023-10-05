@@ -665,3 +665,11 @@ class StudentKnowledge(DB.Model):
     step_id = DB.Column(DB.Integer, primary_key=True)
     metrics = DB.Column(JSONEncodedMutableDict, default={})  # qualities of this distractor from student perspective. 
     # Could inclide chance. Check deca.py and different KNOWLEDGE_SELECTION_ strategies
+
+class GlossaryTerm(DB.Model):
+   __tablename__ = "glossary"
+   
+   id = DB.Column(DB.Integer, primary_key=True)
+   term = DB.Column(DB.String, nullable=False)
+   definition = DB.Column(DB.String, nullable=False)
+

@@ -43,6 +43,13 @@ def PopulateViewLayout():
 
   # Create the web page layout
   print ("4.  Setting the layout.")
+  """
+  LWR: I wonder if we should switch to a format for multi-pages like the main evopie page.
+  Another option that may or may not work is to add our pages to their routes_pages.py
+  I am not sure if this would work, but this could solve href problem when trying to go 
+  back to their index page
+  """
+
   gLayout = html.Div(children=[
       
       # The drop-down quiz selector at the top
@@ -79,12 +86,18 @@ def PopulateViewLayout():
           ]),
 
           html.Div(id="helpbox", className="rectangle", children=[
-            dbc.Button("Glossary", id="open"),
+            dbc.Button("Glossary", id="open", class_name="gloss-button"),
 
             dbc.Modal(
                 [
                     dbc.ModalHeader("Glossary"),
-                    dbc.ModalBody("BODY OF MODAL"),
+                    dbc.ModalBody(
+                        dbc.Table.from_dataframe(da.GetGlossaryTerms(),
+                                                 class_name="modal-table",
+                                                 striped=True,
+                                                 bordered=True, 
+                                                 hover=True)
+                        ),
                     dbc.ModalFooter(
                         dbc.Button("Close", id="close", className="ml-auto")
                     ),
@@ -143,8 +156,11 @@ def HandleQuestionsDetailRequest(quizID, questionID, whichScores):
     components = []
 
     try:
+        quizDetailDF = da.GetQuestionDetailDataframe(quizID, questionID, whichScores)        
         if not questionID == "root": 
-            components.append( widgetbuilder.gBuilder.GetQuestionDetailsGraph(quizID, questionID, whichScores) )
+            components.append( widgetbuilder.gBuilder.GetQuestionDetailHeader(quizDetailDF, questionID, whichScores) )
+            components.append( widgetbuilder.gBuilder.GetQuestionDetailsGraph(quizDetailDF, questionID, whichScores) )
+        
     except Exception as e:
         message = "Error loading quiz detail " + str((quizID, questionID)) + "  ::  " + str(e)                  
         components.append( html.P(children=message, className="graph-component-message") )

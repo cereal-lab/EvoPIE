@@ -4,6 +4,7 @@ import traceback
 
 from dash import dcc
 from dash import html
+import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output
 
 #import evopie.datadashboard.datalayer.generator as da
@@ -167,14 +168,47 @@ class WidgetBuilder(threading.Thread):
     self.running = False    
 
 
-  def GetQuestionDetailsGraph(self, quizID, questionID, whichScores):
+  def GetQuestionDetailHeader(self, quizDetailDF, questionID, whichScores):
+    """
+    Given a quiz ID and a question ID, generate the header for current plot
+    """
+
+    toolTip = None
+
+    try:
+      questionText = quizDetailDF['QuestionText'][0]
+      toolTip = html.Div(
+          [
+              html.H1(
+                  [
+                      html.Span(
+                          dataUtils.StripHTMLMarkers(questionText, 40),
+                          id="tooltip-target", 
+                      ),
+                  ],
+                  className="tooltip-header"
+              ),
+              dbc.Tooltip(
+                  questionText,
+                  target="tooltip-target",
+              ),
+          ]
+      )
+
+    except:
+      toolTip = html.H1(children="Error loading header", className="graph-component-message")
+      traceback.print_exc()
+
+    return toolTip
+  
+
+  def GetQuestionDetailsGraph(self, quizDetailDF, questionID, whichScores):
     """
     Given a quiz ID and a question ID, populate the build the plot for the question detail
     """
     detailsPlot = None
 
     try:
-      quizDetailDF = da.GetQuestionDetailDataframe(quizID, questionID, whichScores)
       detailsPlot = plotter.GenerateQuestionDetailPlot(quizDetailDF, questionID, whichScores)
 
     except:

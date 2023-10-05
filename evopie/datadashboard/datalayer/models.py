@@ -6,7 +6,7 @@ import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 
-from dashapp import DB
+from evopie import DB
 
 ROLE_STUDENT = "STUDENT"
 ROLE_INSTRUCTOR = "INSTRUCTOR"
@@ -19,7 +19,13 @@ from flask_login import UserMixin
 #from jinja2 import Markup
 from markupsafe import Markup
 
-from dashapp import DB
+from evopie import DB
+
+"""
+Is it possible to get rid of this file or merge it with their models.py?
+GlossaryTerms had to be added to evopie.models.py for the GetGlossaryTerms()
+function to work.
+"""
 
 ## RPW:  vvv All of this is more or less copied from Alessio's code. vvv
 class Question(DB.Model):
@@ -453,6 +459,14 @@ class Justification(DB.Model):
                     "justification" : self.justification,
                     "seen" : self.seen,
                 }    
+
+class GlossaryTerm(DB.Model):
+   __tablename__ = "glossary"
+   
+   id = DB.Column(DB.Integer, primary_key=True)
+   term = DB.Column(DB.String, nullable=False)
+   definition = DB.Column(DB.String, nullable=False)
+
 
 
 ## RPW:  Unit test for the models ...

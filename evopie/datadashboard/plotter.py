@@ -128,8 +128,8 @@ def GenerateStudentDistributionGraph(df, studentID=0, contextDict=dict()):
 
     # loops through the traces to add in the additional two traces to the plot
     # the graph loading has a latency issue, but I am unaware of how to fix it
-    fig = go.FigureWidget(data=[graph.data[k] for k in range(2)]+[posMarkerInitialScore]+[posMarkerRevisedScore],
-                          layout=graph.layout)
+    fig = dict(data=[graph.data[k] for k in range(2)]+[posMarkerInitialScore]+[posMarkerRevisedScore],
+                      layout=graph.layout)
 
   except Exception as err:
     print("Plotter Didn't work:", err)

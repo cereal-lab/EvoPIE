@@ -138,3 +138,22 @@ def GetQuizOptionList():
       quizOptionList.append(optDict)
   return quizOptionList
 
+
+def GetGlossaryTerms():
+  terms   = pd.Series([], dtype='string')
+  definitions = pd.Series([], dtype='string')
+
+  df = pd.DataFrame({'Terms':terms, \
+                     'Definitions':definitions})
+  
+  with dashapp_context:
+    for termInstance in models.GlossaryTerm.query.order_by(models.GlossaryTerm.id).all():
+      terms   = pd.Series([termInstance.term], dtype='string')
+      definitions = pd.Series([termInstance.definition], dtype='string')
+
+      dfNewRow = pd.DataFrame({'Terms':terms, \
+                               'Definitions':definitions})
+      
+      df = pd.concat([df,dfNewRow])
+      
+  return df

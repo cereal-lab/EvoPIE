@@ -40,8 +40,6 @@ def GetDataFromPrefix(propIDPrefix, inputItem, whichView, quiet=False):
 
   # Indicate which axis points will fall along, when needed
   axisLabel = 'y'
-  if whichView.lower().find('student') >= 0:
-      axisLabel = 'x'
 
   if not quiet:
     print('Input Item:', inputItem, ",   View:", whichView)
@@ -50,7 +48,7 @@ def GetDataFromPrefix(propIDPrefix, inputItem, whichView, quiet=False):
     if propIDPrefix == 'deca':
       data   = inputItem['id']
     elif propIDPrefix == 'heatmap':
-      data = inputItem['points'][0][axisLabel]  # Use y for analysis by question, x for analysis by student
+      data = inputItem['points'][0][axisLabel]      
     elif propIDPrefix == 'mds':
       data = inputItem['points'][0]['text'].split(' ')[1]
     elif propIDPrefix == 'ids':

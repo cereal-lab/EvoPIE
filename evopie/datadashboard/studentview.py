@@ -79,12 +79,18 @@ def PopulateViewLayout():
           ]),
 
           html.Div(id="helpbox", className="rectangle", children=[
-            dbc.Button("Glossary", id="open"),
+            dbc.Button("Glossary", id="open", class_name="gloss-button"),
 
             dbc.Modal(
                 [
                     dbc.ModalHeader("Glossary"),
-                    dbc.ModalBody("BODY OF MODAL"),
+                    dbc.ModalBody(
+                        dbc.Table.from_dataframe(da.GetGlossaryTerms(),
+                                                 class_name="modal-table",
+                                                 striped=True,
+                                                 bordered=True, 
+                                                 hover=True)
+                        ),
                     dbc.ModalFooter(
                         dbc.Button("Close", id="close", className="ml-auto")
                     ),
@@ -163,6 +169,7 @@ def RegisterCallbacks(dashapp):
   def displayStudentDecaInitialDetail(*args): 
       global gWhichView
       quizID = appUtils.gApplicationState.QuizID
+
 
       whichScores, data = appUtils.StripContextInfo(dash.callback_context, gWhichView)
 
