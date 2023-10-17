@@ -117,12 +117,12 @@ def PopulateViewLayout():
 
           # Where the initial data visualization will go
           html.Div(id="left-infopane-student", className="infopane", children=[
-              html.H3(children="Initial", id="initial-title", className="header"),
+              html.H3(children="Pre-Test", id="initial-title", className="header"),
           ]),
 
           # Where the revised data visualization will go
           html.Div(id="right-infopane-student", className="infopane", children=[
-              html.H3(children="Revised", id="revised-title", className="header"),
+              html.H3(children="Post-Test", id="revised-title", className="header"),
           ]),
       ]),   
 
@@ -287,7 +287,7 @@ def RegisterCallbacks(dashapp):
 
       # Initialize the Initial panel HTML components
       componentsLeft = []
-      componentsLeft.append( html.H3(children="Initial", id="initial-title", className="header") )
+      componentsLeft.append( html.H3(children="Pre-Test", id="initial-title", className="header") )
       graphObject, contextDict = widgetbuilder.gBuilder.GetGraph(whichAnalysis, "student", "InitialScore")     
       componentsLeft.append( graphObject)
       if (whichAnalysis == "deca"):
@@ -296,7 +296,7 @@ def RegisterCallbacks(dashapp):
 
       # Initialize the Revised panel HTML components
       componentsRight = []
-      componentsRight.append( html.H3(children="Revised", id="revised-title", className="header") )
+      componentsRight.append( html.H3(children="Post-Test", id="revised-title", className="header") )
       graphObject, contextDict = widgetbuilder.gBuilder.GetGraph(whichAnalysis, "student", "RevisedScore")    
       componentsRight.append( graphObject )
       if (whichAnalysis == "deca"):
