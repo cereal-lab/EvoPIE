@@ -195,5 +195,13 @@ from . import cli #adds cli commands to app
 ##         This must happen **after** the DB init step
 from evopie.datadashboard import register_dashapps
 dashapp_context = APP.app_context()
-register_dashapps(APP)
+
+from evopie.datadashboard.questionview import PopulateViewLayout as PopulateQstnLayout
+from evopie.datadashboard.questionview import RegisterCallbacks as RegisterQstnCallbacks
+register_dashapps(APP, 'QuestionView', 'questionview', PopulateQstnLayout(), RegisterQstnCallbacks())
+
+from evopie.datadashboard.studentview import PopulateViewLayout as PopulateStdntLayout
+from evopie.datadashboard.studentview import RegisterCallbacks as RegisterStdntCallbacks
+register_dashapps(APP, 'StudentView', 'studentview', PopulateStdntLayout(), RegisterStdntCallbacks())
+
 ## ^^^ ---
