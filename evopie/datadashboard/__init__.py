@@ -4,9 +4,9 @@ from dash import dcc
 from dash import html
 from dash.dependencies import Input, Output, State
 
-from flask import Flask
+from flask import Flask, redirect
 from flask.helpers import get_root_path
-from flask_login import login_required
+from flask_login import login_required, current_user
 
 
 def register_dashapps(flask_server):
@@ -49,7 +49,7 @@ def register_dashapps(flask_server):
         # This returns the correct layout to populate the "page-content" of
         # the shell defined above
         @dashboardViewApp.callback(Output('page-content', 'children'),
-                                  Input('url', 'pathname'))
+                                   Input('url', 'pathname'))
         def display_main_view(pathname):
             print("DBG::: CALLBACK from dashboard shell!!  " + pathname)
             return select_page_layout(pathname, questionview.gLayout, studentview.gLayout)
@@ -73,11 +73,31 @@ def _protect_dashviews(dashapp):
 # EvoPIE once we fully integrate.  It's needed here until then so that
 # Flask knows where to find the application
 def select_page_layout(pathname, questionLayout, studentLayout):
+    pathname = pathname.strip()
     last_url_field = pathname.strip("/").split("/")[-1].strip()
     print("DBG::: The user selected the path: " + pathname + " and the last field is: " + last_url_field)
 
+    # If *just* the dashboard is loaded, assume we want the question view
+    if (pathname == '/datadashboard/') and (last_url_field == "datadashboard"):
+        last_url_field = "question"
+
+
+    # Don't load any layout if we're not authenticated, try to redirect back to the main page?
+    if (not current_user.is_authenticated):
+        redirectString = "The user is not authenticated.  The data dashboard is not accessible.  Redirecting to login ..."
+        redirectObject = html.Div(children=[
+#              html.Meta(httpEquiv="refresh", content="3; URL=http://127.0.0.1:5000/login"),
+              html.Meta(httpEquiv="refresh", content="3; URL=/login"),
+              html.P(children=redirectString, className="graph-component-message")] )
+        return redirectObject
+
+    # If we've asked to go back to the main
+    elif (pathname == '/') and (last_url_field == ''):
+        redirectString = "Returning to main page"
+        redirectObject = html.Div(children=[html.P(children=redirectString, className="graph-component-message")] )        
+    
     # If the URL request is for the question view, return that layout
-    if last_url_field == 'question':
+    elif last_url_field == 'question':
         return questionLayout
     
     # If the URL request is for the student view, return that layout

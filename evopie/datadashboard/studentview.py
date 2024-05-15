@@ -50,7 +50,7 @@ def PopulateViewLayout():
           html.Li(className="nav", children=[
               dcc.Link('Analysis by Question', href='/datadashboard/question/', className="nav-link"),
               dcc.Link('Analysis by Student', href='/datadashboard/student/', className="nav-link here"),
-              dcc.Link('Back to EvoPIE', href='/', className="nav-link")
+              dcc.Link('Back to EvoPIE', href='/', className="nav-link", refresh=True)
           ]),
           dcc.Dropdown(id="quizselect-dropdown-student", 
                       options=appUtils.gApplicationState.QuizOptions,
