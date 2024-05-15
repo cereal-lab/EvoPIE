@@ -102,17 +102,7 @@ flask deca init-many -ns 100 -nq 4 -nd 25 \
     --num-spaces 1 \
     --best-students-percent 0.05 \
     --noninfo 0.2 \
-    --timeout 1000 --random-seed 29      
-
-flask deca init-many -ns 100 -nq 4 -nd 25 \
-    -an 10 \
-    -as 5 \
-    --spanned-strategy "2AXES_BEST"\
-    --num-spanned 10 \
-    --num-spaces 1 \
-    --best-students-percent 0.05 \
-    --noninfo 0.2 \
-    --timeout 1000 --random-seed 29      
+    --timeout 1000 --random-seed 29          
 
 #space s1-1
 flask deca init-many -ns 100 -nq 4 -nd 25 \
@@ -136,16 +126,35 @@ flask deca init-many -ns 100 -nq 4 -nd 25 \
     --noninfo 0.2 \
     --timeout 1000 --random-seed 29      
 
+flask deca init-many -ns 100 -nq 4 -nd 25 \
+    -an 10 \
+    -as 5 \
+    --spanned-strategy "2AXES_BEST"\
+    --num-spanned 2 \
+    --num-spaces 1 \
+    --best-students-percent 0.05 \
+    --noninfo 0.2 \
+    --timeout 1000 --random-seed 29     
 
 flask deca init-many -ns 100 -nq 4 -nd 25 \
     -an 10 \
     -as 5 \
     --spanned-strategy "2AXES_BEST"\
-    --num-spanned 20 \
+    --num-spanned 3 \
     --num-spaces 1 \
     --best-students-percent 0.05 \
     --noninfo 0.2 \
     --timeout 1000 --random-seed 29      
+
+flask deca init-many -ns 100 -nq 4 -nd 25 \
+    -an 10 \
+    -as 5 \
+    --spanned-strategy "2AXES_BEST"\
+    --num-spanned 4 \
+    --num-spaces 1 \
+    --best-students-percent 0.05 \
+    --noninfo 0.2 \
+    --timeout 1000 --random-seed 29     
 
 flask deca init-many -ns 100 -nq 4 -nd 25 \
     -an 10 \
@@ -155,7 +164,77 @@ flask deca init-many -ns 100 -nq 4 -nd 25 \
     --num-spaces 1 \
     --best-students-percent 0.05 \
     --noninfo 0.2 \
+    --timeout 1000 --random-seed 29   
+
+flask deca init-many -ns 100 -nq 4 -nd 25 \
+    -an 10 \
+    -as 5 \
+    --spanned-strategy "2AXES_BEST"\
+    --num-spanned 6 \
+    --num-spaces 1 \
+    --best-students-percent 0.05 \
+    --noninfo 0.2 \
+    --timeout 1000 --random-seed 29  
+
+flask deca init-many -ns 100 -nq 4 -nd 25 \
+    -an 10 \
+    -as 5 \
+    --spanned-strategy "2AXES_BEST"\
+    --num-spanned 7 \
+    --num-spaces 1 \
+    --best-students-percent 0.05 \
+    --noninfo 0.2 \
     --timeout 1000 --random-seed 29      
+
+flask deca init-many -ns 100 -nq 4 -nd 25 \
+    -an 10 \
+    -as 5 \
+    --spanned-strategy "2AXES_BEST"\
+    --num-spanned 8 \
+    --num-spaces 1 \
+    --best-students-percent 0.05 \
+    --noninfo 0.2 \
+    --timeout 1000 --random-seed 29  
+
+flask deca init-many -ns 100 -nq 4 -nd 25 \
+    -an 10 \
+    -as 5 \
+    --spanned-strategy "2AXES_BEST"\
+    --num-spanned 9 \
+    --num-spaces 1 \
+    --best-students-percent 0.05 \
+    --noninfo 0.2 \
+    --timeout 1000 --random-seed 29          
+
+flask deca init-many -ns 100 -nq 4 -nd 25 \
+    -an 10 \
+    -as 5 \
+    --spanned-strategy "2AXES_BEST"\
+    --num-spanned 10 \
+    --num-spaces 1 \
+    --best-students-percent 0.05 \
+    --noninfo 0.2 \
+    --timeout 1000 --random-seed 29  
+
+flask deca init-many -ns 100 -nq 4 -nd 25 \
+    -an 10 \
+    -as 5 \
+    --spanned-strategy "2AXES_BEST"\
+    --num-spanned 15 \
+    --num-spaces 1 \
+    --best-students-percent 0.05 \
+    --noninfo 0.2 \
+    --timeout 1000 --random-seed 29      
+
+flask deca init-many -ns 100 -nq 4 -nd 25 \
+    -an 10 \
+    -as 5 \
+    --spanned-strategy "2AXES_BEST"\
+    --num-spanned 20 \
+    --num-spaces 1 \
+    --best-students-percent 0.05 \
+    --noninfo 0.2 \
+    --timeout 1000 --random-seed 29        
 
 # spaces 4x3
 flask deca init-many -ns 100 -nq 4 -nd 25 \
@@ -177,17 +256,7 @@ flask deca init-many -ns 100 -nq 4 -nd 25 \
     --num-spaces 1 \
     --best-students-percent 0.05 \
     --noninfo 0.2 \
-    --timeout 1000 --random-seed 29      
-
-flask deca init-many -ns 100 -nq 4 -nd 25 \
-    -an 4 \
-    -as 3 \
-    --spanned-strategy "2AXES_BEST"\
-    --num-spanned 10 \
-    --num-spaces 1 \
-    --best-students-percent 0.05 \
-    --noninfo 0.2 \
-    --timeout 1000 --random-seed 29      
+    --timeout 1000 --random-seed 29         
 
 #space s1-1
 flask deca init-many -ns 100 -nq 4 -nd 25 \
@@ -211,6 +280,25 @@ flask deca init-many -ns 100 -nq 4 -nd 25 \
     --noninfo 0.2 \
     --timeout 1000 --random-seed 29      
 
+flask deca init-many -ns 100 -nq 4 -nd 25 \
+    -an 4 \
+    -as 3 \
+    --spanned-strategy "2AXES_BEST"\
+    --num-spanned 5 \
+    --num-spaces 1 \
+    --best-students-percent 0.05 \
+    --noninfo 0.2 \
+    --timeout 1000 --random-seed 29  
+
+flask deca init-many -ns 100 -nq 4 -nd 25 \
+    -an 4 \
+    -as 3 \
+    --spanned-strategy "2AXES_BEST"\
+    --num-spanned 10 \
+    --num-spaces 1 \
+    --best-students-percent 0.05 \
+    --noninfo 0.2 \
+    --timeout 1000 --random-seed 29       
 
 flask deca init-many -ns 100 -nq 4 -nd 25 \
     -an 4 \
@@ -221,16 +309,7 @@ flask deca init-many -ns 100 -nq 4 -nd 25 \
     --best-students-percent 0.05 \
     --noninfo 0.2 \
     --timeout 1000 --random-seed 29      
-
-flask deca init-many -ns 100 -nq 4 -nd 25 \
-    -an 4 \
-    -as 3 \
-    --spanned-strategy "2AXES_BEST"\
-    --num-spanned 5 \
-    --num-spaces 1 \
-    --best-students-percent 0.05 \
-    --noninfo 0.2 \
-    --timeout 1000 --random-seed 29      
+    
 
 flask deca init-many -ns 100 -nq 4 -nd 25 \
     -an 4 \
@@ -242,6 +321,17 @@ flask deca init-many -ns 100 -nq 4 -nd 25 \
     --noninfo 0.2 \
     --timeout 1000 --random-seed 29      
 
+#---
+# this is log of created deca spaces for experimentation at 23-06-16 - 10 spaces of same shape
+flask deca init-many -ns 100 -nq 4 -nd 25 \
+    -an 10 \
+    -as 5 \
+    --spanned-strategy NONE\
+    --num-spanned 0 \
+    --num-spaces 10 \
+    --best-students-percent 0.05 \
+    --noninfo 0.2 \
+    --timeout 1000 --random-seed 29 --output-folder $WORK/evopie/spaces
 #----- 
 
 flask quiz deca-experiments \
@@ -541,3 +631,7 @@ flask deca space-result -r data/data-2023-04-06 -s ARRA -f ARRA --stats-column a
 flask deca space-result -r data/data-2023-05-01 --no-group -s ARRA -f ARRA --stats-column arra
 
 flask deca space-result -r data/data-2023-06-08 --no-group -s ARRA -f 'ARRA,D,ARR,Dup,nI' --stats-column arra
+
+flask deca space-result -r data/data-2023-06-13 --no-group -s ARRA -f 'ARRA,D,ARR,Dup,nI' --stats-column arra > res4.txt
+
+flask deca space-result -r data/rq1-2 --no-group -s ARRA -f 'ARRA,D,ARR,Dup,nI' --scale 100 --stats-column arra > rq1-2.txt

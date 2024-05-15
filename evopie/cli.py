@@ -369,6 +369,7 @@ def init_knowledge(input, output, email_format, knows, knowledge_replace, deca_i
         #NOTE: otherwise metrics defines value for all steps
         def dks_reducton(acc, k):
             ''' adds chances from simple knows record '''
+            # try:
             if "step" in k:
                 local_step = k["step"] - 1
                 metrics = k["metrics"]
@@ -378,8 +379,10 @@ def init_knowledge(input, output, email_format, knows, knowledge_replace, deca_i
                     acc[i] = k["metrics"][i]
             else: 
                 for i in range(len(acc)):
-                    if acc[i] < 0:
+                    if acc[i] is None:
                         acc[i] = k["metrics"]
+            # except Exception as e: 
+            #     print(e)
             return acc 
 
         knows_map_deca = {} 
@@ -389,7 +392,7 @@ def init_knowledge(input, output, email_format, knows, knowledge_replace, deca_i
                 space = deca.load_space_from_json(deca_input_json_str)
                 knows_map_deca_plain = deca.gen_test_distractor_mapping_knowledge(space)
                 knows_unpacked = unpack_key('did', unpack_key('qid', unpack_key('sid', knows_map_deca_plain)))
-                knows_map_deca = {sid: {qid: {did: reduce(dks_reducton, dks, [-1,-1])
+                knows_map_deca = {sid: {qid: {did: reduce(dks_reducton, dks, [None,None])
                                     for did, dks in groupby(qks, key = lambda x: x.get("did", "*")) } 
                                     for qid, qks in groupby(sks, key = lambda x: x.get("qid", "*")) } 
                                     for sid, sks in groupby(knows_unpacked, key = lambda x: x.get("sid", "*"))} 
@@ -398,7 +401,7 @@ def init_knowledge(input, output, email_format, knows, knowledge_replace, deca_i
         knows = [json.loads(k) for k in knows]  #NOTE: expected format {'sid':<opt, by default all>, 'qid':<opt, by default all>, 'did':<opt, by default all>, choice:num or [step1_c, step2_c] }
         knows_unpacked = unpack_key('did', unpack_key('qid', unpack_key('sid', knows)))
 
-        knows_map_args = {email_format.format(sid): {qid: {did: reduce(dks_reducton, dks, [-1,-1])
+        knows_map_args = {email_format.format(sid): {qid: {did: reduce(dks_reducton, dks, [None,None])
                             for did, dks in groupby(qks, key = lambda x: x.get("did", "*")) } 
                             for qid, qks in groupby(sks, key = lambda x: x.get("qid", "*")) } 
                             for sid, sks in groupby(knows_unpacked, key = lambda x: x.get("sid", "*"))}    
@@ -440,7 +443,7 @@ def init_knowledge(input, output, email_format, knows, knowledge_replace, deca_i
         knows_map = {**knows_map_input, **knows_map_deca, **knows_map_args}        
         students = DataFrame(columns=["email", "id"])    
 
-        distractor_column_order = list(sorted(set([ (i+1, qid, did) for skn in knows_map.values() for qid, qkn in skn.items() for did, dkn in qkn.items() for i, metrics in enumerate(dkn)])))
+        distractor_column_order = list(sorted(set([ (i+1, qid, did) for skn in knows_map.values() for qid, qkn in skn.items() for did, dkn in qkn.items() for i, _ in enumerate(dkn)])))
         distractor_columns = [f'd_{q}_{d}_{step}' for step, q, d in distractor_column_order]
 
         with APP.test_client(use_cookies=True) as c:
@@ -452,7 +455,7 @@ def init_knowledge(input, output, email_format, knows, knowledge_replace, deca_i
                 id_to_email[s.id] = s.email
             def init_knowledge_from_map(knowledge_map):
                 def add_to_students(email, student_id, student_knowledge):
-                    distractors = {(i+1, qid, did):metrics for qid, qks in student_knowledge.items() for did, dks in qks.items() for i, metrics in enumerate(dks)}
+                    distractors = {(i+1, qid, did):metrics for qid, qks in student_knowledge.items() for did, dks in qks.items() for i, metrics in enumerate(dks) if metrics is not None}
                     students.loc[student_id, [ "email", "id", *distractor_columns ]] = [email, student_id, *[distractors[kid] if kid in distractors else np.nan for kid in distractor_column_order]]                
                 if "*" in knowledge_map:
                     for student_id, email in id_to_email.items():
@@ -479,7 +482,7 @@ def init_knowledge(input, output, email_format, knows, knowledge_replace, deca_i
             present_knowledge = {kid:ks[0] for kid, ks in groupby(present_plain, key=lambda k: (k.student_id, k.question_id, k.distractor_id, k.step_id))}
         for _, student in students.iterrows(): 
             for c in student[student.notnull()].index:
-                if c.startswith("d_"):    
+                if c.startswith("d_") and student[c] != -1:    
                     question_id, distractor_id, step_id = [int(x) for x in c.split('_')[1:]]
                     knowledge_id = student.id, question_id, distractor_id, step_id
                     if knowledge_id in present_knowledge:
@@ -592,7 +595,7 @@ def simulate_quiz(quiz, course_id, instructor, password, no_algo, algo, algo_par
 
                 student_knowledge = knowledge.get(sid, {})
                 if knowledge_selection == KNOWLEDGE_SELECTION_CHANCE:
-                    responses = {qid:rnd_state.choice(known_distractors)
+                    responses = {qid:int(rnd_state.choice(known_distractors))
                                             for qid, distractors in attempt.alternatives_map.items() 
                                             for qskn in [student_knowledge.get(qid, {-1:{"chance":1}}) ]
                                             for ds_distr in [[(alt, qskn[d]["chance"]) for alt, d in enumerate(distractors) if d in qskn]] 
@@ -612,7 +615,7 @@ def simulate_quiz(quiz, course_id, instructor, password, no_algo, algo, algo_par
                     responses = {qid:sorted(ds, key=lambda x: x[1])[-1][0]
                                             for qid, distractors in attempt.alternatives_map.items() 
                                             for distractor_strength in [student_knowledge.get(qid, {}) ]
-                                            for ds_distr in [[(alt, distractor_strength[d]["order"]) for alt, d in enumerate(distractors) if d in distractor_strength]] 
+                                            for ds_distr in [[(alt, distractor_strength[d]["order"] + 0.001 * d) for alt, d in enumerate(distractors) if d in distractor_strength]] 
                                             for ds in [ds_distr if any(ds_distr) else [(alt,1) for alt, d in enumerate(distractors) if d == -1]]}
                 else: 
                     responses = {}
@@ -688,7 +691,7 @@ def calc_deca_metrics(algo_input, deca_space, params, input_output):
     population_distractors = algo_results["distractors"]
     algo_name = algo_input.split("/")[-1].split(".")[0]
     deca_name = deca_space.split("/")[-1].split(".")[0]
-    metrics_map = {"algo":algo_name,"deca": deca_name, #**{p:algo_results.get(p, np.nan) for p in params},
+    metrics_map = {"algo":algo_name,"deca": deca_name, "seed": algo_results.get("settings", {}).get("seed", 0),
                     **deca.dimension_coverage(space, population_distractors),
                     **deca.avg_rank_of_repr(space, population_distractors),
                     **deca.redundancy(space, population_distractors),
@@ -737,6 +740,9 @@ def calc_space_result(result_folder, sort_column, filter_column, stats_column, n
         algo_stats = pandas.concat(lst)
         idx = len(res.index)   
         algo, space = key.split("-on-")   
+        # if "_sp" in algo or "_dp" in algo: 
+        # if "_sp" in algo: 
+            # continue
         _, space_axes, space_spanned, *space_other = space.split("-")
         _, spanned_str = space_spanned.split('_')
         axes_str = space_axes.split('_')
@@ -745,7 +751,7 @@ def calc_space_result(result_folder, sort_column, filter_column, stats_column, n
         res.loc[idx, 'algo'] = algo        
         algo_mean = algo_stats[metrics].mean()
         if stats_column is not None: 
-            stats_samples.setdefault(space_id, {})[algo] = (algo_stats[stats_column].tolist(), algo_mean[stats_column])
+            stats_samples.setdefault(space_id, {})[algo] = (algo_stats[stats_column].tolist()[-30:], algo_mean[stats_column])
         res.loc[idx, metrics] = algo_mean
         res.loc[idx, [m + '_std' for m in metrics]] = algo_stats[metrics].std().tolist()
     res[[m + '_std' for m in metrics]] = res[[m + '_std' for m in metrics]].astype(float)
@@ -795,7 +801,9 @@ def calc_space_result(result_folder, sort_column, filter_column, stats_column, n
                         if type(col_val) == float: 
                             print("{:.1f}".format(col_val * scale), end = "")
                         else:
-                            print("{0: <20}& ".format(col_val), end="")
+                            col_val = col_val.replace('_', '\_').replace('|', '+')
+                            # col_val = col_val + '(2)' if col_val.startswith('phc') else col_val
+                            print("{0: <40}& ".format(col_val), end="")
                 dominated = sorted([algo_index[algo_name] for algo_name in domination[data['algo']].keys()])
                 dominated_fmtd = [] 
                 for idx in dominated: 
@@ -821,6 +829,547 @@ def calc_space_result(result_folder, sort_column, filter_column, stats_column, n
     #         # 'ttest': stats.ttest_ind(fs[0], fs[1], equal_var=False, alternative='two-sided'), 'utest': stats.mannwhitneyu(fs[0], fs[1],alternative='two-sided')
     #         }
 
+
+@deca_cli.command("space-result-plot")
+@click.option('-r', '--result-folder')
+@click.option('-m', '--metric')
+def calc_space_result(result_folder, metric):
+    res = {}
+    for file_name in os.listdir(result_folder): 
+        algo, space = file_name.split('-on-')
+        space_id = int(space.split('.')[0].split('-')[-1])
+        space_result = os.path.join(result_folder, file_name)
+        algo_stats = pandas.read_csv(space_result)
+        algo_metric_mean = algo_stats[metric].mean()
+        algo_metric_std = algo_stats[metric].std()
+        res.setdefault(algo, {}).setdefault(space_id, (list(algo_stats[metric]), algo_metric_mean, algo_metric_std))
+    for algo_id, space_res in res.items():
+        res[algo_id] = [res for _, res in sorted(space_res.items(), key=lambda x: x[0])]
+
+    # print(res)
+    import matplotlib
+    matplotlib.rcParams['text.usetex'] = True
+    matplotlib.rcParams['text.latex.preamble'] = [ r"\usepackage{times}" ]
+    matplotlib.rcParams['pdf.fonttype'] = 42
+    matplotlib.rcParams['ps.fonttype'] = 42
+    matplotlib.rcParams['font.family'] = ['Times']    
+
+    fig, ax = plt.subplots()
+
+    # mm = list(zip(min_data[y_name], max_data[y_name]))
+    # print(mean_data[y_name], std_data[y_name])
+    # yerr = [mean_data[y_name] - min_data[y_name], max_data[y_name] - mean_data[y_name]]
+    # yerr = std_data[y_name]
+    # plt.axvline(x = 0, color = 'tab:gray', linewidth=0.5, linestyle = 'dashed', label = 'GE enabled')
+    # plt.axvline(x = 1, color = 'tab:gray', linewidth=0.5, linestyle = 'dashed', label = 'GE disabled')
+    plt.axhline(y = 50, color = 'tab:gray', linewidth=0.5, linestyle = 'dashed')
+    # plt.axhline(y = 25, color = 'tab:gray', linewidth=0.5, linestyle = 'dashed')
+    # to_show = {'rand-3':'rand-3', 's-0_dp_sXd': 'dp sXd', 's-0_dp_d': 'dp d', 's-0_dp_dm': 'dp dm', 's-0_dp_nd': 'dp nd', 's-0_dp_ndXdm': 'dp ndXdm'}
+    to_show = {'rand-3': {'color': '#000', 'label': 'rand-3'}, 's-0_dp_d': {'color': '#777', 'label': 'dp d'}, 's-0_dp_nd': {'color':'#e6e6e6', 'label': 'dp nd'}}
+
+    import matplotlib.patches as mpatches
+    labels = []
+    def add_label(v, label):
+        color = v["bodies"][0].get_facecolor().flatten()
+        labels.append((mpatches.Patch(color=color), label))    
+    for algo, params in to_show.items():
+        v = ax.violinplot([[v * 100 for v in p] for p, _, _ in res[algo]], showextrema = False, showmedians=True)
+        for pc in v['bodies']:
+            pc.set_facecolor(params['color'])
+            pc.set_edgecolor('black')
+            # pc.set_alpha(1) 
+            # 
+        v['cmedians'].set_color(params['color'])
+        v['cmedians'].set_alpha(1)
+        add_label(v, params['label'])
+    
+    plt.legend(*zip(*labels), loc=4)
+    # for algo_id, space_res in res.items():
+    #     ax.errorbar(mean_data.index, mean_data[y_name] * 100, yerr=yerr * 100, marker='o', color='k', linewidth=1, capsize=6)
+    # ax.fill_between(mean_data.index, mean_data[y_name] - std_data[y_name], mean_data[y_name] + std_data[y_name], alpha=.5, linewidth=0)
+    # ax.plot(mean_data.index, mean_data[y_name] * 100, linewidth=0.5, marker='o', color="k")
+
+    #Welch ttest
+    # ttest = ttest_ind(plain_data[plain_data['down_level'] == 0.0][y_name].to_numpy(), plain_data[plain_data['down_level'] == 1.0][y_name].to_numpy(), equal_var = False, alternative='greater')
+    # print(ttest) #exact match Ttest_indResult(statistic=3.1980107453341544, pvalue=0.008130031236723555) - ge has statistically significant effect
+
+    # plt.xticks(rotation = 25)
+    plt.xlabel('Spaces', size=14)
+    plt.ylabel('ARR*, \%', size=14)
+    ax.tick_params(axis='both', which='major', labelsize=14)
+    ax.set_xticklabels(['', '4,1,1,1,1', '1,4,1,1,1', '1,1,4,1,1', '1,1,1,4,1', '1,1,1,1,4'])
+    # plt.title('Weather Report', fontsize = 20)
+    # legend = plot.legend("Exact match accuracy", fontsize=16)
+    # plot.xaxis.label.set_fontsize(18)
+    # plot.yaxis.label.set_fontsize(18)
+    # fig = plot.get_figure()  
+    fig.set_tight_layout(True)      
+    fig.savefig(f"rq3.pdf", format='pdf')        
+
+@deca_cli.command("space-t-test")
+@click.option('-r1')
+@click.option('-r2')
+@click.option('--metric')
+def calc_space_result(r1, r2, metric):
+    r1v = list(pandas.read_csv(r1)[metric])
+    r2v = list(pandas.read_csv(r2)[metric])
+    from scipy.stats import ttest_ind
+    ttest = ttest_ind(r1v, r2v, equal_var = False, alternative='greater')
+    print(ttest) #exact match Ttest_indResult(statistic=3.1980107453341544, pvalue=0.008130031236723555) - ge has statistically significant effect
+
+@deca_cli.command("space-result-per-space")
+@click.option('-r', '--result-folder')
+@click.option('-s', '--spaces', multiple=True)
+@click.option('-m', '--metric')
+def calc_space_result(result_folder, spaces, metric):
+    res = {}
+    for file_name in os.listdir(result_folder): 
+        algo_id, space = file_name.split('-on-')
+        if space not in spaces:
+            continue
+        space_result = os.path.join(result_folder, file_name)
+        algo_stats = pandas.read_csv(space_result)
+        algo_metric_mean = algo_stats[metric].mean()
+        algo_metric_std = algo_stats[metric].std()
+        res.setdefault(algo_id, []).append((space, algo_metric_mean, algo_metric_std))
+    space_ids = {s:i for i, s in enumerate(spaces)}
+    for algo_id, space_res in list(res.items()):
+        space_res.sort(key = lambda x: space_ids[x[0]])
+    print("algo ", end="")
+    for s in spaces:
+        print("& {0}".format(s), end="")
+    print("\\\\\\hline")
+    space_res_l = sorted(list(res.items()), key = lambda x: x[1][0][1], reverse=True)
+    for algo_id, space_res in space_res_l:
+        print("{0: <40}".format(algo_id.replace("_", "\_")), end="")
+        for space_id, mean, std in space_res:
+            print("& {0:.1f} $\\pm$ {1:.1f}".format(mean * 100, std * 100, space_id), end="")
+        print("\\\\")
+    print("\\hline")
+
+
+@deca_cli.command("space-result-plot-t")
+@click.option('-r', '--result-folder')
+@click.option('-m', '--metric')
+def calc_space_result(result_folder, metric):
+    res = {}
+    for file_name in os.listdir(result_folder): 
+        algo = file_name.split('-on-')[0]
+        algo_parts = algo.split('-')[2].split('_')
+        T = int(algo_parts[0])
+        algo_id = "_".join(algo_parts[2:])
+        space_result = os.path.join(result_folder, file_name)
+        algo_stats = pandas.read_csv(space_result)
+        algo_metric_mean = algo_stats[metric].mean()
+        algo_metric_std = algo_stats[metric].std()
+        res.setdefault(algo_id, {}).setdefault(T, (T, list(algo_stats[metric]), algo_metric_mean, algo_metric_std))
+    x = {}
+    ys = {}
+    for algo_id, space_res in res.items():
+        x[algo_id], ys[algo_id] = zip(*sorted(space_res.items(), key=lambda x: x[0]))
+    # print(res)
+    import matplotlib
+    matplotlib.rcParams['text.usetex'] = True
+    matplotlib.rcParams['text.latex.preamble'] = [ r"\usepackage{times}" ]
+    matplotlib.rcParams['pdf.fonttype'] = 42
+    matplotlib.rcParams['ps.fonttype'] = 42
+    matplotlib.rcParams['font.family'] = ['Times']    
+
+    fig, ax = plt.subplots()
+
+    # mm = list(zip(min_data[y_name], max_data[y_name]))
+    # print(mean_data[y_name], std_data[y_name])
+    # yerr = [mean_data[y_name] - min_data[y_name], max_data[y_name] - mean_data[y_name]]
+    # yerr = std_data[y_name]
+    # plt.axvline(x = 0, color = 'tab:gray', linewidth=0.5, linestyle = 'dashed', label = 'GE enabled')
+    plt.axvline(x = 15, color = 'tab:gray', linewidth=0.5, linestyle = 'dashed')
+    # plt.axhline(y = 77, color = 'tab:gray', linewidth=0.5, linestyle = 'dashed')
+    # plt.axhline(y = 25, color = 'tab:gray', linewidth=0.5, linestyle = 'dashed')
+    # to_show = {'rand-3':'rand-3', 's-0_dp_sXd': 'dp sXd', 's-0_dp_d': 'dp d', 's-0_dp_dm': 'dp dm', 's-0_dp_nd': 'dp nd', 's-0_dp_ndXdm': 'dp ndXdm'}
+    # to_show = {'rand-3': {'color': '#000', 'label': 'rand-3'}, 's-0_dp_d': {'color': '#777', 'label': 'dp d'}, 's-0_dp_nd': {'color':'#e6e6e6', 'label': 'dp nd'}}
+
+    # import matplotlib.patches as mpatches
+    # labels = []
+    # def add_label(v, label):
+    #     color = v["bodies"][0].get_facecolor().flatten()
+    #     labels.append((mpatches.Patch(color=color), label))    
+    # x = list(range(0, 55, 5))
+    for algo, t_res in ys.items():
+
+        sorted_algo_res = sorted(t_res, key=lambda x: -x[2])
+        Ts, algo_values, algo_means, algo_errors  = zip(*sorted_algo_res)
+        data = np.array([algo_res for algo_res in algo_values]).T
+        import scipy.stats as stats
+        import scikit_posthocs as sp
+        friedman_res = stats.friedmanchisquare(*data.T)
+        nemenyi_res = sp.posthoc_nemenyi_friedman(data) 
+        p=0.15
+        algo_m = {algo: algo_means[i] for i, algo in enumerate(Ts)}
+        print(f"\n----------------------------------")
+        print(f"Stat result for algo {algo}")
+        print(f"Algo: {algo_m}")
+        print(f"Friedman: {friedman_res}")
+        # print(f"Nemenyi:\n{nemenyi_res}")
+        #we now assign score for each algo based on nemenyi p-value result 
+        domination = {algo_name: {Ts[j]: p_val for j, p_val in enumerate(nemenyi_res[i]) if p_val <= p and j > i}
+                        for i, algo_name in enumerate(Ts) }
+        for algo_name, dominated in domination.items():
+            if len(dominated) > 0: 
+                print(f"\t{algo_name} (mean {algo_m[algo_name]}) dominates {dominated}")
+
+        y = np.array([m * 100 for _, _, m, _ in t_res])
+        yerr = np.array([e * 100 for _, _, _, e in t_res])
+        ymin = y - yerr 
+        ymax = y + yerr
+        # ax.errorbar(x, , yerr=, marker='o', color='k', linewidth=1, capsize=6)
+        if algo in ['d']:
+            ax.fill_between(x[algo], ymin, ymax, alpha=.1, linewidth=0)
+        ax.plot(x[algo], y, linewidth=1, markersize=5, marker='o', label=algo.replace("_", "\\_"))        
+    ax.set_xlim(0, 45)
+    # ax.set_ylim(0, 100)
+    
+    # plt.legend(*zip(*labels), loc=4)
+    plt.legend(loc=3)
+    # for algo_id, space_res in res.items():
+    # ax.fill_between(mean_data.index, mean_data[y_name] - std_data[y_name], mean_data[y_name] + std_data[y_name], alpha=.5, linewidth=0)
+    # ax.plot(mean_data.index, mean_data[y_name] * 100, linewidth=0.5, marker='o', color="k")
+
+    #Welch ttest
+    # ttest = ttest_ind(plain_data[plain_data['down_level'] == 0.0][y_name].to_numpy(), plain_data[plain_data['down_level'] == 1.0][y_name].to_numpy(), equal_var = False, alternative='greater')
+    # print(ttest) #exact match Ttest_indResult(statistic=3.1980107453341544, pvalue=0.008130031236723555) - ge has statistically significant effect
+
+    # plt.xticks(rotation = 25)
+    plt.xlabel('Simulated time, T', size=14)
+    plt.ylabel('ARR*, \%', size=14)
+    ax.tick_params(axis='both', which='major', labelsize=14)
+    # ax.set_xticklabels(['', '4,1,1,1,1', '1,4,1,1,1', '1,1,4,1,1', '1,1,1,4,1', '1,1,1,1,4'])
+    # plt.title('Weather Report', fontsize = 20)
+    # legend = plot.legend("Exact match accuracy", fontsize=16)
+    # plot.xaxis.label.set_fontsize(18)
+    # plot.yaxis.label.set_fontsize(18)
+    # fig = plot.get_figure()  
+    fig.set_tight_layout(True)      
+    fig.savefig(f"rq5.pdf", format='pdf')     
+
+@deca_cli.command("space-result-plot-spanned")
+@click.option('-r', '--result-folder')
+@click.option('-f', '--filter')
+@click.option('--algos', multiple=True)
+def calc_space_result(result_folder, filter, algos):
+    res = {}
+    for file_name in os.listdir(result_folder): 
+        algo_id, space = file_name.split('-on-')
+        if not space.endswith(filter) or (len(algos) > 0 and algo_id not in algos): 
+            continue
+        spanned = int(space.split("-")[-2].split("_")[-1])
+        space_result = os.path.join(result_folder, file_name)
+        algo_stats = pandas.read_csv(space_result)
+        algo_arra_mean = algo_stats["arra"].mean()
+        algo_arra_std = algo_stats["arra"].std()
+        algo_r_mean = algo_stats["population_redundancy"].mean()
+        algo_r_std = algo_stats["population_redundancy"].std()        
+        res.setdefault(algo_id, {}).setdefault(spanned, (algo_arra_mean, algo_arra_std, algo_r_mean, algo_r_std))
+    x = {}
+    ys = {}
+    for algo_id, space_res in res.items():
+        x[algo_id], ys[algo_id] = zip(*sorted(space_res.items(), key=lambda x: x[0]))
+    # print(res)
+    import matplotlib
+    matplotlib.rcParams['text.usetex'] = True
+    matplotlib.rcParams['text.latex.preamble'] = [ r"\usepackage{times}" ]
+    matplotlib.rcParams['pdf.fonttype'] = 42
+    matplotlib.rcParams['ps.fonttype'] = 42
+    matplotlib.rcParams['font.family'] = ['Times']    
+
+    fig, ax = plt.subplots()
+
+    # mm = list(zip(min_data[y_name], max_data[y_name]))
+    # print(mean_data[y_name], std_data[y_name])
+    # yerr = [mean_data[y_name] - min_data[y_name], max_data[y_name] - mean_data[y_name]]
+    # yerr = std_data[y_name]
+    # plt.axvline(x = 0, color = 'tab:gray', linewidth=0.5, linestyle = 'dashed', label = 'GE enabled')
+    # plt.axvline(x = 15, color = 'tab:gray', linewidth=0.5, linestyle = 'dashed')
+    # plt.axhline(y = 77, color = 'tab:gray', linewidth=0.5, linestyle = 'dashed')
+    # plt.axhline(y = 25, color = 'tab:gray', linewidth=0.5, linestyle = 'dashed')
+    # to_show = {'rand-3':'rand-3', 's-0_dp_sXd': 'dp sXd', 's-0_dp_d': 'dp d', 's-0_dp_dm': 'dp dm', 's-0_dp_nd': 'dp nd', 's-0_dp_ndXdm': 'dp ndXdm'}
+    # to_show = {'rand-3': {'color': '#000', 'label': 'rand-3'}, 's-0_dp_d': {'color': '#777', 'label': 'dp d'}, 's-0_dp_nd': {'color':'#e6e6e6', 'label': 'dp nd'}}
+
+    # import matplotlib.patches as mpatches
+    # labels = []
+    # def add_label(v, label):
+    #     color = v["bodies"][0].get_facecolor().flatten()
+    #     labels.append((mpatches.Patch(color=color), label))    
+    # x = list(range(0, 55, 5))
+    for algo, t_res in ys.items():
+
+        # sorted_algo_res = sorted(t_res, key=lambda x: -x[2])
+        # Ts, algo_values, algo_means, algo_errors  = zip(*sorted_algo_res)
+        # data = np.array([algo_res for algo_res in algo_values]).T
+        # import scipy.stats as stats
+        # import scikit_posthocs as sp
+        # friedman_res = stats.friedmanchisquare(*data.T)
+        # nemenyi_res = sp.posthoc_nemenyi_friedman(data) 
+        # p=0.15
+        # algo_m = {algo: algo_means[i] for i, algo in enumerate(Ts)}
+        # print(f"\n----------------------------------")
+        # print(f"Stat result for algo {algo}")
+        # print(f"Algo: {algo_m}")
+        # print(f"Friedman: {friedman_res}")
+        # # print(f"Nemenyi:\n{nemenyi_res}")
+        # #we now assign score for each algo based on nemenyi p-value result 
+        # domination = {algo_name: {Ts[j]: p_val for j, p_val in enumerate(nemenyi_res[i]) if p_val <= p and j > i}
+        #                 for i, algo_name in enumerate(Ts) }
+        # for algo_name, dominated in domination.items():
+        #     if len(dominated) > 0: 
+        #         print(f"\t{algo_name} (mean {algo_m[algo_name]}) dominates {dominated}")
+
+        y = np.array([m * 100 for m, _, _, _ in t_res])
+        yerr = np.array([e * 100 for _, e, _, _ in t_res])
+        ymin = y - yerr 
+        ymax = y + yerr
+        # ax.errorbar(x, , yerr=, marker='o', color='k', linewidth=1, capsize=6)
+        pl = ax.plot(x[algo], y, linewidth=1, markersize=5, marker='o', label=algo.replace("_", "\\_"))        
+        if algo in ['rand-3', 's-0_dp_nd']:
+            ax.fill_between(x[algo], ymin, ymax, alpha=.1, linewidth=0, color=pl[0].get_color())
+    ax.set_xlim(1, 20)
+    ax.set_xticks(x["rand-3"])
+    # ax.set_ylim(0, 100)
+    
+    # plt.legend(*zip(*labels), loc=4)
+    plt.legend(loc=2)
+    # for algo_id, space_res in res.items():
+    # ax.fill_between(mean_data.index, mean_data[y_name] - std_data[y_name], mean_data[y_name] + std_data[y_name], alpha=.5, linewidth=0)
+    # ax.plot(mean_data.index, mean_data[y_name] * 100, linewidth=0.5, marker='o', color="k")
+
+    #Welch ttest
+    # ttest = ttest_ind(plain_data[plain_data['down_level'] == 0.0][y_name].to_numpy(), plain_data[plain_data['down_level'] == 1.0][y_name].to_numpy(), equal_var = False, alternative='greater')
+    # print(ttest) #exact match Ttest_indResult(statistic=3.1980107453341544, pvalue=0.008130031236723555) - ge has statistically significant effect
+
+    # plt.xticks(rotation = 25)
+    plt.xlabel('Number of spanned points', size=14)
+    plt.ylabel('ARR*, \%', size=14)
+    ax.tick_params(axis='both', which='major', labelsize=14)
+    # ax.set_xticklabels(['', '4,1,1,1,1', '1,4,1,1,1', '1,1,4,1,1', '1,1,1,4,1', '1,1,1,1,4'])
+    # plt.title('Weather Report', fontsize = 20)
+    # legend = plot.legend("Exact match accuracy", fontsize=16)
+    # plot.xaxis.label.set_fontsize(18)
+    # plot.yaxis.label.set_fontsize(18)
+    # fig = plot.get_figure()  
+    fig.set_tight_layout(True)      
+    fig.savefig(f"rq7-3.pdf", format='pdf')     
+
+@deca_cli.command("space-result-plot-s")
+@click.option('-r', '--result-folder')
+@click.option('-m', '--metric')
+@click.option('-s', is_flag=True)
+def calc_space_result(result_folder, metric, s):
+    res = {}
+    for file_name in os.listdir(result_folder): 
+        algo = file_name.split('-on-')[0]
+        algo_parts = algo.split("!")
+        if s:
+            S = ""
+            algo_id = algo
+        else: 
+            S = 0 if "!" not in algo else len(algo_parts[1])
+            algo_id = algo_parts[0]
+        space_result = os.path.join(result_folder, file_name)
+        algo_stats = pandas.read_csv(space_result)
+        algo_metric_mean = algo_stats[metric].mean()
+        algo_metric_std = algo_stats[metric].std()
+        res.setdefault(algo_id, {}).setdefault(S, (list(algo_stats[metric]), algo_metric_mean, algo_metric_std))
+    print("algo & $S=0$ & $S=1$ & $S=2$")
+    for algo_id, space_res in res.items():
+        print("{0: <40} ".format(algo_id), end="")
+        for S, (_, mean, std) in sorted(space_res.items(), key = lambda x: x[0]):
+            print(" & {0:.1f} $\\pm$ {1:.1f} ".format(mean * 100, std * 100, S), end="")
+        print("\\\\")
+    
+@deca_cli.command("space-ranks")
+@click.option('-r', '--result-folder')
+def calc_space_ranks(result_folder):
+    metrics = ['arra']
+    res = DataFrame(columns=['space', 'algo', *[c for m in metrics for c in [m, m + '_std']]])
+    res_by_seeds = {}
+    for file_name in os.listdir(result_folder): 
+        space_result = os.path.join(result_folder, file_name)
+        algo_stats = pandas.read_csv(space_result)
+        is_first = len(res_by_seeds) == 0
+        algo, space = file_name.split("-on-")  
+        if "_sp" in algo or "_dp" in algo: 
+            continue
+        _, space_axes, space_spanned, *space_other = space.split("-")
+        _, spanned_str = space_spanned.split('_')
+        axes_str = space_axes.split('_')
+        space_id = (int(spanned_str), len(axes_str), int(axes_str[0]), "" if len(space_other) == 0 else '-'.join(space_other))
+
+        for _, x in algo_stats[['seed', 'arra']].iterrows():
+            seed = int(x['seed'])
+            # assert is_first or seed in res_by_seeds, 'Rand seed is different'
+            res_by_seeds.setdefault(space_id, {}).setdefault(seed, []).append((algo, x['arra']))
+
+    from scipy.stats import rankdata
+    space_res = []
+    for space_id, seeds in res_by_seeds.items():
+        assert len(seeds) == 30
+        algo_res = {}
+        for seed, algos in seeds.items():
+            ranked = rankdata([-arra for _, arra in algos])
+            min_rank = min(ranked)
+            for a, r in zip([algo for algo, _ in algos], ranked):
+                algo_res.setdefault(a, []).append((r, 1 if r == min_rank else 0))      
+        res = []
+        for a, ranks in algo_res.items():
+            assert len(ranks) == 30 
+            res.append((a, np.mean([r for r, _ in ranks]), np.std([r for r, _ in ranks]), sum(r for _, r in ranks)))
+        res.sort(key = lambda x:-x[3])
+        space_res.append((space_id, res))
+    space_res.sort(key=lambda x:x[0])
+    order_by_cnt = {}
+    for _, res in space_res:
+        for a, _, _, cnt in res:
+            order_by_cnt[a] = order_by_cnt.get(a, 0) + cnt
+    print("algo", end="")
+    for space_id, res in space_res:
+        res.sort(key = lambda x:-order_by_cnt[x[0]])
+        space_idx = int(space_id[-1].split('.')[0]) + 1
+        print(" & {0}".format(space_idx), end="")
+    print("& $\sum$\\\\\\hline")
+    for algo_id, (algo, _, _, _) in enumerate(space_res[0][1]):
+        col_val = algo.replace('_', '\_').replace('|', '+')
+        print("{0: <20}".format(col_val), end="")
+        for space_id, res in space_res:
+            # print(" & {0:.1f} $\pm$ {1:.1f}".format(res[algo_id][1], res[algo_id][2]), end="")
+            print(" & {0}".format(res[algo_id][3]), end="")
+        print(" & {0}".format(order_by_cnt[algo]), end="")
+        print("\\\\")
+        # print("{:.1f}".format(col_val * scale), end = "")s
+    print("\\hline")
+    
+
+@deca_cli.command("space-distr")
+@click.option('-s', '--space-folder')
+@click.option('-f', '--file-name')
+@click.option('--from-point', type=int)
+@click.option('--to-point', type=int)
+def calc_space_ranks(space_folder, file_name, from_point, to_point):
+    if file_name is not None and from_point is not None and to_point is not None: 
+        space_file = os.path.join(os.path.abspath(space_folder), file_name)
+        with open(space_file, 'r') as f:
+            space = json.loads("\n".join(f.readlines()))
+        for points in space['axes'].values():
+            a, b = points[str(from_point)]['dids'], points[str(to_point)]['dids']
+            points[str(to_point)]['dids'] = a  
+            points[str(from_point)]['dids'] = b
+        with open(space_file, 'w') as f:
+            f.write(json.dumps(space))
+    else:
+        res = []
+        for file_name in os.listdir(space_folder): 
+            space_file = os.path.join(space_folder, file_name)
+            with open(space_file, 'r') as f:
+                space = json.loads("\n".join(f.readlines()))
+            distr_cnt = [len(point['dids']) for axis_id, axis in space['axes'].items() for point_id, point in axis.items()]        
+            total_distrs = sum(distr_cnt) + len(space['zero']['dids'])
+            dstr = [len(axis[str(space['dims'][int(axis_id)] -  1)]['dids']) 
+                                for axis_id, axis in space['axes'].items()]
+            distrs_at_ends = sum(dstr) / total_distrs * 100
+            distr_cnt = set([tuple([len(point['dids']) for point_id, point in axis.items()]) for axis_id, axis in space['axes'].items()])
+            res.append((file_name, distrs_at_ends, np.mean(dstr), np.std(dstr), distr_cnt))
+        res.sort(key = lambda x:x[0])
+        for r in res:
+            print(r)
+
+
+    
+        # idx = len(res.index)        
+        # res.loc[idx, 'algo'] = algo_stats.loc[0, 'algo'].split("/")[-1].split(".")[0]
+        # res.loc[idx, metrics] = algo_stats[metrics].mean()
+        # res.loc[idx, [m + '_std' for m in metrics]] = algo_stats[metrics].std().tolist()    
+    # if stats_column is not None: 
+    #     #NOTE: need to install scipy, scikit-posthocs
+    #     import scipy.stats as stats
+    #     import scikit_posthocs as sp
+    #     stats_samples = {}
+
+    # for key, lst in dframes.items():
+    #     algo_stats = pandas.concat(lst)
+    #     idx = len(res.index)   
+    #     algo, space = key.split("-on-")   
+    #     if "_sp" in algo or "_dp" in algo: 
+    #         continue
+    #     _, space_axes, space_spanned, *space_other = space.split("-")
+    #     _, spanned_str = space_spanned.split('_')
+    #     axes_str = space_axes.split('_')
+    #     space_id = (int(spanned_str), len(axes_str), int(axes_str[0]), "" if len(space_other) == 0 else '-'.join(space_other))
+    #     res.loc[idx, 'space'] = space_id
+    #     res.loc[idx, 'algo'] = algo        
+    #     algo_mean = algo_stats[metrics].mean()
+    #     # if stats_column is not None: 
+    #     #     stats_samples.setdefault(space_id, {})[algo] = (algo_stats[stats_column].tolist()[-30:], algo_mean[stats_column])
+    #     res.loc[idx, metrics] = algo_mean
+    #     res.loc[idx, [m + '_std' for m in metrics]] = algo_stats[metrics].std().tolist()
+    # res[[m + '_std' for m in metrics]] = res[[m + '_std' for m in metrics]].astype(float)
+    # res[metrics] = res[metrics].astype(float)    
+    # res.rename(columns={'dim_coverage':'D', 'arr':'ARR', 'arra': 'ARRA', 'population_redundancy':'R', 'population_duplication':'Dup', 'noninfo':'nI',
+    #                         'dim_coverage_std':'D_std', 'arr_std':'ARR_std', 'arra_std': 'ARRA_std', 'population_redundancy_std':'R_std', 'population_duplication_std':'Dup_std', 'noninfo_std':'nI_std'}, inplace=True)
+    # res.sort_values(by = ['space', sort_column, f"{sort_column}_std"], inplace=True, ascending=[True, False, True])
+    # res = res.round(3)
+    # if filter_column:
+    #     ms = filter_column.split(',')
+    #     res = res[['space', "algo", *[c for m in ms for c in [m, m + '_std']]]]
+    # if stats_column is not None:
+    #     for space, algos in sorted(stats_samples.items(), key = lambda x: x[0]):  
+    #         plain_algo_res = [(a, v, m) for (a, (v, m)) in algos.items()]
+    #         sorted_algo_res = sorted(plain_algo_res, key=lambda x: -x[2])
+    #         algo_names, algo_values, algo_means = zip(*sorted_algo_res)
+    #         data = np.array([algo_res for algo_res in algo_values]).T
+    #         friedman_res = stats.friedmanchisquare(*data.T)
+    #         nemenyi_res = sp.posthoc_nemenyi_friedman(data) 
+    #         p=0.10
+    #         algo_m = {algo: algo_means[i] for i, algo in enumerate(algo_names)}
+    #         print(f"\n----------------------------------")
+    #         print(f"Stat result for space {space}")
+    #         print(f"Algo: {algo_m}")
+    #         print(f"Friedman: {friedman_res}")
+    #         # print(f"Nemenyi:\n{nemenyi_res}")
+    #         #we now assign score for each algo based on nemenyi p-value result 
+    #         domination = {algo_name: {algo_names[j]: p_val for j, p_val in enumerate(nemenyi_res[i]) if p_val <= p and j > i}
+    #                         for i, algo_name in enumerate(algo_names) }
+    #         for algo_name, dominated in domination.items():
+    #             if len(dominated) > 0: 
+    #                 print(f"\t{algo_name} (mean {algo_m[algo_name]}) dominates {dominated}")
+
+    #         space_res = res[res['space'] == space].drop(columns = 'space')
+    #         print("\\# & ", end="")
+    #         for col_id in space_res.columns:
+    #             if not col_id.endswith("_std"):
+    #                 print(f"{col_id} & ", end="")
+    #         print(">_{0.1}\\\\\\hline")
+    #         algo_index = {data['algo']: (i + 1) for i, (_, data) in enumerate(space_res.iterrows())}
+    #         for i, (_, data) in enumerate(space_res.iterrows()):                
+    #             print("{0: <3} & ".format(i+1), end="")
+    #             for col_id, col_val in data.iteritems():
+    #                 if col_id.endswith("_std"):
+    #                     print(" $\pm$ {:.1f}\t& ".format(col_val * scale), end="")
+    #                 else:
+    #                     if type(col_val) == float: 
+    #                         print("{:.1f}".format(col_val * scale), end = "")
+    #                     else:
+    #                         col_val = col_val.replace('_', '\_').replace('|', '+')
+    #                         # col_val = col_val + '(2)' if col_val.startswith('phc') else col_val
+    #                         print("{0: <40}& ".format(col_val), end="")
+    #             dominated = sorted([algo_index[algo_name] for algo_name in domination[data['algo']].keys()])
+    #             dominated_fmtd = [] 
+    #             for idx in dominated: 
+    #                 if len(dominated_fmtd) == 0:
+    #                     dominated_fmtd.append([idx, idx])
+    #                 elif dominated_fmtd[-1][-1] == idx - 1:
+    #                     dominated_fmtd[-1][-1] = idx
+    #                 else:
+    #                     dominated_fmtd.append([idx, idx])
+    #             print(",".join([f'{s}-{e}' if s != e else str(s) for s, e in dominated_fmtd]), end="")
+    #             print("\\\\")
 
 @quiz_cli.command("export")
 @click.option('-q', '--quiz', type=int, required=True)

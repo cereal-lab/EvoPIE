@@ -627,14 +627,9 @@ class EvoProcess(DB.Model):
         'version_id_generator': lambda version: datetime.now()
     }   
 
-    def copy(self):
-        new_process = EvoProcess(quiz_id=self.quiz_id, start_timestamp=self.start_timestamp, touch_timestamp=self.touch_timestamp, status=self.status, impl=self.impl, impl_state=self.impl_state, population=self.population, objectives=self.objectives)
+    def copy(self, new_quiz_id):
+        new_process = EvoProcess(quiz_id=new_quiz_id, start_timestamp=self.start_timestamp, touch_timestamp=self.touch_timestamp, status=self.status, impl=self.impl, impl_state=self.impl_state)
         return new_process 
-    
-    def deepcopy(self):
-        new_process = self.copy()
-        new_process.archive = [archive.copy() for archive in self.archive]
-        return new_process
 
 # class Interaction(DB.Model):
 #     '''

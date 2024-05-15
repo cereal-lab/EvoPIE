@@ -1194,8 +1194,10 @@ def quiz_copy(qid):
     new_quiz = quiz.copy()
     models.DB.session.add(new_quiz)
 
+    models.DB.session.commit()
+    
     if evo_process is not None:
-        new_evo_process = evo_process.deepcopy()
+        new_evo_process = evo_process.copy(new_quiz.id)
         models.DB.session.add(new_evo_process)
 
     models.DB.session.commit()
