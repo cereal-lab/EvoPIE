@@ -3,10 +3,10 @@ import numpy as np
 import pandas as pd
 
 import evopie.datadashboard.datalayer.generator as da
-#import evopie.datadashboard.datalayer.dbaccess as da
 
 gFakeScoresDF=None
-import evopie.datadashboard.analysislayer.deca as deca #Asha: imported deca
+import evopie.datadashboard.analysislayer.deca as deca 
+
 
 def convertDFToScoresMatrix(df):
   """
@@ -24,10 +24,6 @@ def convertDFToScoresMatrix(df):
   The dbgHtmlObj is the list of strings being made to HTML.  It's
   not used here, but is available for debugging, in case needed.
   """
-  # Grab all the quiz attempt records for the specified quiz ID
-  # as a Pandas data frame.
-  #df = GetScoresDataframe(quizID, dbgHtmlObj)
-
   # Initialize the scores dictionaries and quiestion and student ID sets
   questionIDSet = set(df['QuestionID'])
   studentIDSet = set(df['StudentID'])
@@ -196,7 +192,6 @@ def convertDecaQuestionDimsToCytoElementDict(dims, df, whichScores, prefix="Q"):
   """
   cytoElemDict = []
 
-  #########Asha: added infoHard and infoEasy information for the styling of the cytoscape
   dataset = convertDFToDecaResultsFormat(df, whichScores)
 
   contextDict = {"whichScores":whichScores, \
@@ -208,9 +203,7 @@ def convertDecaQuestionDimsToCytoElementDict(dims, df, whichScores, prefix="Q"):
   studentEquivClass = contextDict['equivClass']
   pSet = contextDict['questionSubset']
   infoHard, infoEasy = deca.summarizeMaxMinDimensions(studentDims, pSet, studentEquivClass, True)
-  #print('Hard Questions: ', infoHard)
-  #print('Easy Questions: ', infoEasy)
-  ######## Asha's addition ------------------------ 
+
   # The origin of the geometric axes
   cytoElemDict.append({'data':{'id':'root',\
                                'label':''},\
@@ -225,8 +218,6 @@ def convertDecaQuestionDimsToCytoElementDict(dims, df, whichScores, prefix="Q"):
     theta = theta + dTheta
     for test in dim:
       radius += 80
-      #print(test[2] in infoHard) #Asha: test check if test[2] is in infoHard
-      #print(test[2] in infoEasy) #Asha: test check if test[2] is in infoEasy
       nodeLabel = prefix + str(test[2])
       nodeDict = {'id':str(test[2]),
                   'label':nodeLabel}
@@ -234,7 +225,7 @@ def convertDecaQuestionDimsToCytoElementDict(dims, df, whichScores, prefix="Q"):
       posDict = {'x': int(radius*np.cos(theta)), 'y': int(radius*np.sin(theta))}
       if test[2] in infoHard:
         cytoElemDict.append({'data':nodeDict,
-                            'classes': 'info-hard-node', #Asha: added a class for the nodes
+                            'classes': 'info-hard-node', 
                             'mouseoverNodeData':popupDict,
                             'position':posDict})
       elif test[2] in infoEasy:

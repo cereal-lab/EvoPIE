@@ -8,6 +8,9 @@ from flask import Flask, redirect
 from flask.helpers import get_root_path
 from flask_login import login_required, current_user
 
+# RPW:  Once the circular reference is resolved, change this to use dbaccess
+from evopie.datadashboard.datalayer.dbvalidator import IsValidDashboardUser
+
 
 def register_dashapps(flask_server):
     from evopie.datadashboard import questionview, studentview
@@ -55,13 +58,6 @@ def register_dashapps(flask_server):
             return select_page_layout(pathname, questionview.gLayout, studentview.gLayout)
 
 
-    # We'll eventually need to make sure we don't short-cut authentication ... but for now,
-    # we'll comment this out.  Not sure if this is the right way for EvoPIE.
-    #_protect_dashviews(questionViewApp)
-    #_protect_dashviews(studentViewApp)
-
-
-
 def _protect_dashviews(dashapp):
     for view_func in dashapp.server.view_functions:
         if view_func.startswith(dashapp.config.url_base_pathname):
@@ -69,7 +65,7 @@ def _protect_dashviews(dashapp):
                 dashapp.server.view_functions[view_func])
             
             
-# RPW:  This function will probably go away in favor of the "routes" used by
+# RPW:  This function should probably go away in favor of the "routes" used by
 # EvoPIE once we fully integrate.  It's needed here until then so that
 # Flask knows where to find the application
 def select_page_layout(pathname, questionLayout, studentLayout):
@@ -83,11 +79,19 @@ def select_page_layout(pathname, questionLayout, studentLayout):
 
 
     # Don't load any layout if we're not authenticated, try to redirect back to the main page?
-    if (not current_user.is_authenticated):
-        redirectString = "The user is not authenticated.  The data dashboard is not accessible.  Redirecting to login ..."
+    if (IsValidDashboardUser() < 0):
+        redirectString = "The user is not authenticated or not an instructor.  The data dashboard is not accessible.  Redirecting to login page ..."
         redirectObject = html.Div(children=[
-#              html.Meta(httpEquiv="refresh", content="3; URL=http://127.0.0.1:5000/login"),
               html.Meta(httpEquiv="refresh", content="3; URL=/login"),
+              html.H1(children="Acess Error", className="header"),
+              html.P(children=redirectString, className="graph-component-message")] )
+        return redirectObject
+    
+    elif (IsValidDashboardUser() == 0):
+        redirectString = "The user is not an instructor or admin.  The data dashboard is not accessible.  Redirecting to main page ..."
+        redirectObject = html.Div(children=[
+              html.Meta(httpEquiv="refresh", content="3; URL=/"),
+              html.H1(children="Acess Error", className="header"),
               html.P(children=redirectString, className="graph-component-message")] )
         return redirectObject
 

@@ -9,13 +9,47 @@ import pandas as pd
 import ast
 import sys
 
-#import evopie.datadashboard.datalayer.models as models
 import evopie.models as models
 import evopie.datadashboard.datalayer.utils as dataUtils
 
 ## RPW:  This is going to be problematic ...
 #from dashapp import dashapp_context
 from evopie import dashapp_context
+
+from flask_login import current_user
+
+
+
+def IsValidDashboardUser():
+  """
+  Determine whether the user is properly logged in and is one of the roles that
+  is permitted to see the dashboard data:  admin or instructor.  Return -1 for 
+  not authenticated at all, 0 if authenticated but not a valid role, 1 if the role 
+  instructor or admin.
+  """
+  validated = -1
+  user = None
+
+  # Try to get the current authenticated user and checking it's role
+  try:
+    if (current_user.is_authenticated):
+      validated = 0
+      user = models.User.query.filter(models.User.id == current_user.id)
+
+    # If we didn't find a current user, refuse to validate the user
+    if (user == None):    
+      validated = -1
+
+    # Otherwise, make sure the user is an instructor or an admin
+    elif (validated >= 0) and (user.is_instructor() or user.is_admin()):
+      validated = 1
+
+  # If we had any kind of problem, refuse to validate the user
+  except:
+    validated = -1
+
+  return validated
+
 
 def GetScoresDataframe(quizID, numQuestions=None, branching=None, maxNumStudents=None, quiet=False):
   """

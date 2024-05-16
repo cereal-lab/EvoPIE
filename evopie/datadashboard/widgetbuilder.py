@@ -7,12 +7,13 @@ from dash import html
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output
 
-from flask_login import login_required, current_user
-
 #import evopie.datadashboard.datalayer.generator as da
 import evopie.datadashboard.datalayer.dbaccess as da
 import evopie.datadashboard.datalayer.utils as dataUtils
 import evopie.datadashboard.plotter as plotter
+
+# RPW:  Once the circular reference is resolved, change this to use dbaccess
+from evopie.datadashboard.datalayer.dbvalidator import IsValidDashboardUser
 
 import threading
 
@@ -53,7 +54,7 @@ class WidgetBuilder(threading.Thread):
     contextDict = dict()
 
     # Only get the graph for the layout if the user is authenticated
-    if current_user.is_authenticated:
+    if IsValidDashboardUser():
       try:
         graphObject, quizID = self.widgetTable[(whichAnalysis, whichView, whichScore)]
         contextDict = self.analysisContextTable[(whichAnalysis, whichView)]
@@ -62,7 +63,7 @@ class WidgetBuilder(threading.Thread):
 
     # If the user is not authenticated, tell them that instead of showing the plot
     else:
-      graphObject = html.P(children="User is not authenticated", className="graph-component-message")
+      graphObject = html.P(children="Not a valid user.", className="graph-component-message")
       
     return graphObject, contextDict
 
