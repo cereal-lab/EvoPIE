@@ -19,6 +19,7 @@ import evopie.datadashboard.datalayer.dbaccess as da
 import evopie.datadashboard.datalayer.utils as dataUtils
 import evopie.datadashboard.widgetbuilder as widgetbuilder
 
+from evopie import APP
 
 gWhichView = "QuestionView"
 gLayout = None
@@ -32,17 +33,13 @@ def PopulateViewLayout():
   global gLayout
 
   # These are the fake dataframes will use until we integrate with EvoPIE
-  print()
-  print()
-  print('--' + __name__ + '-'.ljust(50, '-'))
-  print("1.  Reinitializing, ", datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
-
-
-  # Start the App
-  print("2.  Starting Dash.")
+  APP.logger.info('')
+  APP.logger.info('--' + __name__ + '-'.ljust(50, '-'))
+  APP.logger.info("1.  Reinitializing, " + datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
 
   # Create the web page layout
-  print ("4.  Setting the layout.")
+  APP.logger.info("2.  Creating the layout.")
+
   """
   LWR: I wonder if we should switch to a format for multi-pages like the main evopie page.
   Another option that may or may not work is to add our pages to their routes_pages.py
@@ -138,7 +135,7 @@ def PopulateViewLayout():
       html.Div(id='placeholder', style={"display":"none"})
   ])
 
-  print("4.  Webpage ready to view, ", datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
+  APP.logger.info("3.  Webpage ready to view, " + datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
 
   return gLayout
 
@@ -152,7 +149,7 @@ def HandleQuestionsDetailRequest(quizID, questionID, whichScores):
     graphs.
     """
     
-    print("handler:  ", quizID, questionID)
+    #print("handler:  ", quizID, questionID)
     components = []
 
     try:
@@ -276,7 +273,7 @@ def RegisterCallbacks(dashapp):
       #print("DBG:  #########  quizID=", quizID, "    quizItemValue=", quizItemValue, "   :::  ", dash.callback_context.triggered[0]['prop_id'])
 
       # Now we have appUtils.gApplicationState.QuizDropDown, so we can set the default/selected item
-      print("Displaying", whichAnalysis, quizItemValue)
+      APP.logger.info("Displaying " + str(whichAnalysis) + " " + str(quizItemValue)) 
 
       # If this is being called because of the quiz selection drop down, then change the 
       # quiz ID.  Or if the quizID is not properly stored in the application state singleton

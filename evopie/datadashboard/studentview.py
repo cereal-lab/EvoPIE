@@ -19,6 +19,7 @@ import evopie.datadashboard.datalayer.utils as dataUtils
 import evopie.datadashboard.widgetbuilder as widgetbuilder
 import dash
 
+from evopie import APP
 
 gWhichView = "StudentView"
 gLayout = None
@@ -32,17 +33,12 @@ def PopulateViewLayout():
   global gLayout
 
   # These are the fake dataframes will use until we integrate with EvoPIE
-  print()
-  print()
-  print('--' + __name__ + '-'.ljust(50, '-'))
-  print("1.  Reinitializing, ", datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
-
-
-  # Start the App
-  print("2.  Starting Dash.")
+  APP.logger.info('')
+  APP.logger.info('--' + __name__ + '-'.ljust(50, '-'))
+  APP.logger.info("1.  Reinitializing, " + datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
 
   # Create the web page layout
-  print ("4.  Setting the layout.")
+  APP.logger.info("2.  Creating the layout")
   gLayout = html.Div(children=[
       
       # The drop-down quiz selector at the top
@@ -130,7 +126,7 @@ def PopulateViewLayout():
       html.Div(id='placeholder', style={"display":"none"})
   ])
 
-  print("4.  Webpage ready to view, ", datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
+  APP.logger.info("3.  Webpage ready to view, " + datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
 
   return gLayout
 
@@ -146,13 +142,13 @@ def HandleStudentDetailRequest(quizID, studentID):
     """
     quizDF = appUtils.gApplicationState.QuizDF
 
-    print("handler:  ", quizID, studentID)
+    #print("handler:  ", quizID, studentID)
     components = []
     # components.append( html.H3(children="Top Info", className="header") )
 
     try:
       if not studentID == "root":
-        print("DBG:::  requesting student details graph for student", studentID)
+        #print("DBG:::  requesting student details graph for student", studentID)
         components.append( widgetbuilder.gBuilder.GetStudentDetailsGraph(quizID, studentID, quizDF) )
     except Exception as e:
       message = "Error loading quiz detail " + str((quizID, studentID)) + "  ::  " + str(e)                  
@@ -174,7 +170,7 @@ def RegisterCallbacks(dashapp):
       whichScores, data = appUtils.StripContextInfo(dash.callback_context, gWhichView)
 
       if data is not None:
-        print('DBG[student]: ', data)
+        #print('DBG[student]: ', data)
         return HandleStudentDetailRequest(quizID, data)
       else:
         return html.P(children="Select a node on the graph for more details", className="top-pane-message")
@@ -191,7 +187,7 @@ def RegisterCallbacks(dashapp):
       whichScores, data = appUtils.StripContextInfo(dash.callback_context, gWhichView)
 
       if data is not None:
-        print('DBG[student]: ', data)
+        #print('DBG[student]: ', data)
         return HandleStudentDetailRequest(quizID, data)
       else:
         return html.P(children="Select a node on the graph for more details", className="top-pane-message")
@@ -208,7 +204,7 @@ def RegisterCallbacks(dashapp):
       whichScores, data = appUtils.StripContextInfo(dash.callback_context, gWhichView)
 
       if data is not None:
-        print('DBG[student]: ', data)
+        #print('DBG[student]: ', data)
         return HandleStudentDetailRequest(quizID, data)
       else:
         return html.P(children="Select a node on the graph for more details", className="top-pane-message")
@@ -225,7 +221,7 @@ def RegisterCallbacks(dashapp):
       whichScores, data = appUtils.StripContextInfo(dash.callback_context, gWhichView)
 
       if data is not None:
-        print('DBG[student]: ', data)
+        #print('DBG[student]: ', data)
         return HandleStudentDetailRequest(quizID, data)
       else:
         return html.P(children="Select a node on the graph for more details", className="top-pane-message")
@@ -242,7 +238,7 @@ def RegisterCallbacks(dashapp):
       whichScores, data = appUtils.StripContextInfo(dash.callback_context, gWhichView)
 
       if data is not None:
-        print('DBG[student]: ', data)
+        #print('DBG[student]: ', data)
         return HandleStudentDetailRequest(quizID, data)
       else:
         return html.P(children="Select a node on the graph for more details", className="top-pane-message")
@@ -270,7 +266,7 @@ def RegisterCallbacks(dashapp):
       quizID = appUtils.gApplicationState.QuizID
       quizDF = appUtils.gApplicationState.QuizDF
 
-      print("Displaying", whichAnalysis, quizItemValue) 
+      APP.logger.info("Displaying " + str(whichAnalysis) + " " + str(quizItemValue)) 
 
       # If this is being called because of the quiz selection drop down, then change the 
       # quiz ID.  Or if the quizID is not properly stored in the application state singleton

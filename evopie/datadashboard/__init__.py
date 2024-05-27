@@ -11,6 +11,9 @@ from flask_login import login_required, current_user
 # RPW:  Once the circular reference is resolved, change this to use dbaccess
 from evopie.datadashboard.datalayer.dbvalidator import IsValidDashboardUser
 
+# For logging purposes
+from evopie import APP
+import logging
 
 def register_dashapps(flask_server):
     from evopie.datadashboard import questionview, studentview
@@ -26,6 +29,8 @@ def register_dashapps(flask_server):
                                  url_base_pathname='/datadashboard/',
                                  assets_folder=get_root_path(__name__) + '/../assets/',
                                  meta_tags=[meta_viewport])
+    
+    APP.logger.setLevel(logging.INFO)
 
     ## RPW:  The relative parent directory thing for assets_folder is a hack so
     ##       that I can keep this DashTesting application running the same whether
@@ -54,7 +59,7 @@ def register_dashapps(flask_server):
         @dashboardViewApp.callback(Output('page-content', 'children'),
                                    Input('url', 'pathname'))
         def display_main_view(pathname):
-            print("DBG::: CALLBACK from dashboard shell!!  " + pathname)
+            #print("DBG::: CALLBACK from dashboard shell!!  " + pathname)
             return select_page_layout(pathname, questionview.gLayout, studentview.gLayout)
 
 
@@ -71,7 +76,7 @@ def _protect_dashviews(dashapp):
 def select_page_layout(pathname, questionLayout, studentLayout):
     pathname = pathname.strip()
     last_url_field = pathname.strip("/").split("/")[-1].strip()
-    print("DBG::: The user selected the path: " + pathname + " and the last field is: " + last_url_field)
+    #print("DBG::: The user selected the path: " + pathname + " and the last field is: " + last_url_field)
 
     # If *just* the dashboard is loaded, assume we want the question view
     if (pathname == '/datadashboard/') and (last_url_field == "datadashboard"):

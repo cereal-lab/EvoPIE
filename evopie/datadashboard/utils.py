@@ -2,6 +2,9 @@
 #import evopie.datadashboard.datalayer.generator as da
 import evopie.datadashboard.datalayer.dbaccess as da
 
+# For logging
+from evopie import APP
+import logging
 
 class ApplicationStateSingletonClass:
   """
@@ -17,11 +20,12 @@ class ApplicationStateSingletonClass:
       ApplicationStateSingletonClass.QuizOptions = da.GetQuizOptionList() 
       ApplicationStateSingletonClass.QuizID = ApplicationStateSingletonClass.QuizOptions[0]['value']
       ApplicationStateSingletonClass.QuizDF = da.GetScoresDataframe(ApplicationStateSingletonClass.QuizID, 17, 3, 22)
-      print("DBG:  The application state singleton just got reinitialized!!!!!!!!!!!!!!!!!")
+      APP.logger.setLevel(logging.INFO)
+      APP.logger.info("NOTE: The application state singleton just got reinitialized!")
 
   def SetQuizID(self, inQuizID):
     ApplicationStateSingletonClass.QuizID = inQuizID
-    print("DBG:  -----> The application state is setting the quiz ID to", inQuizID)
+    APP.logger.info("DBG:  -----> The application state is setting the quiz ID to", inQuizID)
 
   def SetQuizDF(self, inQuizDF):
     ApplicationStateSingletonClass.QuizDF = inQuizDF
@@ -42,7 +46,7 @@ def GetDataFromPrefix(propIDPrefix, inputItem, whichView, quiet=False):
   axisLabel = 'y'
 
   if not quiet:
-    print('Input Item:', inputItem, ",   View:", whichView)
+    APP.logger.info('Input Item: ' + str(inputItem) + ",   View: " + str(whichView))
 
   if inputItem is not None:
     if propIDPrefix == 'deca':

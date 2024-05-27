@@ -17,6 +17,9 @@ from evopie.datadashboard.datalayer.dbvalidator import IsValidDashboardUser
 
 import threading
 
+# For logging
+from evopie import APP
+import logging
 
 ## Change this if you add a measure.
 gPlotterDictionary = {"deca":plotter.GenerateDimensionGraph,
@@ -42,7 +45,8 @@ class WidgetBuilder(threading.Thread):
       self.currentQuizDF = None # Current quiz data frame used to build the table
       self.running = False      # Whether or not the thread is running
       self.InitGraphsWithSimpleMessage("No graph selected")
-      print("Created a WidgetBuilder (there should not be more than one)")
+      APP.logger.setLevel(logging.INFO)
+      APP.logger.info("Created a WidgetBuilder.  There should not be more than one -- so if this messages appears more than once, there is a problem.")
 
 
   def GetGraph(self, whichAnalysis, whichView, whichScore):
