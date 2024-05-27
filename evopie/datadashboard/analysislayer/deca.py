@@ -1,5 +1,5 @@
 import sys
-from turtle import st
+#from turtle import st
 import numpy as np
 import evopie.datadashboard.datalayer.generator as da
 #import evopie.datadashboard.datalayer.dbaccess as da
