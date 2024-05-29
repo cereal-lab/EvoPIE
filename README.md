@@ -49,29 +49,6 @@ services:
     volumes:
       - /etc/letsencrypt:/etc/nginx/certs
 ```
-Install pip & pipenv: 
-```bash
-sudo python3 -m pip install --upgrade pip
-```
-
-Install python packages: 
-```bash
-cd EvoPIE 
-pipenv install
-cd ..
-```
-Generate an empty data base:
-```bash
-cd EvoPIE
-pipenv shell
-flask DB-reboot
-cd ..
-```
-Move the empyt DB to where the docker container will expect it: 
-```bash
-mv EvoPIE/evopie/DB_quizlib.sqlite ./
-```
-Edit docker-compose.yml to make it point to the DB file that we will be using.
 
 Build the docker containers and run them:
 ```bash
