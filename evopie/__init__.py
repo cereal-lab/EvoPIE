@@ -186,9 +186,10 @@ def load_user(user_id):
 
 login_manager.init_app(APP)
 
-if os.getenv("INIT_DB", "0") == "1":
-    print("Init db")
-    DB.create_all()
+# Bad idea - several workers try to execute this
+# if os.getenv("INIT_DB", "0") == "1":
+#     print("Init db")
+#     DB.create_all()
 
 # from . import utils
 # from . import quiz_model

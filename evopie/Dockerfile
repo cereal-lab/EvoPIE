@@ -21,7 +21,7 @@ RUN git checkout master
 RUN git pull
 
 RUN pipenv sync
-#RUN pipenv run flask DB-reboot
+RUN pipenv run flask DB-init
 
 #ENTRYPOINT [ "pipenv", "run", "flask", "run", "--host", "0.0.0.0" ]
 ENTRYPOINT [ "pipenv", "run", "gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "app:APP" ]
