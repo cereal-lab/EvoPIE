@@ -997,6 +997,7 @@ def get_quiz_statistics(qid, course_id):
         if attempt.status == QUIZ_ATTEMPT_SOLUTIONS or attempt.status == QUIZ_STEP3:
             student_revised_score = attempt.revised_total_score
             student_max_revised_score = len(attempt.revised_responses)
+            student_max_revised_score = 1 if student_max_revised_score == 0 else student_max_revised_score
             cetagory_percent_scores.setdefault(sid, {}).setdefault("revised", (student_revised_score / student_max_revised_score, quiz.revised_score_weight))
         if sid in justification_scores:
             student_justification_score = justification_scores[sid]
@@ -1013,7 +1014,8 @@ def get_quiz_statistics(qid, course_id):
             student_design_score = designing_scores[sid]
             student_max_design_score = 100
             cetagory_percent_scores.setdefault(sid, {}).setdefault("designing", (student_design_score / student_max_design_score, quiz.designing_grade_weight))
-        percents, weights = tuple(zip(*[grade for grade in cetagory_percent_scores.get(sid, {}).values()])) #unzip 
+        grades = [grade for grade in cetagory_percent_scores.get(sid, {}).values()]
+        percents, weights = ([], []) if len(grades) == 0 else tuple(zip(*grades)) #unzip 
         # weights should sum up to 100 - so in case when some of grades are not available - we rescale 
         total_weights = sum(weights) 
         total_weights = 1 if total_weights == 0 else total_weights
