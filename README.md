@@ -22,6 +22,38 @@ Check out the main branch of our GitHub repository:
 ```bash
 git clone https://github.com/cereal-lab/EvoPIE.git
 ```
+
+Edit the docker-compose.yml file to update the volumes for "web"
+```bash
+version: '2.0'
+
+services:
+  web:
+    build: ./evopie
+    volumes:
+      - /EvoPIE/2024-fall-alessio/data:/app/data
+    environment:
+      - EVOPIE_DATABASE_URI=sqlite:////app/data/db.sqlite
+    expose:
+      - 5000
+    env_file:
+      - ./evopie/.env.dev
+    restart: always
+  nginx:
+    build: ./nginx
+    ports:
+      - "5000:5000"
+    depends_on:
+      - web
+    restart: always
+    volumes:
+      - /etc/letsencrypt:/etc/nginx/certs
+```
+Install pip & pipenv: 
+```bash
+sudo python3 -m pip install --upgrade pip
+```
+
 Install python packages: 
 ```bash
 cd EvoPIE 
