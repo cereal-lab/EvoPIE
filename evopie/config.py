@@ -16,7 +16,6 @@ def get_attempt_next_step(cur_step):
     return attempt_next_steps.get(cur_step, cur_step)
 
 #system roles
-
 ROLE_STUDENT = "STUDENT"
 ROLE_INSTRUCTOR = "INSTRUCTOR"
 ROLE_ADMIN = "ADMIN"

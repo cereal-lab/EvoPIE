@@ -2,9 +2,6 @@ import numpy as np
 import pandas as pd
 import scipy.stats as stats
 
-import evopie.datadashboard.datalayer.generator as da
-#import evopie.datadashboard.datalayer.dbaccess as da
-
 
 # Reminder of the columns of the standard dataframe we will
 # get for test results
@@ -245,17 +242,3 @@ def analyzeStudents(dataset, whichScores, contextDict):
   return df
 
 
-
-def unitTest():
-  """
-  Test to make sure this works.
-  """
-  df = da.GetScoresDataframe(0, 12, 3)
-  print(df.head())
-  contextDict = {"excludeItem":True}
-  print(analyzeQuestions(df, 'InitialScore', contextDict).head()) 
-  print(analyzeStudents(df, 'InitialScore', contextDict).head()) 
-
-
-if __name__ == '__main__':
-  unitTest()

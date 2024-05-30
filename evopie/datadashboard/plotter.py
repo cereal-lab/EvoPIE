@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 import sys
 
-import evopie.datadashboard.datalayer.utils as dataUtils
+import evopie.datadashboard.utils as dataUtils
 
 import evopie.datadashboard.analysislayer.heatmap as heatmap
 import evopie.datadashboard.analysislayer.deca as deca

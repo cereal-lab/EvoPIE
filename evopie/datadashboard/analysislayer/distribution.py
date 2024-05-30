@@ -2,10 +2,7 @@ import sys
 import numpy as np
 import pandas as pd
 
-import evopie.datadashboard.datalayer.generator as da
-#import evopie.datadashboard.datalayer.dbaccess as da
-import evopie.datadashboard.datalayer.utils as dataUtils
-
+import evopie.datadashboard.utils as dataUtils
 
 
 def analyzeStudents(df, whichScores, contextDict):
@@ -13,7 +10,6 @@ def analyzeStudents(df, whichScores, contextDict):
   Return a dataframe that has a row for each student taking a quiz, and
   a column for the ratio of questions that student missed.  # RPW:  Maybe we should flip this to "got right"?
   """
-  print("Got to analyze students")
   # Compute the average score of each student by aggregating over studentID ID
   resultsDF = df.groupby('StudentID').agg({'RevisedScore' : ['mean'], 'InitialScore' : ['mean']})
 
@@ -32,18 +28,3 @@ def analyzeStudents(df, whichScores, contextDict):
 
   return resultsDF
 
-
-def unitTest():
-  """
-  Test to make sure this works.
-  """
-  df = da.GetScoresDataframe(0, 12,3)
-  print("Number of students: ", len(set(df.StudentID)))
-  print("Number of questions:", len(set(df.QuestionID)))
-
-  contextDict = dict()
-  print(analyzeStudents(df, 'InitialScore', contextDict)) 
-
-
-if __name__ == '__main__':
-  unitTest()

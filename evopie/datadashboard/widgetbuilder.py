@@ -7,13 +7,12 @@ from dash import html
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output
 
-#import evopie.datadashboard.datalayer.generator as da
-import evopie.datadashboard.datalayer.dbaccess as da
-import evopie.datadashboard.datalayer.utils as dataUtils
+import datalayer.dbaccess as da
+import evopie.datadashboard.utils as dataUtils
 import evopie.datadashboard.plotter as plotter
 
 # RPW:  Once the circular reference is resolved, change this to use dbaccess
-from evopie.datadashboard.datalayer.dbvalidator import IsValidDashboardUser
+from datalayer.dbvalidator import IsValidDashboardUser
 
 import threading
 

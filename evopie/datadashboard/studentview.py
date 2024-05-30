@@ -7,15 +7,13 @@ from dash import dcc
 from dash import html
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output, State
+import flask
 
-#from dashapp import dashapp
 import evopie.datadashboard.utils as appUtils
 
 import datetime
 
-#import evopie.datadashboard.datalayer.generator as da
-import evopie.datadashboard.datalayer.dbaccess as da
-import evopie.datadashboard.datalayer.utils as dataUtils
+import datalayer.dbaccess as da
 import evopie.datadashboard.widgetbuilder as widgetbuilder
 import dash
 
@@ -23,7 +21,7 @@ from evopie import APP
 
 gWhichView = "StudentView"
 gLayout = None
-
+gQuizOptions = None
 
 def PopulateViewLayout():
   """
@@ -31,6 +29,12 @@ def PopulateViewLayout():
   store on the global gLayout variable for this module.
   """
   global gLayout
+  global gQuizOptions
+
+  # Get the list of quizzes, and determine the default to use for the drop-down
+  # If the quiz ID cookie is set, use that as the value for the drop down
+  gQuizOptions = da.GetQuizOptionList()
+  quizIDstr = appUtils.GetSelectedQuizIDCookie(gQuizOptions[0]['value'])
 
   # These are the fake dataframes will use until we integrate with EvoPIE
   APP.logger.info('')
@@ -49,9 +53,9 @@ def PopulateViewLayout():
               dcc.Link('Back to EvoPIE', href='/', className="nav-link", refresh=True)
           ]),
           dcc.Dropdown(id="quizselect-dropdown-student", 
-                      options=appUtils.gApplicationState.QuizOptions,
+                      options= gQuizOptions,
                       persistence=True,
-                      value=appUtils.gApplicationState.QuizID)]),  # From the saved DD in the singleton
+                      value=quizIDstr)]), 
 
       # The left-side navigation panel
       html.Div(id="nav-sidebar", className="rectangle", children=[
@@ -140,7 +144,7 @@ def HandleStudentDetailRequest(quizID, studentID):
     This is a general function to handle *all* requests for question detail
     graphs.
     """
-    quizDF = appUtils.gApplicationState.QuizDF
+    quizDF = da.GetScoresDataframe(quizID)
 
     #print("handler:  ", quizID, studentID)
     components = []
@@ -148,7 +152,6 @@ def HandleStudentDetailRequest(quizID, studentID):
 
     try:
       if not studentID == "root":
-        #print("DBG:::  requesting student details graph for student", studentID)
         components.append( widgetbuilder.gBuilder.GetStudentDetailsGraph(quizID, studentID, quizDF) )
     except Exception as e:
       message = "Error loading quiz detail " + str((quizID, studentID)) + "  ::  " + str(e)                  
@@ -160,17 +163,15 @@ def HandleStudentDetailRequest(quizID, studentID):
 def RegisterCallbacks(dashapp):
   # Selecting a question on the DECA panes
   @dashapp.callback( Output('deca-student', 'children'),
-                     Input(dataUtils.getGraphComponentName('deca','student','InitialScore'), 'tapNodeData'), 
-                     Input(dataUtils.getGraphComponentName('deca','student','RevisedScore'), 'tapNodeData') )
+                     Input(appUtils.getGraphComponentName('deca','student','InitialScore'), 'tapNodeData'), 
+                     Input(appUtils.getGraphComponentName('deca','student','RevisedScore'), 'tapNodeData') )
   def displayStudentDecaInitialDetail(*args): 
       global gWhichView
-      quizID = appUtils.gApplicationState.QuizID
-
-
+      global gQuizOptions
+      quizID = appUtils.GetSelectedQuizIDCookie(gQuizOptions[0]['value'])
       whichScores, data = appUtils.StripContextInfo(dash.callback_context, gWhichView)
 
       if data is not None:
-        #print('DBG[student]: ', data)
         return HandleStudentDetailRequest(quizID, data)
       else:
         return html.P(children="Select a node on the graph for more details", className="top-pane-message")
@@ -178,16 +179,15 @@ def RegisterCallbacks(dashapp):
 
   # Selecting a heatmap question detail
   @dashapp.callback( Output('hm-student', 'children'),
-                     Input(dataUtils.getGraphComponentName('heatmap','student','InitialScore'), 'clickData'),
-                     Input(dataUtils.getGraphComponentName('heatmap','student','RevisedScore'), 'clickData') )
+                     Input(appUtils.getGraphComponentName('heatmap','student','InitialScore'), 'clickData'),
+                     Input(appUtils.getGraphComponentName('heatmap','student','RevisedScore'), 'clickData') )
   def displayStudentHmInitialDetail(*args): 
       global gWhichView
-      quizID = appUtils.gApplicationState.QuizID
-
+      global gQuizOptions
+      quizID = appUtils.GetSelectedQuizIDCookie(gQuizOptions[0]['value'])
       whichScores, data = appUtils.StripContextInfo(dash.callback_context, gWhichView)
 
       if data is not None:
-        #print('DBG[student]: ', data)
         return HandleStudentDetailRequest(quizID, data)
       else:
         return html.P(children="Select a node on the graph for more details", className="top-pane-message")
@@ -195,16 +195,15 @@ def RegisterCallbacks(dashapp):
 
   # Selecting a multi-dimensional scaling question detail
   @dashapp.callback( Output('mds-student', 'children'),
-                     Input(dataUtils.getGraphComponentName('mds','student','InitialScore'), 'clickData'),
-                     Input(dataUtils.getGraphComponentName('mds','student','RevisedScore'), 'clickData') )
+                     Input(appUtils.getGraphComponentName('mds','student','InitialScore'), 'clickData'),
+                     Input(appUtils.getGraphComponentName('mds','student','RevisedScore'), 'clickData') )
   def displayStudentMdsInitialDetail(*args): 
       global gWhichView
-      quizID = appUtils.gApplicationState.QuizID
-
+      global gQuizOptions
+      quizID = appUtils.GetSelectedQuizIDCookie(gQuizOptions[0]['value'])
       whichScores, data = appUtils.StripContextInfo(dash.callback_context, gWhichView)
 
       if data is not None:
-        #print('DBG[student]: ', data)
         return HandleStudentDetailRequest(quizID, data)
       else:
         return html.P(children="Select a node on the graph for more details", className="top-pane-message")
@@ -212,16 +211,15 @@ def RegisterCallbacks(dashapp):
 
   # Selecting a item descrimination scaling question detail
   @dashapp.callback( Output('ids-student', 'children'),
-                     Input(dataUtils.getGraphComponentName('ids','student','InitialScore'), 'clickData'),
-                     Input(dataUtils.getGraphComponentName('ids','student','RevisedScore'), 'clickData') )
+                     Input(appUtils.getGraphComponentName('ids','student','InitialScore'), 'clickData'),
+                     Input(appUtils.getGraphComponentName('ids','student','RevisedScore'), 'clickData') )
   def displayStudentIdsInitialDetail(*args): 
       global gWhichView
-      quizID = appUtils.gApplicationState.QuizID
-
+      global gQuizOptions
+      quizID = appUtils.GetSelectedQuizIDCookie(gQuizOptions[0]['value'])
       whichScores, data = appUtils.StripContextInfo(dash.callback_context, gWhichView)
 
       if data is not None:
-        #print('DBG[student]: ', data)
         return HandleStudentDetailRequest(quizID, data)
       else:
         return html.P(children="Select a node on the graph for more details", className="top-pane-message")
@@ -229,31 +227,29 @@ def RegisterCallbacks(dashapp):
 
   # Selecting a traditional question detail
   @dashapp.callback( Output('trad-student', 'children'),
-                Input(dataUtils.getGraphComponentName('trad','student','InitialScore'), 'clickData'),
-                Input(dataUtils.getGraphComponentName('trad','student','RevisedScore'), 'clickData') )
+                Input(appUtils.getGraphComponentName('trad','student','InitialScore'), 'clickData'),
+                Input(appUtils.getGraphComponentName('trad','student','RevisedScore'), 'clickData') )
   def displayStudentTradInitialDetail(*args):
       global gWhichView
-      quizID = appUtils.gApplicationState.QuizID
-
+      global gQuizOptions
+      quizID = appUtils.GetSelectedQuizIDCookie(gQuizOptions[0]['value'])
       whichScores, data = appUtils.StripContextInfo(dash.callback_context, gWhichView)
 
       if data is not None:
-        #print('DBG[student]: ', data)
         return HandleStudentDetailRequest(quizID, data)
       else:
         return html.P(children="Select a node on the graph for more details", className="top-pane-message")
 
 
-
  # This callback is for when the glossary button is clicked; Shows modal/glossary popup
-  #@dashapp.callback(
-  #    Output("modal", "is_open"),
-  #    [Input("open", "n_clicks"), Input("close", "n_clicks")],
-  #    [State("modal", "is_open")] )
-  #def toggle_modal(n1, n2, is_open):
-  #    if n1 or n2:
-  #        return not is_open
-  #    return is_open
+ # @dashapp.callback(
+ #     Output("modal", "is_open"),
+ #     [Input("open", "n_clicks"), Input("close", "n_clicks")],
+ #     [State("modal", "is_open")] )
+ # def toggle_modal(n1, n2, is_open):
+ #     if n1 or n2:
+ #         return not is_open
+ #     return is_open
   
 
   ## ------------- vvv  Callback for the Side Menu vvv ----------------
@@ -263,8 +259,9 @@ def RegisterCallbacks(dashapp):
                     Input('side-menu-student', 'value'),
                     Input('quizselect-dropdown-student', 'value') )
   def displayStudentTabMenuData(whichAnalysis, quizItemValue):
-      quizID = appUtils.gApplicationState.QuizID
-      quizDF = appUtils.gApplicationState.QuizDF
+      global gQuizOptions
+      quizID = appUtils.GetSelectedQuizIDCookie(gQuizOptions[0]['value'])
+      quizDF = da.GetScoresDataframe(quizID)  ## RPW:  Move this below?
 
       APP.logger.info("Displaying " + str(whichAnalysis) + " " + str(quizItemValue)) 
 
@@ -272,13 +269,11 @@ def RegisterCallbacks(dashapp):
       # quiz ID.  Or if the quizID is not properly stored in the application state singleton
       if (quizID == None) or (dash.callback_context.triggered[0]['prop_id'].strip() == 'quizselect-dropdown-student.value'):
         quizID = quizItemValue  
-        #print("DBG:     ->> Changing the quizID")
-        appUtils.gApplicationState.SetQuizID(quizID)
+        appUtils.SetSelectedQuizIDCookie(quizID, dash.callback_context)
 
       # Check to see if a reload of the dataframe is really needed.
-      if widgetbuilder.gBuilder.IsReloadNeeded(quizID, quizDF):
+      if True: # widgetbuilder.gBuilder.IsReloadNeeded(quizID, quizDF):
         quizDF = da.GetScoresDataframe(quizID)
-        appUtils.gApplicationState.SetQuizDF(quizDF)
         widgetbuilder.gBuilder.PopulateGraphs(quizID, quizDF) 
 
       # Initialize the Initial panel HTML components

@@ -661,10 +661,55 @@ class StudentKnowledge(DB.Model):
     metrics = DB.Column(JSONEncodedMutableDict, default={})  # qualities of this distractor from student perspective. 
     # Could inclide chance. Check deca.py and different KNOWLEDGE_SELECTION_ strategies
 
+
 class GlossaryTerm(DB.Model):
+   """
+   The class provides a definition for records in the table storing glossry terms
+   and their definitions.  It is used by the dashboard to help users understand 
+   the different elements of the data dashboard.  There is a small script in 
+   ./evopie/datadashboard/datalayer/updateglossary.py that reads a JSON file and
+   populates this table
+   """
    __tablename__ = "glossary"
    
    id = DB.Column(DB.Integer, primary_key=True)
    term = DB.Column(DB.String, nullable=False)
    definition = DB.Column(DB.String, nullable=False)
 
+
+class WidgetStore(DB.Model):
+    """
+    This class provides a definition for records in the table that will be
+    used to store graph objects to be used by the data dashboard.  There is
+    a unique graph object for every quiz, type of data analysys, type of 
+    score (revised or initial), and analysis view (student or question).
+    In addition, since the database can change while a user is looking at
+    dashboard, we provide a checksum to quickly determine whether a graph
+    must be regenerated.
+    """
+    __tablename__ = "widgetstore"
+
+    key = DB.Column(DB.String, primary_key=True)
+    quizID = DB.Column(DB.Integer)
+    analysisType = DB.Column(DB.String, nullable=False)
+    scoreType = DB.Column(DB.String, nullable=False)
+    viewType = DB.Column(DB.String, nullable=False)
+    hashCheck = DB.Column(DB.String, nullable=False)
+    dccObject = DB.Column(DB.PickleType, nullable=False)
+    dccContext = DB.Column(DB.PickleType)
+
+    @staticmethod
+    def build_key(quiz_id, analysis_type, score_type, view_type):
+        """
+        Use the information about the quiz id, analysis type, score type,
+        and view type to construct a string that can be used as a primary
+        key for records in this table.
+        """
+        retKey  = str(quiz_id) + '-'
+        retKey += analysis_type.lower().strip() + '-'
+        retKey += score_type.lower().strip() + '-'
+        retKey += view_type.lower().strip()
+
+        return retKey
+
+              
