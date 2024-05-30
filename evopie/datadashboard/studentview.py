@@ -8,16 +8,17 @@ from dash import html
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output, State
 import flask
-
-import evopie.datadashboard.utils as appUtils
+import dash
 
 import datetime
 
-import datalayer.dbaccess as da
-import evopie.datadashboard.widgetbuilder as widgetbuilder
-import dash
-
 from evopie import APP
+import evopie.datadashboard.utils as appUtils
+
+import datalayer.dbaccess as da
+import analysislayer.widgetbuilder as widgetbuilder
+import analysislayer.utils as dataUtils
+
 
 gWhichView = "StudentView"
 gLayout = None
@@ -163,8 +164,8 @@ def HandleStudentDetailRequest(quizID, studentID):
 def RegisterCallbacks(dashapp):
   # Selecting a question on the DECA panes
   @dashapp.callback( Output('deca-student', 'children'),
-                     Input(appUtils.getGraphComponentName('deca','student','InitialScore'), 'tapNodeData'), 
-                     Input(appUtils.getGraphComponentName('deca','student','RevisedScore'), 'tapNodeData') )
+                     Input(dataUtils.GetGraphComponentName('deca','student','InitialScore'), 'tapNodeData'), 
+                     Input(dataUtils.GetGraphComponentName('deca','student','RevisedScore'), 'tapNodeData') )
   def displayStudentDecaInitialDetail(*args): 
       global gWhichView
       global gQuizOptions
@@ -179,8 +180,8 @@ def RegisterCallbacks(dashapp):
 
   # Selecting a heatmap question detail
   @dashapp.callback( Output('hm-student', 'children'),
-                     Input(appUtils.getGraphComponentName('heatmap','student','InitialScore'), 'clickData'),
-                     Input(appUtils.getGraphComponentName('heatmap','student','RevisedScore'), 'clickData') )
+                     Input(dataUtils.GetGraphComponentName('heatmap','student','InitialScore'), 'clickData'),
+                     Input(dataUtils.GetGraphComponentName('heatmap','student','RevisedScore'), 'clickData') )
   def displayStudentHmInitialDetail(*args): 
       global gWhichView
       global gQuizOptions
@@ -195,8 +196,8 @@ def RegisterCallbacks(dashapp):
 
   # Selecting a multi-dimensional scaling question detail
   @dashapp.callback( Output('mds-student', 'children'),
-                     Input(appUtils.getGraphComponentName('mds','student','InitialScore'), 'clickData'),
-                     Input(appUtils.getGraphComponentName('mds','student','RevisedScore'), 'clickData') )
+                     Input(dataUtils.GetGraphComponentName('mds','student','InitialScore'), 'clickData'),
+                     Input(dataUtils.GetGraphComponentName('mds','student','RevisedScore'), 'clickData') )
   def displayStudentMdsInitialDetail(*args): 
       global gWhichView
       global gQuizOptions
@@ -211,8 +212,8 @@ def RegisterCallbacks(dashapp):
 
   # Selecting a item descrimination scaling question detail
   @dashapp.callback( Output('ids-student', 'children'),
-                     Input(appUtils.getGraphComponentName('ids','student','InitialScore'), 'clickData'),
-                     Input(appUtils.getGraphComponentName('ids','student','RevisedScore'), 'clickData') )
+                     Input(dataUtils.GetGraphComponentName('ids','student','InitialScore'), 'clickData'),
+                     Input(dataUtils.GetGraphComponentName('ids','student','RevisedScore'), 'clickData') )
   def displayStudentIdsInitialDetail(*args): 
       global gWhichView
       global gQuizOptions
@@ -227,8 +228,8 @@ def RegisterCallbacks(dashapp):
 
   # Selecting a traditional question detail
   @dashapp.callback( Output('trad-student', 'children'),
-                Input(appUtils.getGraphComponentName('trad','student','InitialScore'), 'clickData'),
-                Input(appUtils.getGraphComponentName('trad','student','RevisedScore'), 'clickData') )
+                Input(dataUtils.GetGraphComponentName('trad','student','InitialScore'), 'clickData'),
+                Input(dataUtils.GetGraphComponentName('trad','student','RevisedScore'), 'clickData') )
   def displayStudentTradInitialDetail(*args):
       global gWhichView
       global gQuizOptions

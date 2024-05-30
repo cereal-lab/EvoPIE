@@ -7,8 +7,7 @@ from flask import Flask, redirect
 from flask.helpers import get_root_path
 from flask_login import login_required, current_user
 
-# RPW:  Once the circular reference is resolved, change this to use dbaccess
-from datalayer.dbvalidator import IsValidDashboardUser
+from datalayer.dbaccess import IsValidDashboardUser
 
 # For logging purposes
 from evopie import APP

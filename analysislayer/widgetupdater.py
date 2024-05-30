@@ -13,15 +13,7 @@ from dash.dependencies import Input, Output
 
 # Dashboard imports
 import datalayer.dbaccess as da
-import evopie.datadashboard.utils as dataUtils
-import evopie.datadashboard.plotter as plotter
-
-# RPW:  Once the circular reference is resolved, change this to use dbaccess
-from datalayer.dbvalidator import IsValidDashboardUser
-
-# For logging
-#from evopie import APP, DB
-#import logging
+import analysislayer.plotter as plotter
 
 # SQL imports
 from sqlalchemy import create_engine
@@ -49,7 +41,7 @@ def GetGraph(quizID, whichAnalysis, whichView, whichScore):
   contextDict = dict()
 
   # Only get the graph for the layout if the user is authenticated
-  if IsValidDashboardUser():
+  if da.IsValidDashboardUser():
     try:
       graphObject, hashCheck, contextDict = da.GetStoredWidgetObject(quizID,whichAnalysis,whichScore,whichView,)
     except:
@@ -137,7 +129,7 @@ def GetQuestionDetailHeader(quizDetailDF, questionID, whichScores):
             html.H1(
                 [
                     html.Span(
-                        dataUtils.StripHTMLMarkers(questionText, 40),
+                        da.StripHTMLMarkers(questionText, 40),
                         id="tooltip-target", 
                     ),
                 ],

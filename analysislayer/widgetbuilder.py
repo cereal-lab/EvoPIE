@@ -8,11 +8,8 @@ import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output
 
 import datalayer.dbaccess as da
-import evopie.datadashboard.utils as dataUtils
-import evopie.datadashboard.plotter as plotter
-
-# RPW:  Once the circular reference is resolved, change this to use dbaccess
-from datalayer.dbvalidator import IsValidDashboardUser
+import analysislayer.plotter as plotter
+import analysislayer.utils as dataUtils
 
 import threading
 
@@ -57,7 +54,7 @@ class WidgetBuilder(threading.Thread):
     contextDict = dict()
 
     # Only get the graph for the layout if the user is authenticated
-    if IsValidDashboardUser():
+    if da.IsValidDashboardUser():
       try:
         graphObject, quizID = self.widgetTable[(whichAnalysis, whichView, whichScore)]
         contextDict = self.analysisContextTable[(whichAnalysis, whichView)]

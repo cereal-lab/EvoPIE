@@ -1,7 +1,7 @@
 import sys
 import numpy as np
 
-import evopie.datadashboard.utils as dataUtils
+import analysislayer.utils as dataUtils
 import pandas as pd
 
 def cleanupForStudentAnalysis(results, questionSubset=[], scoreThreshold=1.0):

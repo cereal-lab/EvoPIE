@@ -5,14 +5,14 @@ import pandas as pd
 import numpy as np
 import sys
 
-import evopie.datadashboard.utils as dataUtils
+import analysislayer.utils as dataUtils
 
-import evopie.datadashboard.analysislayer.heatmap as heatmap
-import evopie.datadashboard.analysislayer.deca as deca
-import evopie.datadashboard.analysislayer.itemdiscrim as itemdescrim
-import evopie.datadashboard.analysislayer.cluster as cluster
-import evopie.datadashboard.analysislayer.traditional as traditional
-import evopie.datadashboard.analysislayer.distribution as dist
+import analysislayer.heatmap as heatmap
+import analysislayer.deca as deca
+import analysislayer.itemdiscrim as itemdescrim
+import analysislayer.cluster as cluster
+import analysislayer.traditional as traditional
+import analysislayer.distribution as dist
 
 try:
   import plotly.express as px
@@ -180,7 +180,7 @@ def GenerateDimensionGraph(df, whichScores, quizID, whichView, contextDict=dict(
     # Build the Dash graph component to sent back
     elementDict = dataUtils.convertDecaQuestionDimsToCytoElementDict(dims, df, whichScores, nodeLabelPrefix) #Asha: added the additional objects in the parameter
     graph =  cyto.Cytoscape(
-                id=dataUtils.getGraphComponentName('deca', whichView, whichScores),
+                id=dataUtils.GetGraphComponentName('deca', whichView, whichScores),
                 elements = elementDict,
                 layout={'name': 'preset'},
                 style={'width':'100%', 'height': '400px'},
@@ -358,7 +358,7 @@ def GenerateHeatMap(df, whichScores, quizID, whichView, contextDict=dict()):
         #                               color='rgba(0,0,0,0)'))
         #fig.update_layout(xaxis = dict(gridcolor='rgba(0,0,0,0)',
         #                               color='rgba(0,0,0,0)'))
-      graph = dcc.Graph(id=dataUtils.getGraphComponentName('heatmap', whichView, whichScores), figure=fig)
+      graph = dcc.Graph(id=dataUtils.GetGraphComponentName('heatmap', whichView, whichScores), figure=fig)
 
     # Set the DCC graph object wrapper back
     return graph
@@ -426,7 +426,7 @@ def GenerateItemDescriminationBarPlot(df, whichScores, quizID, whichView, contex
                   #,
                   #labels=dict(x="Question ID", y="Item Discrimination", color="Significance"))
 
-      graph = dcc.Graph(id=dataUtils.getGraphComponentName('ids', whichView, whichScores),
+      graph = dcc.Graph(id=dataUtils.GetGraphComponentName('ids', whichView, whichScores),
                         figure={'data': [fig],
                                 'layout':go.Layout(title=titleText, 
                                                   xaxis =  {'showgrid': False,
@@ -491,7 +491,7 @@ def GenerateClusterScatterPlot(df, whichScores, quizID, whichView, contextDict=d
                        text=questionText,
                        marker=dict(size=16))
 
-      graph = dcc.Graph(id=dataUtils.getGraphComponentName('mds', whichView, whichScores),
+      graph = dcc.Graph(id=dataUtils.GetGraphComponentName('mds', whichView, whichScores),
                         figure={'data': [fig],
                                 'layout':go.Layout(title=titleText, 
                                                   #color_discrete_sequence=px.colors.qualitative.Vivid,
@@ -552,7 +552,7 @@ def GenerateTraditionalDifficultyBarPlot(df, whichScores, quizID, whichView, con
                  marker_color=colors,
                  orientation='v')
 
-    graph = dcc.Graph(id=dataUtils.getGraphComponentName('trad', whichView, whichScores),
+    graph = dcc.Graph(id=dataUtils.GetGraphComponentName('trad', whichView, whichScores),
                       figure={'data': [fig],
                               'layout':go.Layout(title=titleText, 
                                                 xaxis =  {'showgrid': False,

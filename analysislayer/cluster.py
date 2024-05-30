@@ -7,7 +7,7 @@ from sklearn.manifold import MDS
 from sklearn.metrics import davies_bouldin_score
 
 import datalayer.dbaccess as da
-import evopie.datadashboard.utils as dataUtils
+import analysislayer.utils as dataUtils
 
 
 ## RPW:  Quiz 1, question view should be able to cluster, why can't it?  Fix

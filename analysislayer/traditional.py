@@ -2,7 +2,7 @@ import sys
 import numpy as np
 import pandas as pd
 
-import evopie.datadashboard.utils as dataUtils
+import analysislayer.utils as dataUtils
 
 
 def analyzeQuestions(df, whichScores, contextDict):
@@ -14,7 +14,7 @@ def analyzeQuestions(df, whichScores, contextDict):
 
   # Compute the ratio of missed questions by aggregating over Question ID
   resultsDF = abs( numStudents - df.groupby('QuestionID').agg({whichScores:'sum'}) ) / numStudents
-  #print("\n\nDBG:  analyzing traditional questions\n\n", df)
+
   # Since Pandas idiotically removes the group column for no explicable reason, put it back
   resultsDF.index.name = 'QuestionID'
   resultsDF.reset_index(inplace=True)

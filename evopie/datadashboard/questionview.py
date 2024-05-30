@@ -9,16 +9,13 @@ import dash_bootstrap_components as dbc
 from dash import html
 from dash.dependencies import Input, Output, State
 
-from matplotlib.patches import Wedge
-
-#from dashapp import dashapp
-import datalayer.dbaccess as da
+from evopie import APP
 import evopie.datadashboard.utils as appUtils
 
-# RPW:  Move this to datalayer
-import evopie.datadashboard.widgetbuilder as widgetbuilder
+import datalayer.dbaccess as da
+import analysislayer.widgetbuilder as widgetbuilder
+import analysislayer.utils as dataUtils
 
-from evopie import APP
 
 gWhichView = "QuestionView"
 gLayout = None
@@ -173,8 +170,8 @@ def HandleQuestionsDetailRequest(quizID, questionID, whichScores):
 def RegisterCallbacks(dashapp): 
   # Selecting a question on the DECA panes
   @dashapp.callback( Output('deca', 'children'),
-                     Input(appUtils.getGraphComponentName('deca','question','InitialScore'), 'tapNodeData'), #each one of these will need its own callback since it throws an error when all the inputs are not used
-                     Input(appUtils.getGraphComponentName('deca','question','RevisedScore'), 'tapNodeData'), prevent_initial_call=True )#they can be separated by visualization type, generate a new top pane fro each graph too so that way they can have multiple outputs
+                     Input(dataUtils.GetGraphComponentName('deca','question','InitialScore'), 'tapNodeData'), #each one of these will need its own callback since it throws an error when all the inputs are not used
+                     Input(dataUtils.GetGraphComponentName('deca','question','RevisedScore'), 'tapNodeData'), prevent_initial_call=True )#they can be separated by visualization type, generate a new top pane fro each graph too so that way they can have multiple outputs
   def displayDecaInitialDetail(*args):
       global gWhichView
       global gQuizOptions
@@ -190,8 +187,8 @@ def RegisterCallbacks(dashapp):
   # Selecting a question on the heat map panes
   @dashapp.callback( Output('hm', 'children'),
                   #they can be separated by visualization type, generate a new top pane fro each graph too so that way they can have multiple outputs
-                     Input(appUtils.getGraphComponentName('heatmap','question','InitialScore'), 'clickData'),
-                     Input(appUtils.getGraphComponentName('heatmap','question','RevisedScore'), 'clickData') )
+                     Input(dataUtils.GetGraphComponentName('heatmap','question','InitialScore'), 'clickData'),
+                     Input(dataUtils.GetGraphComponentName('heatmap','question','RevisedScore'), 'clickData') )
   def displayHmInitialDetail(*args): 
       global gWhichView
       global gQuizOptions
@@ -206,8 +203,8 @@ def RegisterCallbacks(dashapp):
 
   # Selecting a question on the mds panes
   @dashapp.callback( Output('mds', 'children'),
-                     Input(appUtils.getGraphComponentName('mds','question','InitialScore'), 'clickData'),
-                     Input(appUtils.getGraphComponentName('mds','question','RevisedScore'), 'clickData') )
+                     Input(dataUtils.GetGraphComponentName('mds','question','InitialScore'), 'clickData'),
+                     Input(dataUtils.GetGraphComponentName('mds','question','RevisedScore'), 'clickData') )
   def displayMdsInitialDetail(*args): 
       global gWhichView
       global gQuizOptions
@@ -222,8 +219,8 @@ def RegisterCallbacks(dashapp):
 
   # Selecting a question on the item discrimination panes
   @dashapp.callback( Output('ids', 'children'),
-                     Input(appUtils.getGraphComponentName('ids','question','InitialScore'), 'clickData'),
-                     Input(appUtils.getGraphComponentName('ids','question','RevisedScore'), 'clickData') )
+                     Input(dataUtils.GetGraphComponentName('ids','question','InitialScore'), 'clickData'),
+                     Input(dataUtils.GetGraphComponentName('ids','question','RevisedScore'), 'clickData') )
   def displayIdsInitialDetail(*args):
       global gWhichView
       global gQuizOptions
@@ -238,8 +235,8 @@ def RegisterCallbacks(dashapp):
 
   # Selecting a question on the traditional panes
   @dashapp.callback( Output('trad', 'children'),
-                     Input(appUtils.getGraphComponentName('trad','question','InitialScore'), 'clickData'),
-                     Input(appUtils.getGraphComponentName('trad','question','RevisedScore'), 'clickData') )
+                     Input(dataUtils.GetGraphComponentName('trad','question','InitialScore'), 'clickData'),
+                     Input(dataUtils.GetGraphComponentName('trad','question','RevisedScore'), 'clickData') )
   def displayTradInitialDetail(*args): 
       global gWhichView
       global gQuizOptions

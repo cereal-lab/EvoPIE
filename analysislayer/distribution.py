@@ -2,7 +2,7 @@ import sys
 import numpy as np
 import pandas as pd
 
-import evopie.datadashboard.utils as dataUtils
+import analysislayer.utils as dataUtils
 
 
 def analyzeStudents(df, whichScores, contextDict):

@@ -18,27 +18,6 @@ from evopie import APP
 import logging
 
 
-def StripHTMLMarkers(x, maxLen=0):
-  x = re.sub("</p>", "\n", x)           # Turn end of paragraphs into newlines
-  x = re.sub("&lt;/p&gt;", "\n", x)     # Turn end of paragraphs into newlines
-
-  x = re.sub("<br>", "\n", x)           # Turn <br> into newlines
-  x = re.sub("&lt;br&gt;", "\n", x)     # Turn <br> into newlines
-
-  x = re.sub(r"&nbsp;", " ", x)         # Turn &nbsp; into an actual space
-
-  x = re.sub(r"&lt;[a-z]+&gt;", "", x)  # Get rid of all other markers
-  x = re.sub(r"<[a-z]+>", "", x)        # Get rid of all other markers
-
-  x = re.sub(r"&[a-z]+;", "", x)        # Remove any remaining &.*; 
-
-  # Make sure the string is not bigger than maxLen, as long as maxLen is positive
-  x = x.strip()
-  if (maxLen > 0) and (len(x) > maxLen):
-    x = x[0:(maxLen-3)] + "..."
-
-  return x.strip()
-
 
 def IsValidDashboardUser():
   """
@@ -54,15 +33,15 @@ def IsValidDashboardUser():
   try:
     if (current_user.is_authenticated):
       validated = 0
-      user = models.User.query.filter(models.User.id == current_user.id)
+      user = models.User.query.filter(models.User.id == current_user.id).first()
 
-    # If we didn't find a current user, refuse to validate the user
-    if (user == None):    
-      validated = -1
+      # If we didn't find a current user, refuse to validate the user
+      if (user == None):    
+        validated = -1
 
-    # Otherwise, make sure the user is an instructor or an admin
-    elif (validated >= 0) and (user.is_instructor() or user.is_admin()):
-      validated = 1
+      # Otherwise, make sure the user is an instructor or an admin
+      elif (user.is_instructor() or user.is_admin()):
+        validated = 1
 
   # If we had any kind of problem, refuse to validate the user
   except:
