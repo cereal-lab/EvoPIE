@@ -194,3 +194,6 @@ login_manager.init_app(APP)
 # from . import utils
 # from . import quiz_model
 from . import cli #adds cli commands to app
+# from quiz_model import set_quiz_model 
+from . import quiz_model
+quiz_model.set_quiz_model(None)
