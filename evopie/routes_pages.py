@@ -261,7 +261,7 @@ def add_quiz_question_to_quiz(quiz_id, question_id):
 @role_required(ROLE_INSTRUCTOR)
 def course_editor(course_id):
     course = models.Course.query.get_or_404(course_id)
-    quizzes = models.Quiz.query.filter_by(author_id = current_user.id).all()
+    quizzes = models.Quiz.query.where((models.Quiz.author_id == current_user.id) & ~models.DB.session.query(models.Course_quiz).where((models.Course_quiz.c.QuizId == models.Quiz.id)).exists()).all()
 
     available_quizzes = []
     for q in quizzes:
