@@ -7,13 +7,20 @@ import math
 from random import shuffle # to shuffle lists
 from flask_login import UserMixin
 from sqlalchemy import ForeignKey
+
 from datalayer import DB
 from datalayer import QUIZ_ATTEMPT_STEP1, QUIZ_HIDDEN, QUIZ_STEP1, QUIZ_STEP2, QUIZ_STEP3, QUIZ_SOLUTIONS, ROLE_INSTRUCTOR, ROLE_STUDENT, ROLE_ADMIN
-from evopie.utils import unescape
 from datetime import datetime
+
 from pytz import timezone
+from jinja2 import Markup
 
 import ast
+
+# Probably shouldn't duplicate this functionality from evopie.utils, but it is small and
+# creates a dependency issue if we want to keep the datalayer separate from evopie.
+def unescape(str):
+    return Markup(str).unescape()
 
 # All models used in the DB and by EvoPIE.
 # Refer to docs/DB diagram - yyyy-mm-dd.png for a snapshot of the DB diagram.
@@ -690,7 +697,7 @@ class WidgetStore(DB.Model):
     __tablename__ = "widgetstore"
 
     key = DB.Column(DB.String, primary_key=True)
-    quizID = DB.Column(DB.Integer)
+    quizID = DB.Column(DB.Integer, nullable=False)
     analysisType = DB.Column(DB.String, nullable=False)
     scoreType = DB.Column(DB.String, nullable=False)
     viewType = DB.Column(DB.String, nullable=False)

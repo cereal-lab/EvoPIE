@@ -58,7 +58,7 @@ def GetDataFromPrefix(propIDPrefix, inputItem, whichView, quiet=True):
   return data
 
 
-def StripContextInfo(ctx, whichView, quiet=False):
+def StripContextInfo(ctx, whichView, quiet=True):
   """
   Convenience method to strip needed information from the context and return it. 
   This avoids repeating this code over and over

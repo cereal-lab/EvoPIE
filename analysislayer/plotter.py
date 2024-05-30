@@ -72,9 +72,7 @@ def GenerateStudentDistributionGraph(df, studentID=0, contextDict=dict()):
   The distribution will have 2 entries for each student. Then create a distribution graph that 
   highlights the particualr student that was selected.
   """
-  print("trying analyze students, studentID=", studentID)
   resultsDF = dist.analyzeStudents(df, "both", contextDict)
-  print(resultsDF)
 
   # This try block gets the initial and revised average scores for the specific student selected
   try:
@@ -85,11 +83,11 @@ def GenerateStudentDistributionGraph(df, studentID=0, contextDict=dict()):
     studentRevisedScore = studentRevisedScore.iat[0,2]
 
     # print scores and student ID for debugging
-    print("Student ID: ", studentID)
-    print("inital score: ", studentInitialScore)
-    print("revised score: ", studentRevisedScore)
+    #print("Student ID: ", studentID)
+    #print("inital score: ", studentInitialScore)
+    #print("revised score: ", studentRevisedScore)
   except Exception as e:
-    print("getting student details did not work", e)
+    print("ERROR:  Distribution plot could not get student details.  ", e)
 
 
    # This block builds the graph itself, both positional traces for the student, as 
@@ -99,9 +97,7 @@ def GenerateStudentDistributionGraph(df, studentID=0, contextDict=dict()):
   groupLabels = ['Student Average Scores']
   try:
     # create the graph for the distribution without a histogram, with a rug plot
-    print("DBG:  1 before distplot")
     graph = ff.create_distplot(resultsList, groupLabels, show_hist=False)
-    print("DBG:  2 after distplot")
     graph = ff.create_distplot(resultsList, groupLabels, show_hist=False)
 
     # adds the trace for the initial score. This shows up on the rug plot.
@@ -122,19 +118,13 @@ def GenerateStudentDistributionGraph(df, studentID=0, contextDict=dict()):
                xaxis= 'x',
                yaxis='y2')
 
-    ## RPW:  This plotly call is taking a **really long time** ... maybe the lambda expr?
-    
-    print("DBG:  3 create figure widget", studentInitialScore, studentRevisedScore)    
-
     # loops through the traces to add in the additional two traces to the plot
     # the graph loading has a latency issue, but I am unaware of how to fix it
     fig = dict(data=[graph.data[k] for k in range(2)]+[posMarkerInitialScore]+[posMarkerRevisedScore],
                       layout=graph.layout)
 
   except Exception as err:
-    print("Plotter Didn't work:", err)
-
-  print("DBG:  4 send it back")    
+    print("ERROR: Plotter could not produce distribution plot:", err)
 
   # Return the Dash dcc object containing the plotly figure
   return dcc.Graph(id="studentDist", figure=fig)

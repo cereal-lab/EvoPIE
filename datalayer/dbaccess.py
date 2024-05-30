@@ -9,14 +9,10 @@ import pandas as pd
 import ast
 import sys
 
-import datalayer.models as models # RPW:  Move this to datalayer
+import datalayer.models as models
+import analysislayer.utils as dataUtils
 
 from flask_login import current_user
-
-# For logging
-from evopie import APP
-import logging
-
 
 
 def IsValidDashboardUser():
@@ -50,7 +46,7 @@ def IsValidDashboardUser():
   return validated
 
 
-def GetScoresDataframe(quizID, numQuestions=None, branching=None, maxNumStudents=None, quiet=False):
+def GetScoresDataframe(quizID, numQuestions=None, branching=None, maxNumStudents=None, quiet=True):
   """
   Given a quiz ID, retrieve all the student scores for the initial (pre-) and revised (post-)
   quizzes.  The result is a Pandas dataframe containing every student, question, and score.
@@ -91,13 +87,11 @@ def GetScoresDataframe(quizID, numQuestions=None, branching=None, maxNumStudents
     except:
       if not quiet:
         print("WARNING: QuizAttempt record", studentInstance.id, "was incomplete.  Ignoring this record.")
-        #print("DBG:  student=", studentInstance.student_id, ",  initScores=", studentInstance.initial_scores, "  type(initScores)=", type(studentInstance.initial_scores))
-        #sys.exit(1)
 
   return df
 
 
-def GetQuestionDetailDataframe(quizID, questionID, whichScores, quiet=False):
+def GetQuestionDetailDataframe(quizID, questionID, whichScores, quiet=True):
   """
   Get all the details abo
   """
@@ -126,20 +120,20 @@ def GetQuestionDetailDataframe(quizID, questionID, whichScores, quiet=False):
       # If this response is in the tally dictionary, increment the count
       if questionResponse in questionTallyDict:
         (QID, QText, ResponseID, ResponseText, CorrectResp, Count) = questionTallyDict[questionResponse]
-        QText = StripHTMLMarkers(QText, textTruncationLength)  # Strip HTML markup tags (etc, below)
-        ResponseText = StripHTMLMarkers(ResponseText, textTruncationLength)
+        QText = dataUtils.StripHTMLMarkers(QText, textTruncationLength)  # Strip HTML markup tags (etc, below)
+        ResponseText = dataUtils.StripHTMLMarkers(ResponseText, textTruncationLength)
         questionTallyDict[questionResponse] = (QID, QText, ResponseID, ResponseText, CorrectResp, Count+1)
 
       # Otherwise, create an entry with a count of 1
       else:
         distractor = models.Distractor.query.filter(models.Distractor.id == questionResponse).first()
-        QText = StripHTMLMarkers(question.stem, textTruncationLength)
-        ResponseText = StripHTMLMarkers(distractor.answer, textTruncationLength)
+        QText = dataUtils.StripHTMLMarkers(question.stem, textTruncationLength)
+        ResponseText = dataUtils.StripHTMLMarkers(distractor.answer, textTruncationLength)
         questionTallyDict[questionResponse] = (question.id, QText, questionResponse, \
                                               ResponseText, False, 1)
     except:
       if not quiet:
-        APP.logger.warn("WARNING: QuizAttempt record" + str(studentInstance.id) + "was incomplete.  Ignoring this record.")
+        print("WARNING: QuizAttempt record" + str(studentInstance.id) + "was incomplete.  Ignoring this record.")
 
   # Now build the Pandas dataframe
   QIDs, QText, RIDs, RText, Corrects, Counts = tuple(zip(*questionTallyDict.values()))

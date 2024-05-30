@@ -5,22 +5,37 @@ import hashlib
 import time
 import os
 
-# Dash imports
+# Flask/Dash imports
 from dash import dcc
 from dash import html
 import dash_bootstrap_components as dbc
-from dash.dependencies import Input, Output
-
-# Dashboard imports
-import datalayer.dbaccess as da
-import analysislayer.plotter as plotter
+import flask
 
 # SQL imports
 from sqlalchemy import create_engine
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import MetaData
-from sqlalchemy import inspect
-from sqlalchemy.orm import Session
+from sqlalchemy import inspect, create_engine, orm
+from sqlalchemy.ext.declarative import declarative_base
+
+# We aren't creating a real flask application; however,
+# Flask-SQLAlchemy needs a flask app context, so this is a dummy
+# flask application.  RPW:  Make sure the port doesn't collide
+APP = flask.Flask(__name__)
+APP.config['SECRET_KEY'] = '9OLWxND4o83j4K4iuopO' #FIXME replace this by an ENV variable
+ #NOTE: timeout allows to avoid database is locked - it is workaround
+APP.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('EVOPIE_DATABASE_URI', 'sqlite:///../evopie/DB_quizlib.sqlite') + "?timeout=20"
+APP.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# This stuff must happen before the other dashboard imports, below
+from datalayer import StartupDatabase
+DB = StartupDatabase(APP)
+
+# Dashboard imports
+import datalayer.models as models
+import datalayer.dbaccess as da
+import analysislayer.plotter as plotter
+
 
 
 ## Change this if you add a measure.
@@ -107,7 +122,7 @@ def UpdateTable():
   for quiz in quizList:
     # Grab the data for this specific quiz
     quizID = quiz['value']
-    currentQuizDF = da.GetScoresDataframe()
+    currentQuizDF = da.GetScoresDataframe(quizID)
 
     for whichAnalysis in list(gPlotterDictionary.keys()):
       for whichView in ["question", "student"]:
@@ -181,17 +196,16 @@ def GetStudentDetailsGraph(quizID, studentID):
   return detailsPlot
 
 
-def GetDBSession(connectionString):
+def CheckIfTableExists():
   """
   Connect to the database, return the session object
   """
-  engine = None
-  session = None
+  engine = DB.engine
   connectionStatus = False
+  connectionString = APP.config['SQLALCHEMY_DATABASE_URI']
 
+  #inspect(engine).
   try:
-    engine = create_engine(connectionString)
-    session = Session(engine)
     connectionStatus = True
     print("Connected to: ", connectionString)
 
@@ -205,33 +219,41 @@ def GetDBSession(connectionString):
         print("The 'widgetstore' table did not exist.  Creating it.") 
         metadata = MetaData() #   MetaData(engine)
         DB.Table( "widgetstore", metadata,
-          DB.Column(DB.String, primary_key=True),\
-          DB.Column(DB.Integer),\
-          DB.Column(DB.String, nullable=False),\
-          DB.Column(DB.String, nullable=False),\
-          DB.Column(DB.String, nullable=False),\
-          DB.Column(DB.String, nullable=False),\
-          DB.Column(DB.PickleType, nullable=False),\
-          DB.Column(DB.PickleType) )           
+          DB.Column("key", DB.String, primary_key=True),\
+          DB.Column("quizID", DB.Integer, nullable=False),\
+          DB.Column("analysisType", DB.String, nullable=False),\
+          DB.Column("scoreType", DB.String, nullable=False),\
+          DB.Column("viewType", DB.String, nullable=False),\
+          DB.Column("hashCheck", DB.String, nullable=False),\
+          DB.Column("dccObject", DB.PickleType, nullable=False),\
+          DB.Column("dccContext", DB.PickleType) )           
         metadata.create_all(engine)   
+
     else:
       print("There was already a 'widgetstore' table.  No need to create it.") 
   except:
     print("ERROR: Could not create the 'widgetstore' table")
     connectionStatus = False
+    raise
 
-  return session, connectionStatus
+  return connectionStatus
 
 
 # If this is run as a stand-along program, it should loop indefinitely, rebuilding
 # graphs for the widget table when needed ad infnitum.
+#if __name__ == '__main__':
+def StartUpdater():
+  print("The widget updater process is starting up.")
+  sleepTimeInSeconds = int(os.getenv('EVOPIE_UPDATER_SLEEP', '-1'))
+  status = True
+  models.DB.create_all() # Make sure all the tables exist
+  #status = CheckIfTableExists()
 
-if __name__ == '__main__':
-  dbURI = os.getenv('EVOPIE_DATABASE_URI', 'sqlite:///DB_quizlib.sqlite') + "?timeout=20"  
-  sleepTimeInSeconds = int(os.getenv('EVOPIE_UPDATER_SLEEP', '300'))
-  #DB = SQLAlchemy()
+  while (status):
+    UpdateTable()
+    if (sleepTimeInSeconds < 0):
+      status = False
+    else:
+      time.sleep(sleepTimeInSeconds)  # Wait a little bit of time so we aren't slamming the DB over and over again
 
-  session, status = GetDBSession(dbURI)
-  # while (status):
-  UpdateTable()
-  #  time.sleep(5*60)  # Wait a little bit of time so we aren't slamming the DB over and over again
+  print("The widget updator process is closing down.")
