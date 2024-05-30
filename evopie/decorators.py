@@ -1,11 +1,11 @@
 from datetime import datetime
 from pytz import timezone
-from evopie.config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_ATTEMPT_STEP3, QUIZ_HIDDEN, QUIZ_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, QUIZ_STEP3, ROLE_STUDENT
+from datalayer import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_ATTEMPT_STEP3, QUIZ_HIDDEN, QUIZ_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, QUIZ_STEP3, ROLE_STUDENT
 from flask import flash, g, jsonify, redirect, url_for, request, abort
 from flask_login import current_user
 from functools import wraps
 from evopie.utils import param_to_dict
-from . import models
+from datalayer import models
 from sqlalchemy.orm.exc import StaleDataError
 from evopie.quiz_model import get_quiz_builder
 

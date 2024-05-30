@@ -2,7 +2,8 @@
 import numpy as np
 from typing import Any
 
-from evopie import APP, models
+from evopie import APP
+from datalayer import models
 from evopie.utils import groupby
 from dataclasses import dataclass
 from numpy import unique

@@ -22,12 +22,13 @@ if db_log_file_name:
     db_file_logger.emit(logging.LogRecord(db_file_logger.name, logging.INFO, "", 0, f"DB file: {APP.config['SQLALCHEMY_DATABASE_URI']}", None, None))
     logging.getLogger('sqlalchemy.engine').addHandler(db_file_logger)
 
-DB = SQLAlchemy(APP)
+from datalayer import StartupDatabase
+DB = StartupDatabase(APP)
 
 
 from flask_admin import Admin, AdminIndexView
 from flask_admin.contrib.sqla import ModelView
-from evopie import models
+from datalayer import models
 from flask_login import current_user
 from flask import request, redirect, url_for
 from collections import namedtuple

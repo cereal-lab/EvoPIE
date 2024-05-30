@@ -13,8 +13,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import traceback
 
-from evopie import APP, deca, models
-from evopie.config import QUIZ_ATTEMPT_STEP1, QUIZ_STEP1, QUIZ_STEP2, ROLE_STUDENT
+from evopie import APP, deca
+from datalayer import models
+from datalayer import QUIZ_ATTEMPT_STEP1, QUIZ_STEP1, QUIZ_STEP2, ROLE_STUDENT
 from evopie.utils import groupby, unpack_key
 from evopie.quiz_model import get_quiz_builder, set_quiz_model
 

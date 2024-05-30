@@ -1,3 +1,5 @@
+## RPW:  Ad-Hoc script to add a fake question to the DB
+
 from sqlalchemy import create_engine
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import select

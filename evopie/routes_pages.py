@@ -25,12 +25,13 @@ from werkzeug.security import check_password_hash
 from evopie.utils import find_median, unescape, groupby
 from evopie.decorators import role_required, retry_concurrent_update
 
-from .config import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_ATTEMPT_STEP3, QUIZ_HIDDEN, QUIZ_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, QUIZ_STEP3, ROLE_INSTRUCTOR, ROLE_STUDENT, get_attempt_next_step, get_k_tournament_size, get_least_seen_slots_num
+from datalayer import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_ATTEMPT_STEP3, QUIZ_HIDDEN, QUIZ_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, QUIZ_STEP3, ROLE_INSTRUCTOR, ROLE_STUDENT, get_attempt_next_step
+from evopie.config import get_k_tournament_size, get_least_seen_slots_num
 from evopie.decorators import unmime, validate_quiz_attempt_step, verify_deadline, verify_instructor_relationship, change_quiz_status
 
 from dataclasses import dataclass
 
-from . import DB, models
+from datalayer import DB, models
 
 import jinja2
 

@@ -9,15 +9,35 @@ import pandas as pd
 import ast
 import sys
 
-import evopie.models as models
-import evopie.datadashboard.datalayer.utils as dataUtils
-
-## RPW:  This is going to be problematic ...
-#from dashapp import dashapp_context
-from evopie import dashapp_context
+import datalayer.models as models # RPW:  Move this to datalayer
 
 from flask_login import current_user
 
+# For logging
+from evopie import APP
+import logging
+
+
+def StripHTMLMarkers(x, maxLen=0):
+  x = re.sub("</p>", "\n", x)           # Turn end of paragraphs into newlines
+  x = re.sub("&lt;/p&gt;", "\n", x)     # Turn end of paragraphs into newlines
+
+  x = re.sub("<br>", "\n", x)           # Turn <br> into newlines
+  x = re.sub("&lt;br&gt;", "\n", x)     # Turn <br> into newlines
+
+  x = re.sub(r"&nbsp;", " ", x)         # Turn &nbsp; into an actual space
+
+  x = re.sub(r"&lt;[a-z]+&gt;", "", x)  # Get rid of all other markers
+  x = re.sub(r"<[a-z]+>", "", x)        # Get rid of all other markers
+
+  x = re.sub(r"&[a-z]+;", "", x)        # Remove any remaining &.*; 
+
+  # Make sure the string is not bigger than maxLen, as long as maxLen is positive
+  x = x.strip()
+  if (maxLen > 0) and (len(x) > maxLen):
+    x = x[0:(maxLen-3)] + "..."
+
+  return x.strip()
 
 
 def IsValidDashboardUser():
@@ -68,34 +88,32 @@ def GetScoresDataframe(quizID, numQuestions=None, branching=None, maxNumStudents
                      'RevisedScore':RevisedScores})
 
   # Spin through every student attempt for all questions on the specified quiz
-  with dashapp_context:
-    for studentInstance in models.QuizAttempt.query.filter(models.QuizAttempt.quiz_id == quizID):
-      try:
-        # Convert the question results into python dictionaries
-        initScores = studentInstance.initial_scores #ast.literal_eval(studentInstance.initial_scores)
-        reviScores = studentInstance.revised_scores #ast.literal_eval(studentInstance.revised_scores)
+  for studentInstance in models.QuizAttempt.query.filter(models.QuizAttempt.quiz_id == quizID):
+    try:
+      # Convert the question results into python dictionaries
+      initScores = studentInstance.initial_scores #ast.literal_eval(studentInstance.initial_scores)
+      reviScores = studentInstance.revised_scores #ast.literal_eval(studentInstance.revised_scores)
 
-        # Assume the same questions on the initial and revised quizzes, spin through these
-        for questionStr in initScores:
-          # Grab the field information for this question to make a new row
-          StudentIDs    = pd.Series([int(studentInstance.student_id)], dtype='int')
-          QuestionIDs   = pd.Series([int(questionStr)], dtype='int')
-          InitialScores = pd.Series([initScores[questionStr]], dtype='float')
-          RevisedScores = pd.Series([reviScores[questionStr]], dtype='float') 
-          #print("DBG:      question=", questionStr, ",  init=", initScores[questionStr])
+      # Assume the same questions on the initial and revised quizzes, spin through these
+      for questionStr in initScores:
+        # Grab the field information for this question to make a new row
+        StudentIDs    = pd.Series([int(studentInstance.student_id)], dtype='int')
+        QuestionIDs   = pd.Series([int(questionStr)], dtype='int')
+        InitialScores = pd.Series([initScores[questionStr]], dtype='float')
+        RevisedScores = pd.Series([reviScores[questionStr]], dtype='float') 
 
-          # Append a new row to the data frame
-          dfNewRow = pd.DataFrame({'StudentID':StudentIDs, \
-                                  'QuestionID':QuestionIDs, \
-                                  'InitialScore':InitialScores, \
-                                  'RevisedScore':RevisedScores})    
-          df = pd.concat([df, dfNewRow])  
+        # Append a new row to the data frame
+        dfNewRow = pd.DataFrame({'StudentID':StudentIDs, \
+                                'QuestionID':QuestionIDs, \
+                                'InitialScore':InitialScores, \
+                                'RevisedScore':RevisedScores})    
+        df = pd.concat([df, dfNewRow])  
 
-      except:
-        if not quiet:
-          print("WARNING: QuizAttempt record", studentInstance.id, "was incomplete.  Ignoring this record.")
-          #print("DBG:  student=", studentInstance.student_id, ",  initScores=", studentInstance.initial_scores, "  type(initScores)=", type(studentInstance.initial_scores))
-          #sys.exit(1)
+    except:
+      if not quiet:
+        print("WARNING: QuizAttempt record", studentInstance.id, "was incomplete.  Ignoring this record.")
+        #print("DBG:  student=", studentInstance.student_id, ",  initScores=", studentInstance.initial_scores, "  type(initScores)=", type(studentInstance.initial_scores))
+        #sys.exit(1)
 
   return df
 
@@ -108,68 +126,64 @@ def GetQuestionDetailDataframe(quizID, questionID, whichScores, quiet=False):
   isInit =  whichScores.lower().find("init")
   textTruncationLength = 0
 
-  with dashapp_context:
-    responseID = -1
-    question = models.Question.query.filter(models.Question.id == questionID).first()
+  responseID = -1
+  question = models.Question.query.filter(models.Question.id == questionID).first()
 
-    # First, let's build a dictionary for tallying things.
-    #                                  QuestionID  QuestionText   ResponseID  ResponseText    CorrectResp  Count
-    questionTallyDict = {responseID: (question.id, question.stem, responseID, question.answer, True, 0)}
-    #print("DBG::::: ", questionID, question.id, responseID, question.answer[0:30])
+  # First, let's build a dictionary for tallying things.
+  #                                  QuestionID  QuestionText   ResponseID  ResponseText    CorrectResp  Count
+  questionTallyDict = {responseID: (question.id, question.stem, responseID, question.answer, True, 0)}
 
-    for studentInstance in models.QuizAttempt.query.filter(models.QuizAttempt.quiz_id == quizID):
-      try:
-        # Grab all the respones to the questions
-        responses = None
-        if isInit:
-          responses = ast.literal_eval(studentInstance.initial_responses)
-        else:
-          responses = ast.literal_eval(studentInstance.revised_responses)          
+  for studentInstance in models.QuizAttempt.query.filter(models.QuizAttempt.quiz_id == quizID):
+    try:
+      # Grab all the respones to the questions
+      responses = None
+      if isInit:
+        responses = ast.literal_eval(studentInstance.initial_responses)
+      else:
+        responses = ast.literal_eval(studentInstance.revised_responses)          
 
-        questionResponse = int(responses[str(questionID)])
+      questionResponse = int(responses[str(questionID)])
 
-        # If this response is in the tally dictionary, increment the count
-        if questionResponse in questionTallyDict:
-          (QID, QText, ResponseID, ResponseText, CorrectResp, Count) = questionTallyDict[questionResponse]
-          QText = dataUtils.StripHTMLMarkers(QText, textTruncationLength)  # Strip HTML markup tags (etc, below)
-          ResponseText = dataUtils.StripHTMLMarkers(ResponseText, textTruncationLength)
-          questionTallyDict[questionResponse] = (QID, QText, ResponseID, ResponseText, CorrectResp, Count+1)
+      # If this response is in the tally dictionary, increment the count
+      if questionResponse in questionTallyDict:
+        (QID, QText, ResponseID, ResponseText, CorrectResp, Count) = questionTallyDict[questionResponse]
+        QText = StripHTMLMarkers(QText, textTruncationLength)  # Strip HTML markup tags (etc, below)
+        ResponseText = StripHTMLMarkers(ResponseText, textTruncationLength)
+        questionTallyDict[questionResponse] = (QID, QText, ResponseID, ResponseText, CorrectResp, Count+1)
 
-        # Otherwise, create an entry with a count of 1
-        else:
-          distractor = models.Distractor.query.filter(models.Distractor.id == questionResponse).first()
-          QText = dataUtils.StripHTMLMarkers(question.stem, textTruncationLength)
-          ResponseText = dataUtils.StripHTMLMarkers(distractor.answer, textTruncationLength)
-          questionTallyDict[questionResponse] = (question.id, QText, questionResponse, \
-                                                ResponseText, False, 1)
-      except:
-        if not quiet:
-          print("WARNING: QuizAttempt record", studentInstance.id, "was incomplete.  Ignoring this record.")
+      # Otherwise, create an entry with a count of 1
+      else:
+        distractor = models.Distractor.query.filter(models.Distractor.id == questionResponse).first()
+        QText = StripHTMLMarkers(question.stem, textTruncationLength)
+        ResponseText = StripHTMLMarkers(distractor.answer, textTruncationLength)
+        questionTallyDict[questionResponse] = (question.id, QText, questionResponse, \
+                                              ResponseText, False, 1)
+    except:
+      if not quiet:
+        APP.logger.warn("WARNING: QuizAttempt record" + str(studentInstance.id) + "was incomplete.  Ignoring this record.")
 
-    # Now build the Pandas dataframe
-    QIDs, QText, RIDs, RText, Corrects, Counts = tuple(zip(*questionTallyDict.values()))
-    df = pd.DataFrame({'QuestionID':pd.Series(QIDs, dtype='int'), \
-                       'QuestionText':pd.Series(QText, dtype='string'), \
-                       'ResponseID':pd.Series(RIDs, dtype='int'), \
-                       'ResponseText':pd.Series(RText, dtype='string'), \
-                       'CorrectResponse':pd.Series(Corrects, dtype='boolean'), \
-                       'NumberStudents':pd.Series(Counts, dtype='int')})
+  # Now build the Pandas dataframe
+  QIDs, QText, RIDs, RText, Corrects, Counts = tuple(zip(*questionTallyDict.values()))
+  df = pd.DataFrame({'QuestionID':pd.Series(QIDs, dtype='int'), \
+                      'QuestionText':pd.Series(QText, dtype='string'), \
+                      'ResponseID':pd.Series(RIDs, dtype='int'), \
+                      'ResponseText':pd.Series(RText, dtype='string'), \
+                      'CorrectResponse':pd.Series(Corrects, dtype='boolean'), \
+                      'NumberStudents':pd.Series(Counts, dtype='int')})
 
   return df
 
 
-
 def GetQuizOptionList():
   """
-  Build a list of dictionaries containing the lable string to display and the 
+  Build a list of dictionaries containing the label string to display and the 
   ID to use for lookup based on on quizzes in the database.  Basically, this
   is a list of quizzes.
   """
   quizOptionList = []
-  with dashapp_context:
-    for quizInstance in models.Quiz.query.order_by(models.Quiz.id).all():
-      optDict = {'label':quizInstance.title, 'value':int(quizInstance.id)}
-      quizOptionList.append(optDict)
+  for quizInstance in models.Quiz.query.order_by(models.Quiz.id).all():
+    optDict = {'label':quizInstance.title, 'value':int(quizInstance.id)}
+    quizOptionList.append(optDict)
   return quizOptionList
 
 
@@ -180,14 +194,56 @@ def GetGlossaryTerms():
   df = pd.DataFrame({'Terms':terms, \
                      'Definitions':definitions})
   
-  with dashapp_context:
-    for termInstance in models.GlossaryTerm.query.order_by(models.GlossaryTerm.id).all():
-      terms   = pd.Series([termInstance.term], dtype='string')
-      definitions = pd.Series([termInstance.definition], dtype='string')
+  for termInstance in models.GlossaryTerm.query.order_by(models.GlossaryTerm.id).all():
+    terms   = pd.Series([termInstance.term], dtype='string')
+    definitions = pd.Series([termInstance.definition], dtype='string')
 
-      dfNewRow = pd.DataFrame({'Terms':terms, \
-                               'Definitions':definitions})
-      
-      df = pd.concat([df,dfNewRow])
+    dfNewRow = pd.DataFrame({'Terms':terms, \
+                              'Definitions':definitions})
+    
+    df = pd.concat([df,dfNewRow])
       
   return df
+
+
+def GetStoredWidgetObject(quiz_id, analysis_type, score_type, view_type):
+  """
+  Return the stored widget object that is uniquely identified by the quiz id, type of analysis,
+  score type, and view type.  If that object isn't in the DB, return the default dcc object.
+  """
+  dccObject = None
+  hashCheck = ""
+  dccContext = dict()
+
+  try:
+    key = models.WidgetStore.build_key(quiz_id, analysis_type, score_type, view_type)
+    widget = models.WidgetStore.query.filter(models.WidgetStore.key == key).one()
+    dccObject = widget.dccObject
+    hashCheck = widget.hashCheck
+    dccContext = widget.dccContext
+  except:
+    hashCheck = ""
+    dccObject = None
+    dccContext = dict()
+
+  return dccObject, hashCheck, dccContext
+
+
+def PutStoredWidgetObject(quiz_id, analysis_type, score_type, view_type, hash_check, dcc_object, dcc_context):
+  """
+  Store the DCC widget object uniquely identified by the quiz id, type of analysis,
+  score type, and view type into the data base
+  """
+  try:
+    widgetKey = models.WidgetStore.build_key(quiz_id, analysis_type, score_type, view_type)
+    widget = models.WidgetStore(key=widgetKey,\
+                                quizID=quiz_id,\
+                                analysisType=analysis_type,\
+                                scoreType=score_type,\
+                                viewType=view_type,\
+                                hashCheck=hash_check,\
+                                dccObject=dcc_object,\
+                                dccContext=dcc_context)
+    models.DB.session.add(widget)
+  except:
+    print("ERROR:  Could not add widget ", widgetKey)

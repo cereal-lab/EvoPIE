@@ -3,7 +3,7 @@
 from math import sqrt
 import numpy as np
 
-from evopie import models
+from datalayer import models
 from evopie.utils import groupby
 from evopie.quiz_model import QuizModel
 from pandas import DataFrame

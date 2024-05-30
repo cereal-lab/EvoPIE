@@ -8,9 +8,9 @@ from flask import Blueprint
 from flask_login import login_user, login_required, current_user, login_manager, logout_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import timedelta
-from .config import ROLE_INSTRUCTOR, ROLE_STUDENT
+from datalayer import ROLE_INSTRUCTOR, ROLE_STUDENT
 
-import evopie.models as models
+import datalayer.models as models
 
 auth = Blueprint('auth', __name__)
 

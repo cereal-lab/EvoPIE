@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import enum
 from math import comb, prod
 from typing import Any, Optional
-from evopie import models
+from datalayer import models
 from pandas import DataFrame
 from datetime import datetime
 from evopie.utils import groupby

@@ -1,3 +1,5 @@
+## RPW:  Ad-Hoc stand-alone script to remove usernames from the DB
+
 from sqlalchemy import create_engine
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import select

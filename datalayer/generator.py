@@ -4,11 +4,8 @@
 # This module is meant to provide a database access layer for the data
 # analytics dashboard.
 
-import os, sys
-
 import numpy as np
 import pandas as pd
-import json
 
 
 def RecurseDataGeneratorStudentBranch(baseStudent, studentList, branching, maxNumberOfStudents):
