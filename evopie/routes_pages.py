@@ -195,7 +195,10 @@ def quiz_question_selector_1(quiz_id):
     if not current_user.is_instructor():
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
-    questions = models.Question.query.all()
+    quiz = models.Quiz.query.get_or_404(quiz_id)
+    quiz_questions = quiz.quiz_questions
+    question_ids = set(q.question_id for q in quiz_questions)
+    questions = models.Question.query.where(models.Question.id.not_in(question_ids)).all()
     for q in questions:
         q.stem = unescape(q.stem)
         q.answer = unescape(q.answer)
@@ -301,13 +304,16 @@ def quiz_editor(quiz_id):
     courses = models.Course.query.filter_by(instructor_id=current_user.get_id()).all()
     # TODO #3 we replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
     #q = q.dump_as_dict()
+    present_qids = set()
     for qq in q.quiz_questions:
         qq.question.title = unescape(qq.question.title)
         qq.question.stem = unescape(qq.question.stem)
         qq.question.answer = unescape(qq.question.answer)
+        present_qids.add(qq.question_id)
         # NOTE we do not have to worry about unescaping the distractors because the quiz-editor 
         # does not render them. However, if we had to do so, remember that we need to add to 
         # each QuizQuestion a field named alternatives that has the answer + distractors unescaped.
+    available_qestions_count = models.Question.query.where(models.Question.id.not_in(present_qids)).count()
     if q.status != "HIDDEN":
         flash("Quiz not editable at this time", "error")
         return redirect(request.referrer)
@@ -318,7 +324,7 @@ def quiz_editor(quiz_id):
     justificationsGradeOptions = initialScoreFactorOptions
     participationGradeOptions = initialScoreFactorOptions
     quartileOptions = numJustificationsOptions
-    return render_template('quiz-editor.html', quiz = q.dump_as_dict(), limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, numJustificationsOptions = numJustificationsOptions, quartileOptions = quartileOptions, courses = courses)
+    return render_template('quiz-editor.html', quiz = q.dump_as_dict(), limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, numJustificationsOptions = numJustificationsOptions, quartileOptions = quartileOptions, courses = courses, available_qestions_count = available_qestions_count)
 
 @pages.route('/quiz-configuration/<quiz:q>')
 @login_required
