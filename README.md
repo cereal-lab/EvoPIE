@@ -23,7 +23,7 @@ Check out the main branch of our GitHub repository:
 git clone https://github.com/cereal-lab/EvoPIE.git
 ```
 
-Edit the docker-compose.yml file to update the volumes for "web"
+Edit the docker-compose.yml file to update the volumes for "web". Put the absolute path to the folder containing the database file where we have "REPLACE_ME" below: 
 ```bash
 version: '2.0'
 
@@ -31,7 +31,7 @@ services:
   web:
     build: ./evopie
     volumes:
-      - /EvoPIE/2024-fall-alessio/data:/app/data
+      - /REPLACE_ME:/app/data
     environment:
       - EVOPIE_DATABASE_URI=sqlite:////app/data/db.sqlite
     expose:
