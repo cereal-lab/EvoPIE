@@ -1,16 +1,120 @@
+This file is meant to describe how to run locally.
+
+ENVIRONMENT SETUP:
+------------------
+0) Make sure the right tools are installed.  You will need python (3.8), pip, and pipenv.
+
+
+1) Make sure you clone or pull the latest:
+
+  git clone https://github.com/cereal-lab/EvoPIE.git
+
+
+2) Make sure you are in the EvoPIE project directory
+
+  cd <wherever>/EvoPIE
+
+
+3) Make sure you are on the branch you want:
+
+  git switch dashboard-integration
+
+OR:
+
+  git switch master
+
+etc.
+
+
+4) Pull the latest, if you want it:
+
+  git pull
+
+
+5) Make sure the virtual env is setup:
+
+  pipenv install
+
+OR:
+
+  pipenv sync
+
+
+
+RUNNING NATIVELY UNDER PIPENV
+-----------------------------
+0) Make sure there is a data base file called: DB_quizlib.sqlite in the ./evopie directory.
+   Either copy an existing one there or flash a new DB with `flask DB-reboot` from inside 
+   the pipenv shell
+
+1) Enter the pipenv shell:
+
+  pipenv shell
+
+
+2) Start the updater:
+
+  python3 updater.py -1
+
+OR:
+
+  python3 updater.py 360 > /dev/null &
+
+
+3) Run the webserver:
+
+  flask run
+
+
+4) Open your browser to:  http://127.0.0.1:5000
+
+
+
+RUNNING LOCALLY UNDER DOCKER:
+-----------------------------
+
+0) Make sure docker is installed.
+
+
+1) Make sure files are in the right place:
+  + A functionaly DB caled db.sqlite needs to be in the ./data directory
+  + A valid set of certs need to be in the ./evopie/certs/etc/letsencrypt directory
+
+
+2) Use docker compose to build to start the servers:
+
+  docker-compose -f <your-docker-compose-yml-file>  up --build -d
+
+
+3) Point your browswer to the correct URL ... could be:
+
+  https://127.0.0.1:5000
+
+OR:
+
+  https://127.0.0.1:5010
+
+
+4) Use docker comose to see the logs:
+
+  docker-compose -f <your-docker-compose-yml-file>  logs
+
+
+5) Use docker compose to stop the server:
+ 
+  docker-compose -f <your-docker-compose-yml-file>  stop
+
+
+
+NOTES:
+------
 * I had to edit the compose file and the docker files to 
   run locally because:
-  + Port 5000 conflicts with upnp on my machine
+  + Port 5000 conflicts with upnp on my machine, so I use 5010
   + The mount locations are different
 
 * So use my docker compose file ... and be careful to to commit the Docker files
+  + My docker compose file is:  docker-compose-rpw.yml
 
-* To run:
-docker-compose -f docker-compose-rpw.yml  up --build -d  
-
-* To stop:
-docker-compose -f docker-compose-rpw.yml  stop
-
-* Check your docker dashboard for logs, or:
-docker-compose -f docker-compose-rpw.yml logs
+* If you are running natively and run the updater in the background, don't forget to kill it
 
