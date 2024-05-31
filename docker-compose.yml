@@ -1,6 +1,17 @@
 version: '2.0'
 
 services:
+  updater:
+    build: ./analysislayer
+    volumes:
+      - /EvoPIE/evopie/data:/app/data
+    environment:
+      - EVOPIE_DATABASE_URI=sqlite:////app/data/db.sqlite
+    expose:
+      - 5010
+    env_file:
+      - ./analysislayer/.env.dev
+    restart: always
   web:
     build: ./evopie
     volumes:
@@ -11,6 +22,8 @@ services:
       - 5010
     env_file:
       - ./evopie/.env.dev
+    depends_on:
+      - updater      
     restart: always
   nginx:
     build: ./nginx
