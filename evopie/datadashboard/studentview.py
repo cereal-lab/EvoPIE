@@ -16,7 +16,8 @@ from evopie import APP
 import evopie.datadashboard.utils as appUtils
 
 import datalayer.dbaccess as da
-import analysislayer.widgetbuilder as widgetbuilder
+from datalayer import LOGGER
+import analysislayer.widgetupdater as widgetupdater
 import analysislayer.utils as dataUtils
 
 
@@ -38,12 +39,12 @@ def PopulateViewLayout():
   quizIDstr = appUtils.GetSelectedQuizIDCookie(gQuizOptions[0]['value'])
 
   # These are the fake dataframes will use until we integrate with EvoPIE
-  APP.logger.info('')
-  APP.logger.info('--' + __name__ + '-'.ljust(50, '-'))
-  APP.logger.info("1.  Reinitializing, " + datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
+  LOGGER.info('')
+  LOGGER.info('--' + __name__ + '-'.ljust(50, '-'))
+  LOGGER.info("1.  Reinitializing, " + datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
 
   # Create the web page layout
-  APP.logger.info("2.  Creating the layout")
+  LOGGER.info("2.  Creating the layout")
   gLayout = html.Div(children=[
       
       # The drop-down quiz selector at the top
@@ -131,7 +132,7 @@ def PopulateViewLayout():
       html.Div(id='placeholder', style={"display":"none"})
   ])
 
-  APP.logger.info("3.  Webpage ready to view, " + datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
+  LOGGER.info("3.  Webpage ready to view, " + datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
 
   return gLayout
 
@@ -153,7 +154,7 @@ def HandleStudentDetailRequest(quizID, studentID):
 
     try:
       if not studentID == "root":
-        components.append( widgetbuilder.gBuilder.GetStudentDetailsGraph(quizID, studentID, quizDF) )
+        components.append( widgetupdater.GetStudentDetailsGraph(quizID, studentID, quizDF) )
     except Exception as e:
       message = "Error loading quiz detail " + str((quizID, studentID)) + "  ::  " + str(e)                  
       components.append( html.P(children=message, className="graph-component-message") )
@@ -262,9 +263,9 @@ def RegisterCallbacks(dashapp):
   def displayStudentTabMenuData(whichAnalysis, quizItemValue):
       global gQuizOptions
       quizID = appUtils.GetSelectedQuizIDCookie(gQuizOptions[0]['value'])
-      quizDF = da.GetScoresDataframe(quizID)  ## RPW:  Move this below?
+      #quizDF = da.GetScoresDataframe(quizID)  ## RPW:  Move this below?
 
-      APP.logger.info("Displaying " + str(whichAnalysis) + " " + str(quizItemValue)) 
+      LOGGER.info("Displaying " + str(whichAnalysis) + " " + str(quizItemValue)) 
 
       # If this is being called because of the quiz selection drop down, then change the 
       # quiz ID.  Or if the quizID is not properly stored in the application state singleton
@@ -273,14 +274,14 @@ def RegisterCallbacks(dashapp):
         appUtils.SetSelectedQuizIDCookie(quizID, dash.callback_context)
 
       # Check to see if a reload of the dataframe is really needed.
-      if True: # widgetbuilder.gBuilder.IsReloadNeeded(quizID, quizDF):
-        quizDF = da.GetScoresDataframe(quizID)
-        widgetbuilder.gBuilder.PopulateGraphs(quizID, quizDF) 
+      #if True: # widgetbuilder.gBuilder.IsReloadNeeded(quizID, quizDF):
+      #  quizDF = da.GetScoresDataframe(quizID)
+      #  widgetbuilder.gBuilder.PopulateGraphs(quizID, quizDF) 
 
       # Initialize the Initial panel HTML components
       componentsLeft = []
       componentsLeft.append( html.H3(children="Pre-Test", id="initial-title", className="header") )
-      graphObject, contextDict = widgetbuilder.gBuilder.GetGraph(whichAnalysis, "student", "InitialScore")     
+      graphObject, contextDict = widgetupdater.GetGraph(quizID, whichAnalysis, "student", "InitialScore")     
       componentsLeft.append( graphObject)
       if (whichAnalysis == "deca"):
         componentsLeft.append(html.P(children="Students further along one axis performed better.", style={'color': 'darkgray'}, className="deca-legend-annotation"))
@@ -289,7 +290,7 @@ def RegisterCallbacks(dashapp):
       # Initialize the Revised panel HTML components
       componentsRight = []
       componentsRight.append( html.H3(children="Post-Test", id="revised-title", className="header") )
-      graphObject, contextDict = widgetbuilder.gBuilder.GetGraph(whichAnalysis, "student", "RevisedScore")    
+      graphObject, contextDict = widgetupdater.GetGraph(quizID, whichAnalysis, "student", "RevisedScore")    
       componentsRight.append( graphObject )
       if (whichAnalysis == "deca"):
         componentsRight.append(html.P(children="Students further along one axis performed better.", style={'color': 'darkgray'}, className="deca-legend-annotation"))

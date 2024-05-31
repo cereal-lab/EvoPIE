@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import scipy.stats as stats
 
+from datalayer import LOGGER
+
 
 # Reminder of the columns of the standard dataframe we will
 # get for test results
@@ -156,7 +158,7 @@ def analyzeQuestions(dataset, whichScores, contextDict):
 
   # Don't bother ids'ing if there's not enough data
   if (len(set(dataset.StudentID)) < 2) or (len(set(dataset.QuestionID)) < 2):
-    print("WARNING:  There aren't enough questions to compute item descrimination")
+    LOGGER.warn("There aren't enough questions to compute item descrimination")
 
   # Otherwise, let's compute the IDS score for each question
   else:
@@ -217,7 +219,7 @@ def analyzeStudents(dataset, whichScores, contextDict):
 
   # Don't bother ids'ing if there's not enough data
   if (len(set(dataset.StudentID)) < 2) or (len(set(dataset.QuestionID)) < 2):
-    print("WARNING:  There aren't enough students or questions to compute item descrimination")
+    LOGGER.warn("There aren't enough students or questions to compute item descrimination")
 
   # Otherwise, let's compute the IDS score for each question
   else:

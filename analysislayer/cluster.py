@@ -8,7 +8,7 @@ from sklearn.metrics import davies_bouldin_score
 
 import datalayer.dbaccess as da
 import analysislayer.utils as dataUtils
-
+from datalayer import LOGGER
 
 ## RPW:  Quiz 1, question view should be able to cluster, why can't it?  Fix
 
@@ -30,12 +30,12 @@ def analyzeQuestions(df, whichScores, contextDict):
 
   # Don't both clustering if the initial matrix doesn't have enough data
   if (initRows < 2) or (initCols < 2):
-    print("WARNING:  The initial question matrix has insufficient information to cluster")
+    LOGGER.warn("The initial question matrix has insufficient information to cluster")
     maxClusters = 1 # Just to skip the loop below
 
   # Don't both clustering if the revised matrix doesn't have enough data
   elif (reviRows < 2) or (reviCols < 2):
-    print("WARNING:  The initial question matrix has insufficient information to cluster")
+    LOGGER.warn("The initial question matrix has insufficient information to cluster")
     maxClusters = 1 # Just to skip the loop below
 
   # Transform the appropriate matrix into a 2D space using an MDS based model
@@ -67,7 +67,7 @@ def analyzeQuestions(df, whichScores, contextDict):
         kmLabels = labels
         kmQuality = quality
     except:
-      print("WARNING:  Cannot cluster questions with k >=", numClusters)
+      LOGGER.warn("Cannot cluster questions with k>=" + str(numClusters))
       numClusters = sys.maxsize  # Skip the rest of the loop
 
   # Create the return data frame columns
@@ -105,7 +105,7 @@ def analyzeQuestions(df, whichScores, contextDict):
         returnDF = pd.concat([returnDF, dfNewRow])  
 
   else:
-    print("WARNING:  No clustering is possible. [ question analysis, ", whichScores, "]")         
+    LOGGER.error("No clustering is possible. [ question analysis, " + whichScores + "]")         
     # The data frame will be empty if none of the clusters were possible
    
   return returnDF
@@ -130,12 +130,12 @@ def analyzeStudents(df, whichScores, contextDict):
 
   # Don't bother clustering if the initial matrix doesn't have enough data
   if (initRows < 2) or (initCols < 2):
-    print("WARNING:  The initial student matrix has insufficient information to cluster")
+    LOGGER.warn("The initial student matrix has insufficient information to cluster")
     maxClusters = 1 # Just to skip the loop below
 
   # Don't bother clustering if the revised matrix doesn't have enough data
   elif (reviRows < 2) or (reviCols < 2):
-    print("WARNING:  The initial student matrix has insufficient information to cluster")
+    LOGGER.warn("The initial student matrix has insufficient information to cluster")
     maxClusters = 1 # Just to skip the loop below
 
   # Transform the appropriate matrix into a 2D space using an MDS based model
@@ -169,7 +169,7 @@ def analyzeStudents(df, whichScores, contextDict):
         kmLabels = labels
         kmQuality = quality
     except:
-      print("WARNING:  Cannot cluster students with k >=", numClusters)
+      LOGGER.warn("WARNING:  Cannot cluster students with k>=" + str(numClusters))
       numClusters = sys.maxsize  # Skip the rest of the loop
 
   # Create the return data frame columns
@@ -208,24 +208,7 @@ def analyzeStudents(df, whichScores, contextDict):
         returnDF = pd.concat([returnDF, dfNewRow]) 
 
   else:
-    print("WARNING:  No clustering is possible. [ student analysis, ", whichScores, "]")         
+    LOGGER.warn("No clustering is possible. [ student analysis, " + whichScores + "]")         
     # The data frame will be empty if none of the clusters were possible
 
   return returnDF
-
-
-
-def unitTest():
-  """
-  Test to make sure this works.
-  """
-  df = da.GetScoresDataframe(1, 12, 3)
-  print("Number of students: ", len(set(df.StudentID)))
-  print("Number of questions:", len(set(df.QuestionID)))
-
-  contextDict = {}
-  print(analyzeQuestions(df, 'InitialScore', contextDict)) 
-
-
-if __name__ == '__main__':
-  unitTest()

@@ -392,7 +392,7 @@ def GenerateItemDescriminationBarPlot(df, whichScores, quizID, whichView, contex
       if (whichScores.lower()[0:5] == "revis") and ('axisOrdering' in contextDict):
         axisOrdering = contextDict['axisOrdering']
       elif whichScores.lower()[0:5] == "initi":
-        contextDict['axisOrdering'] = axisOrdering
+        contextDict['axisOrdering'] = axisOrdering.tolist()
 
       # Extract the data we need & order it 
       valsNumeric = resultsDF[keyLookup+'ID'].iloc[axisOrdering].tolist()
@@ -525,7 +525,7 @@ def GenerateTraditionalDifficultyBarPlot(df, whichScores, quizID, whichView, con
     if (whichScores.lower()[0:5] == "revis") and ('axisOrdering' in contextDict):
       axisOrdering = contextDict['axisOrdering']
     elif whichScores.lower()[0:5] == "initi":
-      contextDict['axisOrdering'] = axisOrdering 
+      contextDict['axisOrdering'] = axisOrdering.tolist() 
 
     tradVals  = resultsDF[whichScores].iloc[axisOrdering].tolist()
     valsNumeric = resultsDF[keyLookup+'ID'].iloc[axisOrdering].tolist()

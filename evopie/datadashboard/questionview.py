@@ -13,7 +13,9 @@ from evopie import APP
 import evopie.datadashboard.utils as appUtils
 
 import datalayer.dbaccess as da
-import analysislayer.widgetbuilder as widgetbuilder
+from datalayer import LOGGER
+#import analysislayer.widgetbuilder as widgetbuilder
+import analysislayer.widgetupdater as widgetupdater
 import analysislayer.utils as dataUtils
 
 
@@ -36,12 +38,12 @@ def PopulateViewLayout():
   quizIDstr = appUtils.GetSelectedQuizIDCookie(gQuizOptions[0]['value'])
 
   # These are the fake dataframes will use until we integrate with EvoPIE
-  APP.logger.info('')
-  APP.logger.info('--' + __name__ + '-'.ljust(50, '-'))
-  APP.logger.info("1.  Reinitializing, " + datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
+  LOGGER.info('')
+  LOGGER.info('--' + __name__ + '-'.ljust(50, '-'))
+  LOGGER.info("1.  Reinitializing, " + datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
 
   # Create the web page layout
-  APP.logger.info("2.  Creating the layout.")
+  LOGGER.info("2.  Creating the layout.")
 
   """
   LWR: I wonder if we should switch to a format for multi-pages like the main evopie page.
@@ -138,7 +140,7 @@ def PopulateViewLayout():
       html.Div(id='placeholder', style={"display":"none"})
   ])
 
-  APP.logger.info("3.  Webpage ready to view, " + datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
+  LOGGER.info("3.  Webpage ready to view, " + datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
 
   return gLayout
 
@@ -156,8 +158,8 @@ def HandleQuestionsDetailRequest(quizID, questionID, whichScores):
     try:
         quizDetailDF = da.GetQuestionDetailDataframe(quizID, questionID, whichScores)        
         if not questionID == "root": 
-            components.append( widgetbuilder.gBuilder.GetQuestionDetailHeader(quizDetailDF, questionID, whichScores) )
-            components.append( widgetbuilder.gBuilder.GetQuestionDetailsGraph(quizDetailDF, questionID, whichScores) )
+            components.append( widgetupdater.GetQuestionDetailHeader(quizDetailDF, questionID, whichScores) )
+            components.append( widgetupdater.GetQuestionDetailsGraph(quizDetailDF, questionID, whichScores) )
         
     except Exception as e:
         message = "Error loading quiz detail " + str((quizID, questionID)) + "  ::  " + str(e)                  
@@ -270,10 +272,10 @@ def RegisterCallbacks(dashapp):
   def displayTapMenuData(whichAnalysis, quizItemValue):
       global gQuizOptions
       quizID = appUtils.GetSelectedQuizIDCookie(gQuizOptions[0]['value'])
-      quizDF = da.GetScoresDataframe(quizID)
+      #quizDF = da.GetScoresDataframe(quizID)
 
       # Now we have appUtils.gApplicationState.QuizDropDown, so we can set the default/selected item
-      APP.logger.info("Displaying " + str(whichAnalysis) + " " + str(quizItemValue)) 
+      LOGGER.info("Displaying " + str(whichAnalysis) + " " + str(quizItemValue)) 
 
       # If this is being called because of the quiz selection drop down, then change the 
       # quiz ID.  Or if the quizID is not properly stored in the application state singleton
@@ -282,14 +284,15 @@ def RegisterCallbacks(dashapp):
         appUtils.SetSelectedQuizIDCookie(quizID, dash.callback_context)
 
       # Check to see if a reload of the dataframe is really needed.
-      if widgetbuilder.gBuilder.IsReloadNeeded(quizID, quizDF):
-        quizDF = da.GetScoresDataframe(quizID)  
-        widgetbuilder.gBuilder.PopulateGraphs(quizID, quizDF) 
+      #if widgetbuilder.gBuilder.IsReloadNeeded(quizID, quizDF):
+      #  quizDF = da.GetScoresDataframe(quizID)  
+      #  widgetbuilder.gBuilder.PopulateGraphs(quizID, quizDF) 
 
       # Initialize the Initial panel HTML components
       componentsLeft = []
       componentsLeft.append( html.H3(children="Pre-Test", id="initial-title", className="header") )
-      graphObject, contextDict = widgetbuilder.gBuilder.GetGraph(whichAnalysis, "question", "InitialScore")
+      #graphObject, contextDict = widgetbuilder.gBuilder.GetGraph(whichAnalysis, "question", "InitialScore")
+      graphObject, contextDict = widgetupdater.GetGraph(quizID, whichAnalysis, "question", "InitialScore")
       componentsLeft.append( graphObject )
       if (whichAnalysis == "deca"):
         componentsLeft.append(html.P(children="Questions further along one axis are strictly harder in terms of student performance.", style={'color': 'darkgray'}, className="deca-legend-annotation"))
@@ -300,7 +303,8 @@ def RegisterCallbacks(dashapp):
       # Initialize the Revised panel HTML components
       componentsRight = []
       componentsRight.append( html.H3(children="Post-Test", id="revised-title", className="header") )
-      graphObject, contextDict = widgetbuilder.gBuilder.GetGraph(whichAnalysis, "question", "RevisedScore")     
+      #graphObject, contextDict = widgetbuilder.gBuilder.GetGraph(whichAnalysis, "question", "RevisedScore")     
+      graphObject, contextDict = widgetupdater.GetGraph(quizID, whichAnalysis, "question", "RevisedScore")
       componentsRight.append( graphObject )
       if (whichAnalysis == "deca"):
         componentsRight.append(html.P(children="Questions further along one axis are strictly harder in terms of student performance.", style={'color': 'darkgray'}, className="deca-legend-annotation"))

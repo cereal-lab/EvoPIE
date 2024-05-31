@@ -5,7 +5,6 @@ import os
 
 
 DB = None
-
 def StartupDatabase(application):
     global DB
 
@@ -15,6 +14,12 @@ def StartupDatabase(application):
         DB = SQLAlchemy(application)
 
     return DB
+
+LOGGER = None
+def RegisterGlobalLogger(appLogger):
+    global LOGGER
+    LOGGER = appLogger
+    return appLogger
 
 #quiz attempt states 
 QUIZ_HIDDEN = "HIDDEN"

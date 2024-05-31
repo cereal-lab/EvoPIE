@@ -22,8 +22,9 @@ if db_log_file_name:
     db_file_logger.emit(logging.LogRecord(db_file_logger.name, logging.INFO, "", 0, f"DB file: {APP.config['SQLALCHEMY_DATABASE_URI']}", None, None))
     logging.getLogger('sqlalchemy.engine').addHandler(db_file_logger)
 
-from datalayer import StartupDatabase
+from datalayer import StartupDatabase, RegisterGlobalLogger
 DB = StartupDatabase(APP)
+LOGGER = RegisterGlobalLogger(APP.logger)
 
 
 from flask_admin import Admin, AdminIndexView

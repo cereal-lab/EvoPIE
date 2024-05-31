@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 
 import analysislayer.utils as dataUtils
+from datalayer import LOGGER
 
 
 def analyzeStudents(df, whichScores, contextDict):
@@ -23,7 +24,7 @@ def analyzeStudents(df, whichScores, contextDict):
   try:
     resultsDF = resultsDF.melt(id_vars=['StudentID'], value_vars=['RevisedScore','InitialScore'])
   except Exception as e:
-      print("Distribution Didn't work:", e)
+      LOGGER.error("Distribution Didn't work:" + str(e))
 
 
   return resultsDF

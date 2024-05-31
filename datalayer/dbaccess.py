@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import ast
 import sys
+import json
 
 import datalayer.models as models
 import analysislayer.utils as dataUtils
@@ -185,7 +186,7 @@ def GetStoredWidgetObject(quiz_id, analysis_type, score_type, view_type):
   score type, and view type.  If that object isn't in the DB, return the default dcc object.
   """
   dccObject = None
-  hashCheck = ""
+  hashCheck = "NOHASH"
   dccContext = dict()
 
   try:
@@ -193,9 +194,9 @@ def GetStoredWidgetObject(quiz_id, analysis_type, score_type, view_type):
     widget = models.WidgetStore.query.filter(models.WidgetStore.key == key).one()
     dccObject = widget.dccObject
     hashCheck = widget.hashCheck
-    dccContext = widget.dccContext
+    dccContext = json.loads(widget.dccContext)
   except:
-    hashCheck = ""
+    hashCheck = "NOHASH"
     dccObject = None
     dccContext = dict()
 
@@ -207,16 +208,33 @@ def PutStoredWidgetObject(quiz_id, analysis_type, score_type, view_type, hash_ch
   Store the DCC widget object uniquely identified by the quiz id, type of analysis,
   score type, and view type into the data base
   """
+  widget = None
+  widgetKey = models.WidgetStore.build_key(quiz_id, analysis_type, score_type, view_type)
+
+  # Try to find this widget in the table to update it
   try:
-    widgetKey = models.WidgetStore.build_key(quiz_id, analysis_type, score_type, view_type)
-    widget = models.WidgetStore(key=widgetKey,\
-                                quizID=quiz_id,\
-                                analysisType=analysis_type,\
-                                scoreType=score_type,\
-                                viewType=view_type,\
-                                hashCheck=hash_check,\
-                                dccObject=dcc_object,\
-                                dccContext=dcc_context)
-    models.DB.session.add(widget)
+    widget = models.WidgetStore.query.filter(models.WidgetStore.key == widgetKey).one()
+    widget.dccObject = dcc_object
+    widget.dccContext = json.dumps(dcc_context)
+    widget.hashCheck = hash_check
+    models.DB.session.commit()
   except:
-    print("ERROR:  Could not add widget ", widgetKey)
+    widget = None
+
+  # If it wasn't there, then add it!
+  if widget == None:
+    try:
+      widget = models.WidgetStore(key=widgetKey,\
+                                  quizID=quiz_id,\
+                                  analysisType=analysis_type,\
+                                  scoreType=score_type,\
+                                  viewType=view_type,\
+                                  hashCheck=hash_check,\
+                                  dccObject=dcc_object,\
+                                  dccContext=json.dumps(dcc_context))
+      models.DB.session.add(widget)      
+      models.DB.session.commit()
+    except:
+      print("ERROR:  Could not add widget ", widgetKey)
+      raise
+    

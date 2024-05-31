@@ -703,7 +703,7 @@ class WidgetStore(DB.Model):
     viewType = DB.Column(DB.String, nullable=False)
     hashCheck = DB.Column(DB.String, nullable=False)
     dccObject = DB.Column(DB.PickleType, nullable=False)
-    dccContext = DB.Column(DB.PickleType)
+    dccContext = DB.Column(DB.String, nullable=False)
 
     @staticmethod
     def build_key(quiz_id, analysis_type, score_type, view_type):
