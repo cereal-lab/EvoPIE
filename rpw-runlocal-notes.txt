@@ -116,5 +116,11 @@ NOTES:
 * So use my docker compose file ... and be careful to to commit the Docker files
   + My docker compose file is:  docker-compose-rpw.yml
 
+* Sometimes docker needs to be forced to go through the rebuild process for a given
+  container ... so you may have to make a small change to the Dockerfile (add a space
+  somewhere) to do this.  This usually happens when you've pushed changes to code but
+  you aren't seeing those reflected in the running containers.  Probably the `git pull`
+  didn't happen inside the container, etc.
+
 * If you are running natively and run the updater in the background, don't forget to kill it
 
