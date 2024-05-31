@@ -1,0 +1,16 @@
+* I had to edit the compose file and the docker files to 
+  run locally because:
+  + Port 5000 conflicts with upnp on my machine
+  + The mount locations are different
+
+* So use my docker compose file ... and be careful to to commit the Docker files
+
+* To run:
+docker-compose -f docker-compose-rpw.yml  up --build -d  
+
+* To stop:
+docker-compose -f docker-compose-rpw.yml  stop
+
+* Check your docker dashboard for logs, or:
+docker-compose -f docker-compose-rpw.yml logs
+
