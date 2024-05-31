@@ -124,3 +124,17 @@ NOTES:
 
 * If you are running natively and run the updater in the background, don't forget to kill it
 
+
+
+ARCHITECTURE:
+-------------
+
+___________________________________________
+|      evopie            |    updater     |
+|        ________________|                |
+|        | datadashboard |                |
+|        |     _________________          |
+|        |     | analysislayer |          |
+|-----------------------------------------|
+|                datalayer                |
+|_________________________________________|
