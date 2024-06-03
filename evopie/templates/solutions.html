@@ -91,6 +91,7 @@
 
                 <br>
 
+                {% if q.invalidated_distractors[q.id] %}
                 <div class="card text-white bg-dark">
                     <div class="card-header">
                         Here is the distractor you submitted for this question
@@ -102,7 +103,7 @@
                     </blockquote>
                     </div>
                 </div>
-
+                
                 <br>
 
                 <div class="card text-white bg-primary">
@@ -117,6 +118,7 @@
                     </blockquote>
                     </div>
                 </div>
+                {% endif %}
             </div>
         </div>
     {% endfor %}

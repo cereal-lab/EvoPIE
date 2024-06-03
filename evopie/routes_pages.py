@@ -196,7 +196,10 @@ def quiz_question_selector_1(quiz_id):
     if not current_user.is_instructor():
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
-    questions = models.Question.query.all()
+    quiz = models.Quiz.query.get_or_404(quiz_id)
+    quiz_questions = quiz.quiz_questions
+    question_ids = set(q.question_id for q in quiz_questions)
+    questions = models.Question.query.where(models.Question.id.not_in(question_ids)).all()
     for q in questions:
         q.stem = unescape(q.stem)
         q.answer = unescape(q.answer)
@@ -262,7 +265,7 @@ def add_quiz_question_to_quiz(quiz_id, question_id):
 @role_required(ROLE_INSTRUCTOR)
 def course_editor(course_id):
     course = models.Course.query.get_or_404(course_id)
-    quizzes = models.Quiz.query.filter_by(author_id = current_user.id).all()
+    quizzes = models.Quiz.query.where((models.Quiz.author_id == current_user.id) & ~models.DB.session.query(models.Course_quiz).where((models.Course_quiz.c.QuizId == models.Quiz.id)).exists()).all()
 
     available_quizzes = []
     for q in quizzes:
@@ -302,13 +305,16 @@ def quiz_editor(quiz_id):
     courses = models.Course.query.filter_by(instructor_id=current_user.get_id()).all()
     # TODO #3 we replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
     #q = q.dump_as_dict()
+    present_qids = set()
     for qq in q.quiz_questions:
         qq.question.title = unescape(qq.question.title)
         qq.question.stem = unescape(qq.question.stem)
         qq.question.answer = unescape(qq.question.answer)
+        present_qids.add(qq.question_id)
         # NOTE we do not have to worry about unescaping the distractors because the quiz-editor 
         # does not render them. However, if we had to do so, remember that we need to add to 
         # each QuizQuestion a field named alternatives that has the answer + distractors unescaped.
+    available_qestions_count = models.Question.query.where(models.Question.id.not_in(present_qids)).count()
     if q.status != "HIDDEN":
         flash("Quiz not editable at this time", "error")
         return redirect(request.referrer)
@@ -319,7 +325,7 @@ def quiz_editor(quiz_id):
     justificationsGradeOptions = initialScoreFactorOptions
     participationGradeOptions = initialScoreFactorOptions
     quartileOptions = numJustificationsOptions
-    return render_template('quiz-editor.html', quiz = q.dump_as_dict(), limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, numJustificationsOptions = numJustificationsOptions, quartileOptions = quartileOptions, courses = courses)
+    return render_template('quiz-editor.html', quiz = q.dump_as_dict(), limitingFactorOptions = limitingFactorOptions, initialScoreFactorOptions = initialScoreFactorOptions, revisedScoreFactorOptions = revisedScoreFactorOptions, justificationsGradeOptions = justificationsGradeOptions, participationGradeOptions = participationGradeOptions, numJustificationsOptions = numJustificationsOptions, quartileOptions = quartileOptions, courses = courses, available_qestions_count = available_qestions_count)
 
 @pages.route('/quiz-configuration/<quiz:q>')
 @login_required
@@ -998,6 +1004,7 @@ def get_quiz_statistics(qid, course_id):
         if attempt.status == QUIZ_ATTEMPT_SOLUTIONS or attempt.status == QUIZ_STEP3:
             student_revised_score = attempt.revised_total_score
             student_max_revised_score = len(attempt.revised_responses)
+            student_max_revised_score = 1 if student_max_revised_score == 0 else student_max_revised_score
             cetagory_percent_scores.setdefault(sid, {}).setdefault("revised", (student_revised_score / student_max_revised_score, quiz.revised_score_weight))
         if sid in justification_scores:
             student_justification_score = justification_scores[sid]
@@ -1014,7 +1021,8 @@ def get_quiz_statistics(qid, course_id):
             student_design_score = designing_scores[sid]
             student_max_design_score = 100
             cetagory_percent_scores.setdefault(sid, {}).setdefault("designing", (student_design_score / student_max_design_score, quiz.designing_grade_weight))
-        percents, weights = tuple(zip(*[grade for grade in cetagory_percent_scores.get(sid, {}).values()])) #unzip 
+        grades = [grade for grade in cetagory_percent_scores.get(sid, {}).values()]
+        percents, weights = ([], []) if len(grades) == 0 else tuple(zip(*grades)) #unzip 
         # weights should sum up to 100 - so in case when some of grades are not available - we rescale 
         total_weights = sum(weights) 
         total_weights = 1 if total_weights == 0 else total_weights

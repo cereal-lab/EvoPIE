@@ -822,7 +822,7 @@ def put_quizzes(qid):
             question = models.QuizQuestion.query.get_or_404(qid)
             quiz.quiz_questions.append(question)
 
-    step3_enabled = request.json['step3_enabled']
+    step3_enabled = request.json.get('step3_enabled', False)
     if step3_enabled == True:
         quiz.step3_enabled = "True"
     elif step3_enabled == False:

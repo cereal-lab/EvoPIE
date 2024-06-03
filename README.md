@@ -22,24 +22,33 @@ Check out the main branch of our GitHub repository:
 ```bash
 git clone https://github.com/cereal-lab/EvoPIE.git
 ```
-Install python packages: 
+
+Edit the docker-compose.yml file to update the volumes for "web". Put the absolute path to the folder containing the database file where we have "REPLACE_ME" below: 
 ```bash
-cd EvoPIE 
-pipenv install
-cd ..
+version: '2.0'
+
+services:
+  web:
+    build: ./evopie
+    volumes:
+      - /REPLACE_ME:/app/data
+    environment:
+      - EVOPIE_DATABASE_URI=sqlite:////app/data/db.sqlite
+    expose:
+      - 5000
+    env_file:
+      - ./evopie/.env.dev
+    restart: always
+  nginx:
+    build: ./nginx
+    ports:
+      - "5000:5000"
+    depends_on:
+      - web
+    restart: always
+    volumes:
+      - /etc/letsencrypt:/etc/nginx/certs
 ```
-Generate an empty data base:
-```bash
-cd EvoPIE
-pipenv shell
-flask DB-reboot
-cd ..
-```
-Move the empyt DB to where the docker container will expect it: 
-```bash
-mv EvoPIE/evopie/DB_quizlib.sqlite ./
-```
-Edit docker-compose.yml to make it point to the DB file that we will be using.
 
 Build the docker containers and run them:
 ```bash

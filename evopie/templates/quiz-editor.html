@@ -274,7 +274,11 @@
 
 <div class="card bg-light m-3 mx-auto" style="width: 75%">
     <div class="card-body" bg-light>
+        {% if available_qestions_count > 0 %}
         <button onclick="addExistingQuestion()" class="btn btn-primary">Add existing question to this Quiz</button>
+        {% else %}
+        <span>No available questions for this quiz. <a href="{{url_for("pages.questions_browser")}}">Create new question</a></span>
+        {% endif %}
     </div>
 </div>
 

@@ -18,8 +18,7 @@ ENV TZ="America/New_York"
 WORKDIR /app
 RUN echo "forcing rebuild  "
 RUN git clone https://github.com/cereal-lab/EvoPIE.git .
-#RUN git checkout master
-RUN git checkout dashboard-integration
+RUN git checkout master
 RUN git pull
 
 RUN pipenv sync
