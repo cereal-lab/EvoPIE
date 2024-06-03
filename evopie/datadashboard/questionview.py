@@ -35,7 +35,10 @@ def PopulateViewLayout():
   # Get the list of quizzes, and determine the default to use for the drop-down
   # If the quiz ID cookie is set, use that as the value for the drop down
   gQuizOptions = da.GetQuizOptionList()
-  quizIDstr = appUtils.GetSelectedQuizIDCookie(gQuizOptions[0]['value'])
+  defaultQuizVal = -1
+  if len(gQuizOptions) > 0:
+     defaultQuizVal = gQuizOptions[0]['value']
+  quizIDstr = appUtils.GetSelectedQuizIDCookie(defaultQuizVal)
 
   # These are the fake dataframes will use until we integrate with EvoPIE
   LOGGER.info('')
