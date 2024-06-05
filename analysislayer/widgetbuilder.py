@@ -84,7 +84,7 @@ class WidgetBuilder(threading.Thread):
 
     # If we already have an object with this quiz ID, no need to re-build it.
     if not oldQuizID == inQuizID:
-      print("    Generating graph for quiz", inQuizID, " (v", oldQuizID, "):: ", whichAnalysis, whichView, whichScore)
+      LOGGER.info("    Generating graph for quiz", inQuizID, " (v", oldQuizID, "):: ", whichAnalysis, whichView, whichScore)
       graphObject = html.P(children="Unable to build this graph due to an unforseen error", className="graph-component-message")        
 
       #if (whichAnalysis == "trad"):
@@ -94,8 +94,8 @@ class WidgetBuilder(threading.Thread):
         pltgen = gPlotterDictionary[whichAnalysis] # Get the right plotting routine
         graphObject = pltgen(quizDF, whichScore, inQuizID, whichView, contextDict)  # Generate the graph
       except Exception as err:
-        print("     --> Failure in widgetbuilder PutGraph, ", (whichAnalysis, whichView, whichScore))
-        print("         Error: ", str(err), traceback.print_exc())
+        LOGGER.error("     --> Failure in widgetbuilder PutGraph, ", (whichAnalysis, whichView, whichScore))
+        LOGGER.error("         Error: ", str(err), traceback.print_exc())
 
       self.widgetTable[(whichAnalysis, whichView, whichScore)] = (graphObject, inQuizID) # Store the graph & quizID
       self.analysisContextTable[(whichAnalysis, whichView)] = contextDict  # Store the context for the analysis
