@@ -161,7 +161,7 @@ class WidgetBuilder(threading.Thread):
     until the currentQuizID changes.
     """
     self.running = True
-    print("Thread started running...")
+    LOGGER.info("Thread started running...")
 
     while self.running:
       for whichAnalysis in list(gPlotterDictionary.keys()): 
