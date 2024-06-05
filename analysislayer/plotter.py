@@ -14,6 +14,8 @@ import analysislayer.cluster as cluster
 import analysislayer.traditional as traditional
 import analysislayer.distribution as dist
 
+from datalayer import LOGGER
+
 try:
   import plotly.express as px
   import plotly.io as pio
@@ -87,7 +89,7 @@ def GenerateStudentDistributionGraph(df, studentID=0, contextDict=dict()):
     #print("inital score: ", studentInitialScore)
     #print("revised score: ", studentRevisedScore)
   except Exception as e:
-    print("ERROR:  Distribution plot could not get student details.  ", e)
+    LOGGER.error("ERROR:  Distribution plot could not get student details.  ", e)
 
 
    # This block builds the graph itself, both positional traces for the student, as 
