@@ -119,12 +119,12 @@ class WidgetBuilder(threading.Thread):
     """
     Print the internal width table (mostly for debugging).
     """
-    print("Current Widget Table [", len(self.widgetTable), "]:")
+    LOGGER.info("Current Widget Table [", len(self.widgetTable), "]:")
     for key in self.widgetTable:
       whichAnalysis, whichView, whichScore = key
       graphObject, quizID = self.widgetTable[key]
       goName = type(graphObject).__name__
-      print('  ', whichAnalysis, whichView, whichScore, quizID, goName)
+      LOGGER.info('  ', whichAnalysis, whichView, whichScore, quizID, goName)
 
 
   def IsReloadNeeded(self, quizID, quizDF):
