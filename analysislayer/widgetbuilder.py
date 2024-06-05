@@ -12,6 +12,7 @@ import analysislayer.plotter as plotter
 import analysislayer.utils as dataUtils
 
 import threading
+from datalayer import LOGGER
 
 ## Change this if you add a measure.
 gPlotterDictionary = {"deca":plotter.GenerateDimensionGraph,
@@ -37,7 +38,7 @@ class WidgetBuilder(threading.Thread):
       self.currentQuizDF = None # Current quiz data frame used to build the table
       self.running = False      # Whether or not the thread is running
       self.InitGraphsWithSimpleMessage("No graph selected")
-      print("Created a WidgetBuilder.  There should not be more than one -- so if this messages appears more than once, there is a problem.")
+      LOGGER.warn("Created a WidgetBuilder.  There should not be more than one -- so if this messages appears more than once, there is a problem.")
 
 
   def GetGraph(self, whichAnalysis, whichView, whichScore):
