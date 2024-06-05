@@ -126,7 +126,7 @@ def GenerateStudentDistributionGraph(df, studentID=0, contextDict=dict()):
                       layout=graph.layout)
 
   except Exception as err:
-    print("ERROR: Plotter could not produce distribution plot:", err)
+    LOGGER.error("ERROR: Plotter could not produce distribution plot:", err)
 
   # Return the Dash dcc object containing the plotly figure
   return dcc.Graph(id="studentDist", figure=fig)
