@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy import insert
 from sqlalchemy import func
 from sqlalchemy.orm import Session
+from datalayer import LOGGER
 
 import json
 import sys
@@ -116,7 +117,7 @@ try:
   rawInput = sys.argv[1]
   rawQuestion = int(rawInput.strip('q'))
 except:
-  print("ERROR:  Please specify a valid question to copy (q1, q2, q3)!")
+  LOGGER.error("ERROR:  Please specify a valid question to copy (q1, q2, q3)!")
   sys.exit(1)
 basisQuestion = str(rawQuestion)
 
