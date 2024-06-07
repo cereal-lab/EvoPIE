@@ -135,7 +135,7 @@ elif (basisQuestion == "1"):
   studentMissedInit = set(list(range(1,120))) - set([18, 29, 47, 115, 117])
   stride = 100
 else:
-  print("ERROR:  Please specify a valid question to copy (q1, q2, q3)!")
+  LOGGER.error("ERROR:  Please specify a valid question to copy (q1, q2, q3)!")
   sys.exit(1)
 
 
