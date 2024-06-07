@@ -14,6 +14,7 @@ import datalayer.models as models
 import analysislayer.utils as dataUtils
 
 from flask_login import current_user
+from datalayer import LOGGER
 
 
 def IsValidDashboardUser():
