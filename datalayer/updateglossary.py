@@ -109,20 +109,20 @@ def update_glossary_table(dbSession, jsonDict):
           if (not jterm == luTerm.term) or (not jdefinition == luTerm.definition):
             luTerm.term = jterm
             luTerm.definition = jdefinition
-            print("  Updating term '" + luTerm.term + "'.")
+            LOGGER.info("  Updating term '" + luTerm.term + "'.")
           else:
-            print("  Skipping term '" + jterm + "'.")
+            LOGGER.info("  Skipping term '" + jterm + "'.")
 
         except:
-          print("  Adding term '" + jterm + "'")
+          LOGGER.info("  Adding term '" + jterm + "'")
           glossaryTerm = GlossaryTerm(id=jid, term=jterm, definition=jdefinition)
           dbSession.add(glossaryTerm)
 
   except:
-    print("ERROR:  There was a database access problem.")
+    LOGGER.error("ERROR:  There was a database access problem.")
     sys.exit(4)
     
-  print("Updated the glossary table.")
+  LOGGER.info("Updated the glossary table.")
 
 
 if __name__ == '__main__':
