@@ -6,6 +6,7 @@ from sqlalchemy import insert
 from sqlalchemy import MetaData
 from sqlalchemy import inspect
 from sqlalchemy.orm import Session
+from datalayer import LOGGER
 
 import json
 import sys
@@ -41,15 +42,15 @@ def get_database_session(dbFilename):
     session = Session(engine)
 
   except:
-    print("ERROR: Could not open DB at '" + connectionString + "'.")
+    LOGGER.error("ERROR: Could not open DB at '" + connectionString + "'.")
     sys.exit(11)
 
-  print("Connected to: ", connectionString)
+  LOGGER.info("Connected to: ", connectionString)
 
   try:
     # If the glossary table does not exist, create it
     if not inspect(engine).has_table("glossary"): 
-        print("  The 'glossary' table did not exist.  Creating it.") 
+        LOGGER.info("  The 'glossary' table did not exist.  Creating it.") 
         metadata = MetaData() #   MetaData(engine)
         DB.Table( "glossary", metadata,
             DB.Column('id', DB.Integer, primary_key=True), 
@@ -57,9 +58,9 @@ def get_database_session(dbFilename):
             DB.Column('definition', DB.String, nullable=False) )
         metadata.create_all(engine)   
     else:
-      print("  There was already a 'glossary' table.  No need to create it.") 
+      LOGGER.info("  There was already a 'glossary' table.  No need to create it.") 
   except:
-    print("ERROR: Could not create the glossary table")
+    LOGGER.error("ERROR: Could not create the glossary table")
     sys.exit(12)
 
   return session
