@@ -75,7 +75,7 @@ def get_glossary_dict(jsonFilename):
     jsonFile = open(jsonFilename)
     jsonDict = json.load(jsonFile)
   except:
-    print("ERROR: Could not find a JSON file at '" + jsonFilename + "'.")
+    LOGGER.error("ERROR: Could not find a JSON file at '" + jsonFilename + "'.")
     sys.exit(1)
 
   try:
@@ -90,7 +90,7 @@ def get_glossary_dict(jsonFilename):
     jsonDict = tmpDict
 
   except:
-    print("ERROR:  The JSON file at '" + jsonFilename + "' isn't formatted as expected.")
+    LOGGER.error("ERROR:  The JSON file at '" + jsonFilename + "' isn't formatted as expected.")
     sys.exit(2)
 
   return jsonDict
