@@ -1,7 +1,7 @@
 import flask
 import re
 import numpy as np
-
+from datalayer import LOGGER
 
 ## General utility function shared by both application views
 import datalayer.dbaccess as da
@@ -15,7 +15,7 @@ def GetSelectedQuizIDCookie(defaultVal):
     allcookies=dict(flask.request.cookies)
     if 'evopie_dashboard_quizid' in allcookies:
       quizIDstr = allcookies['evopie_dashboard_quizid']   
-      print("DBG:::  Successfully got the 'evopie_dashboard_quizid' cookie=", quizIDstr)
+      LOGGER.info("DBG:::  Successfully got the 'evopie_dashboard_quizid' cookie=", quizIDstr)
 
   except:
     quizIDstr = defaultVal
@@ -26,9 +26,9 @@ def GetSelectedQuizIDCookie(defaultVal):
 def SetSelectedQuizIDCookie(quizID, ctx):
   try:
     ctx.response.set_cookie('evopie_dashboard_quizid', str(quizID))
-    print("DBG:::  Successfully set the 'evopie_dashboard_quizid' cookie to ", quizID)
+    LOGGER.info("DBG:::  Successfully set the 'evopie_dashboard_quizid' cookie to ", quizID)
   except:
-    print("Could not set the 'evopie_dashboard_quizid' cookie")
+    LOGGER.warn("Could not set the 'evopie_dashboard_quizid' cookie")
   
 
 def GetDataFromPrefix(propIDPrefix, inputItem, whichView, quiet=True):
@@ -41,7 +41,7 @@ def GetDataFromPrefix(propIDPrefix, inputItem, whichView, quiet=True):
   axisLabel = 'y'
 
   if not quiet:
-    print('Input Item: ' + str(inputItem) + ",   View: " + str(whichView))
+    LOGGER.info('Input Item: ' + str(inputItem) + ",   View: " + str(whichView))
 
   if inputItem is not None:
     if propIDPrefix == 'deca':
