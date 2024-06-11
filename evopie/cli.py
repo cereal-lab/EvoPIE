@@ -354,7 +354,7 @@ def init_knowledge(input, output, email_format, knows, knowledge_replace, deca_i
     #     #NOTE: for additional validation we also could check that distractors exist in Distractor tables
     #     question_distractors = {qid:[q.distractor_id for q in qds] for qid, qds in groupby(quiz_question_distractors, key = lambda x: x.quiz_question_id)}
     #     #NOTE: quiz also should be used to connect instructor to generated students and namespace them from other students
-    print(f"Student knows {input}, {output}, {email_format}, {knows}, {knowledge_replace}, {deca_input}")
+    APP.logger.info(f"Student knows {input}, {output}, {email_format}, {knows}, {knowledge_replace}, {deca_input}")
     try:
         knows_map_input = {}
         if input is not None:
