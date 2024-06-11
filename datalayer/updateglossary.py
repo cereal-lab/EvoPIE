@@ -1,4 +1,7 @@
 # Ad-Hoc standalone script to populate the glossary table from a JSON file.
+# Run from the EvoPIE directory like this:
+#  python datalayer/updateglossary.py
+#
 from sqlalchemy import create_engine
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import select
@@ -125,8 +128,8 @@ def update_glossary_table(dbSession, jsonDict):
 
 
 if __name__ == '__main__':
-  jsonFilename = "../../../glossary.json"  ## RPW:  These should not be hard-coded and
-  dbFilename = "../../DB_quizlib.sqlite"   ##       will have moved.
+  jsonFilename = "./glossary.json"  ## RPW:  These should not be hard-coded and
+  dbFilename = "./evopie/DB_quizlib.sqlite"   ##       will have moved.
 
   try:
     jsonFilename = sys.argv[1]
