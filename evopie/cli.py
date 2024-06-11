@@ -12,6 +12,7 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import traceback
+import logging
 
 from evopie import APP, deca
 from datalayer import models
@@ -30,7 +31,7 @@ def throw_on_http_fail(resp: TestResponse, status: int = 400):
 # NOTE Not used in a while, consider removing.
 @APP.cli.command("DB-init")
 def DB_init():
-    print(f"Initializing {os.getenv('EVOPIE_DATABASE_URI', 'sqlite:///DB_quizlib.sqlite')}")
+    APP.logger.info(f"Initializing {os.getenv('EVOPIE_DATABASE_URI', 'sqlite:///DB_quizlib.sqlite')}")
     models.DB.create_all()
 
 # Invoke with flask DB-reboot
