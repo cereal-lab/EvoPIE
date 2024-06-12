@@ -88,7 +88,7 @@ def GetScoresDataframe(quizID, numQuestions=None, branching=None, maxNumStudents
 
     except:
       if not quiet:
-        print("WARNING: QuizAttempt record", studentInstance.id, "was incomplete.  Ignoring this record.")
+        LOGGER.warn("WARNING: QuizAttempt record", studentInstance.id, "was incomplete.  Ignoring this record.")
 
   return df
 
@@ -135,7 +135,7 @@ def GetQuestionDetailDataframe(quizID, questionID, whichScores, quiet=True):
                                               ResponseText, False, 1)
     except:
       if not quiet:
-        print("WARNING: QuizAttempt record" + str(studentInstance.id) + "was incomplete.  Ignoring this record.")
+        LOGGER.warn("WARNING: QuizAttempt record" + str(studentInstance.id) + "was incomplete.  Ignoring this record.")
 
   # Now build the Pandas dataframe
   QIDs, QText, RIDs, RText, Corrects, Counts = tuple(zip(*questionTallyDict.values()))
@@ -236,6 +236,6 @@ def PutStoredWidgetObject(quiz_id, analysis_type, score_type, view_type, hash_ch
       models.DB.session.add(widget)      
       models.DB.session.commit()
     except:
-      print("ERROR:  Could not add widget ", widgetKey)
+      LOGGER.error("ERROR:  Could not add widget ", widgetKey)
       raise
     
