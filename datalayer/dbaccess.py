@@ -91,10 +91,12 @@ def GetScoresDataframe(quizID, numQuestions=None, branching=None, maxNumStudents
 
   return df
 
-
+def GetAllAvailableResponesToAQuestion(quizID, questionID):
+  attempts = models.QuizAttempt.query.filter(models.QuizAttempt.quiz_id == quizID).all()
 def GetQuestionDetailDataframe(quizID, questionID, whichScores, quiet=True):
   """
-  Get all the details abo
+  Get all the details about the results on a particular question.  This will be used
+  to build the bar plot for the question detail frame.
   """
   # Set a flag for whether the initial or revised scores were intended
   isInit =  whichScores.lower().find("init")
@@ -103,7 +105,8 @@ def GetQuestionDetailDataframe(quizID, questionID, whichScores, quiet=True):
   responseID = -1
   question = models.Question.query.filter(models.Question.id == questionID).first()
 
-  # First, let's build a dictionary for tallying things.
+  # First, let's build a dictionary for tallying things.  We start by having one entry that
+  # represents the correct answer.  It's key will be "-1".
   #                                  QuestionID  QuestionText   ResponseID  ResponseText    CorrectResp  Count
   questionTallyDict = {responseID: (question.id, question.stem, responseID, question.answer, True, 0)}
 
@@ -114,24 +117,32 @@ def GetQuestionDetailDataframe(quizID, questionID, whichScores, quiet=True):
       if isInit:
         responses = ast.literal_eval(studentInstance.initial_responses)
       else:
-        responses = ast.literal_eval(studentInstance.revised_responses)          
+        responses = ast.literal_eval(studentInstance.revised_responses)     
+      print("DBG:  respones:", responses)     
 
-      questionResponse = int(responses[str(questionID)])
+      # The responses fields are dictionaries where the key is the question ID (as a string)
+      # and the value is "-1" is the student got it correct and the distractor ID (as a number)
+      # if the student got it wrong.  So this gets that value out for the chosen question for this student & quiz.
+      questionResponse = int(responses[str(questionID)])  ## RPW:  What if this quesiton wasn't taken by this student for this quiz?
 
-      # If this response is in the tally dictionary, increment the count
+      # If this response is in the tally dictionary, increment the count.  There are three cases:
+      #   1) Student got this question right, then questionResponse will be "-1" and that entry already exists in the tally dictionary.
+      #   2) Student got this wrong, but there's an entry in the dictionary already ...
+      #   3) The first student to answer wrong with this distractor (go to the 'else' clause for that)
       if questionResponse in questionTallyDict:
         (QID, QText, ResponseID, ResponseText, CorrectResp, Count) = questionTallyDict[questionResponse]
-        QText = dataUtils.StripHTMLMarkers(QText, textTruncationLength)  # Strip HTML markup tags (etc, below)
-        ResponseText = dataUtils.StripHTMLMarkers(ResponseText, textTruncationLength)
+        #QText = dataUtils.StripHTMLMarkers(QText, textTruncationLength)  # Strip HTML markup tags (etc, below)
+        #ResponseText = dataUtils.StripHTMLMarkers(ResponseText, textTruncationLength)
         questionTallyDict[questionResponse] = (QID, QText, ResponseID, ResponseText, CorrectResp, Count+1)
 
-      # Otherwise, create an entry with a count of 1
+      # Otherwise, create an entry with a count of 1.  The only way this else can happen is if this is
+      # the first time a student has answered incorrectly with this particular distractor.
       else:
         distractor = models.Distractor.query.filter(models.Distractor.id == questionResponse).first()
+        print("DBG:  answer:", distractor.answer)
         QText = dataUtils.StripHTMLMarkers(question.stem, textTruncationLength)
         ResponseText = dataUtils.StripHTMLMarkers(distractor.answer, textTruncationLength)
-        questionTallyDict[questionResponse] = (question.id, QText, questionResponse, \
-                                              ResponseText, False, 1)
+        questionTallyDict[questionResponse] = (question.id, QText, questionResponse, ResponseText, False, 1)
     except:
       if not quiet:
         print("WARNING: QuizAttempt record" + str(studentInstance.id) + "was incomplete.  Ignoring this record.")
@@ -139,11 +150,11 @@ def GetQuestionDetailDataframe(quizID, questionID, whichScores, quiet=True):
   # Now build the Pandas dataframe
   QIDs, QText, RIDs, RText, Corrects, Counts = tuple(zip(*questionTallyDict.values()))
   df = pd.DataFrame({'QuestionID':pd.Series(QIDs, dtype='int'), \
-                      'QuestionText':pd.Series(QText, dtype='string'), \
-                      'ResponseID':pd.Series(RIDs, dtype='int'), \
-                      'ResponseText':pd.Series(RText, dtype='string'), \
-                      'CorrectResponse':pd.Series(Corrects, dtype='boolean'), \
-                      'NumberStudents':pd.Series(Counts, dtype='int')})
+                     'QuestionText':pd.Series(QText, dtype='string'), \
+                     'ResponseID':pd.Series(RIDs, dtype='int'), \
+                     'ResponseText':pd.Series(RText, dtype='string'), \
+                     'CorrectResponse':pd.Series(Corrects, dtype='boolean'), \
+                     'NumberStudents':pd.Series(Counts, dtype='int')})
 
   return df
 
