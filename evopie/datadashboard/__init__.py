@@ -86,7 +86,7 @@ def select_page_layout(pathname, questionLayout, studentLayout):
         redirectString = "The user is not authenticated or not an instructor.  The data dashboard is not accessible.  Redirecting to login page ..."
         redirectObject = html.Div(children=[
               html.Meta(httpEquiv="refresh", content="3; URL=/login"),
-              html.H1(children="Acess Error", className="header"),
+              html.H1(children="Access Error", className="header"),
               html.P(children=redirectString, className="graph-component-message")] )
         return redirectObject
     
@@ -94,7 +94,7 @@ def select_page_layout(pathname, questionLayout, studentLayout):
         redirectString = "The user is not an instructor or admin.  The data dashboard is not accessible.  Redirecting to main page ..."
         redirectObject = html.Div(children=[
               html.Meta(httpEquiv="refresh", content="3; URL=/"),
-              html.H1(children="Acess Error", className="header"),
+              html.H1(children="Access Error", className="header"),
               html.P(children=redirectString, className="graph-component-message")] )
         return redirectObject
 
