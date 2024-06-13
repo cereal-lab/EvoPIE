@@ -64,7 +64,7 @@ def GetScoresDataframe(quizID, numQuestions=None, branching=None, maxNumStudents
                      'RevisedScore':RevisedScores})
 
   # Spin through every student attempt for all questions on the specified quiz
-  for studentInstance in models.QuizAttempt.query.filter(models.QuizAttempt.quiz_id == quizID):
+  for studentInstance in models.QuizAttempt.query.filter(models.QuizAttempt.quiz_id == quizID).all():
     try:
       # Convert the question results into python dictionaries
       initScores = studentInstance.initial_scores #ast.literal_eval(studentInstance.initial_scores)
@@ -91,8 +91,7 @@ def GetScoresDataframe(quizID, numQuestions=None, branching=None, maxNumStudents
 
   return df
 
-def GetAllAvailableResponesToAQuestion(quizID, questionID):
-  attempts = models.QuizAttempt.query.filter(models.QuizAttempt.quiz_id == quizID).all()
+
 def GetQuestionDetailDataframe(quizID, questionID, whichScores, quiet=True):
   """
   Get all the details about the results on a particular question.  This will be used
@@ -110,15 +109,14 @@ def GetQuestionDetailDataframe(quizID, questionID, whichScores, quiet=True):
   #                                  QuestionID  QuestionText   ResponseID  ResponseText    CorrectResp  Count
   questionTallyDict = {responseID: (question.id, question.stem, responseID, question.answer, True, 0)}
 
-  for studentInstance in models.QuizAttempt.query.filter(models.QuizAttempt.quiz_id == quizID):
+  for studentInstance in models.QuizAttempt.query.filter(models.QuizAttempt.quiz_id == quizID).all():
     try:
       # Grab all the respones to the questions
       responses = None
       if isInit:
-        responses = ast.literal_eval(studentInstance.initial_responses)
+        responses = studentInstance.initial_responses
       else:
-        responses = ast.literal_eval(studentInstance.revised_responses)     
-      print("DBG:  respones:", responses)     
+        responses = studentInstance.revised_responses
 
       # The responses fields are dictionaries where the key is the question ID (as a string)
       # and the value is "-1" is the student got it correct and the distractor ID (as a number)
