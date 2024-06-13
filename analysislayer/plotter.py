@@ -38,10 +38,11 @@ def GenerateQuestionDetailPlot(df, questionID=0, whichScores='InitialScores', co
     questionText = df['QuestionText'][0]
 
     # Establish the color palette to highlight the correct answer
-    colors = ['lightslategray',] * 5
+    maxX = len(set(xVals))
+    colors = ['lightslategray',] * maxX
     for idx in range(len(correctVals)):
       xVals[idx] = dataUtils.StripHTMLMarkers(xVals[idx])  # Truncate the x label string
-      if correctVals[idx]:
+      if (idx>=0) and (correctVals[idx]):
         colors[idx] = 'crimson'
 
     # Build the graph and Dash component

@@ -137,7 +137,6 @@ def GetQuestionDetailDataframe(quizID, questionID, whichScores, quiet=True):
       # the first time a student has answered incorrectly with this particular distractor.
       else:
         distractor = models.Distractor.query.filter(models.Distractor.id == questionResponse).first()
-        print("DBG:  answer:", distractor.answer)
         QText = dataUtils.StripHTMLMarkers(question.stem, textTruncationLength)
         ResponseText = dataUtils.StripHTMLMarkers(distractor.answer, textTruncationLength)
         questionTallyDict[questionResponse] = (question.id, QText, questionResponse, ResponseText, False, 1)
