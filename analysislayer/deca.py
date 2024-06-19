@@ -4,6 +4,8 @@ import numpy as np
 import analysislayer.utils as dataUtils
 import pandas as pd
 
+from datalayer import LOGGER
+
 def cleanupForStudentAnalysis(results, questionSubset=[], scoreThreshold=1.0):
   """
   Filter the data for doing student-based analysis:
@@ -138,21 +140,21 @@ def tempPrint(a,b,c):
       sys.stdout.write('1')
     else:
       sys.stdout.write('0')
-  print()
+  LOGGER.info('')
 
   for idx in range(len(b[0])):
     if b[0][idx]:
       sys.stdout.write('1')
     else:
       sys.stdout.write('0')
-  print()
+  LOGGER.info('')
 
   for idx in range(len(c[0])):
     if c[0][idx]:
       sys.stdout.write('1')
     else:
       sys.stdout.write('0')
-  print()
+  LOGGER.info('')
 
   d = tupleAnd(a[0],b[0])
   for idx in range(len(d)):
@@ -160,14 +162,14 @@ def tempPrint(a,b,c):
       sys.stdout.write('1')
     else:
       sys.stdout.write('0')
-  print()
+  LOGGER.info('')
 
-  print(a[0])
-  print(b[0])
-  print(c[0])
-  print(d)
+  LOGGER.info(a[0])
+  LOGGER.info(b[0])
+  LOGGER.info(c[0])
+  LOGGER.info(d)
   
-  print()
+  LOGGER.info('')
   
 
 def filterTests(tests, omitSpanned=True, quiet=False):
@@ -199,7 +201,7 @@ def filterTests(tests, omitSpanned=True, quiet=False):
       keeping.append(test)
 
   if not quiet:
-    print("Spanned set: ", spanned)
+    LOGGER.info("Spanned set: ", spanned)
 
   return keeping
 
@@ -628,7 +630,7 @@ def completeAnalysisWithReport(dataset, questionSubset=set(), prefixStr="SUMMARY
   printSeparator(10,len(tradHard),5)
 
   # A final summary line that's easy to grep by "prefix"
-  print((prefixStr + ";").ljust(20), \
+  LOGGER.info((prefixStr + ";").ljust(20), \
         (str(numProbDims) + ";").ljust(10), \
         (str(numQuestions) + ";").ljust(10), \
         (str(numStudentDims) + ";").ljust(10), \
@@ -641,10 +643,10 @@ def completeAnalysisWithReport(dataset, questionSubset=set(), prefixStr="SUMMARY
 
 
 if __name__ == '__main__':
-  print()
-  print('='.ljust(50,'='))
-  print("Running the DECA unit test ...")
-  print()
+  LOGGER.info('')
+  LOGGER.info('='.ljust(50,'='))
+  LOGGER.info("Running the DECA unit test ...")
+  LOGGER.info('')
 
   # The user can specify an INI file with the desired configuration
   configFileName = ""
@@ -673,7 +675,7 @@ if __name__ == '__main__':
 
   completeAnalysisWithReport(dataset,set(), "SUMMARY", True, True)
 
-  print()
-  print("... Ending the DECA unit test")
-  print('='.ljust(50,'='))
-  print()
+  LOGGER.info('')
+  LOGGER.info("... Ending the DECA unit test")
+  LOGGER.info('='.ljust(50,'='))
+  LOGGER.info('')
