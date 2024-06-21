@@ -513,14 +513,14 @@ def summarizeMaxMinDimensions(studentDims, testSubset, studentEquivalenceClass, 
 
       maxVal = max(hardHist)
       hardSet = set()
-      print("InfHrdHst".ljust(10), end='')
+      LOGGER.info("InfHrdHst".ljust(10), end='')
       for idx in range(n):
         if hardHist[idx] == maxVal:
-          print( ("*"+str(hardHist[idx])).center(5), end='')
+          LOGGER.info( ("*"+str(hardHist[idx])).center(5), end='')
           hardSet.add(testList[idx])
         else:
-          print(str(hardHist[idx]).center(5), end='')
-      print()
+          LOGGER.info(str(hardHist[idx]).center(5), end='')
+      LOGGER.info("")
 
       #hardRanks = stats.rankdata(hardHist)
       printOneLine("InfHrdCnt",10,hardCount,5)
