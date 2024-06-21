@@ -302,23 +302,23 @@ def extractDecaMatrixQuestionByStudent(filteredTests, questionSet, studentSet):
   studentList = list(studentSet)
   studentList.sort()
 
-  print()
-  print("DECA-Style Question-by-Student Result Matrix:")
-  print(str('').ljust(5), end='')
+  LOGGER.info("")
+  LOGGER.info("DECA-Style Question-by-Student Result Matrix:")
+  LOGGER.info(str('').ljust(5), end='')
   for student in studentList:
-    print(str(student).center(5), end='=')
-  print()
+    LOGGER.info(str(student).center(5), end='=')
+  LOGGER.info("")
   
   for test in filteredTests:
     resultTuple, numCorrect, questionID = test
-    print(str(questionID).ljust(5), end='')
+    LOGGER.info(str(questionID).ljust(5), end='')
     for test in resultTuple:
       if test:
-        print('1'.center(5), end='')
+        LOGGER.info('1'.center(5), end='')
       else:
-        print('0'.center(5), end='')
-    print()
-  print()
+        LOGGER.info('0'.center(5), end='')
+    LOGGER.info("")
+  LOGGER.info("")
 
   
 def analyzeQuestions(dataset, whichScores, contextDict, quiet=False):
