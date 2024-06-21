@@ -396,15 +396,15 @@ def summarizeQuestionAnalysis(dims, numQuestions):
   passed that test.
   """
   reductionRatio = (float(len(dims))/float(numQuestions))
-  print("There are ", len(dims), "underlying objectives to this QUESTION data of", numQuestions, \
+  LOGGER.info("There are ", len(dims), "underlying objectives to this QUESTION data of", numQuestions, \
         "::", reductionRatio)
     
   for dim in dims:
-    print("Count \tQuestion ID")
+    LOGGER.info("Count \tQuestion ID")
       
     for test in dim:
-      print("  ", test[1], "\t", test[2])  
-    print()
+      LOGGER.info("  ", test[1], "\t", test[2])  
+    LOGGER.info("")
 
   return len(dims)
 
@@ -419,13 +419,13 @@ def summarizeStudentAnalysis(dims, numStudents, studentEquivalenceClass):
   tests were passed.
   """
   reductionRatio =  (float(len(dims))/float(numStudents))
-  print("There are ", len(dims), "underlying objectives to this STUDENT data of", numStudents, \
+  LOGGER.info("There are ", len(dims), "underlying objectives to this STUDENT data of", numStudents, \
         "::", reductionRatio)
         
   for dim in dims:
-    print("Count \t Cases\t\tStudent ID")
+    LOGGER.info("Count \t Cases\t\tStudent ID")
     for test in dim:
-      print("  ", test[1], "\t", end='')
+      LOGGER.info("  ", test[1], "\t", end='')
       
       for idx in range(len(test[0])):
         if test[0][idx]:
@@ -433,31 +433,31 @@ def summarizeStudentAnalysis(dims, numStudents, studentEquivalenceClass):
         else:
           sys.stdout.write('0')
           
-      print('\t', test[2], end='')
+      LOGGER.info('\t', test[2], end='')
       
       count = len(studentEquivalenceClass[test[0]])
       if (count > 1):
-        print("[" + str(len(studentEquivalenceClass[test[0]])) + "]")
+        LOGGER.info("[" + str(len(studentEquivalenceClass[test[0]])) + "]")
       else:
-        print()
+        LOGGER.info("")
       
-    print()
+    LOGGER.info("")
 
   return len(dims), numStudents
 
 
 def printOneLine(prefix, prefixWidth, values, valWidth):
   n = len(values)
-  print(prefix.ljust(prefixWidth), end='')
+  LOGGER.info(prefix.ljust(prefixWidth), end='')
   for idx in range(n):
-    print( (str(values[idx])).center(valWidth), end='')
-  print()
+    LOGGER.info( (str(values[idx])).center(valWidth), end='')
+  LOGGER.info("")
 
 def printSeparator(prefixWidth, n, valWidth):
-  print("".ljust(prefixWidth), end='')
+  LOGGER.info("".ljust(prefixWidth), end='')
   for idx in range(n):
-    print(''.center(valWidth,'='), end='')
-  print()
+    LOGGER.info(''.center(valWidth,'='), end='')
+  LOGGER.info("")
 
 
 def summarizeMaxMinDimensions(studentDims, testSubset, studentEquivalenceClass, quiet=True):
