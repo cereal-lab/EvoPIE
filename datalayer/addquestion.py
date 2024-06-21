@@ -168,9 +168,9 @@ session.add(qq1)
 quiz = session.query(Quiz).filter_by(id=quizID).one()
 quiz.quiz_questions.append(qq1)
 
-print("\n",''.ljust(40, '-'))
+LOGGER.info("\n",''.ljust(40, '-'))
 for student in session.query(QuizAttempt).filter_by(quiz_id=1).order_by(QuizAttempt.id):
-  print("\nXX-BEFORE: ", student.student_id, student.initial_responses, student.initial_total_score, student.revised_responses, student.revised_total_score)
+  LOGGER.info("\nXX-BEFORE: ", student.student_id, student.initial_responses, student.initial_total_score, student.revised_responses, student.revised_total_score)
   try:
     # Convert the varchar fields to dictionaries so we can work with them
     initial_responses = json.loads(student.initial_responses.replace("'", '"'))
@@ -230,9 +230,9 @@ for student in session.query(QuizAttempt).filter_by(quiz_id=1).order_by(QuizAtte
     pass
 
   # Let's print to make sure this is working ...
-  print("\nXX-AFTER:  ", student.student_id, student.initial_responses, student.initial_total_score, student.revised_responses, student.revised_total_score)
+  LOGGER.info("\nXX-AFTER:  ", student.student_id, student.initial_responses, student.initial_total_score, student.revised_responses, student.revised_total_score)
 
-print("\n",''.ljust(40, '-'))
+LOGGER.info("\n",''.ljust(40, '-'))
 
 session.commit()
 
