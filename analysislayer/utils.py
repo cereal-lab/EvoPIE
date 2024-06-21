@@ -3,6 +3,8 @@ import re
 
 import analysislayer.deca as deca
 
+from datalayer import LOGGER
+
 def StripHTMLMarkers(x, maxLen=0):
   x = re.sub("</p>", "\n", x)           # Turn end of paragraphs into newlines
   x = re.sub("&lt;/p&gt;", "\n", x)     # Turn end of paragraphs into newlines
@@ -104,23 +106,23 @@ def extractMatrixStudentByQuestion(dataset, scoreThreshold=1.0):
     sortedQuestionList = list(dataset[sortedStudentList[0]].keys())
     sortedQuestionList.sort()
 
-    print("DECA-Style Student-by-Question Outcome Matrix:")
-    print(str('').ljust(5), end='')
+    LOGGER.info("DECA-Style Student-by-Question Outcome Matrix:")
+    LOGGER.info(str('').ljust(5), end='')
     for question in sortedQuestionList:
-      print(str(question).center(5), end='')
-    print()
+      LOGGER.info(str(question).center(5), end='')
+    LOGGER.info("")
 
     for student in sortedStudentList:
       if len(set(sortedQuestionList) - set(dataset[student].keys())) > 0:
         continue
         
-      print(str(student).ljust(5), end='')
+      LOGGER.info(str(student).ljust(5), end='')
       for question in sortedQuestionList:
         if dataset[student][question]['score'] < scoreThreshold:
-          print('0'.center(5), end='')
+          LOGGER.info('0'.center(5), end='')
         else:
-          print("1".center(5), end='')
-      print()
+          LOGGER.info("1".center(5), end='')
+      LOGGER.info("")
 
 
 def extractDominancePairsSet(dims):
