@@ -529,14 +529,14 @@ def summarizeMaxMinDimensions(studentDims, testSubset, studentEquivalenceClass, 
       # Print the simplicity measures across the questions
       maxVal = max(easyHist)
       easySet = set()
-      print("InfEsyHst".ljust(10), end='')
+      LOGGER.info("InfEsyHst".ljust(10), end='')
       for idx in range(n):
         if easyHist[idx] == maxVal:
-          print( ("*"+str(easyHist[idx])).center(5), end='')
+          LOGGER.info( ("*"+str(easyHist[idx])).center(5), end='')
           easySet.add(testList[idx])
         else:
-          print(str(easyHist[idx]).center(5), end='')
-      print()
+          LOGGER.info(str(easyHist[idx]).center(5), end='')
+      LOGGER.info("")
 
       #easyRanks = stats.rankdata(easyHist)
       printOneLine("InfEsyCnt",10,easyCount,5)
@@ -574,50 +574,50 @@ def completeAnalysisWithReport(dataset, questionSubset=set(), prefixStr="SUMMARY
                  "doMatrixExtraction":doMatrixExtraction,
                  "omitSpanned":omitSpanned}
 
-  print()
-  print("Question Dimensional Analysis:".upper())
-  print(''.ljust(70,'-'))
-  print("  Each grouping below represents a distinct 'concept' discovered in the question data.") 
-  print("  The questions in that dimension are listed in Pareto dominance order, such that the")
-  print("  top question strictly dominates the ones under it.  Only the top-most question in")
-  print("  each dimension provides any *distinctions* in student performance.")
-  print(''.ljust(70,'-'))
+  LOGGER.info("")
+  LOGGER.info("Question Dimensional Analysis:".upper())
+  LOGGER.info(''.ljust(70,'-'))
+  LOGGER.info("  Each grouping below represents a distinct 'concept' discovered in the question data.") 
+  LOGGER.info("  The questions in that dimension are listed in Pareto dominance order, such that the")
+  LOGGER.info("  top question strictly dominates the ones under it.  Only the top-most question in")
+  LOGGER.info("  each dimension provides any *distinctions* in student performance.")
+  LOGGER.info(''.ljust(70,'-'))
   questionDims = analyzeQuestions(dataset, "both", contextDict)
   numQuestions = contextDict['numQuestions']
   numProbDims = summarizeQuestionAnalysis(questionDims,numQuestions)
-  print()
+  LOGGER.info("")
   cytoStr = dataUtils.convertDecaQuestionDimsToCytoElementDict(questionDims)
-  print("Cytoscape structure: ", cytoStr)
-  print()
+  LOGGER.info("Cytoscape structure: ", cytoStr)
+  LOGGER.info("")
 
   # If you aren't specifying particular questions, just use them all
   if len(questionSubset) == 0:
     questionSubset = baselineQuestionSet
 
-  print("Student Dimensional Analysis:".upper())
-  print(''.ljust(70,'-'))
-  print("  Each grouping below represents a distinct 'type' of student performance discovered")
-  print("  The students in that dimension are listed in Pareto dominance order, such that the")
-  print("  top student strictly dominates the ones under it.  The top student in each group")
-  print("  might be seen as the one who mastered that concept the best, while the bottom might")
-  print("  be seen as the one who mastered it the least.")
-  print(''.ljust(70,'-'))
+  LOGGER.info("Student Dimensional Analysis:".upper())
+  LOGGER.info(''.ljust(70,'-'))
+  LOGGER.info("  Each grouping below represents a distinct 'type' of student performance discovered")
+  LOGGER.info("  The students in that dimension are listed in Pareto dominance order, such that the")
+  LOGGER.info("  top student strictly dominates the ones under it.  The top student in each group")
+  LOGGER.info("  might be seen as the one who mastered that concept the best, while the bottom might")
+  LOGGER.info("  be seen as the one who mastered it the least.")
+  LOGGER.info(''.ljust(70,'-'))
   studentDims = analyzeStudents(dataset, "both", contextDict)
   numStudents = contextDict['numStudents']
   studentEquivalenceClass = contextDict['equivClass']
   numStudentDims = summarizeStudentAnalysis(studentDims, numStudents, studentEquivalenceClass)
-  print()
+  LOGGER.info("")
 
-  print("Question Difficulty Analysis (*):".upper())
-  print(''.ljust(70,'-'))
-  print("  For the 'Hard' row, we count the number of times the *best* student")
-  print("  in each dimension misses that Question.  The bigger the number, the harder.")
-  print()
-  print("  For the 'easy' row, we count the number of times the *worst* student")
-  print("  in each dimension passes that Question.  The bigger the number, the easier.")
-  print()
-  print("  The optima in each case is indicated by '*'.")
-  print(''.ljust(70,'-'))
+  LOGGER.info("Question Difficulty Analysis (*):".upper())
+  LOGGER.info(''.ljust(70,'-'))
+  LOGGER.info("  For the 'Hard' row, we count the number of times the *best* student")
+  LOGGER.info("  in each dimension misses that Question.  The bigger the number, the harder.")
+  LOGGER.info("")
+  LOGGER.info("  For the 'easy' row, we count the number of times the *worst* student")
+  LOGGER.info("  in each dimension passes that Question.  The bigger the number, the easier.")
+  LOGGER.info("")
+  LOGGER.info("  The optima in each case is indicated by '*'.")
+  LOGGER.info(''.ljust(70,'-'))
   hardSet, easySet = summarizeMaxMinDimensions(studentDims, questionSubset, studentEquivalenceClass, False)
   
   questionList = list(questionSubset)
@@ -643,10 +643,10 @@ def completeAnalysisWithReport(dataset, questionSubset=set(), prefixStr="SUMMARY
 
 
 if __name__ == '__main__':
-  LOGGER.info('')
+  LOGGER.info("")
   LOGGER.info('='.ljust(50,'='))
   LOGGER.info("Running the DECA unit test ...")
-  LOGGER.info('')
+  LOGGER.info("")
 
   # The user can specify an INI file with the desired configuration
   configFileName = ""
@@ -675,7 +675,7 @@ if __name__ == '__main__':
 
   completeAnalysisWithReport(dataset,set(), "SUMMARY", True, True)
 
-  LOGGER.info('')
+  LOGGER.info("")
   LOGGER.info("... Ending the DECA unit test")
   LOGGER.info('='.ljust(50,'='))
-  LOGGER.info('')
+  LOGGER.info("")
