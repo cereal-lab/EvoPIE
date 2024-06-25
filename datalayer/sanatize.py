@@ -4,6 +4,7 @@ from sqlalchemy import create_engine
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from datalayer import LOGGER
 
 DB = SQLAlchemy()
 
@@ -24,12 +25,12 @@ engine = create_engine("sqlite:///alessio.sqlite", echo=True, future=True)
 session = Session(engine)
 
 for instance in session.query(User).order_by(User.id):
-  print("OLD::", instance.id, instance.first_name, instance.last_name, instance.email, instance.role)
+  LOGGER.info("OLD::", instance.id, instance.first_name, instance.last_name, instance.email, instance.role)
   instance.first_name = instance.role + '-' + str(instance.id)
   instance.last_name = instance.role + '-' + str(instance.id)
   instance.email="noone@nowhere.xyz"
-  print("NEW::", instance.id, instance.first_name, instance.last_name, instance.email, instance.role)
-  print()
+  LOGGER.info("NEW::", instance.id, instance.first_name, instance.last_name, instance.email, instance.role)
+  LOGGER.info("")
 
 session.commit()
 
