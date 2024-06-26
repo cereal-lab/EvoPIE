@@ -259,7 +259,7 @@ def create_deca_space(quiz, output, fmt, axis, spanned_strategy, spanned, best_s
         space = deca.gen_test_distractor_mapping(space, question_distractors, noninformative_percent=noninfo, rnd = rnd)
         space['meta'] = {'id': i, 'rnd': random_seed}
         # knowledge = deca.gen_test_distractor_mapping_knowledge(space)
-        print(f"---\n{space}\n")
+        APP.logger.info(f"---\n{space}\n")
         if output:
             file_name = os.path.join(output, fmt.format(i))
             with open(file_name, 'w') as f: 
@@ -505,7 +505,7 @@ def init_knowledge(input, output, email_format, knows, knowledge_replace, deca_i
         else: 
             sys.stdout.write(f"Students were created:\n {students}\n")
     except Exception as e:
-        print(e)
+        APP.logger.info(e)
         raise
 
 @student_cli.command("export")        
@@ -776,37 +776,37 @@ def calc_space_result(result_folder, sort_column, filter_column, stats_column, n
             nemenyi_res = sp.posthoc_nemenyi_friedman(data) 
             p=0.10
             algo_m = {algo: algo_means[i] for i, algo in enumerate(algo_names)}
-            print(f"\n----------------------------------")
-            print(f"Stat result for space {space}")
-            print(f"Algo: {algo_m}")
-            print(f"Friedman: {friedman_res}")
+            APP.logger.info(f"\n----------------------------------")
+            APP.logger.info(f"Stat result for space {space}")
+            APP.logger.info(f"Algo: {algo_m}")
+            APP.logger.info(f"Friedman: {friedman_res}")
             # print(f"Nemenyi:\n{nemenyi_res}")
             #we now assign score for each algo based on nemenyi p-value result 
             domination = {algo_name: {algo_names[j]: p_val for j, p_val in enumerate(nemenyi_res[i]) if p_val <= p and j > i}
                             for i, algo_name in enumerate(algo_names) }
             for algo_name, dominated in domination.items():
                 if len(dominated) > 0: 
-                    print(f"\t{algo_name} (mean {algo_m[algo_name]}) dominates {dominated}")
+                    APP.logger.info(f"\t{algo_name} (mean {algo_m[algo_name]}) dominates {dominated}")
 
             space_res = res[res['space'] == space].drop(columns = 'space')
-            print("\\# & ", end="")
+            APP.logger.info("\\# & ", end="")
             for col_id in space_res.columns:
                 if not col_id.endswith("_std"):
-                    print(f"{col_id} & ", end="")
-            print(">_{0.1}\\\\\\hline")
+                    APP.logger.info(f"{col_id} & ", end="")
+            APP.logger.info(">_{0.1}\\\\\\hline")
             algo_index = {data['algo']: (i + 1) for i, (_, data) in enumerate(space_res.iterrows())}
             for i, (_, data) in enumerate(space_res.iterrows()):                
-                print("{0: <3} & ".format(i+1), end="")
+                APP.logger.info("{0: <3} & ".format(i+1), end="")
                 for col_id, col_val in data.iteritems():
                     if col_id.endswith("_std"):
-                        print(" $\pm$ {:.1f}\t& ".format(col_val * scale), end="")
+                        APP.logger.info(" $\pm$ {:.1f}\t& ".format(col_val * scale), end="")
                     else:
                         if type(col_val) == float: 
-                            print("{:.1f}".format(col_val * scale), end = "")
+                            APP.logger.info("{:.1f}".format(col_val * scale), end = "")
                         else:
                             col_val = col_val.replace('_', '\_').replace('|', '+')
                             # col_val = col_val + '(2)' if col_val.startswith('phc') else col_val
-                            print("{0: <40}& ".format(col_val), end="")
+                            APP.logger.info("{0: <40}& ".format(col_val), end="")
                 dominated = sorted([algo_index[algo_name] for algo_name in domination[data['algo']].keys()])
                 dominated_fmtd = [] 
                 for idx in dominated: 
@@ -816,8 +816,8 @@ def calc_space_result(result_folder, sort_column, filter_column, stats_column, n
                         dominated_fmtd[-1][-1] = idx
                     else:
                         dominated_fmtd.append([idx, idx])
-                print(",".join([f'{s}-{e}' if s != e else str(s) for s, e in dominated_fmtd]), end="")
-                print("\\\\")
+                APP.logger.info(",".join([f'{s}-{e}' if s != e else str(s) for s, e in dominated_fmtd]), end="")
+                APP.logger.info("\\\\")
                 # cur_group.append(algo_name)
                 # for j in range(i + 1, len(nemenyi_res[i])):
                 #     if nemenyi_res[i, j] > p: 
@@ -918,7 +918,7 @@ def calc_space_result(r1, r2, metric):
     r2v = list(pandas.read_csv(r2)[metric])
     from scipy.stats import ttest_ind
     ttest = ttest_ind(r1v, r2v, equal_var = False, alternative='greater')
-    print(ttest) #exact match Ttest_indResult(statistic=3.1980107453341544, pvalue=0.008130031236723555) - ge has statistically significant effect
+    APP.logger.info(ttest) #exact match Ttest_indResult(statistic=3.1980107453341544, pvalue=0.008130031236723555) - ge has statistically significant effect
 
 @deca_cli.command("space-result-per-space")
 @click.option('-r', '--result-folder')
@@ -938,17 +938,17 @@ def calc_space_result(result_folder, spaces, metric):
     space_ids = {s:i for i, s in enumerate(spaces)}
     for algo_id, space_res in list(res.items()):
         space_res.sort(key = lambda x: space_ids[x[0]])
-    print("algo ", end="")
+    APP.logger.info("algo ", end="")
     for s in spaces:
-        print("& {0}".format(s), end="")
-    print("\\\\\\hline")
+        APP.logger.info("& {0}".format(s), end="")
+    APP.logger.info("\\\\\\hline")
     space_res_l = sorted(list(res.items()), key = lambda x: x[1][0][1], reverse=True)
     for algo_id, space_res in space_res_l:
-        print("{0: <40}".format(algo_id.replace("_", "\_")), end="")
+        APP.logger.info("{0: <40}".format(algo_id.replace("_", "\_")), end="")
         for space_id, mean, std in space_res:
-            print("& {0:.1f} $\\pm$ {1:.1f}".format(mean * 100, std * 100, space_id), end="")
-        print("\\\\")
-    print("\\hline")
+            APP.logger.info("& {0:.1f} $\\pm$ {1:.1f}".format(mean * 100, std * 100, space_id), end="")
+        APP.logger.info("\\\\")
+    APP.logger.info("\\hline")
 
 
 @deca_cli.command("space-result-plot-t")
@@ -1008,17 +1008,17 @@ def calc_space_result(result_folder, metric):
         nemenyi_res = sp.posthoc_nemenyi_friedman(data) 
         p=0.15
         algo_m = {algo: algo_means[i] for i, algo in enumerate(Ts)}
-        print(f"\n----------------------------------")
-        print(f"Stat result for algo {algo}")
-        print(f"Algo: {algo_m}")
-        print(f"Friedman: {friedman_res}")
+        APP.logger.info(f"\n----------------------------------")
+        APP.logger.info(f"Stat result for algo {algo}")
+        APP.logger.info(f"Algo: {algo_m}")
+        APP.logger.info(f"Friedman: {friedman_res}")
         # print(f"Nemenyi:\n{nemenyi_res}")
         #we now assign score for each algo based on nemenyi p-value result 
         domination = {algo_name: {Ts[j]: p_val for j, p_val in enumerate(nemenyi_res[i]) if p_val <= p and j > i}
                         for i, algo_name in enumerate(Ts) }
         for algo_name, dominated in domination.items():
             if len(dominated) > 0: 
-                print(f"\t{algo_name} (mean {algo_m[algo_name]}) dominates {dominated}")
+                APP.logger.info(f"\t{algo_name} (mean {algo_m[algo_name]}) dominates {dominated}")
 
         y = np.array([m * 100 for _, _, m, _ in t_res])
         yerr = np.array([e * 100 for _, _, _, e in t_res])
@@ -1181,12 +1181,12 @@ def calc_space_result(result_folder, metric, s):
         algo_metric_mean = algo_stats[metric].mean()
         algo_metric_std = algo_stats[metric].std()
         res.setdefault(algo_id, {}).setdefault(S, (list(algo_stats[metric]), algo_metric_mean, algo_metric_std))
-    print("algo & $S=0$ & $S=1$ & $S=2$")
+    APP.logger.info("algo & $S=0$ & $S=1$ & $S=2$")
     for algo_id, space_res in res.items():
-        print("{0: <40} ".format(algo_id), end="")
+        APP.logger.info("{0: <40} ".format(algo_id), end="")
         for S, (_, mean, std) in sorted(space_res.items(), key = lambda x: x[0]):
-            print(" & {0:.1f} $\\pm$ {1:.1f} ".format(mean * 100, std * 100, S), end="")
-        print("\\\\")
+            APP.logger.info(" & {0:.1f} $\\pm$ {1:.1f} ".format(mean * 100, std * 100, S), end="")
+        APP.logger.info("\\\\")
     
 @deca_cli.command("space-ranks")
 @click.option('-r', '--result-folder')
@@ -1232,22 +1232,22 @@ def calc_space_ranks(result_folder):
     for _, res in space_res:
         for a, _, _, cnt in res:
             order_by_cnt[a] = order_by_cnt.get(a, 0) + cnt
-    print("algo", end="")
+    APP.logger.info("algo", end="")
     for space_id, res in space_res:
         res.sort(key = lambda x:-order_by_cnt[x[0]])
         space_idx = int(space_id[-1].split('.')[0]) + 1
-        print(" & {0}".format(space_idx), end="")
-    print("& $\sum$\\\\\\hline")
+        APP.logger.info(" & {0}".format(space_idx), end="")
+    APP.logger.info("& $\sum$\\\\\\hline")
     for algo_id, (algo, _, _, _) in enumerate(space_res[0][1]):
         col_val = algo.replace('_', '\_').replace('|', '+')
-        print("{0: <20}".format(col_val), end="")
+        APP.logger.info("{0: <20}".format(col_val), end="")
         for space_id, res in space_res:
             # print(" & {0:.1f} $\pm$ {1:.1f}".format(res[algo_id][1], res[algo_id][2]), end="")
-            print(" & {0}".format(res[algo_id][3]), end="")
-        print(" & {0}".format(order_by_cnt[algo]), end="")
-        print("\\\\")
+            APP.logger.info(" & {0}".format(res[algo_id][3]), end="")
+        APP.logger.info(" & {0}".format(order_by_cnt[algo]), end="")
+        APP.logger.info("\\\\")
         # print("{:.1f}".format(col_val * scale), end = "")s
-    print("\\hline")
+    APP.logger.info("\\hline")
     
 
 @deca_cli.command("space-distr")
@@ -1281,7 +1281,7 @@ def calc_space_ranks(space_folder, file_name, from_point, to_point):
             res.append((file_name, distrs_at_ends, np.mean(dstr), np.std(dstr), distr_cnt))
         res.sort(key = lambda x:x[0])
         for r in res:
-            print(r)
+            APP.logger.info(r)
 
 
     
@@ -1452,10 +1452,10 @@ def init_experiment(num_questions, num_distractors, num_students, axes_number, a
     assert res.exit_code == 0
     res = runner.invoke(args=["quiz", "init", "-nq", num_questions, "-nd", num_distractors ])
     assert res.exit_code == 0
-    print(res.stdout)
+    APP.logger.info(res.stdout)
     res = runner.invoke(args=["student", "init", "-ns", num_students ])
     assert res.exit_code == 0
-    print(res.stdout)
+    APP.logger.info(res.stdout)
     os.makedirs(output_folder, exist_ok=True)
     # dims = [dim for num_axes in axes_number for dim in combinations_with_replacement(axes_size, num_axes) ]
     dims = [ [ sz for _ in range(num_axes) ] for sz in axes_size for num_axes in axes_number ]
@@ -1471,7 +1471,7 @@ def init_experiment(num_questions, num_distractors, num_students, axes_number, a
                                     '--fmt', 'space-' + axes_str + '-' + spanned_str + '-{}.json',
                                     "--timeout", timeout, "--random-seed", rnd.randint(1000) ])
         assert res.exit_code == 0
-        print(f"Generated {num_spaces} spaces for dims {dim} and spanned {spanned}, best students {bsp}, noninfo {ni}")
+        APP.logger.info(f"Generated {num_spaces} spaces for dims {dim} and spanned {spanned}, best students {bsp}, noninfo {ni}")
 
 @quiz_cli.command("deca-experiment")
 @click.option("--deca-input", required = True)
@@ -1482,13 +1482,13 @@ def init_experiment(num_questions, num_distractors, num_students, axes_number, a
 @click.option("--num-runs", type=int, default = 1)
 def run_experiment(deca_input, algo, algo_folder, random_seed, results_folder, num_runs):    
     runner = APP.test_cli_runner()
-    print(f"Experiment {deca_input}, {algo}, {algo_folder}, {random_seed}, {results_folder}, {num_runs}")
+    APP.logger.info(f"Experiment {deca_input}, {algo}, {algo_folder}, {random_seed}, {results_folder}, {num_runs}")
     res = runner.invoke(args=["student", "knows", "-kr", "--deca-input", deca_input ])
     if res.exit_code != 0:
-        print(res.stdout)
-    print("Before assert student")
+        APP.logger.info(res.stdout)
+    APP.logger.info("Before assert student")
     assert res.exit_code == 0
-    print("After assert")
+    APP.logger.info("After assert")
     os.makedirs(algo_folder, exist_ok=True)
     os.makedirs(results_folder, exist_ok=True)
     rnd = np.random.RandomState(random_seed)
@@ -1505,19 +1505,19 @@ def run_experiment(deca_input, algo, algo_folder, random_seed, results_folder, n
             algo_with_params["seed"] = rnd.randint(1000) #init seed of pphc
             algo_file_name = os.path.join(algo_folder, algo_display_name)
             run_random_seed = rnd.randint(1000) #init seed of quiz run
-            print(f"Start run {i} of {algo_file_name} on {deca_space_id}")
+            APP.logger.info(f"Start run {i} of {algo_file_name} on {deca_space_id}")
             res = runner.invoke(args=["quiz", "run", "-q", 1, "-s", "STEP1", "--algo", algo_name, "--algo-params", json.dumps(algo_with_params),
                                         "--evo-output", f"{algo_file_name}.json", "--random-seed", run_random_seed ])
             # if res.exit_code != 0:
-            print(res.stdout)                
+            APP.logger.info(res.stdout)                
             assert res.exit_code == 0, f" {traceback.format_exception(None, res.exc_info[1], res.exc_info[2])}"
-            print(f"Analysing run {i} of {algo_file_name} on {deca_space_id}")
+            APP.logger.info(f"Analysing run {i} of {algo_file_name} on {deca_space_id}")
             res = runner.invoke(args=["deca", "result", "--algo-input", f"{algo_file_name}.json", "--deca-space", deca_input, 
                                         "-p", "explored_search_space_size", "-p", "search_space_size", "-io", os.path.join(results_folder, f"{algo_display_name}-on-{deca_space_id}.csv")])
             if res.exit_code != 0:
-                print(res.stdout)            
+                APP.logger.info(res.stdout)            
             assert res.exit_code == 0
-            print(f"Finished run {i} of {algo_file_name} on {deca_space_id}")
+            APP.logger.info(f"Finished run {i} of {algo_file_name} on {deca_space_id}")
 
 @quiz_cli.command("deca-experiments")
 @click.option("--deca-spaces", default="deca-spaces")
@@ -1530,13 +1530,13 @@ def run_experiment(deca_spaces, algo, algo_folder, random_seed, results_folder, 
     runner = APP.test_cli_runner() 
     for file_name in os.listdir(deca_spaces):        
         deca_input = os.path.join(deca_spaces, file_name)
-        print(f"--- Space {deca_input} ---")
+        APP.logger.info(f"--- Space {deca_input} ---")
         res = runner.invoke(args=["quiz", "deca-experiment", "--deca-input", deca_input, "--algo-folder", algo_folder,
                                     "--results-folder", results_folder, *[p for a in algo for p in ["--algo", a]], 
                                     "--random-seed", random_seed, "--num-runs", num_runs ])
         # if res.exit_code != 0:
         #     print(res.exc_info)
-        print(res.stdout)
+        APP.logger.info(res.stdout)
         assert res.exit_code == 0
 
 @quiz_cli.command("post-process")        
@@ -1567,7 +1567,7 @@ def post_process(result_folder, figure_folder, param, file_name_pattern, group_b
         for c in file_frame.columns:
             if c in param:
                 file_data = file_frame[c].to_list()
-                print(f'Debug {(dims, sp, i)} and {file_data}')
+                APP.logger.info(f'Debug {(dims, sp, i)} and {file_data}')
                 frames_data.setdefault(c, []).append(((dims, sp, i), file_data))
             # if c in param:
             #     f = frames.setdefault(c, DataFrame())
@@ -1599,7 +1599,7 @@ def post_process(result_folder, figure_folder, param, file_name_pattern, group_b
         plt.close(fig)
     stats = pandas.concat(stats_frames, axis=1)
     latex_table = stats.to_latex().replace("cellcolor[rgb]\\{", "\\cellcolor[rgb]{").replace("\\}", "}")
-    print(f"Stats:\n{latex_table}\n--------")
+    APP.logger.info(f"Stats:\n{latex_table}\n--------")
 
 @quiz_cli.command("plot-metric-vs-num-of-dims")
 @click.option("-p", "--param", required=True, multiple=True)   
@@ -1690,12 +1690,12 @@ def post_process(data_folder, path_suffix, figure_folder, fig_name, param, legen
         fig.savefig(os.path.join(figure_folder, f"{file_name}.png"), format='png')
         plt.close(fig)    
     for param_id, param_frames in frames_list.items():
-        print(f"Param {param_id}")
+        APP.logger.info(f"Param {param_id}")
         for algo_id, algo_frames in param_frames.items():
             algo_frames.sort(key = lambda d: (int(d.columns[0][0]), int(d.columns[0][1])))
             stat_frame = pandas.concat(algo_frames, axis=1) 
             latex_table = stat_frame.to_latex().replace("cellcolor[rgb]\\{", "\\cellcolor[rgb]{").replace("\\}", "}")
-            print(f"Frame for algo {algo_id}:\n{latex_table}\n")    
+            APP.logger.info(f"Frame for algo {algo_id}:\n{latex_table}\n")    
     # for param, values_group in frames_data.items():
     #     f = frames.setdefault(param, DataFrame()) 
     #     for space, g in groupby(values_group, key = lambda x: x[0]):            
