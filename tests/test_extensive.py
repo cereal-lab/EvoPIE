@@ -1,6 +1,7 @@
 import pytest 
 import json
 from evopie import APP
+import logging
 
 @pytest.fixture()
 def app():
@@ -33,7 +34,7 @@ def test_extensive(runner, settings, fileName):
 
     res = runner.invoke(args=["quiz", "init", "-cid", 1, "-nq", 5, "-nd", 4, "-qd", json.dumps({"2":[5,6,7],"3":[9,10,11],"4":[13,14,16]}), "-s", json.dumps(settings)])
     assert res.exit_code == 0
-    print(res.stdout)
+    APP.logger.info(res.stdout)
     #TODO: add assert that quiz is inited 
 
     res = runner.invoke(args=["quiz", "copy", "-q", 1, "-cid", 2])
@@ -44,7 +45,7 @@ def test_extensive(runner, settings, fileName):
     
     res = runner.invoke(args=[ "student", "init", "-cid", 1, "-ns", 20, "--exclude-id", 12, "-ef", 'student{}@usf.edu' ])
     assert res.exit_code == 0
-    print(res.stdout)
+    APP.logger.info(res.stdout)
 
     res = runner.invoke(args=[ "student", "addToCourse", "-cid", 2])
     
@@ -59,7 +60,7 @@ def test_extensive(runner, settings, fileName):
     res = runner.invoke(args=[ "student", "knows", "-kr", "-ef", 'student{}@usf.edu', *[ v for k in knowledge for v in ["-k", json.dumps(k)]] ])
 
     assert res.exit_code == 0
-    print(res.stdout)
+    APP.logger.info(res.stdout)
 
     likes = [{"sid":1,"jid":{"range":[90,103]}}, 
         {"sid":2,"jid":{"range":[90,104]}},
@@ -78,11 +79,11 @@ def test_extensive(runner, settings, fileName):
                             *[ v for l in likes for v in ["-l", json.dumps(l)]]])        
     #TODO: add assert for run
     assert res.exit_code == 0
-    print(res.stdout)
+    APP.logger.info(res.stdout)
 
     res = runner.invoke(args=[ "quiz", "result", "-q", 1,
                             "--expected", "tests/{}".format(fileName)])        
-    print(res.stdout)
+    APP.logger.info(res.stdout)
     assert res.exit_code == 0
 
 
