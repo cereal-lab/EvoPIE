@@ -15,7 +15,7 @@
         https://github.com/summernote/summernote/issues/2087
         -->
     
-        <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
         <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" 
                 integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" 
@@ -25,8 +25,8 @@
         <!-- include libraries(jQuery, bootstrap) -->
 
         <!-- include summernote css/js -->
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-bs4.min.css">
-        <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-bs4.min.js"></script>
+        <link rel="stylesheet" href="{{ url_for('static', filename='summernote-bs5.min.css') }}">
+        <script src="{{ url_for('static', filename='summernote-bs5.min.js') }}"></script>
         <script type="text/javascript" charset="utf8" src="{{ url_for('static', filename='lib.js') }}?v=1"></script>
         <script type='text/javascript'>
             $(document).ready(function() {
