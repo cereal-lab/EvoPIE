@@ -672,9 +672,9 @@ def get_quiz(quiz_course):
         return resp    
     if not check_quiz_session_cookie():
         return redirect(url_for("pages.protected_get_quiz", q = q))    
-    if attempt.status == QUIZ_ATTEMPT_STEP1:
+    if q.status != QUIZ_SOLUTIONS and attempt.status == QUIZ_ATTEMPT_STEP1:
         return reset_quiz_session_cookie(make_response(render_template('step1.html', quiz=quiz_model, questions=question_model, course=course)))
-    if attempt.status == QUIZ_ATTEMPT_STEP2:
+    if q.status != QUIZ_SOLUTIONS and attempt.status == QUIZ_ATTEMPT_STEP2:
         if attempt.selected_justifications_timestamp is None: #attempt justifications were not initialized yet
             # retrieve the peers' justifications for each question  
             possible_justifications = get_possible_justifications(attempt)
@@ -752,10 +752,10 @@ def get_quiz(quiz_course):
                         for aid, did in enumerate(alternatives) if did in distractor_map or did == -1}
                     for qid, alternatives in attempt.alternatives_map.items()}
     
-    if attempt.status == QUIZ_ATTEMPT_STEP3:
+    
+    if q.status == QUIZ_SOLUTIONS:
         return render_template('step3.html', quiz=quiz_model, course=course,
             questions=question_model, attempt=attempt.dump_as_dict(), explanations=explanations)
-    
     #else status is SOLUTIONS
     return reset_quiz_session_cookie(make_response(render_template("solutions.html", quiz=quiz_model,
         questions=question_model, attempt=attempt.dump_as_dict(), explanations=explanations)))

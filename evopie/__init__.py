@@ -202,9 +202,11 @@ from . import quiz_model
 quiz_model.set_quiz_model(None)
 
 
+import sys
 ## vvv --- RPW: This register the Dash applications
 ##         This must happen **after** the DB init step
-from evopie.datadashboard import register_dashapps
-register_dashapps(APP)
-APP.logger.info("All Dash applications are registered.")
+if "DB-init" not in sys.argv:
+    from evopie.datadashboard import register_dashapps
+    register_dashapps(APP)
+    APP.logger.info("All Dash applications are registered.")
 ## ^^^ ---
