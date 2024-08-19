@@ -46,7 +46,13 @@
                         ],
                     // NOTE activating filters
                     codeviewFilter: true,
-                    codeviewIframeFilter: true
+                    codeviewIframeFilter: true,
+                    callbacks: {
+                        onChangeCodeview: function (content) {
+                            $(this).val(content);
+                            // console.log("Code change", this, arguments)
+                        }
+                    }
                 });
             });
         </script>
