@@ -132,8 +132,8 @@ if __name__ == '__main__':
   dbFilename = "./evopie/DB_quizlib.sqlite"   ##       will have moved.
 
   try:
-    jsonFilename = sys.argv[1]
-    dbFilename = sys.argv[2]
+    dbFilename = sys.argv[1]
+    jsonFilename = sys.argv[2]
   except:
     pass
   

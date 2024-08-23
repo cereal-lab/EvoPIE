@@ -349,7 +349,9 @@ def analyzeQuestions(dataset, whichScores, contextDict, quiet=False):
   # Set the context dictionary up ... probably want equiv classes, etc.
   contextDict["numQuestions"] = numQuestions
   contextDict["equivClass"] = questionEquivClass
-  contextDict["reductionRatio"] = (float(len(studentDims))/float(numQuestions))
+  contextDict["reductionRatio"] = 0
+  if (numQuestions > 0):
+    contextDict["reductionRatio"] = (float(len(studentDims))/float(numQuestions))
   contextDict["questionSubset"] = pSet
   contextDict["studentSubset"] = sSet
 
@@ -379,7 +381,9 @@ def analyzeStudents(dataset, whichScores, contextDict, quiet=False):
 
   contextDict["numStudents"] = len(sSet)  
   contextDict["equivClass"] = studentEquivalenceClass # What is studentEquivalenceClassSize used for?
-  contextDict["reductionRatio"] = (float(len(dims))/float(len(sSet)))
+  contextDict["reductionRatio"] = 0
+  if (len(sSet)>0):
+    contextDict["reductionRatio"] = (float(len(dims))/float(len(sSet)))
   contextDict["questionSubset"] = pSet
   contextDict["studentSubset"] = sSet
 
