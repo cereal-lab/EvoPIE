@@ -14,6 +14,7 @@ if __name__ == '__main__':
         debugpy.listen(("0.0.0.0", 5678))
         APP.run(debug=True)
     else:
+        print('DEBUGPY NOT DOING ANYTHING')
         APP.run()
     APP.cli.add_command(DB_init)
     APP.cli.add_command(DB_populate)
