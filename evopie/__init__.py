@@ -210,3 +210,8 @@ if "DB-init" not in sys.argv:
     register_dashapps(APP)
     APP.logger.info("All Dash applications are registered.")
 ## ^^^ ---
+
+import debugpy
+APP.logger.info("Enabling DEBUGPY")
+debugpy.listen(("0.0.0.0", 5678))
+
