@@ -7,7 +7,7 @@ import os
 # Winthrop testing page ...
 
 if __name__ == '__main__':
-    debug_mode = os.environ.get("DEBUG")
+    debug_mode = os.environ.get("EVOPIE_DEBUG")
     if debug_mode == "True":
         APP.run(debug=True)
     else:

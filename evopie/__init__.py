@@ -212,7 +212,7 @@ if "DB-init" not in sys.argv:
 ## ^^^ ---
 
 import debugpy
-debug_mode = os.environ.get("DEBUG")
+debug_mode = os.environ.get("EVOPIE_DEBUG")
 if debug_mode == "True":
     # to enable remote debugging into the app: 
     port = 5678
