@@ -212,6 +212,12 @@ if "DB-init" not in sys.argv:
 ## ^^^ ---
 
 import debugpy
-APP.logger.info("Enabling DEBUGPY")
-debugpy.listen(("0.0.0.0", 5678))
+debug_mode = os.environ.get("DEBUG")
+if debug_mode == "True":
+    # to enable remote debugging into the app: 
+    port = 5678
+    APP.logger.info(f"DEBUGPY --> Enabled & Listening on {port}")
+    debugpy.listen(("0.0.0.0", port))
+else:
+    APP.logger.info(f"DEBUGPY --> NOT Enabled")
 
