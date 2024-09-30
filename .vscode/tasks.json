@@ -1,0 +1,32 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+          "label": "Run docker-compose up",
+          "type": "docker-compose",
+          "dockerCompose": {
+            "up": {
+              "detached": true,
+              "build": true,
+              "services": ["updater", "nginx", "web"]
+            },
+            "files": [
+              "${workspaceFolder}/docker-compose.yml"
+            ]
+          }
+        },
+        {
+          "label": "Run docker-compose down",
+          "type": "docker-compose",
+          "dockerCompose": {
+            "down": {
+            },
+            "files": [
+              "${workspaceFolder}/docker-compose.yml"
+            ]
+          }
+        }
+    ]
+}
