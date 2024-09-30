@@ -254,8 +254,40 @@ class PphcQuizModel(QuizModel):
     def mutate_one_point_worst_to_best(self, parent_id): 
         children = [self.mutate_one_point_worst_to_best_1child(parent_id) for _ in range(self.child_n)]
         return children
+    
+    def mutate_random2(self, parent_id: int):  
+        # gets the representation of the parent by id from archive
+        # archive stores whole interaction history       
+        genotype = self.archive.get(parent_id)   
+        children = []
+        num_places = len(genotype) * self.gene_size
+        for _ in range(self.child_n): #number of children is defined by this hyperparameter
+            child = []
+            num_to_change = self.rnd.randint(1, num_places) #number of genes to change
+            selected_places = set(int(pos) for pos in self.rnd.choice(num_places, num_to_change, replace=False))
+            place_id = 0
+            for qid, genes in enumerate(genotype):
+                child_genes = []
+                for did in genes:
+                    if place_id in selected_places:
+                        distractors = set(self.distractors_per_question.get(qid, []))
+                        distractors.remove(did)
+                        if len(distractors) == 0:
+                            new_did = did
+                        else:
+                            new_did = int(self.rnd.choice(list(distractors)))
+                        child_genes.append(new_did)
+                    else:
+                        child_genes.append(did)
+                    place_id += 1
+                child.append((qid, sorted(child_genes)))   
+            child_id = self.archive.add(child)
+            children.append(child_id)
+        return children
 
-    def mutate_random(self, parent_id):
+    def mutate_random(self, parent_id: int):  
+        # gets the representation of the parent by id from archive
+        # archive stores whole interaction history       
         genotype = self.archive.get(parent_id)        
         children = []
         for _ in range(self.child_n):
@@ -263,6 +295,7 @@ class PphcQuizModel(QuizModel):
             while tries > 0:
                 child = []
                 for qid, genes in genotype: #here we do not evolve qids yet
+                    #take all possible distractors from the pool for this question
                     distractors = self.distractors_per_question.get(qid, [])
                     d_set = set(distractors)
                     group = []
@@ -277,7 +310,7 @@ class PphcQuizModel(QuizModel):
                         group.append(d)
                     child.append((qid, sorted(group)))
                 child_id = self.archive.add(child)
-                if child_id != parent_id:
+                if child_id != parent_id: #found a child that differs from the parent
                     children.append(child_id)
                     break
                 tries -= 1
