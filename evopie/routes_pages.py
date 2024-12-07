@@ -666,12 +666,12 @@ def get_quiz(quiz_course):
     #NOTE: dump_as_dict causes additional db requests due to rendering related entities.
 
     def check_quiz_session_cookie():
-        return "quiz_session_id" in request.cookies and request.cookies["quiz_session_id"] == f"{current_user.id}:{q.id}"
+        return "quiz_session_id" in request.cookies and request.cookies["quiz_session_id"] == f"{current_user.id}:{course.id}:{q.id}"
     def reset_quiz_session_cookie(resp: Response):
         # resp.set_cookie('quiz_session_id', '', expires=0)
         return resp    
     if not check_quiz_session_cookie():
-        return redirect(url_for("pages.protected_get_quiz", q = q))    
+        return redirect(url_for("pages.protected_get_quiz", quiz_course = quiz_course)) 
     if q.status != QUIZ_SOLUTIONS and attempt.status == QUIZ_ATTEMPT_STEP1:
         return reset_quiz_session_cookie(make_response(render_template('step1.html', quiz=quiz_model, questions=question_model, course=course)))
     if q.status != QUIZ_SOLUTIONS and attempt.status == QUIZ_ATTEMPT_STEP2:
@@ -782,7 +782,7 @@ def protected_get_quiz(quiz_course):
             return redirect(url_for('pages.protected_get_quiz', quiz_course = quiz_course))
 
     response = make_response(redirect(url_for("pages.get_quiz", quiz_course = quiz_course)))
-    response.set_cookie('quiz_session_id', f"{current_user.id}:{q.id}")
+    response.set_cookie('quiz_session_id', f"{current_user.id}:{course.id}:{q.id}")
     return response
 
 @pages.route('/student/<qa:q>', methods=['POST']) #IMPORTANT: see the notation of <qa:q> in the url template - these are custom converter - check _init__.py APP.url_map.converters 
