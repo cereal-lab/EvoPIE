@@ -74,14 +74,8 @@
                             <div class="form-check {% if explanation.is_correct -%} bg-warning {%- endif -%}">                            
                                 {{ w.question_option(q, loop.index0, answer, disabled=True) }}
                                 
-                                <div class = "justificationsContainer">
-                                    <table class="expandable-content table">                                        
-                                        <tr>
-                                            <td class='text-start'>
-                                                <p> {{ explanation.justification | safe }} </p>
-                                            </td>
-                                        </tr>
-                                    </table>
+                                <div>
+                                    {{ explanation.justification | safe }}
                                 </div>
                             </div>
                         </div>

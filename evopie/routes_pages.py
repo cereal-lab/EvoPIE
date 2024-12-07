@@ -732,11 +732,20 @@ def get_quiz(quiz_course):
             #justification list to map
             # selected_justification_map = {}
             selected_justifications = attempt.selected_justifications #here db query for selected justififcations
-            selected_justifications_question_ids = set(str(j.quiz_question_id) for j in selected_justifications)
-            selected_justifications_distractor_ids = set(str(j.distractor_id) for j in selected_justifications)
-            selected_justification_map = {qid:{did:[] for did in selected_justifications_distractor_ids} for qid in selected_justifications_question_ids}
+            selected_justifications_by_distractor = {}
             for j in selected_justifications:
-                selected_justification_map[str(j.quiz_question_id)][str(j.distractor_id)].append(j)
+                selected_justifications_by_distractor.setdefault((str(j.quiz_question_id), j.distractor_id), []).append(j)
+            selected_justification_map = {}
+            for qid, alternatives in attempt.alternatives_map.items():
+                for alternative_id, did in enumerate(alternatives):
+                    if (qid, did) in selected_justifications_by_distractor:
+                        selected_justification_map.setdefault(qid, {})[str(alternative_id)] = selected_justifications_by_distractor[(qid, did)]            
+            # pass # for debugging
+            # selected_justifications_question_ids = set(str(j.quiz_question_id) for j in selected_justifications)
+            # selected_justifications_distractor_ids = set(str(j.distractor_id) for j in selected_justifications)
+            # selected_justification_map = {qid:{did:[] for did in selected_justifications_distractor_ids} for qid in selected_justifications_question_ids}
+            # for j in selected_justifications:
+            #     selected_justification_map[str(j.quiz_question_id)][str(j.distractor_id)].append(j)
         
         jids = set(j.id for j in attempt.selected_justifications)
         present_likes = models.Likes4Justifications.query.where(models.Likes4Justifications.student_id == current_user.id,
@@ -753,7 +762,7 @@ def get_quiz(quiz_course):
                     for qid, alternatives in attempt.alternatives_map.items()}
     
     
-    if q.status == QUIZ_SOLUTIONS:
+    if q.status == QUIZ_SOLUTIONS and q.step3_enabled == "True":
         return render_template('step3.html', quiz=quiz_model, course=course,
             questions=question_model, attempt=attempt.dump_as_dict(), explanations=explanations)
     #else status is SOLUTIONS
