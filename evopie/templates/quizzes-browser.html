@@ -89,7 +89,8 @@
                 <th>ID</th>
                 <th>Title</th>
                 <th>Course</th>
-                <th class="text-right text-end">Status</th>
+                <th class="text-center">Status</th>
+                <th class="text-center" title="Is this quiz status driven manually or by deadlines?">Deadlines?</th>
                 <th class="text-right text-end">Actions</th>
             </tr></thead>
             <tbody>
@@ -100,7 +101,7 @@
                             {{ single_quiz.id }}
                         </td>
                         <td>
-                            <p class="pointer-link" data-bs-toggle = "modal" data-bs-target = "#q{{single_quiz.id}}">
+                            <p class="pointer-link mb-0" data-bs-toggle = "modal" data-bs-target = "#q{{single_quiz.id}}">
                                 {{ single_quiz.title }}
                             </p>
                             <div class="modal fade" id="q{{single_quiz.id}}" tabindex="-1" role="dialog"
@@ -114,15 +115,18 @@
                         <td>
                             {{ course.name | safe }}
                         </td>
-                        <td class='text-right text-end'>
-                            <input type="checkbox" id="deadline_driven_checkbox{{single_quiz.id}}{{course.id}}" name="deadline_driven_checkbox{{single_quiz.id}}{{course.id}}" {{ "checked" if single_quiz.deadline_driven == "True" }}>
-                            <label for="deadline_driven_checkbox{{single_quiz.id}}{{course.id}}">Deadline Driven</label><br>
-                            <select id="status{{single_quiz.id}}{{course.id}}" {{ "disabled" if single_quiz.deadline_driven == "True"  }}>
+                        <td class="text-center">
+                            <select {{ "disabled" if single_quiz.deadline_driven == "True"  }} 
+                                id="status_{{single_quiz.id}}_{{course.id}}"
+                                onchange="setQuizStatus('{{single_quiz.id}}', '{{course.id}}', event)">
                                 <option value="HIDDEN"      {% if single_quiz.status == 'HIDDEN' %} selected {% endif %}>       Hidden</option>
                                 <option value="STEP1"       {% if single_quiz.status == 'STEP1' %} selected {% endif %}>        Step #1</option>
                                 <option value="STEP2"       {% if single_quiz.status == 'STEP2' %} selected {% endif %}>        Step #2</option>
                                 <option value="SOLUTIONS"   {% if single_quiz.status == 'SOLUTIONS' %} selected {% endif %}>    Show Answers</option>
                             </select>
+                        </td>
+                        <td class="text-center" title="Deadline driven quiz?">
+                            <input type="checkbox" {{ "checked" if single_quiz.deadline_driven == "True" }} onclick="setDeadlineDriven('{{single_quiz.id}}', '{{course.id}}', event)" />
                         </td>
                         <td class='text-right text-end'>
                                 <!svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-calendar-event" viewBox="0 0 16 16">
@@ -152,77 +156,6 @@
                                     <path d="M10 7a1 1 0 1 1 2 0v5a1 1 0 1 1-2 0V7Zm-6 4a1 1 0 1 1 2 0v1a1 1 0 1 1-2 0v-1Zm4-3a1 1 0 0 0-1 1v3a1 1 0 1 0 2 0V9a1 1 0 0 0-1-1Z"/>
                                 </svg>
                             </a>
-                            <script>
-                                document.querySelector('#deadline_driven_checkbox{{single_quiz.id}}{{course.id}}').addEventListener('change', function() {
-                                    let target_url = '/quizzes/{{single_quiz.id}}/deadline_driven';
-                                    let e = document.querySelector('#deadline_driven_checkbox{{single_quiz.id}}{{course.id}}');
-                                    let status_dropdown = document.querySelector('#status{{single_quiz.id}}{{course.id}}');
-                                    let deadline_driven_value = e.checked ? "True" : "False";
-                                    let all_status_dropdowns = document.querySelectorAll('[id^=status{{single_quiz.id}}]');
-                                    let all_deadline_driven_checkboxes = document.querySelectorAll('[id^=deadline_driven_checkbox{{single_quiz.id}}]');
-                                    if (e.checked) {
-                                        for (let i = 0; i < all_status_dropdowns.length; i++) {
-                                            all_deadline_driven_checkboxes[i].checked = true;
-                                            all_status_dropdowns[i].disabled = true;
-                                        }
-                                    } else {
-                                        for (let i = 0; i < all_status_dropdowns.length; i++) {
-                                            all_deadline_driven_checkboxes[i].checked = false;
-                                            all_status_dropdowns[i].disabled = false;
-                                        }
-                                    }
-                                    fetch(target_url,{
-                                        method:         'POST',
-                                        headers:        {'Content-Type' : 'application/json'},
-                                        body:           JSON.stringify({"deadline_driven" :  deadline_driven_value}),
-                                        credentials:    'same-origin'
-                                    })
-                                    .then(
-                                        response => {
-                                            if(response.ok){
-                                                sendToFlashLand("Quiz Deadline Driven Flag Updated","success");
-                                                //window.location.reload();
-                                            }else{
-                                                sendToFlashLand("Quiz Deadline Driven Flag NOT Updated","danger");
-                                                //window.location.reload();
-                                            }
-                                        }
-                                    )
-                                    .catch((error) => {
-                                        sendToFlashLand("There was a problem updating the quiz deadline driven flag: " + error,"danger");
-                                    })
-                                });
-
-                                document.querySelector('#status{{single_quiz.id}}{{course.id}}').addEventListener('change',function(){
-                                    let target_url = '/quizzes/{{single_quiz.id}}/status';
-                                    let e = document.querySelector('#status{{single_quiz.id}}{{course.id}}');
-                                    let selectedValue = e.options[e.selectedIndex].value;
-                                    let all_status_dropdowns = document.querySelectorAll('[id^=status{{single_quiz.id}}]');
-                                    for(let i = 0; i < all_status_dropdowns.length; i++){
-                                        all_status_dropdowns[i].value = selectedValue;
-                                    }
-                                    fetch(target_url,{
-                                        method:         'POST',
-                                        headers:        {'Content-Type' : 'application/json'},
-                                        body:           JSON.stringify({"status" :  selectedValue}),
-                                        credentials:    'same-origin'
-                                    })
-                                    .then(
-                                        response => {
-                                            if(response.ok){
-                                                sendToFlashLand("Quiz Status Updated","success");
-                                                //window.location.reload();
-                                            }else{
-                                                sendToFlashLand("Quiz Status NOT Updated","danger");
-                                                //window.location.reload();
-                                            }
-                                        }
-                                    )
-                                    .catch((error) => {
-                                        sendToFlashLand("There was a problem updating the quiz status: " + error,"danger");
-                                    })
-                                });
-                            </script>
                         </td>
                     </tr>
                 {% endfor %}
@@ -233,7 +166,7 @@
                         {{ single_quiz.id }}
                     </td>
                     <td>
-                        <p class="pointer-link" data-bs-toggle = "modal" data-bs-target = "#q{{single_quiz.id}}">
+                        <p class="pointer-link mb-0" data-bs-toggle = "modal" data-bs-target = "#q{{single_quiz.id}}">
                             {{ single_quiz.title }}
                         </p>
                         <div class="modal fade" id="q{{single_quiz.id}}" tabindex="-1" role="dialog"
@@ -245,15 +178,18 @@
                         </div>
                     </td>
                     <td></td>
-                    <td class='text-right text-end'>
-                        <input type="checkbox" id="deadline_driven_checkbox{{single_quiz.id}}" name="deadline_driven_checkbox{{single_quiz.id}}" {{ "checked" if single_quiz.deadline_driven == "True" }}>
-                        <label for="deadline_driven_checkbox{{single_quiz.id}}">Deadline Driven</label><br>
-                        <select id="status{{single_quiz.id}}" {{ "disabled" if single_quiz.deadline_driven == "True"  }}>
+                    <td class="text-center"'>                                                
+                        <select {{ "disabled" if single_quiz.deadline_driven == "True"  }} 
+                            id="status_{{single_quiz.id}}_"
+                            onchange="setQuizStatus('{{single_quiz.id}}', '', event)">
                             <option value="HIDDEN"      {% if single_quiz.status == 'HIDDEN' %} selected {% endif %}>       Hidden</option>
                             <option value="STEP1"       {% if single_quiz.status == 'STEP1' %} selected {% endif %}>        Step #1</option>
                             <option value="STEP2"       {% if single_quiz.status == 'STEP2' %} selected {% endif %}>        Step #2</option>
                             <option value="SOLUTIONS"   {% if single_quiz.status == 'SOLUTIONS' %} selected {% endif %}>    Show Answers</option>
                         </select>
+                    </td>
+                    <td class="text-center" title="Deadline driven quiz?">
+                        <input type="checkbox" {{ "checked" if single_quiz.deadline_driven == "True" }} onclick="setDeadlineDriven('{{single_quiz.id}}', '', event)" />
                     </td>
                     <td class='text-right text-end'>
                         <a  href='{{url_for('pages.quiz_editor', quiz_id=single_quiz.id)}}' type="button" class="text-decoration-none" title="quiz editor">
@@ -273,65 +209,6 @@
                                 <path d="M10 7a1 1 0 1 1 2 0v5a1 1 0 1 1-2 0V7Zm-6 4a1 1 0 1 1 2 0v1a1 1 0 1 1-2 0v-1Zm4-3a1 1 0 0 0-1 1v3a1 1 0 1 0 2 0V9a1 1 0 0 0-1-1Z"/>
                             </svg>
                         </a>
-                        <script>
-                            document.querySelector('#deadline_driven_checkbox{{single_quiz.id}}').addEventListener('change', function() {
-                                let target_url = '/quizzes/{{single_quiz.id}}/deadline_driven';
-                                let e = document.querySelector('#deadline_driven_checkbox{{single_quiz.id}}');
-                                let status_dropdown = document.querySelector('#status{{single_quiz.id}}');
-                                let deadline_driven_value = e.checked ? "True" : "False";
-                                if (e.checked) {
-                                    status_dropdown.disabled = true;
-                                } else {
-                                    status_dropdown.disabled = false;
-                                }
-                                fetch(target_url,{
-                                    method:         'POST',
-                                    headers:        {'Content-Type' : 'application/json'},
-                                    body:           JSON.stringify({"deadline_driven" :  deadline_driven_value}),
-                                    credentials:    'same-origin'
-                                })
-                                .then(
-                                    response => {
-                                        if(response.ok){
-                                            sendToFlashLand("Quiz Deadline Driven Flag Updated","success");
-                                            //window.location.reload();
-                                        }else{
-                                            sendToFlashLand("Quiz Deadline Driven Flag NOT Updated","danger");
-                                            //window.location.reload();
-                                        }
-                                    }
-                                )
-                                .catch((error) => {
-                                    sendToFlashLand("There was a problem updating the quiz deadline driven flag: " + error,"danger");
-                                })
-                            });
-
-                            document.querySelector('#status{{single_quiz.id}}').addEventListener('change',function(){
-                                let target_url = '/quizzes/{{single_quiz.id}}/status';
-                                let e = document.querySelector('#status{{single_quiz.id}}');
-                                let selectedValue = e.options[e.selectedIndex].value;
-                                fetch(target_url,{
-                                    method:         'POST',
-                                    headers:        {'Content-Type' : 'application/json'},
-                                    body:           JSON.stringify({"status" :  selectedValue}),
-                                    credentials:    'same-origin'
-                                })
-                                .then(
-                                    response => {
-                                        if(response.ok){
-                                            sendToFlashLand("Quiz Status Updated","success");
-                                            //window.location.reload();
-                                        }else{
-                                            sendToFlashLand("Quiz Status NOT Updated","danger");
-                                            //window.location.reload();
-                                        }
-                                    }
-                                )
-                                .catch((error) => {
-                                    sendToFlashLand("There was a problem updating the quiz status: " + error,"danger");
-                                })
-                            });
-                        </script>
                     </td>
                 </tr>
             {% endfor %}
@@ -361,6 +238,63 @@
         event.stopPropagation();
         location.reload();
         return false;
+    }
+
+    function setDeadlineDriven(quizId, courseId, event) {
+        let target_url = `/quizzes/${quizId}/deadline_driven`;
+        const deadline_driven_value = event.target.checked ? "True" : "False";
+        fetch(target_url,{
+            method:         'POST',
+            headers:        {'Content-Type' : 'application/json'},
+            body:           JSON.stringify({"deadline_driven" :  deadline_driven_value}),
+            credentials:    'same-origin'
+        })
+        .then(
+            response => {
+                if(response.ok){
+                    let status_dropdown = document.getElementById(`status_${quizId}_${courseId}`);
+                    if (deadline_driven_value === "True") {
+                        sendToFlashLand(`Quiz ${quizId} became deadline driven`, "success");
+                        status_dropdown.disabled = true;
+                    } else {
+                        sendToFlashLand(`Quiz ${quizId} became manually driven`,"success");
+                        status_dropdown.disabled = false;
+                    }                    
+                    //window.location.reload();
+                }else{
+                    sendToFlashLand(`Quiz ${quizId} update failed`,"danger");
+                    //window.location.reload();
+                }
+            }
+        )
+        .catch((error) => {
+            sendToFlashLand("There was a problem updating the quiz deadline driven flag: " + error,"danger");
+        })
+    }
+
+    function setQuizStatus(quizId, courseId, event) {
+        let target_url = `/quizzes/${quizId}/status`;
+        let selectedValue = event.target.value;
+        fetch(target_url,{
+            method:         'POST',
+            headers:        {'Content-Type' : 'application/json'},
+            body:           JSON.stringify({"status" :  selectedValue}),
+            credentials:    'same-origin'
+        })
+        .then(
+            response => {
+                if(response.ok){
+                    sendToFlashLand(`Quiz ${quizId} status was updated`,"success");
+                    //window.location.reload();
+                }else{
+                    sendToFlashLand(`Quiz ${quizId} status update failed`,"danger");
+                    //window.location.reload();
+                }
+            }
+        )
+        .catch((error) => {
+            sendToFlashLand("There was a problem updating the quiz status: " + error,"danger");
+        })
     }
 </script>
 

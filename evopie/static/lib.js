@@ -77,10 +77,16 @@ const createWeightSlider = (qid, sliderId, weights, cb, step1WeightElId = "step1
 function sendToFlashLand(message, type) {
     var target = document.getElementById('flashland')
     var data = document.createElement('div')
-    data.innerHTML = '<div class="alert mb-1 py-1 alert-' + type + ' alert-dismissible fade show" role="alert">' 
-        + message 
-        + '<button type="button" class="small py-2 btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>'
+    var alertEl = document.createElement('div')
+    alertEl.classList.add('alert', 'mb-1', 'py-1', 'alert-' + type, 'alert-dismissible', 'fade', 'show')
+    alertEl.role = 'alert'
+    alertEl.innerHTML = 
+        message 
+        + '<button type="button" class="small py-2 btn-close" data-bs-dismiss="alert" aria-label="Close"></button>'
+    data.append(alertEl)
     target.append(data)
+    var bootstrapAlert = new bootstrap.Alert(alertEl)
+    setTimeout(() => bootstrapAlert.close(), 5000)
 }
 
 const fetchJson = async (...args) => {

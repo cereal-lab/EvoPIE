@@ -27,7 +27,7 @@
         <!-- include summernote css/js -->
         <link rel="stylesheet" href="{{ url_for('static', filename='summernote-bs5.min.css') }}">
         <script src="{{ url_for('static', filename='summernote-bs5.min.js') }}"></script>
-        <script type="text/javascript" charset="utf8" src="{{ url_for('static', filename='lib.js') }}?v=1"></script>
+        <script type="text/javascript" charset="utf8" src="{{ url_for('static', filename='lib.js') }}?v=2"></script>
         <script type='text/javascript'>
             $(document).ready(function() {
                 $('.summernote').summernote({
@@ -147,7 +147,7 @@
         </nav>
 
 
-        <div id="flashland" class="" style="margin-left: 20%; margin-right: 20%"><!--</div>flashes-div">-->
+        <div id="flashland" class="position-fixed bottom-0 end-0 p-3" style="z-index: 11"><!--</div>flashes-div">-->
             {% with messages = get_flashed_messages(category_filter=["message"]) %}
             {% if messages %}
                 {% for message in messages %}
