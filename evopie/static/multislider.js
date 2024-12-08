@@ -29,19 +29,19 @@ function createSlider(selector, {values, maxValue, cb}) {
     line.classList.add("slider-line")
     holder.appendChild(line)
     let activeHandle = null
-    const renderLabel = (handle) => {
+    const renderLabel = (handle, prev_handle) => {
         const label = handle.sl_label
         if (label) {
             let value = handle.sl_value
-            const localMinValue = handle.sl_prev ? handle.sl_prev.sl_value : 0;    
+            const localMinValue = prev_handle ? prev_handle.sl_value : 0;    
             lavelVal = label.replace("|value|", value).replace("|diff|", value - localMinValue)
             handle.innerHTML = lavelVal
         }
     }
-    const renderTip = (handle) => {
+    const renderTip = (handle, prev_handle) => {
         if (handle.sl_tip) {
             let value = handle.sl_value
-            const localMinValue = handle.sl_prev ? handle.sl_prev.sl_value : 0;    
+            const localMinValue = prev_handle ? prev_handle.sl_value : 0;    
             tip = handle.sl_tip.replace("|value|", value).replace("|diff|", value - localMinValue).replace("|leftValue|", Math.round(maxValue - value))
             handle.setAttribute("title", tip);
         }
@@ -49,8 +49,14 @@ function createSlider(selector, {values, maxValue, cb}) {
     const setHandlePos = (handle, newValue, shouldForce) => {        
         const step = handle.sl_step        
         let value = newValue || handle.sl_value
-        const localMinValue = handle.sl_prev ? handle.sl_prev.sl_value : 0;
-        const localMaxValue = handle.sl_next ? handle.sl_next.sl_value : maxValue;
+        handle.sl_handles.sort((a, b) => {
+            const a_value = (a == handle) ? value : a.sl_value
+            const b_value = (b == handle) ? value : b.sl_value
+            return a_value - b_value
+        })
+        const handleIndex = handle.sl_handles.indexOf(handle)
+        const localMinValue = (handleIndex > 0) ? handle.sl_handles[handleIndex - 1].sl_value : 0;
+        const localMaxValue = (handleIndex < (handle.sl_handles.length - 1)) ? handle.sl_handles[handleIndex + 1].sl_value : maxValue;
         if (step) {
             let newValue = Math.round(value / step) * step; //round value to closest quant             
             if ((newValue == handle.sl_value) && !shouldForce) return;
@@ -60,18 +66,16 @@ function createSlider(selector, {values, maxValue, cb}) {
         else if (value > localMaxValue) value = localMaxValue
         value = Math.round(value)
         handle.sl_value = value
-        renderLabel(handle)
-        renderTip(handle)
-        for (let i = handle.sl_i + 1; i < handle.sl_handles.length; i++) {
-            renderLabel(handle.sl_handles[i])
-            renderTip(handle.sl_handles[i])
-        }
+        handle.sl_handles.forEach((h, i) => {
+            renderLabel(h, i > 0 ? handle.sl_handles[i - 1] : null)
+            renderTip(h, i > 0 ? handle.sl_handles[i - 1] : null)
+        })
         let pos = (value * sliderWidth / maxValue);
         handleWidth = handle.offsetWidth;
         handle.sl_pos = pos;
         handle.style.left = (pos - handleWidth / 2) + "px"; //we use absolute positioning
     }
-    handleStack = []
+    // handleStack = []
     let handles = values.map(({value, step, label, tip}, i) => {
         let handle = document.createElement("div")
         handle.classList.add("slider-handle")
@@ -82,25 +86,25 @@ function createSlider(selector, {values, maxValue, cb}) {
         handle.sl_value = value;   
         handle.addEventListener("mousedown", (e) => {
             if ((e.button != 0) || activeHandle) return;            
-            handleStack = handleStack.filter(h => h != handle)
-            handleStack.push(handle)
-            handleStack.forEach((h, i) => h.style['z-index'] = (45 + i))
+            // handleStack = handleStack.filter(h => h != handle)
+            // handleStack.push(handle)
+            // handleStack.forEach((h, i) => h.style['z-index'] = (45 + i))
             handle.classList.add("active")
             activeHandle = handle
         })
         holder.appendChild(handle)
         return handle
     })
-    handleStack = handles
+    // handleStack = handles
     handles.forEach((handle, i) => {
-        if (typeof(handles[i-1]) != "undefined") { //not first handle
-            handle.sl_prev = handles[i-1]
-        }
-        if (typeof(handles[i+1]) != "undefined") { //not last handle
-            handle.sl_next = handles[i+1]
-        }        
+        // if (typeof(handles[i-1]) != "undefined") { //not first handle
+        //     handle.sl_prev = handles[i-1]
+        // }
+        // if (typeof(handles[i+1]) != "undefined") { //not last handle
+        //     handle.sl_next = handles[i+1]
+        // }        
         handle.sl_handles = handles
-        handle.sl_i = i
+        // handle.sl_i = i
         setHandlePos(handle, handle.sl_value, true)
     })
     holder.addEventListener("mouseup", (e) => {
@@ -112,9 +116,11 @@ function createSlider(selector, {values, maxValue, cb}) {
         if (!activeHandle || (activeHandle == e.target)) return; 
         let pos = e.offsetX;
         if (e.target.sl_handles) {
-            if ((e.target.sl_i == (activeHandle.sl_i + 1)) || (e.target.sl_i == (activeHandle.sl_i - 1)))
-                pos = e.target.sl_pos
-            else return;
+            // const handleIndex = activeHandle.sl_handles.indexOf(activeHandle)
+            // const targetIndex = e.target.sl_handles.indexOf(e.target)
+            // if ((targetIndex == (handleIndex + 1)) || (targetIndex == (handleIndex - 1))) {
+            pos = e.target.sl_pos
+            // } else return;
         }
         let newValue = pos * maxValue / sliderWidth;
         setHandlePos(activeHandle, newValue)
