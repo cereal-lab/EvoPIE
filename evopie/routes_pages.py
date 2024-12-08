@@ -231,11 +231,18 @@ def quiz_question_selector_1(quiz_id):
     quiz = models.Quiz.query.get_or_404(quiz_id)
     quiz_questions = quiz.quiz_questions
     question_ids = set(q.question_id for q in quiz_questions)
-    questions = models.Question.query.where(models.Question.id.not_in(question_ids)).all()
+    instructor_id = request.args.get('iid', '')
+    qb = models.Question.query.where(models.Question.id.not_in(question_ids))
+    if instructor_id != '':
+        instructor_id = int(instructor_id)
+        qb = qb.where(models.Question.author_id == instructor_id)
+    questions = qb.all()
+    all_instructors = models.User.query.where(models.User.role == ROLE_INSTRUCTOR).with_entities(models.User.id, models.User.first_name, models.User.last_name).all()
+    all_instructors_map = {i.id: i.first_name + " " + i.last_name for i in all_instructors}
     for q in questions:
         q.stem = unescape(q.stem)
         q.answer = unescape(q.answer)
-    return render_template('quiz-question-selector-1.html', quiz_id = quiz_id, available_questions = questions)
+    return render_template('quiz-question-selector-1.html', quiz_id = quiz_id, available_questions = questions, all_instructors = all_instructors_map)
 
 @pages.route('/quiz-question-selector-2/<int:quiz_id>/<int:question_id>')
 @login_required

@@ -17,15 +17,22 @@
                 its answer.
             </p>
     </div>
+    <div class="container">
+        <select onchange="filterQuestionsByAuthor(event)">
+            <option value="">-- Any author --</option>
+            {% for author_id, author_name in all_instructors.items() %}
+                <option value="{{ author_id }}" {% if request.args.get('iid', '') == author_id|string %} selected {% endif %}>{{ author_name }}</option>
+            {% endfor %}
+        </select>
+    </div>    
 </div>
-
 
 
 {% for question in available_questions %}
 <div class="card bg-light m-3 mx-auto" style="width: 75%">
     <div class="card-body" bg-light>
         <h5 class="card-title">
-            Previewing Question Q#{{question.id}}
+            Previewing Question #{{question.id}} designed by {{ all_instructors.get(question.author_id, 'unknown author') }}
         </h5>
         <div>
             <p class="card-text">
@@ -57,5 +64,13 @@
     </div>
 </div>
 {% endfor %}
+
+<script>
+    function filterQuestionsByAuthor(event) {
+        let author_id = event.target.value;
+        let url = !author_id ? "/quiz-question-selector-1/{{quiz_id}}" : `/quiz-question-selector-1/{{quiz_id}}?iid=${author_id}`;
+        window.location.href = url;
+    }
+</script>
 
 {% endblock %}
