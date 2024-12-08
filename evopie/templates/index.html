@@ -136,12 +136,14 @@
                   {% for course in courses %}
                     {% for q in course.quizzes %}
                       {% if q.status != 'HIDDEN' %}
+                      {% set attempt = attempts.get(q.id, none) %}
+                      {% set attemptStatus = 'STEP1' if attempt is none else attempt.status %}
                       <tr>
                         <td>
                           {{ q.id }}
                         </td>
                         <td>
-                          <p class="pointer-link" data-bs-toggle = "modal" data-bs-target = "#q{{q.id}}">
+                          <p class="pointer-link mb-0" data-bs-toggle = "modal" data-bs-target = "#q{{q.id}}">
                             {{ q.title }}
                           </p>
                           <div class="modal fade" id="q{{q.id}}" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" aria-hidden="true">
@@ -168,7 +170,7 @@
                           </td>
                         {% endif %}  
                         <td>
-                          <p data-bs-toggle = "modal" data-bs-target = "#q{{q.id}}">
+                          <p data-bs-toggle = "modal" class="mb-0" data-bs-target = "#q{{q.id}}">
                             {{ q.author.first_name | safe }} {{ q.author.last_name | safe }}
                           </p>
                         </td>

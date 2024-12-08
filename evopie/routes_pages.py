@@ -16,7 +16,7 @@ from flask_login import login_required, current_user
 from flask import flash
 from pandas import DataFrame
 from sqlalchemy import not_
-from sqlalchemy.sql import collate
+from sqlalchemy.sql import collate, func
 from flask import Markup
 from evopie.quiz_model import get_quiz_builder
 from evopie.routes_mcq import answer_questions, justify_alternative_selection
@@ -102,7 +102,25 @@ def quizzes_browser():
             new_quizzes.append(q)
     courses = models.Course.query.filter_by(instructor_id=current_user.get_id()).all()
 
-    return render_template('quizzes-browser.html', new_quizzes = new_quizzes, courses = courses)
+    quiz_ids = [q.id for q in all_quizzes]
+    quiz_questoins_count = \
+        models.Quiz.query.join(models.relation_questions_vs_quizzes, models.relation_questions_vs_quizzes.c.quiz_id == models.Quiz.id) \
+            .filter(models.Quiz.id.in_(quiz_ids)) \
+            .with_entities(models.Quiz.id, func.count(models.relation_questions_vs_quizzes.c.quiz_question_id).label('question_count')) \
+            .group_by(models.Quiz.id).all()
+    quiz_questoins_count_map = {q.id: q.question_count for q in quiz_questoins_count}
+
+    quiz_question_distractors_count = \
+        models.Quiz.query.join(models.relation_questions_vs_quizzes, models.relation_questions_vs_quizzes.c.quiz_id == models.Quiz.id) \
+            .join(models.quiz_questions_hub, models.quiz_questions_hub.c.quiz_question_id == models.relation_questions_vs_quizzes.c.quiz_question_id) \
+            .filter(models.Quiz.id.in_(quiz_ids)) \
+            .with_entities(models.Quiz.id, func.count(models.quiz_questions_hub.c.distractor_id).label('distractor_count')) \
+            .group_by(models.Quiz.id).all()      
+
+    quiz_question_distractors_count_map = {q.id: q.distractor_count for q in quiz_question_distractors_count}  
+
+    return render_template('quizzes-browser.html', new_quizzes = new_quizzes, courses = courses, \
+                           quiz_questoins_count = quiz_questoins_count_map, quiz_question_distractors_count = quiz_question_distractors_count_map)
     # version with pagination below
     #page = request.args.get('page',1, type=int)
     #QUESTIONS_PER_PAGE = 5 # FIX ME make this a field in a global config object
@@ -118,7 +136,21 @@ def quizzes_browser():
 @role_required(ROLE_INSTRUCTOR)
 def courses_browser():
     all_courses = models.Course.query.filter_by(instructor_id=current_user.get_id()).all()
-    return render_template('courses-browser.html', all_courses = all_courses)
+    course_ids = [c.id for c in all_courses]
+    course_student_counts = \
+        models.Course.query.join(models.Course_student, models.Course_student.c.CourseId == models.Course.id) \
+            .filter(models.Course.id.in_(course_ids)) \
+            .with_entities(models.Course.id, func.count(models.Course_student.c.StudentId).label('student_count')) \
+            .group_by(models.Course.id).all()
+    course_student_counts_map = {c.id: c.student_count for c in course_student_counts}
+    course_quizzes_count = \
+        models.Course.query.join(models.Course_quiz, models.Course_quiz.c.CourseId == models.Course.id) \
+            .filter(models.Course.id.in_(course_ids)) \
+            .with_entities(models.Course.id, func.count(models.Course_quiz.c.QuizId).label('quiz_count')) \
+            .group_by(models.Course.id).all()
+    course_quizzes_count_map = {c.id: c.quiz_count for c in course_quizzes_count}
+    return render_template('courses-browser.html', all_courses = all_courses, course_student_counts = course_student_counts_map, \
+                           course_quizzes_count = course_quizzes_count_map)
 
 
 # NOTE signed=True because flask router won't accept a negative value (or floats for that matter)
@@ -761,6 +793,10 @@ def get_quiz(quiz_course):
                         for aid, did in enumerate(alternatives) if did in distractor_map or did == -1}
                     for qid, alternatives in attempt.alternatives_map.items()}
     
+    if attempt.status != QUIZ_ATTEMPT_SOLUTIONS:
+        # error - student cannot see solutions as they did not take the quiz
+        flash("You did not submit Step1 and Step2. Solutions are not available", "error")
+        return redirect(url_for('pages.index'))
     
     if q.status == QUIZ_SOLUTIONS and q.step3_enabled == "True":
         return render_template('step3.html', quiz=quiz_model, course=course,

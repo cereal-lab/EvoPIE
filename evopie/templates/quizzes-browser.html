@@ -89,6 +89,8 @@
                 <th>ID</th>
                 <th>Title</th>
                 <th>Course</th>
+                <th class="text-center">Questions</th>
+                <th class="text-center">Distractors</th>
                 <th class="text-center">Status</th>
                 <th class="text-center" title="Is this quiz status driven manually or by deadlines?">Deadlines?</th>
                 <th class="text-right text-end">Actions</th>
@@ -113,8 +115,21 @@
                             </div>
                         </td>
                         <td>
-                            {{ course.name | safe }}
+                            <select onchange="updateQuizCourse('{{single_quiz.id}}', event)">
+                                <option value="">-- None --</option>
+                                {% for c2 in courses %}
+                                    <option value="{{ c2.id }}" {% if c2.id == course.id %} selected {% endif %}>
+                                        {{ c2.name | safe }}
+                                    </option>
+                                {% endfor %}
+                            </select>
                         </td>
+                        <td class="text-center">
+                            {{ quiz_questoins_count.get(single_quiz.id, 0) }}
+                        </td>
+                        <td class="text-center">
+                            {{ quiz_question_distractors_count.get(single_quiz.id, 0) }}
+                        </td>                        
                         <td class="text-center">
                             <select {{ "disabled" if single_quiz.deadline_driven == "True"  }} 
                                 id="status_{{single_quiz.id}}_{{course.id}}"
@@ -177,7 +192,22 @@
                             </div></div>
                         </div>
                     </td>
-                    <td></td>
+                    <td>
+                        <select onchange="updateQuizCourse('{{single_quiz.id}}', event)">
+                            <option value="">-- None --</option>
+                            {% for c2 in courses %}
+                                <option value="{{ c2.id }}">
+                                    {{ c2.name | safe }}
+                                </option>
+                            {% endfor %}
+                        </select>                        
+                    </td>
+                    <td class="text-center">
+                        {{ quiz_questoins_count.get(single_quiz.id, 0) }}
+                    </td>        
+                    <td class="text-center">
+                        {{ quiz_question_distractors_count.get(single_quiz.id, 0) }}
+                    </td>                                
                     <td class="text-center"'>                                                
                         <select {{ "disabled" if single_quiz.deadline_driven == "True"  }} 
                             id="status_{{single_quiz.id}}_"
@@ -294,6 +324,31 @@
         )
         .catch((error) => {
             sendToFlashLand("There was a problem updating the quiz status: " + error,"danger");
+        })
+    }
+
+    function updateQuizCourse(quizId, event) {
+        let target_url = `/quizzes/${quizId}/course`;
+        let selectedValue = event.target.value;
+        fetch(target_url,{
+            method:         'POST',
+            headers:        {'Content-Type' : 'application/json'},
+            body:           JSON.stringify({"course_id" :  selectedValue}),
+            credentials:    'same-origin'
+        })
+        .then(
+            response => {
+                if(response.ok){
+                    sendToFlashLand(`Quiz ${quizId} course was updated`,"success");
+                    //window.location.reload();
+                }else{
+                    sendToFlashLand(`Quiz ${quizId} course update failed`,"danger");
+                    //window.location.reload();
+                }
+            }
+        )
+        .catch((error) => {
+            sendToFlashLand("There was a problem updating the quiz course: " + error,"danger");
         })
     }
 </script>

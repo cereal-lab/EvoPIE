@@ -1146,6 +1146,22 @@ def answer_questions(q, body):
     models.DB.session.commit()
     return {"message": "Quiz answers were saved"}
 
+@mcq.route('/quizzes/<int:qid>/course', methods=['POST'])
+@login_required
+@role_required(ROLE_INSTRUCTOR)
+@unmime(delim='-')
+def update_quiz_course(qid, body):
+    quiz = models.Quiz.query.get_or_404(qid)
+    course_id = body.get('course_id', '')
+    quiz.courses[:] = []
+    if course_id != '':
+        course = models.Course.query.get_or_404(course_id)
+        quiz.courses.append(course)
+    
+    models.DB.session.commit()
+    return { "message" : f"Quiz {quiz.id} course was updated" }
+
+
 @mcq.route('/quizzes/<qa:q>/justifications', methods=['PUT', 'DELETE'])
 @login_required
 @validate_quiz_attempt_step(quiz_attempt_param = "q")

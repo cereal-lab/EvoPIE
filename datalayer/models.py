@@ -262,6 +262,11 @@ relation_questions_vs_quizzes = DB.Table('relation_questions_vs_quizzes',
    DB.Column('quiz_question_id',    DB.Integer, DB.ForeignKey('quiz_question.id'),  primary_key=True)
 )
 
+Course_quiz = DB.Table(
+    'CourseQuiz',
+    DB.Column('CourseId', DB.Integer, DB.ForeignKey('course.id'), primary_key=True),
+    DB.Column('QuizId', DB.Integer, DB.ForeignKey('quiz.id'), primary_key=True)
+)
 
 class Quiz(DB.Model):
     '''
@@ -286,6 +291,7 @@ class Quiz(DB.Model):
 
     title = DB.Column(DB.String)
     description = DB.Column(DB.String)
+    courses = DB.relationship('Course', secondary=Course_quiz, backref=DB.backref('quizzes', lazy='dynamic'))
 
     # list of tags provided by the author to help them organize their stuff :)
     # later, we might add some global tags
@@ -495,12 +501,6 @@ Course_student = DB.Table(
     DB.Column('StudentId', DB.Integer, DB.ForeignKey('user.id'), primary_key=True)
 )
 
-Course_quiz = DB.Table(
-    'CourseQuiz',
-    DB.Column('CourseId', DB.Integer, DB.ForeignKey('course.id'), primary_key=True),
-    DB.Column('QuizId', DB.Integer, DB.ForeignKey('quiz.id'), primary_key=True)
-)
-
 class User(UserMixin, DB.Model):
     '''
     Information about users, compatible with flask_login.
@@ -602,7 +602,7 @@ class Course(DB.Model):
     title = DB.Column(DB.String, nullable=False)
     instructor_id = DB.Column(DB.Integer, DB.ForeignKey('user.id'), nullable=False)
     students = DB.relationship('User', secondary=Course_student, backref=DB.backref('courses', lazy='dynamic'))
-    quizzes = DB.relationship('Quiz', secondary=Course_quiz, backref=DB.backref('courses', lazy='dynamic'))
+    # quizzes = DB.relationship('Quiz', secondary=Course_quiz, backref=DB.backref('courses', lazy='dynamic'))
 
     def dump_as_dict(self):
         return {    "id" : self.id,
