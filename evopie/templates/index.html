@@ -160,7 +160,9 @@
                         <td>
                             {{ q.status }}
                         </td>
-                        {% if q.status == 'SOLUTIONS' %}
+                        {% if q.status != attemptStatus %}
+                          <td></td>
+                        {% elif q.status == 'SOLUTIONS' %}
                           <td>
                             <a href="/student/{{ q.id }}/{{ course.id }}/start" class="btn btn-primary my-2"> See Solutions </a>
                           </td>
