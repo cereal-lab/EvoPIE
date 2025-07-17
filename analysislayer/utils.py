@@ -227,9 +227,15 @@ def convertDecaQuestionDimsToCytoElementDict(dims, df, whichScores, prefix="Q"):
                                'position':{'x':0, 'y':0},\
                                'classes':'root-deca-node'}) # Asha: rearranged curly brackets and corrected a typo; cytoscape selector call in plotter.py now works
 
-  # Add all question/question nodes
+  # Set the angle change based on the number of dimensions
   theta = 0
-  dTheta = 6.28/float(len(dims))
+  dTheta = 0.1 
+  try:
+    dTheta = 6.28/float(len(dims))
+  except:
+    dTheta = 0.1
+
+  # Add all question/question nodes
   for dim in dims:
     radius = 0
     theta = theta + dTheta
