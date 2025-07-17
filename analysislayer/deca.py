@@ -548,13 +548,23 @@ def summarizeMaxMinDimensions(studentDims, testSubset, studentEquivalenceClass, 
   else:
       testList = list(testSubset)
 
-      maxVal = max(hardHist)
+      maxVal = -1
+      try:
+        maxVal = max(hardHist)
+      except:
+        maxVal = -1
+
       hardSet = set()
       for idx in range(n):
         if hardHist[idx] == maxVal:
           hardSet.add(testList[idx])
 
-      maxVal = max(easyHist)
+      maxVal = -1
+      try:
+        maxVal = max(easyHist)
+      except:
+        maxVal = -1
+
       easySet = set()
       for idx in range(n):
         if easyHist[idx] == maxVal:
