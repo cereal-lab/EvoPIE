@@ -17,7 +17,7 @@ services:
   web:
     build: 
       context: ./evopie
-      dockerfile: Dockerfile.rpw
+      dockerfile: Dockerfile
     volumes:
       - /Users/rwiegand/Projects/NSF-CISE-IUSE/EvoPIE/evopie/data:/app/data
     environment:
