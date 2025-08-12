@@ -164,8 +164,14 @@ def GetQuizOptionList():
     RPW:  Added a restriction to make sure to only include quizes by the current author 8/6/25
   """
   quizOptionList = []
+  user_id = -1
+  try:
+    user_id = current_user.id
+  except:
+    user_id = -1
+
   for quizInstance in models.Quiz.query.order_by(models.Quiz.id).all():
-    if quizInstance.author_id == current_user.id:
+    if quizInstance.author_id == user_id:
       optDict = {'label':quizInstance.title, 'value':int(quizInstance.id)}
       quizOptionList.append(optDict)
   return quizOptionList
