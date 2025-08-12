@@ -265,6 +265,7 @@ def RegisterCallbacks(dashapp):
                     Input('quizselect-dropdown-student', 'value') )
   def displayStudentTabMenuData(whichAnalysis, quizItemValue):
       global gQuizOptions
+      gQuizOptions = da.GetQuizOptionList()   # RPW:  Added to repop quiz items on side menu seln, 8/6/25
       quizID = appUtils.GetSelectedQuizIDCookie(gQuizOptions[0]['value'])
       #quizDF = da.GetScoresDataframe(quizID)  ## RPW:  Move this below?
 

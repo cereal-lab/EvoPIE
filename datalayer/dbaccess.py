@@ -160,12 +160,14 @@ def GetQuizOptionList():
   """
   Build a list of dictionaries containing the label string to display and the 
   ID to use for lookup based on on quizzes in the database.  Basically, this
-  is a list of quizzes.
+  is a list of quizzes.  
+    RPW:  Added a restriction to make sure to only include quizes by the current author 8/6/25
   """
   quizOptionList = []
   for quizInstance in models.Quiz.query.order_by(models.Quiz.id).all():
-    optDict = {'label':quizInstance.title, 'value':int(quizInstance.id)}
-    quizOptionList.append(optDict)
+    if quizInstance.author_id == current_user.id:
+      optDict = {'label':quizInstance.title, 'value':int(quizInstance.id)}
+      quizOptionList.append(optDict)
   return quizOptionList
 
 
