@@ -2,28 +2,25 @@ version: '2.0'
 
 services:
   updater:
-    build: 
-      context: ./analysislayer
-      #dockerfile: Dockerfile.rpw
+    build: ./analysislayer
     volumes:
-      - /Users/rwiegand/Projects/NSF-CISE-IUSE/EvoPIE/evopie/data:/app/data
+      - /EvoPIE/evopie/data:/app/data
     environment:
       - EVOPIE_DATABASE_URI=sqlite:////app/data/db.sqlite
+      - INIT_DB=1
     expose:
-      - 5010
+      - 5000
     env_file:
       - ./analysislayer/.env.dev
     restart: always
   web:
-    build: 
-      context: ./evopie
-      dockerfile: Dockerfile
+    build: ./evopie
     volumes:
-      - /Users/rwiegand/Projects/NSF-CISE-IUSE/EvoPIE/evopie/data:/app/data
+      - /EvoPIE/evopie/data:/app/data
     environment:
       - EVOPIE_DATABASE_URI=sqlite:////app/data/db.sqlite
     expose:
-      - 5010
+      - 5000
     env_file:
       - ./evopie/.env.dev
     depends_on:
@@ -32,9 +29,9 @@ services:
   nginx:
     build: ./nginx
     ports:
-      - "5010:5010"
+      - "5000:5000"
     depends_on:
       - web
     restart: always
     volumes:
-      - /Users/rwiegand/Projects/NSF-CISE-IUSE/EvoPIE/evopie/certs/etc/letsencrypt:/etc/nginx/certs
+      - /etc/letsencrypt:/etc/nginx/certs
