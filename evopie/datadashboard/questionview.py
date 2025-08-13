@@ -334,5 +334,6 @@ def RegisterCallbacks(dashapp):
   def updateDropDown(n_inteval):
       global gQuizOptions
       gQuizOptions = da.GetQuizOptionList()   # RPW:  Added to repop quiz items on side menu seln, 8/6/25
+      print("DBG:::  updating the options of the drop down (Q) ...", gQuizOptions)
       return gQuizOptions
 
