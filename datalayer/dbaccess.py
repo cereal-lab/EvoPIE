@@ -104,8 +104,9 @@ def GetQuestionDetailDataframe(quizID, questionID, whichScores, quiet=True):
   responseID = -1
   # Take the ID from the question question, resolve it to the foreign key for questions overall,
   # Then look up that question in the DB.
-  real_questionID = models.QuizQuestion.query.filter(models.QuizQuestion.id == questionID)
-  question = models.Question.query.filter(models.Question.id == real_questionID).first()
+  response_question = models.QuizQuestion.query.filter(models.QuizQuestion.id == questionID).first()
+  print(f"DBG::: Looking up question using qid {questionID}.  Got object: ", response_question)
+  question = models.Question.query.filter(models.Question.id == response_question.question_id).first()
 
   # First, let's build a dictionary for tallying things.  We start by having one entry that
   # represents the correct answer.  It's key will be "-1".
@@ -159,7 +160,7 @@ def GetQuestionDetailDataframe(quizID, questionID, whichScores, quiet=True):
   return df
 
 
-def GetQuizOptionList():
+def GetQuizOptionList(use_all=True):
   """
   Build a list of dictionaries containing the label string to display and the 
   ID to use for lookup based on on quizzes in the database.  Basically, this
@@ -175,8 +176,8 @@ def GetQuizOptionList():
     user_id = "-1"
 
   for quizInstance in models.Quiz.query.order_by(models.Quiz.id).all():
-    print(f"DBG:  current user={user_id},  author={quizInstance.author_id}")
-    if quizInstance.author_id == user_id:
+    #print(f"DBG:  current user={user_id},  author={quizInstance.author_id}")
+    if use_all or (quizInstance.author_id == user_id):
       optDict = {'label':quizInstance.title, 'value':int(quizInstance.id)}
       quizOptionList.append(optDict)
   return quizOptionList
