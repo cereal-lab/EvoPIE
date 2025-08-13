@@ -171,9 +171,11 @@ def GetQuizOptionList():
   try:
     user_id = current_user.id
   except:
+    print(f"WARNING:  Cannot get the current user ID, sop cannot populate the list of quizzes (user_id={user_id}).")    
     user_id = "-1"
 
   for quizInstance in models.Quiz.query.order_by(models.Quiz.id).all():
+    print(f"DBG::  current user={user_id},  author={quizInstance.author_id}")
     if quizInstance.author_id == user_id:
       optDict = {'label':quizInstance.title, 'value':int(quizInstance.id)}
       quizOptionList.append(optDict)
