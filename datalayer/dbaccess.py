@@ -102,7 +102,10 @@ def GetQuestionDetailDataframe(quizID, questionID, whichScores, quiet=True):
   textTruncationLength = 0
 
   responseID = -1
-  question = models.Question.query.filter(models.Question.id == questionID).first()
+  # Take the ID from the question question, resolve it to the foreign key for questions overall,
+  # Then look up that question in the DB.
+  real_questionID = models.QuizQuestion.quer.filter(models.QuizQuestion.id == questionID)
+  question = models.Question.query.filter(models.Question.id == real_questionID).first()
 
   # First, let's build a dictionary for tallying things.  We start by having one entry that
   # represents the correct answer.  It's key will be "-1".
