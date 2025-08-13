@@ -34,3 +34,4 @@ services:
       - web
     restart: always
     volumes:
+      - /etc/letsencrypt:/etc/nginx/certs
