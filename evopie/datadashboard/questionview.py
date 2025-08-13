@@ -328,12 +328,12 @@ def RegisterCallbacks(dashapp):
       return componentsLeft, componentsRight, componentsTop
   
 
-  ## ------------- vvv  Callback for the Interval Timer  vvv ----------------
-  #@dashapp.callback(Output('quizselect-dropdown-question', 'options'),
-  #                  Input( 'interval-compomnent', 'n_interval') )
-  #def updateDropDown(n_inteval):
-  #    global gQuizOptions
-  #    gQuizOptions = da.GetQuizOptionList()   # RPW:  Added to repop quiz items on side menu seln, 8/6/25
-  #    print("DBG:::  updating the options of the drop down (Q) ...", gQuizOptions)
-  #    return gQuizOptions
+  ## ------------- vvv  Callback for Top-Bar Click  vvv ----------------
+  @dashapp.callback(Output('quizselect-dropdown-question', 'options'),
+                    Input( 'nav-topbar', 'n_clicks') )
+  def updateDropDown(n_inteval):
+      global gQuizOptions
+      gQuizOptions = da.GetQuizOptionList(False)   # RPW:  Added to repop quiz items on side menu seln, 8/6/25
+      print("DBG:::  updating the options of the drop down (Q) ...", gQuizOptions)
+      return [{'label':gQuizOptions, 'value':gQuizOptions}]
 

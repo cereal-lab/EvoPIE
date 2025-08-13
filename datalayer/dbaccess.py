@@ -105,7 +105,6 @@ def GetQuestionDetailDataframe(quizID, questionID, whichScores, quiet=True):
   # Take the ID from the question question, resolve it to the foreign key for questions overall,
   # Then look up that question in the DB.
   response_question = models.QuizQuestion.query.filter(models.QuizQuestion.id == questionID).first()
-  print(f"DBG::: Looking up question using qid {questionID}.  Got object: ", response_question)
   question = models.Question.query.filter(models.Question.id == response_question.question_id).first()
 
   # First, let's build a dictionary for tallying things.  We start by having one entry that
