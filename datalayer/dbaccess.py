@@ -104,7 +104,7 @@ def GetQuestionDetailDataframe(quizID, questionID, whichScores, quiet=True):
   responseID = -1
   # Take the ID from the question question, resolve it to the foreign key for questions overall,
   # Then look up that question in the DB.
-  real_questionID = models.QuizQuestion.quer.filter(models.QuizQuestion.id == questionID)
+  real_questionID = models.QuizQuestion.query.filter(models.QuizQuestion.id == questionID)
   question = models.Question.query.filter(models.Question.id == real_questionID).first()
 
   # First, let's build a dictionary for tallying things.  We start by having one entry that
@@ -175,7 +175,7 @@ def GetQuizOptionList():
     user_id = "-1"
 
   for quizInstance in models.Quiz.query.order_by(models.Quiz.id).all():
-    print(f"DBG::  current user={user_id},  author={quizInstance.author_id}")
+    print(f"DBG:  current user={user_id},  author={quizInstance.author_id}")
     if quizInstance.author_id == user_id:
       optDict = {'label':quizInstance.title, 'value':int(quizInstance.id)}
       quizOptionList.append(optDict)
@@ -194,7 +194,7 @@ def GetGlossaryTerms():
     definitions = pd.Series([termInstance.definition], dtype='string')
 
     dfNewRow = pd.DataFrame({'Terms':terms, \
-                              'Definitions':definitions})
+                             'Definitions':definitions})
     
     df = pd.concat([df,dfNewRow])
       
