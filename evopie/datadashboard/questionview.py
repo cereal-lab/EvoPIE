@@ -139,7 +139,7 @@ def PopulateViewLayout():
           ]),
       ]),   
 
-      dcc.Interval(id="interval-component", interval=15_000, n_intervals=0),  # Tic updater every 15 seconds, for drop-down updates
+      #dcc.Interval(id="interval-component", interval=15_000, n_intervals=0),  # Tic updater every 15 seconds, for drop-down updates
 
       # Somewhere to point no-output callbacks to ...
       html.Div(id='placeholder', style={"display":"none"})
@@ -329,11 +329,11 @@ def RegisterCallbacks(dashapp):
   
 
   ## ------------- vvv  Callback for the Interval Timer  vvv ----------------
-  @dashapp.callback(Output('quizselect-dropdown-question', 'options'),
-                    Input( 'interval-compomnent', 'n_interval') )
-  def updateDropDown(n_inteval):
-      global gQuizOptions
-      gQuizOptions = da.GetQuizOptionList()   # RPW:  Added to repop quiz items on side menu seln, 8/6/25
-      print("DBG:::  updating the options of the drop down (Q) ...", gQuizOptions)
-      return gQuizOptions
+  #@dashapp.callback(Output('quizselect-dropdown-question', 'options'),
+  #                  Input( 'interval-compomnent', 'n_interval') )
+  #def updateDropDown(n_inteval):
+  #    global gQuizOptions
+  #    gQuizOptions = da.GetQuizOptionList()   # RPW:  Added to repop quiz items on side menu seln, 8/6/25
+  #    print("DBG:::  updating the options of the drop down (Q) ...", gQuizOptions)
+  #    return gQuizOptions
 
