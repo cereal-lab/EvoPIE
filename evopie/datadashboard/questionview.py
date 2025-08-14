@@ -331,9 +331,14 @@ def RegisterCallbacks(dashapp):
   ## ------------- vvv  Callback for Top-Bar Click  vvv ----------------
   @dashapp.callback(Output('quizselect-dropdown-question', 'options'),
                     Input( 'nav-topbar', 'n_clicks') )
-  def updateDropDown(n_inteval):
+  def updateDropDown(n_clicks):
       global gQuizOptions
       gQuizOptions = da.GetQuizOptionList(False)   # RPW:  Added to repop quiz items on side menu seln, 8/6/25
-      print("DBG:::  updating the options of the drop down (Q) ...", gQuizOptions)
-      return [{'label':gQuizOptions, 'value':gQuizOptions}]
+      print("DBG::-::  updating options of drop down (Q) ...", gQuizOptions, "   :::   ", n_clicks)
+      #defaultQuizVal = -1
+      #if len(gQuizOptions) > 0:
+      #  defaultQuizVal = gQuizOptions[0]['value']
+      #quizIDstr = appUtils.GetSelectedQuizIDCookie(defaultQuizVal)
+
+      return gQuizOptions
 

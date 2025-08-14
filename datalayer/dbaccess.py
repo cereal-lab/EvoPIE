@@ -171,7 +171,8 @@ def GetQuizOptionList(use_all=True):
   try:
     user_id = current_user.id
   except:
-    print(f"WARNING:  Cannot get the current user ID, sop cannot populate the list of quizzes (user_id={user_id}).")    
+    if not use_all:
+      print(f"WARNING:  Cannot get the current user ID, sop cannot populate the list of quizzes (user_id={user_id}).")    
     user_id = "-1"
 
   for quizInstance in models.Quiz.query.order_by(models.Quiz.id).all():
