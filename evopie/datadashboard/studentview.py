@@ -318,6 +318,5 @@ def RegisterCallbacks(dashapp):
   def updateDropDown(n_clicks):
       global gQuizOptions
       gQuizOptions = da.GetQuizOptionList(False)    # Re-populate the quiz drop-down list to filter only this author
-      print(f"DBG::-:: Repop'ing quiz list: ", gQuizOptions)
       return gQuizOptions
 
