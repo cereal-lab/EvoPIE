@@ -51,7 +51,7 @@ def PopulateViewLayout():
   gLayout = html.Div(children=[
       
       # The drop-down quiz selector at the top
-      html.Div(id="nav-topbar", className="rectangle", children=[
+      html.Div(id="nav-topbar-student", className="rectangle", children=[
           html.Li(className="nav", children=[
               dcc.Link('Analysis by Question', href='/datadashboard/question/', className="nav-link"),
               dcc.Link('Analysis by Student', href='/datadashboard/student/', className="nav-link here"),
@@ -311,11 +311,13 @@ def RegisterCallbacks(dashapp):
 
       return componentsLeft, componentsRight, componentsTop
   
-  ## ------------- vvv  Callback for the Interval Timer  vvv ----------------
-  #@dashapp.callback(Output('quizselect-dropdown-student', 'options'),
-  #                 Input( 'interval-compomnent', 'n_interval') )
-  #def updateDropDown(n_inteval):
-  #    global gQuizOptions
-  #    gQuizOptions = da.GetQuizOptionList()   # RPW:  Added to repop quiz items on side menu seln, 8/6/25
-  #    print("DBG:::  updating the options of the drop down (S) ...", gQuizOptions)
-  #    return gQuizOptions
+
+  ## ------------- vvv  Callback for Top-Bar Click  vvv ----------------
+  @dashapp.callback(Output('quizselect-dropdown-student', 'options'),
+                    Input( 'nav-topbar-student', 'n_clicks') )
+  def updateDropDown(n_clicks):
+      global gQuizOptions
+      gQuizOptions = da.GetQuizOptionList(False)    # Re-populate the quiz drop-down list to filter only this author
+      print(f"DBG::-:: Repop'ing quiz list: ", gQuizOptions)
+      return gQuizOptions
+
