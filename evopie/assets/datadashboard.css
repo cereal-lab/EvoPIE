@@ -118,7 +118,7 @@ div#main, #nav-topbar, #nav-topbar-question, #nav-topbar_student {
 
 
 /* --- Navigation Box Containers --- */
-#nav-topbar, #titlebox {
+#nav-topbar, #nav-topbar-question, #nav-topbar_student, #titlebox {
   height: 7vh;
   padding: 1vw;
   
