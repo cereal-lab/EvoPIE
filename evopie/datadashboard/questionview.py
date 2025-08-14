@@ -333,12 +333,6 @@ def RegisterCallbacks(dashapp):
                     Input( 'nav-topbar-question', 'n_clicks') )
   def updateDropDown(n_clicks):
       global gQuizOptions
-      gQuizOptions = da.GetQuizOptionList(False)   # RPW:  Added to repop quiz items on side menu seln, 8/6/25
-      print("DBG::-::  updating options of drop down (Q) ...", gQuizOptions, "   :::   ", n_clicks)
-      #defaultQuizVal = -1
-      #if len(gQuizOptions) > 0:
-      #  defaultQuizVal = gQuizOptions[0]['value']
-      #quizIDstr = appUtils.GetSelectedQuizIDCookie(defaultQuizVal)
-
+      gQuizOptions = da.GetQuizOptionList(False)  # Re-populate the quiz drop-down list to filter only this author
       return gQuizOptions
 
