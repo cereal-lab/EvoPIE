@@ -60,7 +60,7 @@ body {
   overflow-x: hidden;
 }
 
-div#main, #nav-topbar {
+div#main, #nav-topbar, #nav-topbar-question, #nav-topbar_student {
     width: 77vw;
     display: grid;
     grid-template-columns: repeat(12, 1fr);

@@ -58,7 +58,7 @@ def PopulateViewLayout():
   gLayout = html.Div(children=[
       
       # The drop-down quiz selector at the top
-      html.Div(id="nav-topbar", className="rectangle", children=[
+      html.Div(id="nav-topbar-question", className="rectangle", children=[
           html.Li(className="nav", children=[
               dcc.Link('Analysis by Question', href='/datadashboard/question/', className="nav-link here"),
               dcc.Link('Analysis by Student', href='/datadashboard/student/', className="nav-link"),
@@ -330,7 +330,7 @@ def RegisterCallbacks(dashapp):
 
   ## ------------- vvv  Callback for Top-Bar Click  vvv ----------------
   @dashapp.callback(Output('quizselect-dropdown-question', 'options'),
-                    Input( 'nav-topbar', 'n_clicks') )
+                    Input( 'nav-topbar-question', 'n_clicks') )
   def updateDropDown(n_clicks):
       global gQuizOptions
       gQuizOptions = da.GetQuizOptionList(False)   # RPW:  Added to repop quiz items on side menu seln, 8/6/25
