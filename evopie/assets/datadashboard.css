@@ -60,7 +60,7 @@ body {
   overflow-x: hidden;
 }
 
-div#main, #nav-topbar, #nav-topbar-question, #nav-topbar_student {
+div#main, #nav-topbar, #nav-topbar-question, #nav-topbar-student {
     width: 77vw;
     display: grid;
     grid-template-columns: repeat(12, 1fr);
@@ -118,7 +118,7 @@ div#main, #nav-topbar, #nav-topbar-question, #nav-topbar_student {
 
 
 /* --- Navigation Box Containers --- */
-#nav-topbar, #nav-topbar-question, #nav-topbar_student, #titlebox {
+#nav-topbar, #nav-topbar-question, #nav-topbar-student, #titlebox {
   height: 7vh;
   padding: 1vw;
   
