@@ -60,7 +60,7 @@
         {% endblock %}
     </head>
     
-    <body>
+    <body class="min-vh-100 d-flex flex-column">
         <nav class="navbar navbar-expand-lg navbar-light bg-light">
                 <div class="container-fluid">
                     <a class="navbar-brand" href="/">EvoPIE</a>
@@ -172,7 +172,14 @@
             {% endwith %}
         </div>
     
+        <div class="flex-grow-1">
         {% block content %}
-        {% endblock %}        
+        {% endblock %}       
+        </div>  
+        <footer class="bg-light text-center text-lg-start w-100 flex-shrink-1 p-3">
+            <div class="text-center">
+                Supported by the National Science Foundation through the Improving Undergraduate STEM Education (IUSE) under NSF awards 2012967 and 2038406.
+            </div>
+        </footer>
     </body>
 </html>

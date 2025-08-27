@@ -16,7 +16,8 @@ auth = Blueprint('auth', __name__)
 
 @auth.route('/login')
 def get_login():
-    return render_template('login.html')
+    return redirect(url_for('pages.index'))
+    # return render_template('login.html')
 
 @auth.route('/signup')
 def get_signup():
