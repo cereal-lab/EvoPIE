@@ -52,5 +52,7 @@ services:
 
 Build the docker containers and run them:
 ```bash
-docker-compose up --build -d
+docker compose up --build -d
 ```
+(Note the space since docker-compose is now deprecated and replaced by the command compose in docker)
+
