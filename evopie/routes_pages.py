@@ -714,7 +714,10 @@ def get_quiz(quiz_course):
     if q.status != QUIZ_SOLUTIONS and attempt.status == QUIZ_ATTEMPT_STEP1:
         return reset_quiz_session_cookie(make_response(render_template('step1.html', quiz=quiz_model, questions=question_model, course=course)))
     if q.status != QUIZ_SOLUTIONS and attempt.status == QUIZ_ATTEMPT_STEP2:
-        if attempt.selected_justifications_timestamp is None: #attempt justifications were not initialized yet
+        selected_justifications = None 
+        if attempt.selected_justifications_timestamp is not None: #attempt justifications were initialized
+            selected_justifications = attempt.selected_justifications
+        if selected_justifications is None or len(selected_justifications) == 0:
             # retrieve the peers' justifications for each question  
             possible_justifications = get_possible_justifications(attempt)
 
@@ -770,7 +773,7 @@ def get_quiz(quiz_course):
         else: 
             #justification list to map
             # selected_justification_map = {}
-            selected_justifications = attempt.selected_justifications #here db query for selected justififcations
+            # selected_justifications = attempt.selected_justifications #here db query for selected justififcations
             selected_justifications_by_distractor = {}
             for j in selected_justifications:
                 selected_justifications_by_distractor.setdefault((str(j.quiz_question_id), j.distractor_id), []).append(j)
