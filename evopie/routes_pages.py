@@ -997,8 +997,12 @@ def get_quiz_statistics(qid, course_id):
     plain_justifications = models.Justification.query.where(models.Justification.student_id.in_(student_ids), 
                                 models.Justification.quiz_question_id.in_(quiz_question_ids)).all()
     justification_map = {j.id:j.dump_as_dict() for j in plain_justifications}
+    justification_ids = [j.id for j in plain_justifications]
 
-    plain_likes = models.Likes4Justifications.query.where(models.Likes4Justifications.student_id.in_(student_ids)).all()
+    plain_likes = models.Likes4Justifications.query.where(
+                    models.Likes4Justifications.student_id.in_(student_ids),
+                    models.Likes4Justifications.justification_id.in_(justification_ids)
+                    ).all()
     likes_given = { **{ a.student_id: [] for a in plain_attempts if a.status == QUIZ_ATTEMPT_SOLUTIONS  },
                     **{ student_id: [justification_map[l.justification_id] for l in student_likes if l.justification_id in justification_map] 
                         for student_id, student_likes in groupby(plain_likes, key = lambda like: like.student_id) }}
