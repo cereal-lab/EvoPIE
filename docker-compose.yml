@@ -1,12 +1,10 @@
-version: '2.0'
-
 services:
   updater:
     build: ./analysislayer
     volumes:
-      - /EvoPIE/data:/app/data
+      - ${EVOPIE_DATA_DIR:-./data}:/app/data
     environment:
-      - EVOPIE_DATABASE_URI=sqlite:////app/data/db.sqlite
+      - EVOPIE_DATABASE_URI=${EVOPIE_DATABASE_URI:-sqlite:////app/data/db.sqlite}
       - INIT_DB=1
     expose:
       - 5000
@@ -16,9 +14,9 @@ services:
   web:
     build: ./evopie
     volumes:
-      - /EvoPIE/data:/app/data
+      - ${EVOPIE_DATA_DIR:-./data}:/app/data
     environment:
-      - EVOPIE_DATABASE_URI=sqlite:////app/data/db.sqlite
+      - EVOPIE_DATABASE_URI=${EVOPIE_DATABASE_URI:-sqlite:////app/data/db.sqlite}
     expose:
       - 5000
     env_file:
@@ -34,4 +32,4 @@ services:
       - web
     restart: always
     volumes:
-      - /etc/letsencrypt:/etc/nginx/certs
+      - ${EVOPIE_CERTS_DIR:-/etc/letsencrypt}:/etc/nginx/certs
