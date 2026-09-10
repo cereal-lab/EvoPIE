@@ -23,31 +23,26 @@ Check out the main branch of our GitHub repository:
 git clone https://github.com/cereal-lab/EvoPIE.git
 ```
 
-Edit the docker-compose.yml file to update the volumes for "web". Put the absolute path to the folder containing the database file where we have "REPLACE_ME" below: 
-```bash
-version: '2.0'
+The Docker Compose configuration stores EvoPIE data in `./data` by
+default. To use a different host directory, set `EVOPIE_DATA_DIR` before
+starting the services:
 
-services:
-  web:
-    build: ./evopie
-    volumes:
-      - /REPLACE_ME:/app/data
-    environment:
-      - EVOPIE_DATABASE_URI=sqlite:////app/data/db.sqlite
-    expose:
-      - 5000
-    env_file:
-      - ./evopie/.env.dev
-    restart: always
-  nginx:
-    build: ./nginx
-    ports:
-      - "5000:5000"
-    depends_on:
-      - web
-    restart: always
-    volumes:
-      - /etc/letsencrypt:/etc/nginx/certs
+```bash
+export EVOPIE_DATA_DIR=/path/to/evopie-data
+```
+
+The database defaults to `/app/data/db.sqlite` inside the containers. To use a
+different database URI, set `EVOPIE_DATABASE_URI`:
+
+```bash
+export EVOPIE_DATABASE_URI=sqlite:////app/data/db.sqlite
+```
+
+Nginx reads TLS certificates from `/etc/letsencrypt` by default. To mount a
+different certificate directory, set `EVOPIE_CERTS_DIR`:
+
+```bash
+export EVOPIE_CERTS_DIR=/path/to/letsencrypt
 ```
 
 Build the docker containers and run them:
