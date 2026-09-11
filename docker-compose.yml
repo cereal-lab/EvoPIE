@@ -28,8 +28,12 @@ services:
     build: ./nginx
     ports:
       - "5000:5000"
+    environment:
+      - EVOPIE_NGINX_MODE=${EVOPIE_NGINX_MODE:?Set EVOPIE_NGINX_MODE to http or https}
+      - EVOPIE_SERVER_NAME=${EVOPIE_SERVER_NAME:-localhost}
+      - EVOPIE_CERT_DOMAIN=${EVOPIE_CERT_DOMAIN:-evopie.cse.usf.edu}
     depends_on:
       - web
     restart: always
     volumes:
-      - ${EVOPIE_CERTS_DIR:-/etc/letsencrypt}:/etc/nginx/certs
+      - ${EVOPIE_CERTS_DIR:-./certs}:/etc/nginx/certs:ro
