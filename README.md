@@ -54,7 +54,7 @@ export EVOPIE_CERTS_DIR=/path/to/letsencrypt
 ```
 
 See [Docker TLS certificate setup](docs/docker-tls.md) for local HTTP,
-self-signed certificates, and production certificate notes.
+the local certificate helper, and production certificate notes.
 
 Build the docker containers and run them:
 ```bash

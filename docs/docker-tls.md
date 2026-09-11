@@ -40,20 +40,34 @@ need to generate certificates before confirming that the application starts.
 
 ## Local self-signed HTTPS certificate
 
-To test nginx HTTPS locally, create a certificate directory in the repository
-and point Compose at it with `EVOPIE_CERTS_DIR`:
+To test nginx HTTPS locally, create a self-signed certificate:
 
 ```bash
-mkdir -p ./certs/live/evopie.cse.usf.edu
+./scripts/create-local-certs.sh
+```
 
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-  -keyout ./certs/live/evopie.cse.usf.edu/privkey.pem \
-  -out ./certs/live/evopie.cse.usf.edu/fullchain.pem \
-  -subj "/CN=evopie.cse.usf.edu"
+The helper creates this local certificate layout:
 
+```text
+./certs/live/evopie.cse.usf.edu/fullchain.pem
+./certs/live/evopie.cse.usf.edu/privkey.pem
+```
+
+Then start Compose in HTTPS mode:
+
+```bash
 EVOPIE_NGINX_MODE=https \
+EVOPIE_SERVER_NAME=evopie.cse.usf.edu \
+EVOPIE_CERT_DOMAIN=evopie.cse.usf.edu \
 EVOPIE_CERTS_DIR=./certs \
 docker compose up --build -d
+```
+
+To generate a certificate for a different local name, set
+`EVOPIE_CERT_DOMAIN` before running the helper:
+
+```bash
+EVOPIE_CERT_DOMAIN=localhost ./scripts/create-local-certs.sh
 ```
 
 Then open:
@@ -113,10 +127,10 @@ EVOPIE_SSL_CERTIFICATE=/etc/nginx/certs/live/example/fullchain.pem
 EVOPIE_SSL_CERTIFICATE_KEY=/etc/nginx/certs/live/example/privkey.pem
 ```
 
-## Known limitations
+## Security notes
 
 Local HTTP mode does not provide encryption. Production deployments should use
 HTTPS and provide certificates from a trusted authority.
 
-Future improvements could add separate Compose profiles or richer nginx
-configuration templates for more deployment shapes.
+Self-signed certificates are for local testing only. Browsers will warn because
+they are not signed by a trusted certificate authority.
