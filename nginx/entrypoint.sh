@@ -1,52 +1,25 @@
 #!/bin/sh
 set -eu
 
-if [ -z "${EVOPIE_NGINX_MODE:-}" ]; then
-  echo "EVOPIE_NGINX_MODE is required." >&2
-  echo "Use 'http' for local HTTP or 'https' for TLS." >&2
+if [ -z "${EVOPIE_SERVER_NAME:-}" ]; then
+  echo "EVOPIE_SERVER_NAME is required for production HTTPS." >&2
   exit 1
 fi
 
-NGINX_MODE=$(printf '%s' "$EVOPIE_NGINX_MODE" | tr '[:upper:]' '[:lower:]')
 : "${EVOPIE_UPSTREAM:=web:5000}"
+: "${EVOPIE_CERT_DOMAIN:=$EVOPIE_SERVER_NAME}"
+: "${EVOPIE_SSL_CERTIFICATE:=/etc/nginx/certs/live/$EVOPIE_CERT_DOMAIN/fullchain.pem}"
+: "${EVOPIE_SSL_CERTIFICATE_KEY:=/etc/nginx/certs/live/$EVOPIE_CERT_DOMAIN/privkey.pem}"
 
-case "$NGINX_MODE" in
-  https)
-    if [ -z "${EVOPIE_SERVER_NAME:-}" ]; then
-      echo "EVOPIE_SERVER_NAME is required when HTTPS is enabled." >&2
-      exit 1
-    fi
+if [ ! -f "$EVOPIE_SSL_CERTIFICATE" ]; then
+  echo "Missing TLS certificate: $EVOPIE_SSL_CERTIFICATE" >&2
+  exit 1
+fi
 
-    : "${EVOPIE_CERT_DOMAIN:=$EVOPIE_SERVER_NAME}"
-    : "${EVOPIE_SSL_CERTIFICATE:=/etc/nginx/certs/live/$EVOPIE_CERT_DOMAIN/fullchain.pem}"
-    : "${EVOPIE_SSL_CERTIFICATE_KEY:=/etc/nginx/certs/live/$EVOPIE_CERT_DOMAIN/privkey.pem}"
-
-    if [ ! -f "$EVOPIE_SSL_CERTIFICATE" ]; then
-      echo "Missing TLS certificate: $EVOPIE_SSL_CERTIFICATE" >&2
-      exit 1
-    fi
-
-    if [ ! -f "$EVOPIE_SSL_CERTIFICATE_KEY" ]; then
-      echo "Missing TLS certificate key: $EVOPIE_SSL_CERTIFICATE_KEY" >&2
-      exit 1
-    fi
-
-    LISTEN_DIRECTIVE="listen 5000 ssl;"
-    TLS_DIRECTIVES="    ssl_certificate $EVOPIE_SSL_CERTIFICATE;
-    ssl_certificate_key $EVOPIE_SSL_CERTIFICATE_KEY;
-    error_page 497 301 =307 https://\$host:\$server_port\$request_uri;"
-    ;;
-  http)
-    : "${EVOPIE_SERVER_NAME:=localhost}"
-    LISTEN_DIRECTIVE="listen 5000;"
-    TLS_DIRECTIVES=""
-    ;;
-  *)
-    echo "Invalid EVOPIE_NGINX_MODE value: $EVOPIE_NGINX_MODE" >&2
-    echo "Use 'http' for local HTTP or 'https' for TLS." >&2
-    exit 1
-    ;;
-esac
+if [ ! -f "$EVOPIE_SSL_CERTIFICATE_KEY" ]; then
+  echo "Missing TLS certificate key: $EVOPIE_SSL_CERTIFICATE_KEY" >&2
+  exit 1
+fi
 
 cat > /etc/nginx/conf.d/evopie.conf <<EOF
 upstream evopie {
@@ -54,9 +27,12 @@ upstream evopie {
 }
 
 server {
-    $LISTEN_DIRECTIVE
+    listen 5000 ssl;
     server_name $EVOPIE_SERVER_NAME;
-$TLS_DIRECTIVES
+
+    ssl_certificate $EVOPIE_SSL_CERTIFICATE;
+    ssl_certificate_key $EVOPIE_SSL_CERTIFICATE_KEY;
+    error_page 497 301 =307 https://\$host:\$server_port\$request_uri;
 
     location / {
         proxy_pass http://evopie;

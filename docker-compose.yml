@@ -91,7 +91,6 @@ services:
     profiles:
       - production
     environment:
-      - EVOPIE_NGINX_MODE=https
       - EVOPIE_SERVER_NAME=${EVOPIE_SERVER_NAME:-}
       - EVOPIE_CERT_DOMAIN=${EVOPIE_CERT_DOMAIN:-}
       - EVOPIE_UPSTREAM=web-production:5000
