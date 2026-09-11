@@ -24,5 +24,5 @@ Start HTTPS mode with:
   EVOPIE_SERVER_NAME=$CERT_DOMAIN \\
   EVOPIE_CERT_DOMAIN=$CERT_DOMAIN \\
   EVOPIE_CERTS_DIR=$CERTS_DIR \\
-  docker compose up --build -d
+  docker compose --profile production up --build -d
 EOF
