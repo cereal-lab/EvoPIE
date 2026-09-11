@@ -20,7 +20,6 @@ Created local self-signed certificate files:
 
 Start HTTPS mode with:
 
-  EVOPIE_NGINX_MODE=https \\
   EVOPIE_SERVER_NAME=$CERT_DOMAIN \\
   EVOPIE_CERT_DOMAIN=$CERT_DOMAIN \\
   EVOPIE_CERTS_DIR=$CERTS_DIR \\
