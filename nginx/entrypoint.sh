@@ -7,13 +7,19 @@ if [ -z "${EVOPIE_NGINX_MODE:-}" ]; then
   exit 1
 fi
 
-: "${EVOPIE_SERVER_NAME:=localhost}"
-: "${EVOPIE_CERT_DOMAIN:=$EVOPIE_SERVER_NAME}"
-: "${EVOPIE_SSL_CERTIFICATE:=/etc/nginx/certs/live/$EVOPIE_CERT_DOMAIN/fullchain.pem}"
-: "${EVOPIE_SSL_CERTIFICATE_KEY:=/etc/nginx/certs/live/$EVOPIE_CERT_DOMAIN/privkey.pem}"
+NGINX_MODE=$(printf '%s' "$EVOPIE_NGINX_MODE" | tr '[:upper:]' '[:lower:]')
 
-case "$(printf '%s' "$EVOPIE_NGINX_MODE" | tr '[:upper:]' '[:lower:]')" in
+case "$NGINX_MODE" in
   https)
+    if [ -z "${EVOPIE_SERVER_NAME:-}" ]; then
+      echo "EVOPIE_SERVER_NAME is required when HTTPS is enabled." >&2
+      exit 1
+    fi
+
+    : "${EVOPIE_CERT_DOMAIN:=$EVOPIE_SERVER_NAME}"
+    : "${EVOPIE_SSL_CERTIFICATE:=/etc/nginx/certs/live/$EVOPIE_CERT_DOMAIN/fullchain.pem}"
+    : "${EVOPIE_SSL_CERTIFICATE_KEY:=/etc/nginx/certs/live/$EVOPIE_CERT_DOMAIN/privkey.pem}"
+
     if [ ! -f "$EVOPIE_SSL_CERTIFICATE" ]; then
       echo "Missing TLS certificate: $EVOPIE_SSL_CERTIFICATE" >&2
       exit 1
@@ -30,6 +36,7 @@ case "$(printf '%s' "$EVOPIE_NGINX_MODE" | tr '[:upper:]' '[:lower:]')" in
     error_page 497 301 =307 https://\$host:\$server_port\$request_uri;"
     ;;
   http)
+    : "${EVOPIE_SERVER_NAME:=localhost}"
     LISTEN_DIRECTIVE="listen 5000;"
     TLS_DIRECTIVES=""
     ;;
