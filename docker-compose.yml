@@ -39,21 +39,12 @@ services:
     <<: *web-common
     profiles:
       - local
+    ports:
+      - "5000:5000"
     volumes:
       - ${EVOPIE_DATA_DIR:-./data}:/app/data
     depends_on:
       - updater-local
-
-  nginx-local:
-    <<: *nginx-common
-    profiles:
-      - local
-    environment:
-      - EVOPIE_NGINX_MODE=http
-      - EVOPIE_SERVER_NAME=localhost
-      - EVOPIE_UPSTREAM=web-local:5000
-    depends_on:
-      - web-local
 
   production-config:
     image: alpine:3.20
