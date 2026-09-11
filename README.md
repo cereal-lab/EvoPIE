@@ -45,6 +45,9 @@ different certificate directory, set `EVOPIE_CERTS_DIR`:
 export EVOPIE_CERTS_DIR=/path/to/letsencrypt
 ```
 
+See [Docker TLS certificate setup](docs/docker-tls.md) for local self-signed
+certificates and production certificate notes.
+
 Build the docker containers and run them:
 ```bash
 docker compose up --build -d
