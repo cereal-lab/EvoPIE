@@ -23,36 +23,31 @@ Check out the main branch of our GitHub repository:
 git clone https://github.com/cereal-lab/EvoPIE.git
 ```
 
-Edit the docker-compose.yml file to update the volumes for "web". Put the absolute path to the folder containing the database file where we have "REPLACE_ME" below: 
-```bash
-version: '2.0'
+Docker Compose uses profiles so deployment intent is explicit. For local
+startup without nginx or TLS, run:
 
-services:
-  web:
-    build: ./evopie
-    volumes:
-      - /REPLACE_ME:/app/data
-    environment:
-      - EVOPIE_DATABASE_URI=sqlite:////app/data/db.sqlite
-    expose:
-      - 5000
-    env_file:
-      - ./evopie/.env.dev
-    restart: always
-  nginx:
-    build: ./nginx
-    ports:
-      - "5000:5000"
-    depends_on:
-      - web
-    restart: always
-    volumes:
-      - /etc/letsencrypt:/etc/nginx/certs
+```bash
+docker compose --profile local up --build -d
 ```
 
-Build the docker containers and run them:
+The local profile stores EvoPIE data in `./data` by default. To use a different
+host directory, set `EVOPIE_DATA_DIR` before starting the services.
+
+For production HTTPS, provide the required deployment settings:
+
 ```bash
-docker compose up --build -d
+EVOPIE_DATA_DIR=/srv/evopie/data \
+EVOPIE_SERVER_NAME=example.edu \
+EVOPIE_CERTS_DIR=/etc/letsencrypt \
+docker compose --profile production up --build -d
 ```
+
+The database defaults to `/app/data/db.sqlite` inside the containers. To use a
+different database URI, set `EVOPIE_DATABASE_URI`.
+
+See [Docker TLS certificate setup](docs/docker-tls.md) for local HTTP,
+the local certificate helper, and production certificate notes.
+
+Build the docker containers and run them with one of the profiles above.
 (Note the space since docker-compose is now deprecated and replaced by the command compose in docker)
 

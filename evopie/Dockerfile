@@ -28,6 +28,4 @@ RUN pipenv sync
 ENTRYPOINT [ "./evopie/entrypoint.sh" ]
 
 # docker build -t evopie .
-# docker run -d -p 5000:5000 -v /EvoPIE/DB_quizlib.sqlite:/app/EvoPIE/evopie/DB_quizlib.sqlite evopie
-# for windows local testing
-# docker run -d -p 5000:5000 -v /mnt/c/Users/aless/OneDrive/Desktop/dev/EvoPIE/evopie/DB_quizlib.sqlite:/app/EvoPIE/evopie/DB_quizlib.sqlite evopie
+# docker run -d -p 5000:5000 -v ./data:/app/data evopie
