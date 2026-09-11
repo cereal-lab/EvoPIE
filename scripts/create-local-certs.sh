@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-CERT_DOMAIN="${EVOPIE_CERT_DOMAIN:-evopie.cse.usf.edu}"
+CERT_DOMAIN="${EVOPIE_CERT_DOMAIN:-localhost}"
 CERTS_DIR="${EVOPIE_CERTS_DIR:-./certs}"
 CERT_DIR="$CERTS_DIR/live/$CERT_DOMAIN"
 
