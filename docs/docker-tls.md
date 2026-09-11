@@ -1,12 +1,12 @@
 # Docker TLS certificate setup
 
-EvoPIE's Docker deployment runs the Flask application behind nginx. The web
-container speaks plain HTTP inside the Docker network, and nginx accepts the
-browser connection on port 5000.
+EvoPIE's production Docker deployment runs the Flask application behind nginx.
+The web container speaks plain HTTP inside the Docker network, and nginx
+accepts the browser connection on port 5000.
 
 Docker Compose uses profiles so deployment intent is explicit:
 
-- `local`: local HTTP startup without certificates.
+- `local`: local HTTP startup without nginx or certificates.
 - `production`: HTTPS startup with required data, domain, and cert settings.
 
 ## Why certificates are required for HTTPS
@@ -36,8 +36,9 @@ Then open:
 http://127.0.0.1:5000
 ```
 
-This mode is intended for local development and smoke testing. It avoids the
-need to generate certificates before confirming that the application starts.
+This mode is intended for local development and smoke testing. It publishes the
+web container directly and avoids nginx/certificate setup before confirming
+that the application starts.
 
 The local profile stores EvoPIE data in `./data` by default. Set
 `EVOPIE_DATA_DIR` to use a different host directory.
@@ -57,7 +58,8 @@ The helper defaults to `localhost` and creates this certificate layout:
 ./certs/live/localhost/privkey.pem
 ```
 
-Then start the production profile with local HTTPS settings:
+Then start the production profile with local HTTPS settings. HTTPS uses nginx,
+so it runs through the production profile even when the certificate is local:
 
 ```bash
 EVOPIE_DATA_DIR=./data \

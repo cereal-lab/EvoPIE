@@ -23,8 +23,8 @@ Check out the main branch of our GitHub repository:
 git clone https://github.com/cereal-lab/EvoPIE.git
 ```
 
-Docker Compose uses profiles so deployment intent is explicit. For local HTTP
-startup, run:
+Docker Compose uses profiles so deployment intent is explicit. For local
+startup without nginx or TLS, run:
 
 ```bash
 docker compose --profile local up --build -d
