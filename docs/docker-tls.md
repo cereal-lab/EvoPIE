@@ -6,8 +6,8 @@ accepts the browser connection on port 5000.
 
 Docker Compose uses profiles so deployment intent is explicit:
 
-- `local`: local HTTP startup without nginx or certificates.
-- `production`: HTTPS startup with required data, domain, and cert settings.
+- `local`: direct HTTP startup without nginx or certificates.
+- `production`: nginx HTTPS startup with required data, domain, and certs.
 
 ## Why certificates are required for HTTPS
 
@@ -124,8 +124,7 @@ missing:
 - `EVOPIE_SERVER_NAME`
 - `EVOPIE_CERTS_DIR`
 
-The nginx entrypoint also fails when HTTPS is enabled but the certificate or
-key file is missing.
+The nginx entrypoint also fails if the certificate or key file is missing.
 
 ## Configuration reference
 
