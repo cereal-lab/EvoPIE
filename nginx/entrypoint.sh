@@ -8,6 +8,7 @@ if [ -z "${EVOPIE_NGINX_MODE:-}" ]; then
 fi
 
 NGINX_MODE=$(printf '%s' "$EVOPIE_NGINX_MODE" | tr '[:upper:]' '[:lower:]')
+: "${EVOPIE_UPSTREAM:=web:5000}"
 
 case "$NGINX_MODE" in
   https)
@@ -49,7 +50,7 @@ esac
 
 cat > /etc/nginx/conf.d/evopie.conf <<EOF
 upstream evopie {
-    server web:5000;
+    server $EVOPIE_UPSTREAM;
 }
 
 server {

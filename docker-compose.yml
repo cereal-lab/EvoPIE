@@ -1,39 +1,113 @@
+x-web-environment: &web-environment
+  - EVOPIE_DATABASE_URI=${EVOPIE_DATABASE_URI:-sqlite:////app/data/db.sqlite}
+
+x-updater-common: &updater-common
+  build: ./analysislayer
+  environment:
+    - EVOPIE_DATABASE_URI=${EVOPIE_DATABASE_URI:-sqlite:////app/data/db.sqlite}
+    - INIT_DB=1
+  expose:
+    - 5000
+  env_file:
+    - ./analysislayer/.env.dev
+  restart: always
+
+x-web-common: &web-common
+  build: ./evopie
+  environment: *web-environment
+  expose:
+    - 5000
+  env_file:
+    - ./evopie/.env.dev
+  restart: always
+
+x-nginx-common: &nginx-common
+  build: ./nginx
+  ports:
+    - "5000:5000"
+  restart: always
+
 services:
-  updater:
-    build: ./analysislayer
+  updater-local:
+    <<: *updater-common
+    profiles:
+      - local
     volumes:
       - ${EVOPIE_DATA_DIR:-./data}:/app/data
-    environment:
-      - EVOPIE_DATABASE_URI=${EVOPIE_DATABASE_URI:-sqlite:////app/data/db.sqlite}
-      - INIT_DB=1
-    expose:
-      - 5000
-    env_file:
-      - ./analysislayer/.env.dev
-    restart: always
-  web:
-    build: ./evopie
+
+  web-local:
+    <<: *web-common
+    profiles:
+      - local
     volumes:
       - ${EVOPIE_DATA_DIR:-./data}:/app/data
-    environment:
-      - EVOPIE_DATABASE_URI=${EVOPIE_DATABASE_URI:-sqlite:////app/data/db.sqlite}
-    expose:
-      - 5000
-    env_file:
-      - ./evopie/.env.dev
     depends_on:
-      - updater      
-    restart: always
-  nginx:
-    build: ./nginx
-    ports:
-      - "5000:5000"
+      - updater-local
+
+  nginx-local:
+    <<: *nginx-common
+    profiles:
+      - local
     environment:
-      - EVOPIE_NGINX_MODE=${EVOPIE_NGINX_MODE:?Set EVOPIE_NGINX_MODE to http or https}
+      - EVOPIE_NGINX_MODE=http
+      - EVOPIE_SERVER_NAME=localhost
+      - EVOPIE_UPSTREAM=web-local:5000
+    depends_on:
+      - web-local
+
+  production-config:
+    image: alpine:3.20
+    profiles:
+      - production
+    command: >
+      sh -c '
+        test -n "$EVOPIE_DATA_DIR" ||
+          { echo "Set EVOPIE_DATA_DIR for production" >&2; exit 1; }
+        test -n "$EVOPIE_SERVER_NAME" ||
+          { echo "Set EVOPIE_SERVER_NAME for production" >&2; exit 1; }
+        test -n "$EVOPIE_CERTS_DIR" ||
+          { echo "Set EVOPIE_CERTS_DIR for production" >&2; exit 1; }
+      '
+    environment:
+      - EVOPIE_DATA_DIR=${EVOPIE_DATA_DIR:-}
+      - EVOPIE_SERVER_NAME=${EVOPIE_SERVER_NAME:-}
+      - EVOPIE_CERTS_DIR=${EVOPIE_CERTS_DIR:-}
+
+  updater-production:
+    <<: *updater-common
+    profiles:
+      - production
+    volumes:
+      - ${EVOPIE_DATA_DIR:-./data}:/app/data
+    depends_on:
+      production-config:
+        condition: service_completed_successfully
+
+  web-production:
+    <<: *web-common
+    profiles:
+      - production
+    volumes:
+      - ${EVOPIE_DATA_DIR:-./data}:/app/data
+    depends_on:
+      production-config:
+        condition: service_completed_successfully
+      updater-production:
+        condition: service_started
+
+  nginx-production:
+    <<: *nginx-common
+    profiles:
+      - production
+    environment:
+      - EVOPIE_NGINX_MODE=https
       - EVOPIE_SERVER_NAME=${EVOPIE_SERVER_NAME:-}
       - EVOPIE_CERT_DOMAIN=${EVOPIE_CERT_DOMAIN:-}
-    depends_on:
-      - web
-    restart: always
+      - EVOPIE_UPSTREAM=web-production:5000
     volumes:
       - ${EVOPIE_CERTS_DIR:-./certs}:/etc/nginx/certs:ro
+    depends_on:
+      production-config:
+        condition: service_completed_successfully
+      web-production:
+        condition: service_started
