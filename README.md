@@ -49,7 +49,7 @@ certificates with `EVOPIE_CERTS_DIR`:
 
 ```bash
 export EVOPIE_NGINX_MODE=https
-export EVOPIE_SERVER_NAME=evopie.cse.usf.edu
+export EVOPIE_SERVER_NAME=example.edu
 export EVOPIE_CERTS_DIR=/path/to/letsencrypt
 ```
 

@@ -46,19 +46,19 @@ To test nginx HTTPS locally, create a self-signed certificate:
 ./scripts/create-local-certs.sh
 ```
 
-The helper creates this local certificate layout:
+The helper defaults to `localhost` and creates this certificate layout:
 
 ```text
-./certs/live/evopie.cse.usf.edu/fullchain.pem
-./certs/live/evopie.cse.usf.edu/privkey.pem
+./certs/live/localhost/fullchain.pem
+./certs/live/localhost/privkey.pem
 ```
 
 Then start Compose in HTTPS mode:
 
 ```bash
 EVOPIE_NGINX_MODE=https \
-EVOPIE_SERVER_NAME=evopie.cse.usf.edu \
-EVOPIE_CERT_DOMAIN=evopie.cse.usf.edu \
+EVOPIE_SERVER_NAME=localhost \
+EVOPIE_CERT_DOMAIN=localhost \
 EVOPIE_CERTS_DIR=./certs \
 docker compose up --build -d
 ```
@@ -67,7 +67,7 @@ To generate a certificate for a different local name, set
 `EVOPIE_CERT_DOMAIN` before running the helper:
 
 ```bash
-EVOPIE_CERT_DOMAIN=localhost ./scripts/create-local-certs.sh
+EVOPIE_CERT_DOMAIN=local.evopie.test ./scripts/create-local-certs.sh
 ```
 
 Then open:
@@ -76,8 +76,8 @@ Then open:
 https://127.0.0.1:5000
 ```
 
-The browser warning is expected. The certificate is self-signed and its common
-name is `evopie.cse.usf.edu`, not `127.0.0.1`.
+The browser warning is expected. The certificate is self-signed and may not
+match `127.0.0.1` unless it was generated for that name.
 
 Do not commit generated certificate files or private keys.
 
@@ -87,7 +87,7 @@ Production deployments should use certificates from a trusted authority. One
 common option is Let's Encrypt with certbot:
 
 ```bash
-sudo certbot certonly --standalone -d evopie.cse.usf.edu
+sudo certbot certonly --standalone -d example.edu
 ```
 
 After certbot finishes, enable TLS, set the server name, and mount the
@@ -95,8 +95,8 @@ certificate directory:
 
 ```bash
 EVOPIE_NGINX_MODE=https \
-EVOPIE_SERVER_NAME=evopie.cse.usf.edu \
-EVOPIE_CERT_DOMAIN=evopie.cse.usf.edu \
+EVOPIE_SERVER_NAME=example.edu \
+EVOPIE_CERT_DOMAIN=example.edu \
 EVOPIE_CERTS_DIR=/etc/letsencrypt \
 docker compose up --build -d
 ```
@@ -104,8 +104,8 @@ docker compose up --build -d
 This exposes the following host files to nginx:
 
 ```text
-/etc/letsencrypt/live/evopie.cse.usf.edu/fullchain.pem
-/etc/letsencrypt/live/evopie.cse.usf.edu/privkey.pem
+/etc/letsencrypt/live/example.edu/fullchain.pem
+/etc/letsencrypt/live/example.edu/privkey.pem
 ```
 
 If certificates live somewhere else, set `EVOPIE_CERTS_DIR` to that directory.
