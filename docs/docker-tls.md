@@ -4,16 +4,11 @@ EvoPIE's Docker deployment runs the Flask application behind nginx. The web
 container speaks plain HTTP inside the Docker network, and nginx accepts the
 browser connection on port 5000.
 
-The current nginx configuration enables HTTPS:
+Nginx requires an explicit mode. Set `EVOPIE_NGINX_MODE=http` for local HTTP or
+`EVOPIE_NGINX_MODE=https` for TLS. HTTPS mode also requires
+`EVOPIE_SERVER_NAME`.
 
-```nginx
-listen 5000 ssl;
-```
-
-Because SSL/TLS is enabled, nginx must load a certificate and a matching
-private key before it can start.
-
-## Why certificates are required
+## Why certificates are required for HTTPS
 
 A TLS certificate lets a browser verify a server name and negotiate encrypted
 traffic. A typical nginx setup needs two files:
@@ -26,30 +21,27 @@ such as Let's Encrypt. For local testing, they can be self-signed. A
 self-signed certificate is enough to start nginx and encrypt traffic, but
 browsers will show a warning because they do not trust it automatically.
 
-## Current expected layout
+## Local HTTP mode
 
-The nginx config currently uses the `evopie.cse.usf.edu` certificate name:
+For local HTTP, set the nginx mode before starting Compose:
 
-```nginx
-ssl_certificate /etc/nginx/certs/live/evopie.cse.usf.edu/fullchain.pem;
-ssl_certificate_key /etc/nginx/certs/live/evopie.cse.usf.edu/privkey.pem;
+```bash
+EVOPIE_NGINX_MODE=http docker compose up --build -d
 ```
 
-Docker Compose mounts the host certificate directory into nginx at
-`/etc/nginx/certs`. With the default Compose settings, nginx expects these host
-files:
+Then open:
 
 ```text
-/etc/letsencrypt/live/evopie.cse.usf.edu/fullchain.pem
-/etc/letsencrypt/live/evopie.cse.usf.edu/privkey.pem
+http://127.0.0.1:5000
 ```
 
-If those files do not exist, the nginx container exits during startup.
+This mode is intended for local development and smoke testing. It avoids the
+need to generate certificates before confirming that the application starts.
 
-## Local self-signed certificate
+## Local self-signed HTTPS certificate
 
-For local testing, create a certificate directory in the repository and point
-Compose at it with `EVOPIE_CERTS_DIR`:
+To test nginx HTTPS locally, create a certificate directory in the repository
+and point Compose at it with `EVOPIE_CERTS_DIR`:
 
 ```bash
 mkdir -p ./certs/live/evopie.cse.usf.edu
@@ -59,7 +51,9 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
   -out ./certs/live/evopie.cse.usf.edu/fullchain.pem \
   -subj "/CN=evopie.cse.usf.edu"
 
-EVOPIE_CERTS_DIR=./certs docker compose up --build -d
+EVOPIE_NGINX_MODE=https \
+EVOPIE_CERTS_DIR=./certs \
+docker compose up --build -d
 ```
 
 Then open:
@@ -82,28 +76,47 @@ common option is Let's Encrypt with certbot:
 sudo certbot certonly --standalone -d evopie.cse.usf.edu
 ```
 
-After certbot finishes, the default Compose mount should expose the files to
-nginx:
+After certbot finishes, enable TLS, set the server name, and mount the
+certificate directory:
+
+```bash
+EVOPIE_NGINX_MODE=https \
+EVOPIE_SERVER_NAME=evopie.cse.usf.edu \
+EVOPIE_CERT_DOMAIN=evopie.cse.usf.edu \
+EVOPIE_CERTS_DIR=/etc/letsencrypt \
+docker compose up --build -d
+```
+
+This exposes the following host files to nginx:
 
 ```text
 /etc/letsencrypt/live/evopie.cse.usf.edu/fullchain.pem
 /etc/letsencrypt/live/evopie.cse.usf.edu/privkey.pem
 ```
 
-If certificates live somewhere else, set `EVOPIE_CERTS_DIR` before starting
-Compose:
+If certificates live somewhere else, set `EVOPIE_CERTS_DIR` to that directory.
+
+## Configuration reference
+
+- `EVOPIE_NGINX_MODE`: required; use `http` or `https`.
+- `EVOPIE_SERVER_NAME`: nginx `server_name`; required for HTTPS and defaults
+  to `localhost` for HTTP.
+- `EVOPIE_CERT_DOMAIN`: certificate directory under `live/`; defaults to
+  `EVOPIE_SERVER_NAME` when HTTPS is enabled.
+- `EVOPIE_CERTS_DIR`: host directory mounted to `/etc/nginx/certs`; defaults
+  to `./certs`.
+
+Advanced deployments can set full certificate paths inside the nginx container:
 
 ```bash
-export EVOPIE_CERTS_DIR=/path/to/letsencrypt
+EVOPIE_SSL_CERTIFICATE=/etc/nginx/certs/live/example/fullchain.pem
+EVOPIE_SSL_CERTIFICATE_KEY=/etc/nginx/certs/live/example/privkey.pem
 ```
 
 ## Known limitations
 
-This document describes the current nginx behavior. The nginx config still
-assumes the `evopie.cse.usf.edu` server name and certificate layout. Deploying
-under another domain currently requires editing `nginx/nginx.conf` or adding a
-new nginx configuration.
+Local HTTP mode does not provide encryption. Production deployments should use
+HTTPS and provide certificates from a trusted authority.
 
-Future improvements could add a local HTTP mode, Compose profiles, or nginx
-configuration templating so non-production deployments do not need production
-certificate assumptions.
+Future improvements could add separate Compose profiles or richer nginx
+configuration templates for more deployment shapes.

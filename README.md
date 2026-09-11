@@ -38,15 +38,23 @@ different database URI, set `EVOPIE_DATABASE_URI`:
 export EVOPIE_DATABASE_URI=sqlite:////app/data/db.sqlite
 ```
 
-Nginx reads TLS certificates from `/etc/letsencrypt` by default. To mount a
-different certificate directory, set `EVOPIE_CERTS_DIR`:
+Nginx requires an explicit mode. For local HTTP, set:
 
 ```bash
+export EVOPIE_NGINX_MODE=http
+```
+
+For HTTPS, set `EVOPIE_NGINX_MODE=https`, set the server name, and provide
+certificates with `EVOPIE_CERTS_DIR`:
+
+```bash
+export EVOPIE_NGINX_MODE=https
+export EVOPIE_SERVER_NAME=evopie.cse.usf.edu
 export EVOPIE_CERTS_DIR=/path/to/letsencrypt
 ```
 
-See [Docker TLS certificate setup](docs/docker-tls.md) for local self-signed
-certificates and production certificate notes.
+See [Docker TLS certificate setup](docs/docker-tls.md) for local HTTP,
+self-signed certificates, and production certificate notes.
 
 Build the docker containers and run them:
 ```bash
