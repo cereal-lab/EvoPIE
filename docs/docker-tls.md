@@ -4,9 +4,10 @@ EvoPIE's Docker deployment runs the Flask application behind nginx. The web
 container speaks plain HTTP inside the Docker network, and nginx accepts the
 browser connection on port 5000.
 
-Nginx requires an explicit mode. Set `EVOPIE_NGINX_MODE=http` for local HTTP or
-`EVOPIE_NGINX_MODE=https` for TLS. HTTPS mode also requires
-`EVOPIE_SERVER_NAME`.
+Docker Compose uses profiles so deployment intent is explicit:
+
+- `local`: local HTTP startup without certificates.
+- `production`: HTTPS startup with required data, domain, and cert settings.
 
 ## Why certificates are required for HTTPS
 
@@ -23,10 +24,10 @@ browsers will show a warning because they do not trust it automatically.
 
 ## Local HTTP mode
 
-For local HTTP, set the nginx mode before starting Compose:
+For local HTTP, select the local Compose profile:
 
 ```bash
-EVOPIE_NGINX_MODE=http docker compose up --build -d
+docker compose --profile local up --build -d
 ```
 
 Then open:
@@ -37,6 +38,9 @@ http://127.0.0.1:5000
 
 This mode is intended for local development and smoke testing. It avoids the
 need to generate certificates before confirming that the application starts.
+
+The local profile stores EvoPIE data in `./data` by default. Set
+`EVOPIE_DATA_DIR` to use a different host directory.
 
 ## Local self-signed HTTPS certificate
 
@@ -53,14 +57,14 @@ The helper defaults to `localhost` and creates this certificate layout:
 ./certs/live/localhost/privkey.pem
 ```
 
-Then start Compose in HTTPS mode:
+Then start the production profile with local HTTPS settings:
 
 ```bash
-EVOPIE_NGINX_MODE=https \
+EVOPIE_DATA_DIR=./data \
 EVOPIE_SERVER_NAME=localhost \
 EVOPIE_CERT_DOMAIN=localhost \
 EVOPIE_CERTS_DIR=./certs \
-docker compose up --build -d
+docker compose --profile production up --build -d
 ```
 
 To generate a certificate for a different local name, set
@@ -90,15 +94,14 @@ common option is Let's Encrypt with certbot:
 sudo certbot certonly --standalone -d example.edu
 ```
 
-After certbot finishes, enable TLS, set the server name, and mount the
-certificate directory:
+After certbot finishes, provide the required production settings:
 
 ```bash
-EVOPIE_NGINX_MODE=https \
+EVOPIE_DATA_DIR=/srv/evopie/data \
 EVOPIE_SERVER_NAME=example.edu \
 EVOPIE_CERT_DOMAIN=example.edu \
 EVOPIE_CERTS_DIR=/etc/letsencrypt \
-docker compose up --build -d
+docker compose --profile production up --build -d
 ```
 
 This exposes the following host files to nginx:
@@ -110,15 +113,26 @@ This exposes the following host files to nginx:
 
 If certificates live somewhere else, set `EVOPIE_CERTS_DIR` to that directory.
 
+## Enforced configuration
+
+The production profile fails during Compose configuration if these values are
+missing:
+
+- `EVOPIE_DATA_DIR`
+- `EVOPIE_SERVER_NAME`
+- `EVOPIE_CERTS_DIR`
+
+The nginx entrypoint also fails when HTTPS is enabled but the certificate or
+key file is missing.
+
 ## Configuration reference
 
-- `EVOPIE_NGINX_MODE`: required; use `http` or `https`.
-- `EVOPIE_SERVER_NAME`: nginx `server_name`; required for HTTPS and defaults
-  to `localhost` for HTTP.
+- `EVOPIE_DATA_DIR`: host data directory. Required for production.
+- `EVOPIE_SERVER_NAME`: nginx `server_name`. Required for production.
 - `EVOPIE_CERT_DOMAIN`: certificate directory under `live/`; defaults to
   `EVOPIE_SERVER_NAME` when HTTPS is enabled.
-- `EVOPIE_CERTS_DIR`: host directory mounted to `/etc/nginx/certs`; defaults
-  to `./certs`.
+- `EVOPIE_CERTS_DIR`: host directory mounted to `/etc/nginx/certs`. Required
+  for production.
 
 Advanced deployments can set full certificate paths inside the nginx container:
 
