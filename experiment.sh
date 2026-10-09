@@ -1,5 +1,6 @@
 set -e
-pipenv shell 
+uv sync
+source .venv/bin/activate
 flask DB-reboot
 flask quiz init -nq 4 -nd 25 #search space size
 
