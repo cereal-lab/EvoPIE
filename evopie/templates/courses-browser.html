@@ -78,6 +78,8 @@
         xhr.send(data);
         event.preventDefault();
         //event.stopPropagation();
+        $('#course_description').summernote('code', '');
+        description.value = '';
         location.reload();
         //return false;
     }
