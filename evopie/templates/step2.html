@@ -105,7 +105,7 @@
 
     <div class="jumbotron jumbotron-fluid">
         <div class="container">
-            <h1 class="display-4">Step 2 - {{quiz.title|safe}}</h1>
+            <h1 class="display-4">Step 2 - {{ quiz.title }}</h1>
             <h3>Deadline - {{quiz.deadline2|date}}</h3>
             <p class="lead">
                 Hello, {{current_user.first_name}} {{current_user.last_name}} ({{current_user.email}}).
@@ -158,8 +158,8 @@
                     <div class="carousel-item {% if loop.first %}active{% endif %}">
                         <div class="card bg-light m-3 mx-auto content" style="width: 75%">
                             <div class="card-body" bg-light>
-                                <h1 class="card-title">Question #{{loop.index}} - {{q.title |safe|unescapeDoubleQuotes}}</h1>
-                                <p class="card-text">{{q.stem|safe|unescapeDoubleQuotes}}</p>
+                                <h1 class="card-title">Question #{{loop.index}} - {{ q.title }}</h1>
+                                <p class="card-text">{{ q.stem|safe }}</p>
                                 
                                 <dl>
                                     <dt>Your orginal answer is pre-selected below</dt>

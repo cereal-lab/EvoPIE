@@ -67,7 +67,7 @@
 
     <div class="jumbotron jumbotron-fluid">
         <div class="container">
-            <h1 class="display-4">Grades for "{{quiz.title | safe}}"</h1>          
+            <h1 class="display-4">Grades for "{{ quiz.title }}"</h1>
             <a class="btn btn-primary btn-sm" data-bs-toggle="collapse" href="#grades-info" data-bs-target="#grades-info" role="button" aria-expanded="false" aria-controls="grades-info">
                 Information about scores computation
             </a>            
@@ -210,9 +210,9 @@
     <tbody>
         {% for s in students %}   
         <tr>
-            <td class='text-start align-top'>{{s.last_name | safe}}</td>
-            <td class='text-start align-top'>{{s.first_name | safe}}</td>
-            <td class='text-start align-top'>{{s.email | safe}}</td>
+            <td class='text-start align-top'>{{ s.last_name }}</td>
+            <td class='text-start align-top'>{{ s.first_name }}</td>
+            <td class='text-start align-top'>{{ s.email }}</td>
             <td data-bs-order="{{s.initial_total_score}}">
                 {%- if s.initial_total_score is none -%}
                 N/A
@@ -305,7 +305,7 @@
                 {% else %}
                 <button id="justification_grade-{{s.id}}" type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal"
                         data-bs-target=".TG-JUS-{{s.id}}">
-                    {{s.justification_score}} / {{ quiz.fourth_quartile_grade | safe }}
+                    {{s.justification_score}} / {{ quiz.fourth_quartile_grade }}
                 </button>
                 <div class="modal fade TG-JUS-{{s.id}} text-start" tabindex="-1" role="dialog"
                         aria-labelledby="mySmallModalLabel" aria-hidden="true">
@@ -318,7 +318,7 @@
                                     <h2 class="accordion-header" id="Heading{{question_id}}">
                                         <button class="accordion-button collapsed text-start align-top" type="button" data-bs-toggle="collapse" data-bs-parent="#accordionExample" href="#collapse{{question_id}}" aria-expanded="false" aria-controls="collapse{{question_id}}">
                                             <!-- FIX ME : the safe filter renders the text by applying the p and br tags -->
-                                            {{ questions[qid].title | safe }} <!--(<b>QID#{{ question_id | safe }}</b>)-->
+                                            {{ questions[qid].title }} <!--(<b>QID#{{ question_id }}</b>)-->
                                         </button>
                                     </h2>
                                     <div id="collapse{{question_id}}" class="accordion-collapse collapse" aria-labelledby="Heading{{question_id}}">
@@ -336,7 +336,7 @@
                                                     <tr style="border: 1px solid;">
                                                         {% if did == -1 %}
                                                             <td class="align-top">{{ w.success_glif() }}</td>
-                                                            <td class="align-top">{{ distractor_id | safe }}</td>
+                                                            <td class="align-top">{{ distractor_id }}</td>
                                                             <td class="align-top">{{ questions[qid].answer | safe }}</td>
                                                             <td class="align-top">{{ justification | safe }}</td>
                                                             <td class="align-top">
@@ -344,7 +344,7 @@
                                                             </td>
                                                         {% else %}
                                                             <td class="align-top">{{ w.fail_glif() }}</td>
-                                                            <td class="align-top">{{ distractor_id | safe }}</td>
+                                                            <td class="align-top">{{ distractor_id }}</td>
                                                             <td class="align-top">{{ distractors[qid][did] | safe }}</td>
                                                             <td class="align-top">{{ justification | safe }}</td>
                                                             <td class="align-top" style="width: 2%">
@@ -444,8 +444,8 @@
                                         <div class="accordion-item" >
                                         <h2 class="accordion-header" id="Heading{{qid}}">
                                             <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-parent="#accordionExample" href="#collapse{{qid}}" aria-expanded="false" aria-controls="collapse{{qid}}"">
-                                                <!--Question #{{ question_id | safe }} - -->
-                                                {{ questions[qid].title | safe }}
+                                                <!--Question #{{ question_id }} - -->
+                                                {{ questions[qid].title }}
                                             </button>
                                         </h2>
                                         <div id="collapse{{qid}}"" class="accordion-collapse collapse show" aria-labelledby="Heading{{qid}}" ">
@@ -501,8 +501,8 @@
                                         <div class="accordion-item" >
                                         <h2 class="accordion-header" id="Heading{{qid}}">
                                             <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-parent="#accordionExample" href="#collapse{{qid}}" aria-expanded="false" aria-controls="collapse{{qid}}"">
-                                                <!-- Question #{{ question_id | safe }} - -->
-                                                {{ questions[qid].title | safe }}                                          
+                                                <!-- Question #{{ question_id }} - -->
+                                                {{ questions[qid].title }}
                                             </button>
                                         </h2>
                                         <div id="collapse{{qid}}"" class="accordion-collapse collapse show" aria-labelledby="Heading{{qid}}" ">

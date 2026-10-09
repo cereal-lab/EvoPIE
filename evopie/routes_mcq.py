@@ -6,12 +6,11 @@
 from flask import g, jsonify, abort, request, Response, render_template, redirect, url_for, make_response
 from flask import Blueprint
 from flask_login import login_required, current_user
-from flask import Markup
 from flask import flash
 from datetime import datetime
 from werkzeug.security import generate_password_hash
 from datalayer import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT
-from evopie.utils import groupby, sanitize
+from evopie.utils import groupby, prepare_field_value
 from evopie.quiz_model import get_quiz_builder
 from evopie.decorators import role_required, unmime, validate_quiz_attempt_step, verify_deadline, verify_instructor_relationship, retry_concurrent_update
 
@@ -57,23 +56,9 @@ def post_new_question():
     if answer is None or stem is None or title is None:
         abort(400, "Unable to create new question due to missing data") # bad request
     
-    #NOTE the code below is highly suspicious... why did we keep the jason.dumps lines since both use answer
-    # instead of the 2nd line using escaped_answer?
-    # Taking a shot at fixing this
-    # might be why Paul reported seeing double quotes in the JSON still
-    # UPDATE - Not a bug actually...
-    # escaped_answer = json.dumps(answer) # escapes "" used in code
-    #TODO #3 ok so are we already properly escaping before to commit to the DB?!!
-    escaped_answer = Markup.escape(answer) # escapes HTML characters
-    escaped_answer = sanitize(escaped_answer)
-
-    # escaped_stem = json.dumps(stem)
-    escaped_stem = Markup.escape(stem)
-    escaped_stem = sanitize(escaped_stem)
-
-    # escaped_title = json.dumps(title)
-    escaped_title = Markup.escape(title)
-    escaped_title = sanitize(escaped_title)
+    escaped_answer = prepare_field_value(models.Question, "answer", answer)
+    escaped_stem = prepare_field_value(models.Question, "stem", stem)
+    escaped_title = prepare_field_value(models.Question, "title", title)
 
     author_id = current_user.get_id()
 
@@ -141,9 +126,9 @@ def put_question(question_id):
         abort(400, "Unable to modify question due to missing data") # bad request
     
     q = models.Question.query.get_or_404(question_id)
-    q.title = sanitize(title)
-    q.stem = sanitize(stem)
-    q.answer = sanitize(answer)
+    q.title = prepare_field_value(models.Question, "title", title)
+    q.stem = prepare_field_value(models.Question, "stem", stem)
+    q.answer = prepare_field_value(models.Question, "answer", answer)
 
     models.DB.session.commit()
     if request.json:
@@ -223,14 +208,8 @@ def post_new_distractor_for_question(question_id):
     
     q = models.Question.query.get_or_404(question_id)
     
-    #NOTE same potential bug here than above, still a feature
-    # escaped_answer = json.dumps(answer) # escapes "" used in code
-    #TODO #3 same issue here: are we already properly escaping before to commit to DB and, if so, then why do we have to redo it in routes_pages.py when sending the data to the jinja2 templates?!!
-    escaped_answer = Markup.escape(answer) # escapes HTML characters
-    escaped_answer = sanitize(escaped_answer)
-
-    escaped_justification = Markup.escape(justification)
-    escaped_justification = sanitize(escaped_justification)
+    escaped_answer = prepare_field_value(models.Distractor, "answer", answer)
+    escaped_justification = prepare_field_value(models.Distractor, "justification", justification)
 
     new_distractor = models.Distractor(answer=escaped_answer,justification=escaped_justification,question_id=q.id)
     q.distractors.append(new_distractor)
@@ -261,11 +240,8 @@ def post_new_student_distractor_for_question(question_id):
     
     q = models.Question.query.get_or_404(question_id)
 
-    escaped_distractor = Markup.escape(distractor) # escapes HTML characters
-    escaped_distractor = sanitize(escaped_distractor)
-
-    escaped_justification = Markup.escape(justification)
-    escaped_justification = sanitize(escaped_justification)
+    escaped_distractor = prepare_field_value(models.InvalidatedDistractor, "answer", distractor)
+    escaped_justification = prepare_field_value(models.InvalidatedDistractor, "justification", justification)
 
     new_student_distractor = models.InvalidatedDistractor(answer=escaped_distractor,justification=escaped_justification,question_id=q.id, author_id=current_user.get_id())
     q.invalidated_distractors.append(new_student_distractor)
@@ -292,8 +268,7 @@ def put_student_distractor_for_question(question_id):
 
     q = models.Question.query.get_or_404(question_id)
 
-    escaped_distractor = Markup.escape(distractor) # escapes HTML characters
-    escaped_distractor = sanitize(escaped_distractor)
+    escaped_distractor = prepare_field_value(models.InvalidatedDistractor, "answer", distractor)
 
     # check if the student has already submitted a distractor for this question
     student_distractor = models.InvalidatedDistractor.query.filter_by(question_id=question_id, author_id=current_user.get_id()).first()
@@ -325,8 +300,7 @@ def put_student_justification_for_question(question_id):
 
     q = models.Question.query.get_or_404(question_id)
 
-    escaped_justification = Markup.escape(justification)
-    escaped_justification = sanitize(escaped_justification)
+    escaped_justification = prepare_field_value(models.InvalidatedDistractor, "justification", justification)
 
     # check if the student has submitted a distractor for this question
     student_distractor = models.InvalidatedDistractor.query.filter_by(question_id=question_id, author_id=current_user.get_id()).first()
@@ -424,8 +398,7 @@ def put_student_comment_for_distractor(distractor_id):
 
     student_distractor = models.InvalidatedDistractor.query.get_or_404(distractor_id)
 
-    escaped_comment = Markup.escape(comment)
-    escaped_comment = sanitize(escaped_comment)
+    escaped_comment = prepare_field_value(models.InvalidatedDistractor, "comment", comment)
 
     if student_distractor.comment is not None:
         student_distractor.comment = escaped_comment
@@ -471,14 +444,8 @@ def put_distractor(distractor_id):
         abort(400, "Unable to modify distractor due to missing data") # bad request
 
     d = models.Distractor.query.get_or_404(distractor_id)
-    #d.answer = sanitize(answer)
-    #d.justfication = sanitize(justification)
-    #BUG here we apply only justification but in one of the above methods we also escape
-    d.answer = Markup.escape(answer) # escapes HTML characters
-    d.answer = sanitize(d.answer)
-
-    d.justification = Markup.escape(justification)
-    d.justification = sanitize(d.justification)
+    d.answer = prepare_field_value(models.Distractor, "answer", answer)
+    d.justification = prepare_field_value(models.Distractor, "justification", justification)
 
     models.DB.session.commit()
 
@@ -666,9 +633,9 @@ def post_new_course():
     if request.json['name'] is None or request.json['description'] is None or request.json['title'] is None:
         abort(400, "Unable to create course due to missing data")
 
-    name = request.json['name']
-    description = request.json['description']
-    title = request.json['title']
+    name = prepare_field_value(models.Course, "name", request.json['name'])
+    description = prepare_field_value(models.Course, "description", request.json['description'])
+    title = prepare_field_value(models.Course, "title", request.json['title'])
 
     c = models.Course(name=name, description=description, title=title, instructor_id=current_user.get_id())
 
@@ -692,9 +659,9 @@ def put_course(course_id):
     if request.json['name'] is None or request.json['description'] is None or request.json['title'] is None:
         abort(400, "Unable to modify course due to missing data")
 
-    name = sanitize(request.json['name'])
-    description = sanitize(request.json['description'])
-    title = sanitize(request.json['title'])
+    name = prepare_field_value(models.Course, "name", request.json['name'])
+    description = prepare_field_value(models.Course, "description", request.json['description'])
+    title = prepare_field_value(models.Course, "title", request.json['title'])
 
     course.name = name
     course.description = description
@@ -721,8 +688,8 @@ def post_new_quiz():
     #if request.json['questions_ids'] is None:
     #    abort(400, "Unable to create new quiz due to missing data") # bad request
     
-    bleached_title = sanitize(title)
-    bleached_description = sanitize(description)
+    bleached_title = prepare_field_value(models.Quiz, "title", title)
+    bleached_description = prepare_field_value(models.Quiz, "description", description)
 
     q = models.Quiz(title=bleached_title, description=bleached_description, author_id=current_user.get_id(), status="HIDDEN")
     
@@ -810,8 +777,8 @@ def put_quizzes(qid):
         #  or request.json['questions_ids'] is None:
         abort(400, "Unable to modify quiz due to missing data") # bad request
 
-    quiz.title = sanitize(request.json['title'])
-    quiz.description = sanitize(request.json['description'])
+    quiz.title = prepare_field_value(models.Quiz, "title", request.json['title'])
+    quiz.description = prepare_field_value(models.Quiz, "description", request.json['description'])
 
     # if no questions_ids are passed, we just update the above title and description
     # please note that we may receive an empty list of questions_ids thus meaning we removed all questions
@@ -850,7 +817,7 @@ def post_quizzes_status(quiz):
     ''' Modifies the status of given quiz '''
     if not request.is_json:
         abort(406, "JSON format required for request") # not acceptable
-    new_status = sanitize(request.json['status'])
+    new_status = prepare_field_value(models.Quiz, "status", request.json['status'])
     # FIXED how about check that the status is actually valid, eh? :)'
     # done in set_status below
     old_status = quiz.status
@@ -881,7 +848,7 @@ def post_quizzes_deadline_driven(qid):
     if not request.is_json:
         abort(406, "JSON format required for request")
     
-    new_deadline_driven = sanitize(request.json['deadline_driven'])
+    new_deadline_driven = prepare_field_value(models.Quiz, "deadline_driven", request.json['deadline_driven'])
 
     if new_deadline_driven == "True" or new_deadline_driven == "False":
         quiz.deadline_driven = new_deadline_driven
@@ -1015,7 +982,7 @@ def all_quizzes_take(qid):
             for key_quest in justifications_dict:
                 quest = justifications_dict[key_quest]
                 for key_just in quest:
-                    just = models.Justification(quiz_question_id=key_quest, distractor_id=key_just, student_id=sid, justification=sanitize(quest[key_just]), seen=0)
+                    just = models.Justification(quiz_question_id=key_quest, distractor_id=key_just, student_id=sid, justification=prepare_field_value(models.Justification, "justification", quest[key_just]), seen=0)
                     models.DB.session.add(just)
             models.DB.session.add(attempt)
             models.DB.session.commit()
@@ -1208,9 +1175,9 @@ def justify_alternative_selection(q, body):
             if new_j == '':
                 models.DB.session.delete(justifications[(qid, did)])    
             else:
-                justifications[(qid, did)].justification = new_j
+                justifications[(qid, did)].justification = prepare_field_value(models.Justification, "justification", new_j)
         elif new_j != '': 
-            justification = models.Justification(quiz_question_id = qid, distractor_id = did, student_id = current_user.id, justification = new_j)
+            justification = models.Justification(quiz_question_id = qid, distractor_id = did, student_id = current_user.id, justification = prepare_field_value(models.Justification, "justification", new_j))
             # resp_added_just_ids.setdefault(str(justification.quiz_question_id), {})[str(justification.distractor_id)] = justification
             models.DB.session.add(justification)
     models.DB.session.commit() #after this point all ids for added_justifications were assigned 
@@ -1264,7 +1231,7 @@ def post_users_role(uid):
 
     if not request.json:
         abort(406, "JSON format required for request") # not acceptable
-    new_role = sanitize(request.json['role'])
+    new_role = prepare_field_value(models.User, "role", request.json['role'])
     if(user.set_role(new_role)):
         response     = ({ "message" : "OK" }, 200, {"Content-Type": "application/json"})
         models.DB.session.commit()

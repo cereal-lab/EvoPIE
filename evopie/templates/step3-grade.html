@@ -113,7 +113,7 @@ $(document).ready(function() {
 
 <div class="jumbotron jumbotron-fluid">
     <div class="container">
-        <h1 class="display-4">Step 3 Grade - {{quiz.title | safe }}</h1>
+        <h1 class="display-4">Step 3 Grade - {{ quiz.title }}</h1>
         <h2 class="display-6">Student - {{student.first_name}} {{student.last_name}}</h2>
         <p class="lead">
             Hello, {{current_user.first_name}} {{current_user.last_name}}. 
@@ -125,8 +125,8 @@ $(document).ready(function() {
 {% for q in questions %}
     <div class="card bg-light m-3 mx-auto content" style="width: 75%">
         <div class="card-body" bg-light>
-            <h1 class="card-title">Question #{{loop.index}} - {{q.title |safe|unescapeDoubleQuotes}}</h1>
-            <p class="card-text">{{q.stem|safe|unescapeDoubleQuotes}}</p>
+            <h1 class="card-title">Question #{{loop.index}} - {{ q.title }}</h1>
+            <p class="card-text">{{ q.stem|safe }}</p>
             
             <div class="list-group list-group-flush">
                 {% for answer in q.alternatives %}
@@ -211,7 +211,7 @@ $(document).ready(function() {
                                     {% for distractor in q.distractors_pool %}
 
                                         <tr style="border: 1px solid;">
-                                            <td class="text-start align-top">{{ distractor.id | safe }}</td>
+                                            <td class="text-start align-top">{{ distractor.id }}</td>
                                             <td class="text-start align-top">{{ distractor.answer | safe }}</td>
                                             <td class="text-start align-top">{{ distractor.justification | safe }}</td>
                                         </tr>

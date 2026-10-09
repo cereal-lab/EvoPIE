@@ -17,12 +17,11 @@ from flask import flash
 from pandas import DataFrame
 from sqlalchemy import not_
 from sqlalchemy.sql import collate, func
-from flask import Markup
 from evopie.quiz_model import get_quiz_builder
 from evopie.routes_mcq import answer_questions, justify_alternative_selection
 from werkzeug.security import check_password_hash
 
-from evopie.utils import find_median, unescape, groupby
+from evopie.utils import find_median, groupby
 from evopie.decorators import role_required, retry_concurrent_update
 
 from datalayer import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_ATTEMPT_STEP3, QUIZ_HIDDEN, QUIZ_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, QUIZ_STEP3, ROLE_INSTRUCTOR, ROLE_STUDENT, get_attempt_next_step
@@ -65,14 +64,7 @@ def questions_browser():
     if not current_user.is_instructor():
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
-    # working on getting rid of the dump_as_dict and instead using Markup(...).unescape when appropriate
-    # all_questions = [q.dump_as_dict() for q in models.Question.query.all()]
     all_questions = models.Question.query.filter_by(author_id=current_user.get_id()).all()
-    # NOTE TODO #3 this particular one works without doing the following pass on the data, probably bc it's using only the titles in the list
-    for q in all_questions:
-        q.title = unescape(q.title)
-        q.stem = unescape(q.stem)
-        q.answer = unescape(q.answer)
     return render_template('questions-browser.html', all_questions = all_questions)
     # version with pagination below
     #page = request.args.get('page',1, type=int)
@@ -92,8 +84,6 @@ def quizzes_browser():
     if not current_user.is_instructor():
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
-    # TODO #3 working on getting rid of the dump_as_dict and instead using Markup(...).unescape when appropriate
-    # all_quizzes = [q.dump_as_dict() for q in models.Quiz.query.all()]
     all_quizzes = models.Quiz.query.filter_by(author_id=current_user.get_id()).all()
     new_quizzes = []
     for q in all_quizzes:
@@ -164,15 +154,6 @@ def question_editor(question_id):
 
     q = models.Question.query.get_or_404(question_id)
     
-    # TODO #3 we replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
-    #ds = [d.dump_as_dict() for d in q.distractors]
-    #q = q.dump_as_dict()
-    q.title = unescape(q.title)
-    q.stem = unescape(q.stem)
-    q.answer = unescape(q.answer)
-    for d in q.distractors:
-        d.answer = unescape(d.answer)
-        d.justification = unescape(d.justification)
     #return render_template('question-editor.html', all_distractors = ds, question = q)
     return render_template('question-editor.html', all_distractors = q.distractors, question = q)
     
@@ -212,10 +193,6 @@ def quiz_question_editor(quiz_id,quiz_question_id):
         q = models.Question.query.get_or_404(qq.question_id)
         # NOTE we assume that the QuizQuestion already belong to this quiz
         # FIXME we should really ensure that it's the case
-        for d in qq.distractors:
-            d.answer = unescape(d.answer)
-            d.justification = unescape(d.justification)
-            
     # now edit the QuizQuestion
     #return redirect("/question-editor/" + str(q.id), code=302)
     return render_template('quiz-question-editor.html', quiz_id = quiz_id, quiz_question = qq, question = q)
@@ -239,9 +216,6 @@ def quiz_question_selector_1(quiz_id):
     questions = qb.all()
     all_instructors = models.User.query.where(models.User.role == ROLE_INSTRUCTOR).with_entities(models.User.id, models.User.first_name, models.User.last_name).all()
     all_instructors_map = {i.id: i.first_name + " " + i.last_name for i in all_instructors}
-    for q in questions:
-        q.stem = unescape(q.stem)
-        q.answer = unescape(q.answer)
     return render_template('quiz-question-selector-1.html', quiz_id = quiz_id, available_questions = questions, all_instructors = all_instructors_map)
 
 @pages.route('/quiz-question-selector-2/<int:quiz_id>/<int:question_id>')
@@ -254,12 +228,6 @@ def quiz_question_selector_2(quiz_id, question_id):
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
     question = models.Question.query.get_or_404(question_id)
-    question.stem = unescape(question.stem)
-    question.answer = unescape(question.answer)
-    for d in question.distractors:
-        d.answer = unescape(d.answer)
-        d.justification = unescape(d.justification)
-    
     return render_template('quiz-question-selector-2.html', quiz_id=quiz_id, question=question)
 
 @pages.route('/quiz-question-selector-2/<int:quiz_id>/<int:question_id>', methods=['POST'])
@@ -342,17 +310,9 @@ def quiz_editor(quiz_id):
         return redirect(url_for('pages.index'))
     q = models.Quiz.query.get_or_404(quiz_id)
     courses = models.Course.query.filter_by(instructor_id=current_user.get_id()).all()
-    # TODO #3 we replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
-    #q = q.dump_as_dict()
     present_qids = set()
     for qq in q.quiz_questions:
-        qq.question.title = unescape(qq.question.title)
-        qq.question.stem = unescape(qq.question.stem)
-        qq.question.answer = unescape(qq.question.answer)
         present_qids.add(qq.question_id)
-        # NOTE we do not have to worry about unescaping the distractors because the quiz-editor 
-        # does not render them. However, if we had to do so, remember that we need to add to 
-        # each QuizQuestion a field named alternatives that has the answer + distractors unescaped.
     available_qestions_count = models.Question.query.where(models.Question.id.not_in(present_qids)).count()
     if q.status != "HIDDEN":
         flash("Quiz not editable at this time", "error")
@@ -649,24 +609,10 @@ def get_quiz(quiz_course):
     Links using this route are meant to be shared with students so that they may take the quiz
     and engage in the asynchronous peer instrution aspects. 
     '''
-    # TODO #3 we replace dump_as_dict with proper Markup(...).unescape of the objects'fields themselves
-    # see lines commented out a ## for originals
-    ##quiz_questions = [question.dump_as_dict() for question in q.quiz_questions]
     q = quiz_course.quiz
     course = quiz_course.course
     quiz_questions = q.quiz_questions
     # FIXME why are we not unescaping above?
-
-    # BUG we had to simplify the questions to avoid an escaping problem
-    # simplified_quiz_questions = [question.dump_as_simplified_dict() for question in q.quiz_questions]    
-    # PBM - the alternatives for questions show unescaped when taking the quiz
-    # SOL - need to unescape them before to pass them to the template
-    
-    ##for qq in quiz_questions:
-    ##    for altern in qq["alternatives"]:
-    ##        # experimenting, this works: tmp = unescape(quiz_questions[0]["alternatives"][0][1])
-    ##        altern[1] = unescape(altern[1])
-    ##        # nope... altern[1] = jinja2.Markup.escape(altern[1])
 
     quiz_question_ids = set(q.id for q in quiz_questions)
     quiz_question_distractors = models.DB.session.query(models.quiz_questions_hub).where(models.quiz_questions_hub.c.quiz_question_id.in_(quiz_question_ids)).all()
@@ -675,8 +621,6 @@ def get_quiz(quiz_course):
     distractor_per_question = {q_id: ds for q_id, ds in groupby(plain_distractors, key = lambda d: d.question_id)}    
     distractor_map = {d.id:d for d in plain_distractors}
 
-    #unescaping part - left for backward compatibility for now
-    
     attempt = get_or_create_attempt(q, course, quiz_questions, distractor_per_question)
     quiz_question_ids = [ int(qid) for qid in attempt.alternatives_map.keys() ]
     question_ids = [ qq.question_id for qq in quiz_questions ]
@@ -689,13 +633,13 @@ def get_quiz(quiz_course):
     justification_map = {qid:{j.distractor_id:j for j in js} for qid, js in groupby(justifications, key=lambda x:x.quiz_question_id)}
 
     question_model = [ { "id": qq.id, 
-                        "alternatives": [ unescape(distractor_map[alternative].answer) if alternative in distractor_map else unescape(qq.question.answer) 
+                        "alternatives": [ distractor_map[alternative].answer if alternative in distractor_map else qq.question.answer
                                                 for alternative in attempt.alternatives_map[str(qq.id)]
                                                 if alternative in distractor_map or alternative == -1],
                         "choice": next((i for i, d in enumerate(attempt.alternatives_map[str(qq.id)]) if d == attempt.step_responses.get(str(qq.id), None)), -1), 
                         "invalidated_distractors": student_created_distractors,
                         "justifications": {a:js[did].justification for a, did in enumerate(attempt.alternatives_map[str(qq.id)]) if did in js},
-                        **{attr:unescape(getattr(qq.question, attr)) for attr in [ "title", "stem", "answer" ]}}
+                        **{attr:getattr(qq.question, attr) for attr in [ "title", "stem", "answer" ]}}
                         for qq in quiz_questions
                         if str(qq.id) in attempt.alternatives_map
                         # for (qq, alternatives) in zip(quiz_questions, attempt.alternatives) 
@@ -799,7 +743,7 @@ def get_quiz(quiz_course):
             justifications=selected_justification_map, likes = likes)))
 
     # finding the reference justifications for each distractor
-    explanations = {qid:{str(aid):{"justification": "Correct answer!" if did == -1 else unescape(distractor_map[did].justification), "is_correct": did == -1 } 
+    explanations = {qid:{str(aid):{"justification": "Correct answer!" if did == -1 else distractor_map[did].justification, "is_correct": did == -1 }
                         for aid, did in enumerate(alternatives) if did in distractor_map or did == -1}
                     for qid, alternatives in attempt.alternatives_map.items()}
     
@@ -969,14 +913,14 @@ def get_quiz_statistics(qid, course_id):
     question_ids = set(qu.question_id for qu in quiz_questions)
     quiz_question_ids = set(qu.id for qu in quiz_questions)
     plain_questions = models.Question.query.where(models.Question.id.in_(question_ids)).all()
-    questions = {q.id:{**q.dump_as_simplified_dict(), **{attr:unescape(getattr(q, attr)) 
+    questions = {q.id:{**q.dump_as_simplified_dict(), **{attr:getattr(q, attr)
                                                             for attr in ["stem", "answer", "title"]} } 
                     for q in plain_questions}
 
     quiz_question_distractors = models.DB.session.query(models.quiz_questions_hub).where(models.quiz_questions_hub.c.quiz_question_id.in_(quiz_question_ids)).all()
     distractor_ids = [d.distractor_id for d in quiz_question_distractors]
     plain_distractors = models.Distractor.query.where(models.Distractor.id.in_(distractor_ids)).all()
-    distractors = { qid : {d.id : unescape(d.answer) for d in ds} 
+    distractors = { qid : {d.id : d.answer for d in ds}
                     for (qid, ds) in groupby(plain_distractors, key = lambda d: d.question_id) } 
 
     plain_attempts = models.QuizAttempt.query.where(models.QuizAttempt.quiz_id == qid, models.QuizAttempt.status != QUIZ_ATTEMPT_STEP1, models.QuizAttempt.course_id == course_id).all()
@@ -1112,7 +1056,6 @@ def get_quiz_statistics(qid, course_id):
                         "designing_score": int(designing_scores[s.id]) if s.id in designing_scores else None,
                         "initial_responses": {int(k):v for k, v in a.initial_responses.items()},
                         "revised_responses": {int(k):v for k, v in a.revised_responses.items()},
-                        # "justifications": ast.literal_eval(unescape(a.justifications).replace("\\n", "a").replace('\\"', '\"')),
                         "justifications": {qid: {j.distractor_id:j.justification for j in js} for qid, js in groupby(justifications_by_student.get(s.id, []), key = lambda x: x.quiz_question_id)
                                                 if str(qid) in a.alternatives_map},
                         "initial_percent": roundNotNone(cetagory_percent_scores.get(s.id, {}).get("initial", None)),
@@ -1197,8 +1140,6 @@ def step3_grade(qid, course_id, student_id):
     distractor_per_question = {q_id: ds for q_id, ds in groupby(plain_distractors, key = lambda d: d.question_id)}    
     distractor_map = {d.id:d for d in plain_distractors}
 
-    #unescaping part - left for backward compatibility for now
-    
     attempt = models.QuizAttempt.query.filter_by(student_id=student.id, quiz_id=q.id, course_id=course.id).first()
     quiz_question_ids = [ int(qid) for qid in attempt.alternatives_map.keys() ]
     question_ids = [ qq.question_id for qq in quiz_questions ]
@@ -1214,14 +1155,14 @@ def step3_grade(qid, course_id, student_id):
     all_distractors = models.Distractor.query.where(models.Distractor.question_id.in_(question_ids)).all()
 
     question_model = [ { "id": qq.id, 
-                        "alternatives": [ unescape(distractor_map[alternative].answer) if alternative in distractor_map else unescape(qq.question.answer) 
+                        "alternatives": [ distractor_map[alternative].answer if alternative in distractor_map else qq.question.answer
                                                 for alternative in attempt.alternatives_map[str(qq.id)]
                                                 if alternative in distractor_map or alternative == -1],
                         "choice": next((i for i, d in enumerate(attempt.alternatives_map[str(qq.id)]) if d == attempt.step_responses.get(str(qq.id), None)), -1), 
                         "invalidated_distractors": student_created_distractors,
                         "distractors_pool": [d for d in all_distractors if d.question_id == qq.question_id], 
                         "justifications": {a:js[did].justification for a, did in enumerate(attempt.alternatives_map[str(qq.id)]) if did in js},
-                        **{attr:unescape(getattr(qq.question, attr)) for attr in [ "title", "stem", "answer" ]}}
+                        **{attr:getattr(qq.question, attr) for attr in [ "title", "stem", "answer" ]}}
                         for qq in quiz_questions
                         if str(qq.id) in attempt.alternatives_map
                         # for (qq, alternatives) in zip(quiz_questions, attempt.alternatives) 
@@ -1230,7 +1171,7 @@ def step3_grade(qid, course_id, student_id):
     quiz_model = { "id" : q.id, "title" : q.title, "description" : q.description, "deadline0": q.deadline0, "deadline1": q.deadline1, "deadline2": q.deadline2, "deadline3": q.deadline3, "deadline4": q.deadline4 } #we do not need any other fields from dump_as_dict
 
     # finding the reference justifications for each distractor
-    explanations = {qid:{str(aid):{"justification": "Correct answer!" if did == -1 else unescape(distractor_map[did].justification), "is_correct": did == -1 } 
+    explanations = {qid:{str(aid):{"justification": "Correct answer!" if did == -1 else distractor_map[did].justification, "is_correct": did == -1 }
                         for aid, did in enumerate(alternatives) if did in distractor_map or did == -1}
                     for qid, alternatives in attempt.alternatives_map.items()}
 
