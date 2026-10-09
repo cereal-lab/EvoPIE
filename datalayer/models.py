@@ -13,14 +13,7 @@ from datalayer import QUIZ_ATTEMPT_STEP1, QUIZ_HIDDEN, QUIZ_STEP1, QUIZ_STEP2, Q
 from datetime import datetime
 
 from pytz import timezone
-from jinja2 import Markup
-
 import ast
-
-# Probably shouldn't duplicate this functionality from evopie.utils, but it is small and
-# creates a dependency issue if we want to keep the datalayer separate from evopie.
-def unescape(str):
-    return Markup(str).unescape()
 
 # All models used in the DB and by EvoPIE.
 # Refer to docs/DB diagram - yyyy-mm-dd.png for a snapshot of the DB diagram.
@@ -84,17 +77,13 @@ class Question(DB.Model):
     def dump_as_dict(self): # TODO #3 get rid of dump_as_dict as part of this issue
         q = {
             "id" : self.id,
-            "title" : unescape(self.title),
-            "stem" : unescape(self.stem),
-            "answer" : unescape(self.answer),
+            "title" : self.title,
+            "stem" : self.stem,
+            "answer" : self.answer,
             "alternatives" : []
         }
-        # NOTE we have to do the above unescapes so that the html code sent by summernote to the server
-        # is then rendered as HTML instead of being displayed as an escape string, or rendered
-        # with the unescaped symbols but not interpreted as HTML
-
-        q['alternatives'] = [unescape(d.answer) for d in self.distractors]
-        q['alternatives'].append(unescape(self.answer))
+        q['alternatives'] = [d.answer for d in self.distractors]
+        q['alternatives'].append(self.answer)
         shuffle(q['alternatives'])
         return q
 
@@ -107,10 +96,8 @@ class Question(DB.Model):
             "title" : self.title,
             "alternatives" : []
         }
-        # NOTE trying to skip the distractors, eventually we want just their IDs
-        # q['alternatives'] = [unescape(d.answer) for d in self.distractors]
-        #q['alternatives'].append(unescape(self.answer))
-        #shuffle(q['alternatives'])
+        # This intentionally omits full answer/distractor alternatives. Routes
+        # that need rendered alternatives build them from the attempt state.
         return q
         
 
@@ -144,7 +131,7 @@ class Distractor(DB.Model):
         return "<Distractor: id='%d',question_id=%d>" % (self.id, self.question_id)
 
     def dump_as_dict(self): # TODO #3
-        return {"id" : self.id, "answer": unescape(self.answer), "justification": unescape(self.justification)}
+        return {"id" : self.id, "answer": self.answer, "justification": self.justification}
 
     def dump_as_simplified_dict(self):
         return {"id" : self.id, "answer": "", "justification": ""}
@@ -180,7 +167,7 @@ class InvalidatedDistractor(DB.Model):
         return "<InvalidatedDistractor: id='%d',question_id=%d>" % (self.id, self.question_id)
 
     def dump_as_dict(self):
-        return {"id" : self.id, "answer": unescape(self.answer), "justification": unescape(self.justification), "status": self.status, "comment": unescape(self.comment), "grade": self.grade, "accepted": self.accepted}
+        return {"id" : self.id, "answer": self.answer, "justification": self.justification, "status": self.status, "comment": self.comment, "grade": self.grade, "accepted": self.accepted}
 
 class QuizQuestion(DB.Model):
     '''
@@ -204,19 +191,19 @@ class QuizQuestion(DB.Model):
     def dump_as_dict(self):
         result = {  "id" : self.id,
                     "title": self.question.title,
-                    "stem": unescape(self.question.stem),
-                    "answer": unescape(self.question.answer),
+                    "stem": self.question.stem,
+                    "answer": self.question.answer,
                     "alternatives": [] }
 
         tmp1 = [] # list of distractors IDs, -1 for right answer
         tmp2 = [] # list of alternatives, including the right answer
 
         tmp1.append(-1)
-        tmp2.append(unescape(self.question.answer))
+        tmp2.append(self.question.answer)
 
         for d in self.distractors:
-            tmp1.append(unescape(d.id))
-            tmp2.append(unescape(d.answer))
+            tmp1.append(d.id)
+            tmp2.append(d.answer)
 
         #result['alternatives'] = list(zip(tmp1,tmp2))
         # NOTE the above would cause the list to be made of tuples which are not well handled when we are trying to

@@ -119,7 +119,7 @@
                                 <option value="">-- None --</option>
                                 {% for c2 in courses %}
                                     <option value="{{ c2.id }}" {% if c2.id == course.id %} selected {% endif %}>
-                                        {{ c2.name | safe }}
+                                        {{ c2.name }}
                                     </option>
                                 {% endfor %}
                             </select>
@@ -197,7 +197,7 @@
                             <option value="">-- None --</option>
                             {% for c2 in courses %}
                                 <option value="{{ c2.id }}">
-                                    {{ c2.name | safe }}
+                                    {{ c2.name }}
                                 </option>
                             {% endfor %}
                         </select>                        

@@ -186,7 +186,7 @@
                           </div>
                         </td>
                         <td>
-                          {{ course.name | safe }}
+                          {{ course.name }}
                         </td>
                         <td>
                             {{ q.status }}
@@ -204,7 +204,7 @@
                         {% endif %}  
                         <td>
                           <p data-bs-toggle = "modal" class="mb-0" data-bs-target = "#q{{q.id}}">
-                            {{ q.author.first_name | safe }} {{ q.author.last_name | safe }}
+                            {{ q.author.first_name }} {{ q.author.last_name }}
                           </p>
                         </td>
                       </tr>

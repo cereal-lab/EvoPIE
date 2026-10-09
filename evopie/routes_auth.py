@@ -9,6 +9,7 @@ from flask_login import login_user, login_required, current_user, login_manager,
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import timedelta
 from datalayer import ROLE_INSTRUCTOR, ROLE_STUDENT
+from evopie.utils import prepare_field_value
 
 import datalayer.models as models
 
@@ -63,6 +64,10 @@ def post_signup():
     if(retype != password):
         flash('Passwords do not match')
         return redirect(url_for('auth.get_signup'))
+
+    email = prepare_field_value(models.User, "email", email)
+    first_name = prepare_field_value(models.User, "first_name", first_name)
+    last_name = prepare_field_value(models.User, "last_name", last_name)
 
     #FIXME for now, we hardcode that the 1st user to signup is an INSTRUCTOR
     # the testing scripts are hardwired to work with that assumption too. 

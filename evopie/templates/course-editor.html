@@ -113,10 +113,10 @@
             {% for quiz in course.quizzes %}
                         <tr>
                             <td  style="border:1px solid; padding:  0 0.5em" valign='top'>
-                                {{ quiz.id | safe }}
+                                {{ quiz.id }}
                             </td>
                             <td  style="border:1px solid; padding:  0 0.5em" valign="top">
-                                {{ quiz.title | safe }}
+                                {{ quiz.title }}
                             </td>
                             <td  style="border:1px solid; padding:  0 0.5em" valign="top">
                                 {{ quiz.description | safe }}
@@ -154,7 +154,7 @@
                                 </label>
                             </td>
                             <td  style="border:1px solid; padding:  0 0.5em" valign="top">
-                                {{ quiz.title | safe }}
+                                {{ quiz.title }}
                             </td>
                             <td  style="border:1px solid; padding:  0 0.5em" valign="top">
                                 {{ quiz.description | safe }}

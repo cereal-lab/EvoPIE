@@ -1,27 +1,35 @@
 # pylint: disable=no-member
 # pylint: disable=E1101
-from . import APP
-#NOTE: before importing other modules, like models, think about dependencies. 
-#Assuming that this module should not have db specific functions but only utilities db context free 
-#use decorators or models to add functionality which is models specific
-
 # helper method to use instead of directly calling bleach.clean
 import bleach
 from bleach_allowlist import generally_xss_safe, print_attrs, standard_styles
 
-def sanitize(html):
-    result = bleach.clean(html, tags=generally_xss_safe, attributes=print_attrs, styles=standard_styles)
-    return result
+RICH_HTML_FIELDS = {
+    ("Course", "description"),
+    ("Distractor", "answer"),
+    ("Distractor", "justification"),
+    ("InvalidatedDistractor", "answer"),
+    ("InvalidatedDistractor", "comment"),
+    ("InvalidatedDistractor", "justification"),
+    ("Justification", "justification"),
+    ("Question", "answer"),
+    ("Question", "stem"),
+    ("Quiz", "description"),
+}
 
-# All TODO #3 issue from models.py are factored in the function below
-# unescaping so that the stem and answer are rendered in jinja2 template with | safe
-from jinja2 import Markup
-def unescape(str):
-    return Markup(str).unescape()
-            
-@APP.template_filter('unescapeDoubleQuotes')
-def unescape_double_quotes(s): 
-    return s.replace('\\"','\"')
+def _model_name(model):
+    return model if isinstance(model, str) else model.__name__
+
+def prepare_field_value(model, field, value):
+    """Prepare a submitted value according to the model field policy."""
+    if (_model_name(model), field) in RICH_HTML_FIELDS:
+        return bleach.clean(
+            value,
+            tags=generally_xss_safe,
+            attributes=print_attrs,
+            styles=standard_styles,
+        )
+    return bleach.clean(value, tags=[], attributes={}, strip=True)
 
 def groupby(iterable, key=lambda x: x):
     '''from iterable creates list of pairs group_key:list of elements with the key.

@@ -62,6 +62,6 @@
     name="question_{{q.id}}" value="{{option_id}}"
     class="form-check-input" />
 <label class="form-check-label opacity-100" for="question_{{q.id}}_{{option_id}}">
-    {{ answer | safe | unescapeDoubleQuotes }}
+    {{ answer | safe }}
 </label>       
 {%- endmacro %}                     
