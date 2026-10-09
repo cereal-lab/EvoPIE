@@ -142,10 +142,15 @@ performance, peer-instruction activity, and derived analysis views.
 
 ## Deployment shape
 
-For local development, EvoPIE can run directly with Pipenv, Flask, SQLite, and
-the updater process.
+EvoPIE can run directly with Pipenv, Flask, SQLite, and the updater process.
+Docker Compose also provides a `local` profile that builds the web and updater
+services from the current checkout and serves the app over HTTP without nginx.
+Compose Watch can sync source changes into that local profile.
 
-For the current production deployment, Docker Compose runs separate services
-for the web application, the updater, and nginx. The current Docker
-configuration is specific to `evopie.cse.usf.edu` and expects its data
-directory and TLS certificate paths to match that deployment.
+The `production` profile runs the web application and updater behind nginx,
+which terminates HTTPS. It requires an explicit host data directory, server
+name, and certificate directory; the deployment is not tied to a particular
+domain. Production images are built from the upstream repository at the
+configured `EVOPIE_GIT_REF`, rather than from the invoking local checkout. The
+production profile can also be used with a self-signed certificate for local
+HTTPS testing.

@@ -129,7 +129,8 @@ export FLASK_APP=evopie/__init__.py
 ```
 
 `EVOPIE_DATABASE_URI` selects the database URI. If it is not set, EvoPIE uses a
-local SQLite database.
+local SQLite database. Docker Compose defaults it to
+`sqlite:////app/data/db.sqlite`.
 
 `EVOPIE_UPDATER_SLEEP` controls the updater delay when `updater.py` is run
 without a command-line delay argument.
@@ -138,20 +139,30 @@ without a command-line delay argument.
 
 `EVOPIE_DEBUG=True` enables the debugpy listener used by the application.
 
+The Docker Compose profiles also use these variables:
+
+- `EVOPIE_DATA_DIR`: host data directory mounted at `/app/data`; defaults to
+  `./data` for local mode and is required for production.
+- `EVOPIE_SERVER_NAME`: nginx server name; required for production.
+- `EVOPIE_CERT_DOMAIN`: certificate directory name under `live/`; defaults to
+  `EVOPIE_SERVER_NAME`.
+- `EVOPIE_CERTS_DIR`: host certificate directory mounted at
+  `/etc/nginx/certs`; required for production.
+- `EVOPIE_GIT_REF`: upstream branch, tag, or commit checked out by production
+  image builds; defaults to `master`.
+
 ## Important paths
 
-The current Docker Compose deployment uses these paths:
+The local Docker profile defaults to `./data` on the host and mounts it at
+`/app/data` in the containers. The default database file is
+`/app/data/db.sqlite`.
 
-- `/EvoPIE/data`: host data directory.
-- `/EvoPIE/data/db.sqlite`: host SQLite database path.
-- `/app/data/db.sqlite`: SQLite database path inside the containers.
-- `/etc/letsencrypt`: host certificate directory.
-
-The current nginx configuration expects these certificate files:
+The production profile mounts `EVOPIE_CERTS_DIR` at `/etc/nginx/certs`. Nginx
+expects the certificate and key at:
 
 ```text
-/etc/letsencrypt/live/evopie.cse.usf.edu/fullchain.pem
-/etc/letsencrypt/live/evopie.cse.usf.edu/privkey.pem
+/etc/nginx/certs/live/${EVOPIE_CERT_DOMAIN}/fullchain.pem
+/etc/nginx/certs/live/${EVOPIE_CERT_DOMAIN}/privkey.pem
 ```
 
 ## Grading components
@@ -347,24 +358,27 @@ requests after a stale-data error.
 
 ## Certificate operations
 
-The current production deployment uses Let's Encrypt certificates. Certbot
-renews certificates on a 90-day cycle. To list certificates known to certbot,
-run:
+Docker Compose expects production certificates to exist on the host; it does
+not obtain or renew them. Nginx reads the certificate and key from
+`EVOPIE_CERTS_DIR`, under `live/EVOPIE_CERT_DOMAIN/`. A common source is
+Let's Encrypt with certbot. For example, request a certificate for a public
+server name with the standalone HTTP challenge:
+
+```bash
+sudo certbot certonly --standalone -d example.edu
+```
+
+This requires the domain to resolve to the server and port 80 to be available
+for validation. On a host where certbot is installed, list its certificates
+with:
 
 ```bash
 sudo certbot certificates
 ```
 
-The server certificate directory contains:
-
-- `live`: symbolic links to currently active certificates;
-- `renewal-hooks`: scripts that run before or after renewal.
-
-The renewal hooks have these responsibilities:
-
-- stop services that need ports 80 or 443 before renewal;
-- convert certificate files when another service needs another format;
-- restart containers that cache certificates after renewal.
+Certificate renewal and any required nginx reload or container restart must be
+configured outside Docker Compose. For local HTTPS testing, generate a
+self-signed certificate with `scripts/create-local-certs.sh`.
 
 ## CLI experiment commands
 
