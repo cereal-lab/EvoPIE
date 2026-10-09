@@ -12,13 +12,13 @@ else:
 PY
 )
 
-pipenv run flask DB-init
-pipenv run python3 datalayer/updateglossary.py "$DB_FILE"
+uv run --frozen --no-sync flask DB-init
+uv run --frozen --no-sync python3 datalayer/updateglossary.py "$DB_FILE"
 # Production version: 
-# pipenv run gunicorn -w 4 -b 0.0.0.0:5000 app:APP
+# uv run --frozen --no-sync gunicorn -w 4 -b 0.0.0.0:5000 app:APP
 # Dev version: 
-pipenv run gunicorn --log-level debug -w 1 -b 0.0.0.0:5000 app:APP
-#pipenv run gunicorn --log-level debug -w 1 -b 0.0.0.0:5010 app:APP
+uv run --frozen --no-sync gunicorn --log-level debug -w 1 -b 0.0.0.0:5000 app:APP
+#uv run --frozen --no-sync gunicorn --log-level debug -w 1 -b 0.0.0.0:5010 app:APP
 # seems to be old syntax:
-#pipenv run gunicorn --reload --workers 1 -b 0.0.0.0:5000 app:APP --debug --debugger-address="0.0.0.0:5678"
+#uv run --frozen --no-sync gunicorn --reload --workers 1 -b 0.0.0.0:5000 app:APP --debug --debugger-address="0.0.0.0:5678"
 

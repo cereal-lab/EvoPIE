@@ -81,37 +81,37 @@ EvoPIE uses these quiz and quiz-attempt statuses:
 Initialize the database tables without dropping existing data:
 
 ```bash
-pipenv run flask DB-init
+uv run flask DB-init
 ```
 
 Drop and recreate the database tables:
 
 ```bash
-pipenv run flask DB-reboot
+uv run flask DB-reboot
 ```
 
 Populate sample quiz data:
 
 ```bash
-pipenv run flask DB-populate
+uv run flask DB-populate
 ```
 
 Run the dashboard updater once:
 
 ```bash
-pipenv run python updater.py -1
+uv run python updater.py -1
 ```
 
 Run the dashboard updater every 360 seconds:
 
 ```bash
-pipenv run python updater.py 360
+uv run python updater.py 360
 ```
 
 Open a Flask shell with EvoPIE loaded:
 
 ```bash
-pipenv run flask shell
+uv run flask shell
 ```
 
 Then import the application objects:
@@ -387,8 +387,8 @@ experiments use this command shape:
 
 ```bash
 export EVOPIE_DATABASE_URI=sqlite:///$WORK/evopie/data/db.sqlite
-export PYTHONPATH=$(pipenv run which python)
-pipenv run flask quiz deca-experiments \
+export PYTHONPATH=$(uv run which python)
+uv run flask quiz deca-experiments \
     --deca-spaces $WORK/evopie/data/deca-spaces \
     --algo-folder $WORK/evopie/data/algo \
     --results-folder $WORK/evopie/data/results \

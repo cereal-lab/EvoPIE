@@ -49,7 +49,7 @@ def DB_populate():
         Just populating the DB with some mock quizzes
     '''
     # For some reason Flask restarts the app when we launch it with
-    # pipenv run python app.py
+    # uv run python app.py
     # as a result, we populate twice and get too many quizzes / distractors
     # let's fix this by deleting all data from the tables first
     models.Question.query.delete()

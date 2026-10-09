@@ -38,6 +38,7 @@ x-local-watch-ignore: &local-watch-ignore
   - __pycache__/
   - '*.pyc'
   - venv/
+  - .venv/
   - .vscode/
   - .DS_Store
   - data/
@@ -46,8 +47,8 @@ x-local-watch-ignore: &local-watch-ignore
   - algo/
   - figures/
   - db.log
-  - Pipfile
-  - Pipfile.lock
+  - pyproject.toml
+  - uv.lock
   - evopie/Dockerfile.local
   - analysislayer/Dockerfile.local
 
@@ -68,9 +69,9 @@ services:
           target: /app
           ignore: *local-watch-ignore
         - action: rebuild
-          path: Pipfile
+          path: pyproject.toml
         - action: rebuild
-          path: Pipfile.lock
+          path: uv.lock
         - action: rebuild
           path: analysislayer/Dockerfile.local
 
@@ -92,9 +93,9 @@ services:
           target: /app
           ignore: *local-watch-ignore
         - action: rebuild
-          path: Pipfile
+          path: pyproject.toml
         - action: rebuild
-          path: Pipfile.lock
+          path: uv.lock
         - action: rebuild
           path: evopie/Dockerfile.local
     depends_on:

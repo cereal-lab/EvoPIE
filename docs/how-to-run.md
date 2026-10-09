@@ -2,16 +2,15 @@
 
 Run the commands from the repository root. Choose one of these five modes.
 
-## 1. Pipenv local
+## 1. uv local
 
-There is no Just recipe for direct Pipenv development. Install Python 3.8 and
-Pipenv, then run:
+Install Python 3.8 and [uv](https://docs.astral.sh/uv/), then run:
 
 ```bash
-pipenv sync
+uv sync --locked
 export FLASK_APP=evopie/__init__.py
-pipenv run flask DB-init
-pipenv run flask run
+uv run flask DB-init
+uv run flask run
 ```
 
 Open <http://127.0.0.1:5000>. `DB-init` creates the database tables without
@@ -19,10 +18,10 @@ discarding existing data. To refresh dashboard data, run the updater
 separately:
 
 ```bash
-pipenv run python updater.py 360
+uv run python updater.py 360
 ```
 
-Use `pipenv run python updater.py -1` to run the updater once.
+Use `uv run python updater.py -1` to run the updater once.
 
 ## 2. Simple Docker local development
 

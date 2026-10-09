@@ -142,7 +142,7 @@ performance, peer-instruction activity, and derived analysis views.
 
 ## Deployment shape
 
-EvoPIE can run directly with Pipenv, Flask, SQLite, and the updater process.
+EvoPIE can run directly with uv, Flask, SQLite, and the updater process.
 Docker Compose also provides a `local` profile that builds the web and updater
 services from the current checkout and serves the app over HTTP without nginx.
 Compose Watch can sync source changes into that local profile.

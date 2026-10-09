@@ -17,13 +17,13 @@ Then rerun the command.
 Initialize the database tables:
 
 ```bash
-pipenv run flask DB-init
+uv run flask DB-init
 ```
 
 To discard local data and recreate the tables, run:
 
 ```bash
-pipenv run flask DB-reboot
+uv run flask DB-reboot
 ```
 
 ## Why is the first account an instructor?
@@ -37,7 +37,7 @@ Another process may already be using port 5000. Stop that process or run Flask
 on another port:
 
 ```bash
-pipenv run flask run --port 5010
+uv run flask run --port 5010
 ```
 
 ## Why is dashboard data stale?
@@ -45,14 +45,14 @@ pipenv run flask run --port 5010
 Run the updater once:
 
 ```bash
-pipenv run python updater.py -1
+uv run python updater.py -1
 ```
 
 For a continuously refreshed local dashboard, run the updater in another
 terminal:
 
 ```bash
-pipenv run python updater.py 360
+uv run python updater.py 360
 ```
 
 ## Why does nginx fail to start in the production profile?
