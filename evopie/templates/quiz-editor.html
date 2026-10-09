@@ -36,6 +36,8 @@
         xhr.send(data_as_string);
         event.preventDefault();
         event.stopPropagation();
+        $('#quiz_description').summernote('code', '');
+        document.querySelector('#quiz_description').value = '';
         location.reload();
         return false;
     }

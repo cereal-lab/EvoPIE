@@ -68,6 +68,8 @@
             if (response.status === "success") {
                 sendToFlashLand(response.message, response.status);
                 await delay(1000);
+                $('#quiz_description').summernote('code', '');
+                description.value = '';
                 location.reload();
             } else {
                 sendToFlashLand(response.message, response.status);
@@ -266,6 +268,8 @@
         xhr.send(data);
         event.preventDefault();
         event.stopPropagation();
+        $('#quiz_description').summernote('code', '');
+        document.querySelector('#quiz_description').value = '';
         location.reload();
         return false;
     }
