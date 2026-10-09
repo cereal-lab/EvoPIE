@@ -1,0 +1,12 @@
+.git
+__pycache__
+*.pyc
+venv
+.vscode
+.DS_Store
+data
+certs
+results
+algo
+figures
+db.log

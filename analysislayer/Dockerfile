@@ -16,10 +16,10 @@ RUN ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime && \
 ENV TZ="America/New_York"
 
 WORKDIR /app
-RUN echo "forcing rebuild  "
+ARG EVOPIE_GIT_REF=master
+RUN echo "Building EvoPIE from ${EVOPIE_GIT_REF}"
 RUN git clone https://github.com/cereal-lab/EvoPIE.git .
-RUN git checkout master
-RUN git pull
+RUN git checkout "${EVOPIE_GIT_REF}"
 
 RUN pipenv sync
 #RUN pipenv run flask DB-reboot
