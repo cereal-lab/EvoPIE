@@ -128,6 +128,11 @@ from evopie import *
 export FLASK_APP=evopie/__init__.py
 ```
 
+`EVOPIE_SECRET_KEY` is required by the web application for signing session
+cookies. Set it to a private, randomly generated value and keep it stable across
+restarts. The application refuses to start if it is unset or empty. Generate a
+key with `python3 -c 'import secrets; print(secrets.token_hex(32))'`.
+
 `EVOPIE_DATABASE_URI` selects the database URI. If it is not set, EvoPIE uses a
 local SQLite database. Docker Compose defaults it to
 `sqlite:////app/data/db.sqlite`.
@@ -150,6 +155,8 @@ The Docker Compose profiles also use these variables:
   `/etc/nginx/certs`; required for production.
 - `EVOPIE_GIT_REF`: upstream branch, tag, or commit checked out by production
   image builds; defaults to `master`.
+- `EVOPIE_SECRET_KEY`: required private key used to sign session cookies; the
+  production profile validates that it is set.
 
 ## Important paths
 
