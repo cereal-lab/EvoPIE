@@ -2,6 +2,21 @@
 
 Run the commands from the repository root. Choose one of these five modes.
 
+## Required session-signing key
+
+EvoPIE requires a private `EVOPIE_SECRET_KEY` and exits at startup if it is
+missing. Generate a unique key for this installation:
+
+```bash
+export EVOPIE_SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_hex(32))')"
+```
+
+Keep the value private and stable across restarts. Generate a different key
+for each installation. Replacing a key invalidates existing session cookies.
+For Docker Compose, you can store it in a root `.env` file; start with
+`.env.example`, fill in the key, and never commit `.env`. For direct local
+commands, export the variable in the shell before running EvoPIE.
+
 ## 1. uv local
 
 Install Python 3.8 and [uv](https://docs.astral.sh/uv/), then run:

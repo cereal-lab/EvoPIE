@@ -6,7 +6,6 @@ import flask
 # Flask-SQLAlchemy needs a flask app context, so this is a dummy
 # flask application.  RPW:  Make sure the port doesn't collide
 APP = flask.Flask(__name__)
-APP.config['SECRET_KEY'] = '9OLWxND4o83j4K4iuopO' #FIXME replace this by an ENV variable
  #NOTE: timeout allows to avoid database is locked - it is workaround
 APP.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('EVOPIE_DATABASE_URI', 'sqlite:///evopie/DB_quizlib.sqlite') + "?timeout=20"
 APP.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False

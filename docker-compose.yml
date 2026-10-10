@@ -1,5 +1,6 @@
 x-web-environment: &web-environment
   - EVOPIE_DATABASE_URI=${EVOPIE_DATABASE_URI:-sqlite:////app/data/db.sqlite}
+  - EVOPIE_SECRET_KEY=${EVOPIE_SECRET_KEY:-}
 
 x-updater-common: &updater-common
   build:
@@ -113,11 +114,14 @@ services:
           { echo "Set EVOPIE_SERVER_NAME for production" >&2; exit 1; }
         test -n "$EVOPIE_CERTS_DIR" ||
           { echo "Set EVOPIE_CERTS_DIR for production" >&2; exit 1; }
+        test -n "$EVOPIE_SECRET_KEY" ||
+          { echo "Set EVOPIE_SECRET_KEY for production" >&2; exit 1; }
       '
     environment:
       - EVOPIE_DATA_DIR=${EVOPIE_DATA_DIR:-}
       - EVOPIE_SERVER_NAME=${EVOPIE_SERVER_NAME:-}
       - EVOPIE_CERTS_DIR=${EVOPIE_CERTS_DIR:-}
+      - EVOPIE_SECRET_KEY=${EVOPIE_SECRET_KEY:-}
 
   updater-production:
     <<: *updater-common

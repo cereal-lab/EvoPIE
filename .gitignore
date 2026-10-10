@@ -4,6 +4,7 @@ evopie/DB_quizlib.sqlite*
 mycookies
 venv/
 .venv/
+.env
 evopie/DB_quizlib-easy.sqlite
 gradebooks.diff
 gradebook-downloaded.csv
