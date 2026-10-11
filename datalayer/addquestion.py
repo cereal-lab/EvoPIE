@@ -1,4 +1,5 @@
 ## RPW:  Ad-Hoc script to add a fake question to the DB
+# Run from the repository root with: python -m datalayer.addquestion q1
 
 from sqlalchemy import create_engine
 from flask_sqlalchemy import SQLAlchemy
@@ -8,7 +9,12 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 import json
+import logging
 import sys
+
+from datalayer import ConfigureLogger
+
+LOGGER = ConfigureLogger(logging.getLogger(__name__))
 
 DB = SQLAlchemy()
 
@@ -116,7 +122,7 @@ try:
   rawInput = sys.argv[1]
   rawQuestion = int(rawInput.strip('q'))
 except:
-  print("ERROR:  Please specify a valid question to copy (q1, q2, q3)!")
+  LOGGER.error("Specify a valid question to copy (q1, q2, or q3).")
   sys.exit(1)
 basisQuestion = str(rawQuestion)
 
@@ -134,7 +140,7 @@ elif (basisQuestion == "1"):
   studentMissedInit = set(list(range(1,120))) - set([18, 29, 47, 115, 117])
   stride = 100
 else:
-  print("ERROR:  Please specify a valid question to copy (q1, q2, q3)!")
+  LOGGER.error("Specify a valid question to copy (q1, q2, or q3).")
   sys.exit(1)
 
 
@@ -145,7 +151,7 @@ session = Session(engine)
 
 # Add the question to the quiz
 qid = int(session.query(Question, func.max(Question.id)).first()[1]) + 1
-print("\n\nAdding new question: qid=", qid, "\n\n")
+LOGGER.info("Adding question %s.", qid)
 myStem = "&lt;p&gt;What is the best programming language for efficient, embedded controllers?&lt;br&gt;&lt;/p&gt;"
 myAnswer = "<p>C++;<br></p>"
 q1 = Question(id=qid, title="COP2512 M10 - Q4 Silly", stem=myStem, answer=myAnswer)
@@ -153,7 +159,7 @@ session.add(q1)
 
 # Add distractors
 did = int(session.query(Distractor, func.max(Distractor.id)).first()[1])
-print("\n\nAdding new distractors: did=", did+1, did+2, did+3, "\n\n")
+LOGGER.info("Adding distractors %s, %s, and %s.", did + 1, did + 2, did + 3)
 d1 = Distractor(id=did+1, answer="Python", question_id=qid)
 d2 = Distractor(id=did+2, answer="Pascal", question_id=qid)
 d3 = Distractor(id=did+3, answer="Ada", question_id=qid)
@@ -167,9 +173,7 @@ session.add(qq1)
 quiz = session.query(Quiz).filter_by(id=quizID).one()
 quiz.quiz_questions.append(qq1)
 
-print("\n",''.ljust(40, '-'))
 for student in session.query(QuizAttempt).filter_by(quiz_id=1).order_by(QuizAttempt.id):
-  print("\nXX-BEFORE: ", student.student_id, student.initial_responses, student.initial_total_score, student.revised_responses, student.revised_total_score)
   try:
     # Convert the varchar fields to dictionaries so we can work with them
     initial_responses = json.loads(student.initial_responses.replace("'", '"'))
@@ -224,16 +228,15 @@ for student in session.query(QuizAttempt).filter_by(quiz_id=1).order_by(QuizAtte
     student.revised_total_score = revised_total
     changeCounter += 1
 
-  except Exception as e:
-    print("XX-Could not process student ", student.student_id)
+  except Exception:
+    LOGGER.exception("Could not update attempt for student %s.", student.student_id)
     pass
-
-  # Let's print to make sure this is working ...
-  print("\nXX-AFTER:  ", student.student_id, student.initial_responses, student.initial_total_score, student.revised_responses, student.revised_total_score)
-
-print("\n",''.ljust(40, '-'))
 
 session.commit()
 
-print("\n\nXX-COMPLETED:  Copied question q", basisQuestion, ", made ", changeCounter, " changes.\n\n")
+LOGGER.info(
+    "Copied question q%s and updated %s student attempts.",
+    basisQuestion,
+    changeCounter,
+)
 
