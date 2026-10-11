@@ -13,7 +13,7 @@ PY
 )
 
 uv run --frozen --no-sync flask DB-init
-uv run --frozen --no-sync python3 datalayer/updateglossary.py "$DB_FILE"
+uv run --frozen --no-sync python -m datalayer.updateglossary "$DB_FILE"
 # Production version: 
 # uv run --frozen --no-sync gunicorn -w 4 -b 0.0.0.0:5000 app:APP
 # Dev version: 

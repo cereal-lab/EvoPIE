@@ -11,6 +11,7 @@ import sys
 import json
 
 import datalayer.models as models
+from datalayer import LOGGER
 import analysislayer.utils as dataUtils
 
 from flask_login import current_user
@@ -85,9 +86,13 @@ def GetScoresDataframe(quizID, numQuestions=None, branching=None, maxNumStudents
                                 'RevisedScore':RevisedScores})    
         df = pd.concat([df, dfNewRow])  
 
-    except:
+    except Exception:
       if not quiet:
-        print("WARNING: QuizAttempt record", studentInstance.id, "was incomplete.  Ignoring this record.")
+        LOGGER.warning(
+            "Ignoring incomplete QuizAttempt record %s.",
+            studentInstance.id,
+            exc_info=True,
+        )
 
   return df
 
@@ -143,9 +148,13 @@ def GetQuestionDetailDataframe(quizID, questionID, whichScores, quiet=True):
         QText = dataUtils.StripHTMLMarkers(question.stem, textTruncationLength)
         ResponseText = dataUtils.StripHTMLMarkers(distractor.answer, textTruncationLength)
         questionTallyDict[questionResponse] = (question.id, QText, questionResponse, ResponseText, False, 1)
-    except:
+    except Exception:
       if not quiet:
-        print("WARNING: QuizAttempt record" + str(studentInstance.id) + "was incomplete.  Ignoring this record.")
+        LOGGER.warning(
+            "Ignoring incomplete QuizAttempt record %s.",
+            studentInstance.id,
+            exc_info=True,
+        )
 
   # Now build the Pandas dataframe
   QIDs, QText, RIDs, RText, Corrects, Counts = tuple(zip(*questionTallyDict.values()))
@@ -170,13 +179,17 @@ def GetQuizOptionList(use_all=True):
   user_id = "-1"
   try:
     user_id = current_user.id
-  except:
+  except Exception:
     if not use_all:
-      print(f"WARNING:  Cannot get the current user ID, sop cannot populate the list of quizzes (user_id={user_id}).")    
+      LOGGER.warning(
+          "Cannot get the current user ID; cannot populate the quiz list "
+          "(user_id=%s).",
+          user_id,
+          exc_info=True,
+      )
     user_id = "-1"
 
   for quizInstance in models.Quiz.query.order_by(models.Quiz.id).all():
-    #print(f"DBG:  current user={user_id},  author={quizInstance.author_id}")
     if use_all or (quizInstance.author_id == user_id):
       optDict = {'label':quizInstance.title, 'value':int(quizInstance.id)}
       quizOptionList.append(optDict)
@@ -256,7 +269,6 @@ def PutStoredWidgetObject(quiz_id, analysis_type, score_type, view_type, hash_ch
                                   dccContext=json.dumps(dcc_context))
       models.DB.session.add(widget)      
       models.DB.session.commit()
-    except:
-      print("ERROR:  Could not add widget ", widgetKey)
+    except Exception:
+      LOGGER.exception("Could not add widget %s.", widgetKey)
       raise
-    
