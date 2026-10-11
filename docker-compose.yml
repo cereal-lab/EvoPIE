@@ -1,6 +1,7 @@
 x-web-environment: &web-environment
   - EVOPIE_DATABASE_URI=${EVOPIE_DATABASE_URI:-sqlite:////app/data/db.sqlite}
   - EVOPIE_SECRET_KEY=${EVOPIE_SECRET_KEY:-}
+  - EVOPIE_LOG_LEVEL=${EVOPIE_LOG_LEVEL:-INFO}
 
 x-updater-common: &updater-common
   build:
@@ -9,6 +10,7 @@ x-updater-common: &updater-common
       EVOPIE_GIT_REF: ${EVOPIE_GIT_REF:-master}
   environment:
     - EVOPIE_DATABASE_URI=${EVOPIE_DATABASE_URI:-sqlite:////app/data/db.sqlite}
+    - EVOPIE_LOG_LEVEL=${EVOPIE_LOG_LEVEL:-INFO}
     - INIT_DB=1
   expose:
     - 5000

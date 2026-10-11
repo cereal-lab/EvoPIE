@@ -9,10 +9,6 @@ from flask_login import login_required, current_user
 
 from datalayer.dbaccess import IsValidDashboardUser
 
-# For logging purposes
-from evopie import APP
-import logging
-
 def register_dashapps(flask_server):
     from evopie.datadashboard import questionview, studentview
 
@@ -28,8 +24,6 @@ def register_dashapps(flask_server):
                                  assets_folder=get_root_path(__name__) + '/../assets/',
                                  meta_tags=[meta_viewport])
     
-    APP.logger.setLevel(logging.INFO)
-
     ## RPW:  The relative parent directory thing for assets_folder is a hack so
     ##       that I can keep this DashTesting application running the same whether
     ##       being driven by Dash or by Flask.  We'll have to figure out where we
