@@ -1,6 +1,6 @@
 # Ad-Hoc standalone script to populate the glossary table from a JSON file.
 # Run from the EvoPIE directory like this:
-#  python datalayer/updateglossary.py
+#  python -m datalayer.updateglossary
 #
 from sqlalchemy import create_engine
 from flask_sqlalchemy import SQLAlchemy
