@@ -6,6 +6,7 @@ import numpy as np
 import sys
 
 import analysislayer.utils as dataUtils
+from datalayer import LOGGER
 
 import analysislayer.heatmap as heatmap
 import analysislayer.deca as deca
@@ -83,12 +84,10 @@ def GenerateStudentDistributionGraph(df, studentID=0, contextDict=dict()):
     studentRevisedScore = resultsDF.loc[(resultsDF['StudentID'] == int(studentID)) & (resultsDF['variable'] == "RevisedScore")]
     studentRevisedScore = studentRevisedScore.iat[0,2]
 
-    # print scores and student ID for debugging
-    #print("Student ID: ", studentID)
-    #print("inital score: ", studentInitialScore)
-    #print("revised score: ", studentRevisedScore)
-  except Exception as e:
-    print("ERROR:  Distribution plot could not get student details.  ", e)
+  except Exception:
+    LOGGER.exception(
+        "Could not get score details for student %s.", studentID
+    )
 
 
    # This block builds the graph itself, both positional traces for the student, as 
@@ -124,8 +123,8 @@ def GenerateStudentDistributionGraph(df, studentID=0, contextDict=dict()):
     fig = dict(data=[graph.data[k] for k in range(2)]+[posMarkerInitialScore]+[posMarkerRevisedScore],
                       layout=graph.layout)
 
-  except Exception as err:
-    print("ERROR: Plotter could not produce distribution plot:", err)
+  except Exception:
+    LOGGER.exception("Could not produce a student distribution plot.")
 
   # Return the Dash dcc object containing the plotly figure
   return dcc.Graph(id="studentDist", figure=fig)

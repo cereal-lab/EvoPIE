@@ -1,6 +1,4 @@
-import traceback
 import pandas as pd
-import traceback
 
 from dash import dcc
 from dash import html
@@ -10,6 +8,7 @@ from dash.dependencies import Input, Output
 import datalayer.dbaccess as da
 import analysislayer.plotter as plotter
 import analysislayer.utils as dataUtils
+from datalayer import LOGGER
 
 import threading
 
@@ -37,7 +36,9 @@ class WidgetBuilder(threading.Thread):
       self.currentQuizDF = None # Current quiz data frame used to build the table
       self.running = False      # Whether or not the thread is running
       self.InitGraphsWithSimpleMessage("No graph selected")
-      print("Created a WidgetBuilder.  There should not be more than one -- so if this messages appears more than once, there is a problem.")
+      LOGGER.debug(
+          "Created a WidgetBuilder; expected a single instance."
+      )
 
 
   def GetGraph(self, whichAnalysis, whichView, whichScore):
@@ -83,18 +84,27 @@ class WidgetBuilder(threading.Thread):
 
     # If we already have an object with this quiz ID, no need to re-build it.
     if not oldQuizID == inQuizID:
-      print("    Generating graph for quiz", inQuizID, " (v", oldQuizID, "):: ", whichAnalysis, whichView, whichScore)
+      LOGGER.info(
+          "Generating %s/%s/%s graph for quiz %s (previous quiz %s).",
+          whichAnalysis,
+          whichView,
+          whichScore,
+          inQuizID,
+          oldQuizID,
+      )
       graphObject = html.P(children="Unable to build this graph due to an unforseen error", className="graph-component-message")        
-
-      #if (whichAnalysis == "trad"):
-      #  print("\n\nDBG:  in the putgaph\n\n", self.currentQuizDF )
 
       try:
         pltgen = gPlotterDictionary[whichAnalysis] # Get the right plotting routine
         graphObject = pltgen(quizDF, whichScore, inQuizID, whichView, contextDict)  # Generate the graph
-      except Exception as err:
-        print("     --> Failure in widgetbuilder PutGraph, ", (whichAnalysis, whichView, whichScore))
-        print("         Error: ", str(err), traceback.print_exc())
+      except Exception:
+        LOGGER.exception(
+            "Failed to build %s/%s/%s graph for quiz %s.",
+            whichAnalysis,
+            whichView,
+            whichScore,
+            inQuizID,
+        )
 
       self.widgetTable[(whichAnalysis, whichView, whichScore)] = (graphObject, inQuizID) # Store the graph & quizID
       self.analysisContextTable[(whichAnalysis, whichView)] = contextDict  # Store the context for the analysis
@@ -118,12 +128,19 @@ class WidgetBuilder(threading.Thread):
     """
     Print the internal width table (mostly for debugging).
     """
-    print("Current Widget Table [", len(self.widgetTable), "]:")
+    LOGGER.debug("Current widget table has %s entries.", len(self.widgetTable))
     for key in self.widgetTable:
       whichAnalysis, whichView, whichScore = key
       graphObject, quizID = self.widgetTable[key]
       goName = type(graphObject).__name__
-      print('  ', whichAnalysis, whichView, whichScore, quizID, goName)
+      LOGGER.debug(
+          "Widget %s/%s/%s for quiz %s: %s",
+          whichAnalysis,
+          whichView,
+          whichScore,
+          quizID,
+          goName,
+      )
 
 
   def IsReloadNeeded(self, quizID, quizDF):
@@ -160,7 +177,7 @@ class WidgetBuilder(threading.Thread):
     until the currentQuizID changes.
     """
     self.running = True
-    print("Thread started running...")
+    LOGGER.info("Widget builder thread started.")
 
     while self.running:
       for whichAnalysis in list(gPlotterDictionary.keys()): 
@@ -200,9 +217,9 @@ class WidgetBuilder(threading.Thread):
           ]
       )
 
-    except:
+    except Exception:
       toolTip = html.H1(children="Error loading header", className="graph-component-message")
-      traceback.print_exc()
+      LOGGER.exception("Failed to build question detail header.")
 
     return toolTip
   
@@ -216,9 +233,9 @@ class WidgetBuilder(threading.Thread):
     try:
       detailsPlot = plotter.GenerateQuestionDetailPlot(quizDetailDF, questionID, whichScores)
 
-    except:
+    except Exception:
       detailsPlot = html.P(children="Error loading questions detail plot", className="graph-component-message")
-      traceback.print_exc()
+      LOGGER.exception("Failed to build question detail plot.")
 
     return detailsPlot
 
@@ -235,8 +252,9 @@ class WidgetBuilder(threading.Thread):
 
       detailsPlot = plotter.GenerateStudentDistributionGraph(quizDetailDF, studentID)
       
-    except:
+    except Exception:
       detailsPlot = html.P(children="Error loading student detail plot", className="graph-component-message")
+      LOGGER.exception("Failed to build student detail plot.")
 
     return detailsPlot
 
