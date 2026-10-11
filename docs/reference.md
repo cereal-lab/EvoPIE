@@ -137,6 +137,10 @@ key with `python3 -c 'import secrets; print(secrets.token_hex(32))'`.
 local SQLite database. Docker Compose defaults it to
 `sqlite:////app/data/db.sqlite`.
 
+`EVOPIE_LOG_LEVEL` controls the web application's and updater's logging level.
+It accepts `DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL`; the default is
+`INFO`.
+
 `EVOPIE_UPDATER_SLEEP` controls the updater delay when `updater.py` is run
 without a command-line delay argument.
 
