@@ -24,8 +24,8 @@ local-certs domain="localhost" certs_dir="./certs":
     EVOPIE_CERTS_DIR="{{certs_dir}}" \
     ./scripts/create-local-certs.sh
 
-logs:
-    docker compose logs -f
+logs profile="local":
+    docker compose --profile "{{profile}}" logs --tail=all -f
 
 down:
     docker compose down
