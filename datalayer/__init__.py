@@ -17,11 +17,19 @@ def StartupDatabase(application):
 
 LOGGER = None
 
+LOG_LEVELS = {
+    "DEBUG": logging.DEBUG,
+    "INFO": logging.INFO,
+    "WARNING": logging.WARNING,
+    "ERROR": logging.ERROR,
+    "CRITICAL": logging.CRITICAL,
+}
+
 
 def ConfigureLogger(logger):
     level_name = os.getenv("EVOPIE_LOG_LEVEL", "INFO").upper()
-    level = logging.getLevelName(level_name)
-    if not isinstance(level, int):
+    level = LOG_LEVELS.get(level_name)
+    if level is None:
         raise ValueError(
             "EVOPIE_LOG_LEVEL must be one of DEBUG, INFO, WARNING, ERROR, "
             "or CRITICAL."

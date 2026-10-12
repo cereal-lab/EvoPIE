@@ -22,9 +22,10 @@ def test_configure_logger_defaults_to_info(monkeypatch):
     assert logger.level == logging.INFO
 
 
-def test_configure_logger_rejects_unknown_level(monkeypatch):
+@pytest.mark.parametrize("level", ["VERBOSE", "NOTSET", "WARN"])
+def test_configure_logger_rejects_unsupported_level(monkeypatch, level):
     logger = logging.Logger("test-evopie-logger")
-    monkeypatch.setenv("EVOPIE_LOG_LEVEL", "VERBOSE")
+    monkeypatch.setenv("EVOPIE_LOG_LEVEL", level)
 
     with pytest.raises(ValueError, match="EVOPIE_LOG_LEVEL"):
         ConfigureLogger(logger)
