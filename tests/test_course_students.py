@@ -1,3 +1,4 @@
+import io
 import uuid
 
 import pytest
@@ -89,6 +90,24 @@ def test_adding_an_already_enrolled_student_does_not_duplicate(course_student_co
     response = client.post(
         "/courses/{}/student-list".format(course_id),
         data={"action": "add_student", "email": student_email},
+    )
+
+    assert response.status_code == 302
+    with APP.app_context():
+        course = models.Course.query.get(course_id)
+        assert len([student for student in course.students if student.email == student_email]) == 1
+
+
+def test_csv_reupload_deduplicates_student_emails(course_student_context):
+    client, course_id, student_email = course_student_context
+
+    response = client.post(
+        "/courses/{}/student-list".format(course_id),
+        data={
+            "action": "replace_csv",
+            "csvfile": (io.BytesIO((student_email + "\n" + student_email).encode("utf-8")), "students.csv"),
+        },
+        content_type="multipart/form-data",
     )
 
     assert response.status_code == 302
