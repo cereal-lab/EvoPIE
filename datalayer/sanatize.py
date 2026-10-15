@@ -1,10 +1,16 @@
 ## RPW:  Ad-Hoc stand-alone script to remove usernames from the DB
+# Run from the repository root with: python -m datalayer.sanatize
 
 from sqlalchemy import create_engine
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+import logging
+
+from datalayer import ConfigureLogger
+
+LOGGER = ConfigureLogger(logging.getLogger(__name__))
 DB = SQLAlchemy()
 
 ROLE_STUDENT = "STUDENT"
@@ -20,16 +26,16 @@ class User(DB.Model):
   role = DB.Column(DB.String, default=ROLE_STUDENT)
 
 
-engine = create_engine("sqlite:///alessio.sqlite", echo=True, future=True)
+engine = create_engine("sqlite:///alessio.sqlite", future=True)
 session = Session(engine)
+sanitized_count = 0
 
 for instance in session.query(User).order_by(User.id):
-  print("OLD::", instance.id, instance.first_name, instance.last_name, instance.email, instance.role)
   instance.first_name = instance.role + '-' + str(instance.id)
   instance.last_name = instance.role + '-' + str(instance.id)
   instance.email="noone@nowhere.xyz"
-  print("NEW::", instance.id, instance.first_name, instance.last_name, instance.email, instance.role)
-  print()
+  sanitized_count += 1
 
 session.commit()
+LOGGER.info("Anonymized %s user records.", sanitized_count)
 

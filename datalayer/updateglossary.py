@@ -1,6 +1,6 @@
 # Ad-Hoc standalone script to populate the glossary table from a JSON file.
 # Run from the EvoPIE directory like this:
-#  python datalayer/updateglossary.py
+#  python -m datalayer.updateglossary
 #
 from sqlalchemy import create_engine
 from flask_sqlalchemy import SQLAlchemy
@@ -11,7 +11,12 @@ from sqlalchemy import inspect
 from sqlalchemy.orm import Session
 
 import json
+import logging
 import sys
+
+from datalayer import ConfigureLogger
+
+LOGGER = ConfigureLogger(logging.getLogger(__name__))
 
 DB = SQLAlchemy()
 
@@ -43,16 +48,16 @@ def get_database_session(dbFilename):
     engine = create_engine(connectionString)
     session = Session(engine)
 
-  except:
-    print("ERROR: Could not open DB at '" + connectionString + "'.")
+  except Exception:
+    LOGGER.exception("Could not open DB at %s.", connectionString)
     sys.exit(11)
 
-  print("Connected to: ", connectionString)
+  LOGGER.info("Connected to %s.", connectionString)
 
   try:
     # If the glossary table does not exist, create it
     if not inspect(engine).has_table("glossary"): 
-        print("  The 'glossary' table did not exist.  Creating it.") 
+        LOGGER.info("The glossary table does not exist; creating it.")
         metadata = MetaData() #   MetaData(engine)
         DB.Table( "glossary", metadata,
             DB.Column('id', DB.Integer, primary_key=True), 
@@ -60,9 +65,9 @@ def get_database_session(dbFilename):
             DB.Column('definition', DB.String, nullable=False) )
         metadata.create_all(engine)   
     else:
-      print("  There was already a 'glossary' table.  No need to create it.") 
-  except:
-    print("ERROR: Could not create the glossary table")
+      LOGGER.info("The glossary table already exists; no need to create it.")
+  except Exception:
+    LOGGER.exception("Could not create the glossary table.")
     sys.exit(12)
 
   return session
@@ -76,8 +81,8 @@ def get_glossary_dict(jsonFilename):
   try:
     jsonFile = open(jsonFilename)
     jsonDict = json.load(jsonFile)
-  except:
-    print("ERROR: Could not find a JSON file at '" + jsonFilename + "'.")
+  except Exception:
+    LOGGER.exception("Could not read JSON file %s.", jsonFilename)
     sys.exit(1)
 
   try:
@@ -91,8 +96,8 @@ def get_glossary_dict(jsonFilename):
 
     jsonDict = tmpDict
 
-  except:
-    print("ERROR:  The JSON file at '" + jsonFilename + "' isn't formatted as expected.")
+  except Exception:
+    LOGGER.exception("JSON file %s has an unexpected format.", jsonFilename)
     sys.exit(2)
 
   return jsonDict
@@ -111,20 +116,20 @@ def update_glossary_table(dbSession, jsonDict):
           if (not jterm == luTerm.term) or (not jdefinition == luTerm.definition):
             luTerm.term = jterm
             luTerm.definition = jdefinition
-            print("  Updating term '" + luTerm.term + "'.")
+            LOGGER.info("Updating glossary term %r.", luTerm.term)
           else:
-            print("  Skipping term '" + jterm + "'.")
+            LOGGER.debug("Glossary term %r is unchanged.", jterm)
 
         except:
-          print("  Adding term '" + jterm + "'")
+          LOGGER.info("Adding glossary term %r.", jterm)
           glossaryTerm = GlossaryTerm(id=jid, term=jterm, definition=jdefinition)
           dbSession.add(glossaryTerm)
 
-  except:
-    print("ERROR:  There was a database access problem.")
+  except Exception:
+    LOGGER.exception("Could not update the glossary table.")
     sys.exit(4)
-    
-  print("Updated the glossary table.")
+
+  LOGGER.info("Updated the glossary table.")
 
 
 if __name__ == '__main__':

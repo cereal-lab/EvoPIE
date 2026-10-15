@@ -16,10 +16,35 @@ def StartupDatabase(application):
     return DB
 
 LOGGER = None
+
+LOG_LEVELS = {
+    "DEBUG": logging.DEBUG,
+    "INFO": logging.INFO,
+    "WARNING": logging.WARNING,
+    "ERROR": logging.ERROR,
+    "CRITICAL": logging.CRITICAL,
+}
+
+
+def ConfigureLogger(logger):
+    level_name = os.getenv("EVOPIE_LOG_LEVEL", "INFO").upper()
+    level = LOG_LEVELS.get(level_name)
+    if level is None:
+        raise ValueError(
+            "EVOPIE_LOG_LEVEL must be one of DEBUG, INFO, WARNING, ERROR, "
+            "or CRITICAL."
+        )
+
+    logger.setLevel(level)
+    if not logger.handlers and not logging.getLogger().handlers:
+        logger.addHandler(logging.StreamHandler())
+    return logger
+
+
 def RegisterGlobalLogger(appLogger):
     global LOGGER
-    LOGGER = appLogger
-    return appLogger
+    LOGGER = ConfigureLogger(appLogger)
+    return LOGGER
 
 #quiz attempt states 
 QUIZ_HIDDEN = "HIDDEN"

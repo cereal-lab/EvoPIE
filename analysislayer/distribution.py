@@ -23,8 +23,8 @@ def analyzeStudents(df, whichScores, contextDict):
 
   try:
     resultsDF = resultsDF.melt(id_vars=['StudentID'], value_vars=['RevisedScore','InitialScore'])
-  except Exception as e:
-      LOGGER.error("Distribution Didn't work:" + str(e))
+  except Exception:
+      LOGGER.exception("Could not prepare the student score distribution.")
 
 
   return resultsDF

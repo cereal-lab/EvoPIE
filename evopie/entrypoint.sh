@@ -13,11 +13,11 @@ PY
 )
 
 uv run --frozen --no-sync flask DB-init
-uv run --frozen --no-sync python3 datalayer/updateglossary.py "$DB_FILE"
+uv run --frozen --no-sync python -m datalayer.updateglossary "$DB_FILE"
 # Production version: 
 # uv run --frozen --no-sync gunicorn -w 4 -b 0.0.0.0:5000 app:APP
 # Dev version: 
-uv run --frozen --no-sync gunicorn --log-level debug -w 1 -b 0.0.0.0:5000 app:APP
+uv run --frozen --no-sync gunicorn --log-level "${EVOPIE_LOG_LEVEL:-INFO}" -w 1 -b 0.0.0.0:5000 app:APP
 #uv run --frozen --no-sync gunicorn --log-level debug -w 1 -b 0.0.0.0:5010 app:APP
 # seems to be old syntax:
 #uv run --frozen --no-sync gunicorn --reload --workers 1 -b 0.0.0.0:5000 app:APP --debug --debugger-address="0.0.0.0:5678"

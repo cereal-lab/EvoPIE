@@ -1,10 +1,7 @@
-import traceback
 import pandas as pd
-import traceback
-import hashlib 
+import hashlib
 import time
 import os
-import logging
 
 # Flask/Dash imports
 from dash import dcc
@@ -72,17 +69,27 @@ def PutGraph(inQuizID, quizDF, whichAnalysis, whichView, whichScore, contextDict
   # Check if the data frame we are about to analyze is different from the one already
   # stored in the widget table
   if not currentHash == hashCheck:
-    LOGGER.info("Generating graph for quiz " + str(inQuizID) + "-" + whichAnalysis + "-" + whichView + "-" + whichScore)
+    LOGGER.info(
+        "Generating %s/%s/%s graph for quiz %s.",
+        whichAnalysis,
+        whichView,
+        whichScore,
+        inQuizID,
+    )
     graphObject = html.P(children="Unable to build this graph due to an unforseen error", className="graph-component-message")        
 
     # Try to build the graph objects
     try:
       pltgen = gPlotterDictionary[whichAnalysis] # Get the right plotting routine
       graphObject = pltgen(quizDF, whichScore, inQuizID, whichView, contextDict)  # Generate the graph
-    except Exception as err:
-      LOGGER.error("Failure in widgetupdator PutGraph, " +\
-            whichAnalysis + "-" + whichView + "-" + whichScore + " ::: " +\
-            str(err) + traceback.print_exc())
+    except Exception:
+      LOGGER.exception(
+          "Failed to build %s/%s/%s graph for quiz %s.",
+          whichAnalysis,
+          whichView,
+          whichScore,
+          inQuizID,
+      )
 
     # Put the graph object and the context dictionary in the widget table
     da.PutStoredWidgetObject(inQuizID, whichAnalysis, whichScore, whichView, currentHash, graphObject, contextDict)
@@ -136,9 +143,9 @@ def GetQuestionDetailHeader(quizDetailDF, questionID, whichScores):
         ]
     )
 
-  except:
+  except Exception:
     toolTip = html.H1(children="Error loading header", className="graph-component-message")
-    traceback.print_exc()
+    LOGGER.exception("Failed to build question detail header.")
 
   return toolTip
   
@@ -152,9 +159,9 @@ def GetQuestionDetailsGraph(quizDetailDF, questionID, whichScores):
   try:
     detailsPlot = plotter.GenerateQuestionDetailPlot(quizDetailDF, questionID, whichScores)
 
-  except:
+  except Exception:
     detailsPlot = html.P(children="Error loading questions detail plot", className="graph-component-message")
-    traceback.print_exc()
+    LOGGER.exception("Failed to build question detail plot.")
 
   return detailsPlot
 
@@ -169,8 +176,9 @@ def GetStudentDetailsGraph(quizID, studentID, quizDetailDF):
     quizDetailDF = da.GetScoresDataframe(quizID) 
     detailsPlot = plotter.GenerateStudentDistributionGraph(quizDetailDF, studentID)
     
-  except:
+  except Exception:
     detailsPlot = html.P(children="Error loading student detail plot", className="graph-component-message")
+    LOGGER.exception("Failed to build student detail plot.")
 
   return detailsPlot
 

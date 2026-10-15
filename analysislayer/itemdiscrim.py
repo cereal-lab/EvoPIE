@@ -158,7 +158,7 @@ def analyzeQuestions(dataset, whichScores, contextDict):
 
   # Don't bother ids'ing if there's not enough data
   if (len(set(dataset.StudentID)) < 2) or (len(set(dataset.QuestionID)) < 2):
-    LOGGER.warn("There aren't enough questions to compute item descrimination")
+    LOGGER.warning("There aren't enough questions to compute item descrimination")
 
   # Otherwise, let's compute the IDS score for each question
   else:
@@ -219,7 +219,7 @@ def analyzeStudents(dataset, whichScores, contextDict):
 
   # Don't bother ids'ing if there's not enough data
   if (len(set(dataset.StudentID)) < 2) or (len(set(dataset.QuestionID)) < 2):
-    LOGGER.warn("There aren't enough students or questions to compute item descrimination")
+    LOGGER.warning("There aren't enough students or questions to compute item descrimination")
 
   # Otherwise, let's compute the IDS score for each question
   else:

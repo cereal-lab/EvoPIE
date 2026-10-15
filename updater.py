@@ -1,4 +1,4 @@
-import sys, os, logging
+import sys, os
 
 import flask
 
@@ -9,8 +9,6 @@ APP = flask.Flask(__name__)
  #NOTE: timeout allows to avoid database is locked - it is workaround
 APP.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('EVOPIE_DATABASE_URI', 'sqlite:///evopie/DB_quizlib.sqlite') + "?timeout=20"
 APP.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-APP.logger.setLevel(logging.INFO)
-
 # This stuff must happen before the other dashboard imports, below
 from datalayer import StartupDatabase, RegisterGlobalLogger
 DB = StartupDatabase(APP)
