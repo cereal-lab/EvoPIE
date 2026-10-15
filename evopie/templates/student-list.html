@@ -27,11 +27,26 @@
             <div  id = "newquiz" class = "collapse">
                 <p class="card-text">
                     <form action="" method="post" enctype="multipart/form-data">
-                        <p class><input type="file" name="csvfile"></p>
-                        <p><input type="submit" value="Submit"></p>
+                        <input type="hidden" name="action" value="replace_csv">
+                        <p class><input type="file" name="csvfile" accept=".csv,text/csv" required></p>
+                        <p><input type="submit" value="Replace roster"></p>
                     </form>
                 </p>
             </div>
+        </div>
+    </div>
+
+    <div class="card bg-light m-3 mx-auto" style="width: 75%">
+        <div class="card-body">
+            <h5 class="card-title">Add a student by email</h5>
+            <p class="card-text">An account will be created if this email has not signed up yet.</p>
+            <form action="" method="post" class="d-flex gap-2">
+                <input type="hidden" name="action" value="add_student">
+                <label class="visually-hidden" for="student-email">Student email</label>
+                <input id="student-email" type="email" name="email" class="form-control"
+                       placeholder="student@example.edu" required>
+                <button class="btn btn-primary" type="submit">Add student</button>
+            </form>
         </div>
     </div>
     
