@@ -1239,6 +1239,17 @@ def student_list(cid):
     if request.method == 'GET':
         return render_template('student-list.html', students=course.students)
 
+    if request.form.get('action') == 'remove_student':
+        student_id = request.form.get('student_id', type=int)
+        student = models.User.query.get(student_id) if student_id is not None else None
+        if student is None or student not in course.students:
+            flash('That student is not enrolled in this course.', 'error')
+        else:
+            course.students.remove(student)
+            models.DB.session.commit()
+            flash('Student removed from the course.', 'message')
+        return redirect(url_for('pages.student_list', cid=course.id))
+
     if request.form.get('action') == 'add_student':
         email = request.form.get('email', '').strip()
         if not _is_valid_student_email(email):

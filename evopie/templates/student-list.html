@@ -66,7 +66,12 @@
                         <td>{{user.first_name}}</td>
                         <td>{{user.email}}</td>
                         <td>
-                            <!-- TODO: change to remove from roster -->
+                            <form action="" method="post" class="d-inline"
+                                  onsubmit="return confirm('Remove this student from the course?');">
+                                <input type="hidden" name="action" value="remove_student">
+                                <input type="hidden" name="student_id" value="{{ user.id }}">
+                                <button class="btn btn-sm btn-outline-danger" type="submit">Remove</button>
+                            </form>
                             <!-- password switcher -->
                             <a  data-bs-toggle="modal" data-bs-target=".TG-INI-{{user.id}}">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-key" viewBox="0 0 16 16">
