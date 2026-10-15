@@ -7,11 +7,6 @@
 {% endblock %}
 
 {% block content %}
-    {% with messages = get_flashed_messages() %}
-    {% if messages %}
-    {% endif %}
-    {% endwith %}
-
     <form class="form-signin" method="POST" action="/signup">
 
         {% with messages = get_flashed_messages() %}

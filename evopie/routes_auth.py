@@ -15,6 +15,13 @@ import datalayer.models as models
 
 auth = Blueprint('auth', __name__)
 
+
+def _clean_signup_name(value, field):
+    if not isinstance(value, str):
+        return ""
+    return prepare_field_value(models.User, field, value).strip()
+
+
 @auth.route('/login')
 def get_login():
     return redirect(url_for('pages.index'))
@@ -61,13 +68,20 @@ def post_signup():
         password = request.form.get('password')
         retype = request.form.get('retype')
 
+    first_name = _clean_signup_name(first_name, "first_name")
+    last_name = _clean_signup_name(last_name, "last_name")
+    if not first_name or not last_name:
+        message = "First and last name are required."
+        if request.is_json:
+            return jsonify({"message": message}), 400
+        flash(message)
+        return redirect(url_for('auth.get_signup'))
+
     if(retype != password):
         flash('Passwords do not match')
         return redirect(url_for('auth.get_signup'))
 
     email = prepare_field_value(models.User, "email", email)
-    first_name = prepare_field_value(models.User, "first_name", first_name)
-    last_name = prepare_field_value(models.User, "last_name", last_name)
 
     #FIXME for now, we hardcode that the 1st user to signup is an INSTRUCTOR
     # the testing scripts are hardwired to work with that assumption too. 
