@@ -113,7 +113,11 @@
                             aria-labelledby="mySmallModalLabel" aria-hidden="true">
                             <div class="modal-dialog modal-lg">
                                 <div class="modal-content">
-                                {{ single_course.description | safe }}
+                                    {% if single_course.description and single_course.description | striptags | trim %}
+                                        {{ single_course.description | safe }}
+                                    {% else %}
+                                        <p class="text-muted">No description for this course.</p>
+                                    {% endif %}
                             </div></div>
                         </div>
                     </td>
