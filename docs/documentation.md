@@ -6,7 +6,8 @@ This document explains where EvoPIE documentation belongs.
 
 - `README.md`: project identity, short overview, acknowledgement, and links to
   some of the main documentation.
-- `docs/how-to-run.md`: local setup and deployment steps.
+- `docs/how-to-run.md`: the four app run modes (uv local, Docker local,
+  watched Docker local, and production) and optional local HTTPS setup.
 - `docs/architecture.md`: system design, application workflow, data flow,
   roles, quiz lifecycle, background processing, and deployment shape.
 - `docs/user-guide.md`: task-oriented instructions for instructors, students,

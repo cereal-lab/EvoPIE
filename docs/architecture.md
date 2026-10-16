@@ -72,8 +72,8 @@ The `updater.py` process refreshes analysis and dashboard data. In local
 development it can be run once or in a loop. In Docker deployment it runs as a
 separate service.
 
-The `nginx` directory contains the production reverse-proxy configuration used
-by the Docker Compose deployment.
+The `nginx` directory contains the reverse-proxy image used by production and
+by the optional standalone local HTTPS proxy.
 
 ## Database-centered state
 
@@ -142,15 +142,20 @@ performance, peer-instruction activity, and derived analysis views.
 
 ## Deployment shape
 
-EvoPIE can run directly with uv, Flask, SQLite, and the updater process.
-Docker Compose also provides a `local` profile that builds the web and updater
-services from the current checkout and serves the app over HTTP without nginx.
-Compose Watch can sync source changes into that local profile.
+EvoPIE has four app run modes: directly with uv; a Docker Compose `local`
+profile that builds from the current checkout; the same local profile with
+Compose Watch syncing source changes; and a `production` profile that builds a
+specified upstream Git ref (defaulting to `master`). The three local modes
+serve HTTP by default.
 
-The `production` profile runs the web application and updater behind nginx,
+Optional local HTTPS is provided by a separate nginx reverse-proxy Compose
+file. It forwards to the local app through the Docker host gateway, so it can
+be started or stopped independently of uv, Docker local, or watched Docker
+local. Production has its own nginx service and must not be combined with the
+local HTTPS proxy.
+
+The production profile runs the web application and updater behind nginx,
 which terminates HTTPS. It requires an explicit host data directory, server
 name, and certificate directory; the deployment is not tied to a particular
 domain. Production images are built from the upstream repository at the
-configured `EVOPIE_GIT_REF`, rather than from the invoking local checkout. The
-production profile can also be used with a self-signed certificate for local
-HTTPS testing.
+configured `EVOPIE_GIT_REF`, rather than from the invoking local checkout.
