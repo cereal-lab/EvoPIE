@@ -44,12 +44,6 @@ matplotlib.rcParams['ps.fonttype'] = 42
 pages = Blueprint('pages', __name__)
 
 
-def _is_valid_student_email(email):
-    if not isinstance(email, str):
-        return False
-    parts = email.split('@')
-    return len(parts) == 2 and all(parts) and not any(char.isspace() for char in email)
-
 
 @pages.route('/')
 def index():
@@ -1252,11 +1246,10 @@ def student_list(cid):
 
     if request.form.get('action') == 'add_student':
         email = request.form.get('email', '').strip()
-        if not _is_valid_student_email(email):
-            flash('Enter a valid student email address.', 'error')
-            return redirect(url_for('pages.student_list', cid=course.id))
-
         student = models.User.query.filter_by(email=email).first()
+        if student is None:
+            flash('No account exists for that email address.', 'error')
+            return redirect(url_for('pages.student_list', cid=course.id))
         if student is not None and student.role != ROLE_STUDENT:
             flash('Only student accounts can be enrolled in a course.', 'error')
         elif student is not None and student in course.students:
@@ -1283,14 +1276,13 @@ def student_list(cid):
         return redirect(url_for('pages.student_list', cid=course.id))
 
     emails = list(dict.fromkeys(line.strip() for line in csvstring.splitlines() if line.strip()))
-    if any(not _is_valid_student_email(email) for email in emails):
-        flash('The CSV file contains an invalid email address; the roster was not changed.', 'error')
-        return redirect(url_for('pages.student_list', cid=course.id))
-
     students = []
     for email in emails:
         student = models.User.query.filter_by(email=email).first()
-        if student is not None and student.role != ROLE_STUDENT:
+        if student is None:
+            flash('The CSV file contains an email with no account; the roster was not changed.', 'error')
+            return redirect(url_for('pages.student_list', cid=course.id))
+        if student.role != ROLE_STUDENT:
             flash('The CSV file contains a non-student account; the roster was not changed.', 'error')
             return redirect(url_for('pages.student_list', cid=course.id))
         students.append((email, student))
@@ -1298,9 +1290,6 @@ def student_list(cid):
     # Uploading a CSV intentionally replaces the current roster.
     course.students.clear()
     for email, student in students:
-        if student is None:
-            # An empty password marks an invited student who has not signed up yet.
-            student = models.User(email=email, role=ROLE_STUDENT)
         course.students.append(student)
         models.DB.session.add(student)
     models.DB.session.commit()
