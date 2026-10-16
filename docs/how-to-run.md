@@ -1,6 +1,6 @@
 # How to run EvoPIE
 
-Run the commands from the repository root. Choose one of these five modes.
+Run the commands from the repository root. Choose one of these four modes.
 
 ## Required session-signing key
 
@@ -38,7 +38,7 @@ uv run python updater.py 360
 
 Use `uv run python updater.py -1` to run the updater once.
 
-## 2. Simple Docker local development
+## 2. Docker local
 
 **Just command:**
 
@@ -57,7 +57,7 @@ web app over HTTP without nginx. Open <http://127.0.0.1:5000>. Data is stored
 in `./data` by default; set `EVOPIE_DATA_DIR` to use another host directory.
 The database defaults to `sqlite:////app/data/db.sqlite`.
 
-## 3. Watched local development
+## 3. Watched Docker local
 
 **Just command:**
 
@@ -74,11 +74,12 @@ docker compose --profile local up --build --watch
 
 `just check-watch-ignore` runs
 `./scripts/check-compose-watch-ignore.py`. The check requires PyYAML in the
-host Python environment. Compose Watch syncs source changes and restarts the
-affected service; it stays attached to the terminal. Dependency and Dockerfile
-changes trigger image rebuilds.
+host Python environment. It checks that ignored files match between the Compose
+Watch configuration and the ignore files used by the project. Compose Watch
+syncs source changes and restarts the affected service; it stays attached to
+the terminal. Dependency and Dockerfile changes trigger image rebuilds.
 
-## 4. Deployment to production
+## 4. Production
 
 **Just command:**
 
@@ -110,60 +111,52 @@ not from the local checkout. See the
 [certificate operations reference](reference.md#certificate-operations) for
 a certbot example.
 
-## 5. Local HTTPS mode
+## Optional local HTTPS
 
-First create a self-signed certificate:
+Local HTTPS is a separate TLS reverse-proxy service. It does not build, start,
+or select an EvoPIE app service, so it can be enabled alongside any one of the
+three local modes above. It proxies to the app's HTTP endpoint, which remains
+available on its normal port. Do not use this proxy with the production mode;
+production has its own HTTPS service.
 
-**Just command:**
+First create a local self-signed certificate. The certificate domain should
+match the hostname you will use in the browser:
 
 ```bash
 just local-certs localhost ./certs
 ```
 
-**Command it runs:**
+Start EvoPIE in one local mode. For `uv local`, the app must listen on an
+interface reachable from Docker rather than only loopback. Start Flask with:
 
 ```bash
-EVOPIE_CERT_DOMAIN=localhost \
-EVOPIE_CERTS_DIR=./certs \
-./scripts/create-local-certs.sh
+uv run flask run --host=0.0.0.0
 ```
 
-Then start HTTPS using the current local checkout (including uncommitted changes):
+The Docker local and watched modes already publish the app on port 5000. Then,
+in another terminal, start the HTTPS proxy:
 
 ```bash
-export EVOPIE_SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_hex(32))')"
-just local-https localhost ./certs ./data
+just local-https-up localhost ./certs
 ```
 
-This uses local-build images and nginx TLS termination. `EVOPIE_SECRET_KEY`
-is required; the command above generates a temporary key for this run. Set
-`EVOPIE_SERVER_NAME`, `EVOPIE_CERT_DOMAIN`, `EVOPIE_CERTS_DIR`, and
-`EVOPIE_DATA_DIR` through the Just arguments or environment to customize the
-server name, certificate location, and data directory. The browser will warn
-because the certificate is self-signed. Do not commit generated certificate
-files or private keys. Stop the stack with
-`docker compose --profile local-https down`.
-
-For the production profile, which clones an upstream Git ref, use:
-
-**Just command:**
+Open <https://localhost:5443>. The browser will warn because the certificate
+is self-signed. The proxy defaults to forwarding to `host.docker.internal:5000`
+and maps its HTTPS listener to host port 5443, leaving the app's HTTP port
+unchanged. Override the destination with the fourth argument if the app uses a
+different port, for example:
 
 ```bash
-just prod-up localhost ./certs ./data
+just local-https-up localhost ./certs 5443 host.docker.internal:5010
 ```
 
-**Command it runs:**
+To stop only the HTTPS proxy, run:
 
 ```bash
-EVOPIE_SERVER_NAME=localhost \
-EVOPIE_CERT_DOMAIN=localhost \
-EVOPIE_CERTS_DIR=./certs \
-EVOPIE_DATA_DIR=./data \
-EVOPIE_GIT_REF=master \
-docker compose --profile production up --build -d
+just local-https-down
 ```
 
-This profile builds the upstream `master` branch by default. Pass a different
-Git ref as the fourth Just argument if needed. Open <https://localhost:5000>.
-The browser will warn because the certificate is self-signed. Do not commit
-generated certificate files or private keys.
+This does not stop EvoPIE. For direct Compose use, configure the proxy with
+`EVOPIE_SERVER_NAME`, `EVOPIE_CERT_DOMAIN`, `EVOPIE_CERTS_DIR`,
+`EVOPIE_HTTPS_PORT`, and `EVOPIE_HTTPS_UPSTREAM`. Do not commit generated
+certificate files or private keys.
