@@ -59,6 +59,11 @@ def course_student_context():
 def test_add_student_by_email(course_student_context):
     client, course_id, student_email = course_student_context
 
+    with APP.app_context():
+        student = models.User(email=student_email, role=ROLE_STUDENT)
+        models.DB.session.add(student)
+        models.DB.session.commit()
+
     response = client.post(
         "/courses/{}/student-list".format(course_id),
         data={"action": "add_student", "email": student_email},
@@ -70,7 +75,21 @@ def test_add_student_by_email(course_student_context):
         student = models.User.query.filter_by(email=student_email).one()
         assert student.role == ROLE_STUDENT
         assert student in course.students
-        assert student.password is None
+
+
+def test_adding_unknown_student_by_email_does_not_create_account(course_student_context):
+    client, course_id, student_email = course_student_context
+
+    response = client.post(
+        "/courses/{}/student-list".format(course_id),
+        data={"action": "add_student", "email": student_email},
+    )
+
+    assert response.status_code == 302
+    with APP.app_context():
+        course = models.Course.query.get(course_id)
+        assert models.User.query.filter_by(email=student_email).first() is None
+        assert not course.students
 
 
 def test_adding_an_already_enrolled_student_does_not_duplicate(course_student_context):
@@ -101,6 +120,11 @@ def test_adding_an_already_enrolled_student_does_not_duplicate(course_student_co
 def test_csv_reupload_deduplicates_student_emails(course_student_context):
     client, course_id, student_email = course_student_context
 
+    with APP.app_context():
+        student = models.User(email=student_email, role=ROLE_STUDENT)
+        models.DB.session.add(student)
+        models.DB.session.commit()
+
     response = client.post(
         "/courses/{}/student-list".format(course_id),
         data={
@@ -114,6 +138,32 @@ def test_csv_reupload_deduplicates_student_emails(course_student_context):
     with APP.app_context():
         course = models.Course.query.get(course_id)
         assert len([student for student in course.students if student.email == student_email]) == 1
+
+
+def test_csv_with_unknown_email_leaves_roster_unchanged(course_student_context):
+    client, course_id, student_email = course_student_context
+    existing_email = "existing-{}@example.edu".format(uuid.uuid4().hex)
+
+    with APP.app_context():
+        existing = models.User(email=existing_email, role=ROLE_STUDENT)
+        course = models.Course.query.get(course_id)
+        course.students.append(existing)
+        models.DB.session.commit()
+
+    response = client.post(
+        "/courses/{}/student-list".format(course_id),
+        data={
+            "action": "replace_csv",
+            "csvfile": (io.BytesIO((existing_email + "\n" + student_email).encode("utf-8")), "students.csv"),
+        },
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == 302
+    with APP.app_context():
+        course = models.Course.query.get(course_id)
+        assert [student.email for student in course.students] == [existing_email]
+        assert models.User.query.filter_by(email=student_email).first() is None
 
 
 def test_remove_student_from_course(course_student_context):
