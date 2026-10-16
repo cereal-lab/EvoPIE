@@ -104,41 +104,6 @@ services:
     depends_on:
       - updater-local
 
-  updater-local-https:
-    <<: *updater-common
-    build:
-      context: .
-      dockerfile: analysislayer/Dockerfile.local
-    profiles:
-      - local-https
-    volumes:
-      - ${EVOPIE_DATA_DIR:-./data}:/app/data
-
-  web-local-https:
-    <<: *web-common
-    build:
-      context: .
-      dockerfile: evopie/Dockerfile.local
-    profiles:
-      - local-https
-    volumes:
-      - ${EVOPIE_DATA_DIR:-./data}:/app/data
-    depends_on:
-      - updater-local-https
-
-  nginx-local-https:
-    <<: *nginx-common
-    profiles:
-      - local-https
-    environment:
-      - EVOPIE_SERVER_NAME=${EVOPIE_SERVER_NAME:-localhost}
-      - EVOPIE_CERT_DOMAIN=${EVOPIE_CERT_DOMAIN:-localhost}
-      - EVOPIE_UPSTREAM=web-local-https:5000
-    volumes:
-      - ${EVOPIE_CERTS_DIR:-./certs}:/etc/nginx/certs:ro
-    depends_on:
-      - web-local-https
-
   production-config:
     image: alpine:3.20
     profiles:

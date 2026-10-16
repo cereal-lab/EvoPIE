@@ -1,0 +1,14 @@
+services:
+  local-https:
+    build: ./nginx
+    ports:
+      - "${EVOPIE_HTTPS_PORT:-5443}:5000"
+    environment:
+      - EVOPIE_SERVER_NAME=${EVOPIE_SERVER_NAME:-localhost}
+      - EVOPIE_CERT_DOMAIN=${EVOPIE_CERT_DOMAIN:-localhost}
+      - EVOPIE_UPSTREAM=${EVOPIE_HTTPS_UPSTREAM:-host.docker.internal:5000}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ${EVOPIE_CERTS_DIR:-./certs}:/etc/nginx/certs:ro
+    restart: unless-stopped
