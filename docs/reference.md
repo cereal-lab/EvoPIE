@@ -148,19 +148,26 @@ without a command-line delay argument.
 
 `EVOPIE_DEBUG=True` enables the debugpy listener used by the application.
 
-The Docker Compose profiles also use these variables:
+Docker Compose and the optional local HTTPS proxy use these variables:
 
 - `EVOPIE_DATA_DIR`: host data directory mounted at `/app/data`; defaults to
   `./data` for local mode and is required for production.
-- `EVOPIE_SERVER_NAME`: nginx server name; required for production.
+- `EVOPIE_SERVER_NAME`: nginx server name; required for production and defaults
+  to `localhost` for the local HTTPS proxy.
 - `EVOPIE_CERT_DOMAIN`: certificate directory name under `live/`; defaults to
-  `EVOPIE_SERVER_NAME`.
+  `EVOPIE_SERVER_NAME` in production and `localhost` for local HTTPS.
 - `EVOPIE_CERTS_DIR`: host certificate directory mounted at
-  `/etc/nginx/certs`; required for production.
+  `/etc/nginx/certs`; required for production and defaults to `./certs` for
+  local HTTPS.
 - `EVOPIE_GIT_REF`: upstream branch, tag, or commit checked out by production
   image builds; defaults to `master`.
 - `EVOPIE_SECRET_KEY`: required private key used to sign session cookies; the
   production profile validates that it is set.
+- `EVOPIE_HTTPS_PORT`: host port for the standalone local HTTPS proxy; defaults
+  to `5443`.
+- `EVOPIE_HTTPS_UPSTREAM`: host and port of the local app's HTTP listener as
+  reachable from the proxy container; defaults to
+  `host.docker.internal:5000`.
 
 ## Important paths
 
@@ -168,8 +175,9 @@ The local Docker profile defaults to `./data` on the host and mounts it at
 `/app/data` in the containers. The default database file is
 `/app/data/db.sqlite`.
 
-The production profile mounts `EVOPIE_CERTS_DIR` at `/etc/nginx/certs`. Nginx
-expects the certificate and key at:
+Both the production profile and the standalone local HTTPS proxy mount
+`EVOPIE_CERTS_DIR` at `/etc/nginx/certs`. Nginx expects the certificate and
+key at:
 
 ```text
 /etc/nginx/certs/live/${EVOPIE_CERT_DOMAIN}/fullchain.pem
@@ -388,8 +396,12 @@ sudo certbot certificates
 ```
 
 Certificate renewal and any required nginx reload or container restart must be
-configured outside Docker Compose. For local HTTPS testing, generate a
-self-signed certificate with `scripts/create-local-certs.sh`.
+configured outside Docker Compose. For local HTTPS, generate a self-signed
+certificate with `just local-certs <domain> <certs-dir>`, then start the
+standalone proxy with `just local-https-up <domain> <certs-dir>`. The proxy
+forwards to the local app's HTTP endpoint; for `uv local`, Flask must listen on
+`0.0.0.0` to be reachable from the proxy container. See
+[How to run EvoPIE](how-to-run.md#optional-local-https) for complete steps.
 
 ## CLI experiment commands
 
