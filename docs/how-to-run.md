@@ -128,7 +128,23 @@ EVOPIE_CERTS_DIR=./certs \
 ./scripts/create-local-certs.sh
 ```
 
-Then start HTTPS with the production profile using local settings:
+Then start HTTPS using the current local checkout (including uncommitted changes):
+
+```bash
+export EVOPIE_SECRET_KEY="$(python3 -c 'import secrets; print(secrets.token_hex(32))')"
+just local-https localhost ./certs ./data
+```
+
+This uses local-build images and nginx TLS termination. `EVOPIE_SECRET_KEY`
+is required; the command above generates a temporary key for this run. Set
+`EVOPIE_SERVER_NAME`, `EVOPIE_CERT_DOMAIN`, `EVOPIE_CERTS_DIR`, and
+`EVOPIE_DATA_DIR` through the Just arguments or environment to customize the
+server name, certificate location, and data directory. The browser will warn
+because the certificate is self-signed. Do not commit generated certificate
+files or private keys. Stop the stack with
+`docker compose --profile local-https down`.
+
+For the production profile, which clones an upstream Git ref, use:
 
 **Just command:**
 
