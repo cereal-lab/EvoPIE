@@ -127,7 +127,8 @@ just local-certs localhost ./certs
 ```
 
 Start EvoPIE in one local mode. For `uv local`, the app must listen on an
-interface reachable from Docker rather than only loopback. Start Flask with:
+interface reachable from Docker rather than only loopback. Thus, you must add
+the `--host 0.0.0.0` option, as shown below:
 
 ```bash
 uv run flask run --host=0.0.0.0
@@ -156,7 +157,5 @@ To stop only the HTTPS proxy, run:
 just local-https-down
 ```
 
-This does not stop EvoPIE. For direct Compose use, configure the proxy with
-`EVOPIE_SERVER_NAME`, `EVOPIE_CERT_DOMAIN`, `EVOPIE_CERTS_DIR`,
-`EVOPIE_HTTPS_PORT`, and `EVOPIE_HTTPS_UPSTREAM`. Do not commit generated
-certificate files or private keys.
+This does not stop EvoPIE. Do not commit generated certificate files or
+private keys.
