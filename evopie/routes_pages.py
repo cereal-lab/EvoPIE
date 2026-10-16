@@ -43,6 +43,8 @@ matplotlib.rcParams['ps.fonttype'] = 42
 
 pages = Blueprint('pages', __name__)
 
+
+
 @pages.route('/')
 def index():
     ''' Index page for the whole thing; used to test out a rudimentary user interface '''
@@ -1219,29 +1221,77 @@ def quiz_copy(qid):
 @login_required
 @role_required(ROLE_INSTRUCTOR)
 def student_list(cid):
-    # print(f'In student_list, current_user: {current_user}, get_id: {current_user.get_id()}')
     course = models.Course.query.filter_by(id=cid).first()
 
     if course is None:
         flash('Course not found', 'danger')
         return redirect(url_for('pages.home'))
 
-    instructor = models.User.query.get_or_404(current_user.get_id())
+    if course.instructor_id != current_user.id:
+        abort(403)
+
     if request.method == 'GET':
         return render_template('student-list.html', students=course.students)
-    elif request.method == 'POST':
-        # delete current student list if any so latest csv data is used
-        models.DB.session.query(DB.Model.metadata.tables['CourseStudent']).filter(DB.Model.metadata.tables['CourseStudent'].c.CourseId == cid).delete()
-        csvfile = request.files['csvfile']
-        csvstring = csvfile.read().decode('utf-8')
-        for email in [line.strip() for line in csvstring.splitlines()]:
-            # print(email)
-            # find student in DB
-            student = models.User.query.filter_by(email=email).first()
-            if student is None:  # student not in DB
-                # add new User with empty password (needed as sentinel for when they login)
-                student = models.User(email=email)
-            student.courses.append(course)
-            DB.session.add(student)
-        DB.session.commit()
+
+    if request.form.get('action') == 'remove_student':
+        student_id = request.form.get('student_id', type=int)
+        student = models.User.query.get(student_id) if student_id is not None else None
+        if student is None or student not in course.students:
+            flash('That student is not enrolled in this course.', 'error')
+        else:
+            course.students.remove(student)
+            models.DB.session.commit()
+            flash('Student removed from the course.', 'message')
         return redirect(url_for('pages.student_list', cid=course.id))
+
+    if request.form.get('action') == 'add_student':
+        email = request.form.get('email', '').strip()
+        student = models.User.query.filter_by(email=email).first()
+        if student is None:
+            flash('No account exists for that email address.', 'error')
+            return redirect(url_for('pages.student_list', cid=course.id))
+        if student is not None and student.role != ROLE_STUDENT:
+            flash('Only student accounts can be enrolled in a course.', 'error')
+        elif student is not None and student in course.students:
+            flash('That student is already enrolled in this course.', 'message')
+        else:
+            if student is None:
+                # An empty password marks an invited student who has not signed up yet.
+                student = models.User(email=email, role=ROLE_STUDENT)
+            course.students.append(student)
+            models.DB.session.add(student)
+            models.DB.session.commit()
+            flash('Student added to the course.', 'message')
+        return redirect(url_for('pages.student_list', cid=course.id))
+
+    csvfile = request.files.get('csvfile')
+    if csvfile is None or not csvfile.filename:
+        flash('Choose a CSV file or enter a student email address.', 'error')
+        return redirect(url_for('pages.student_list', cid=course.id))
+
+    try:
+        csvstring = csvfile.read().decode('utf-8')
+    except UnicodeDecodeError:
+        flash('The CSV file must be UTF-8 encoded.', 'error')
+        return redirect(url_for('pages.student_list', cid=course.id))
+
+    emails = list(dict.fromkeys(line.strip() for line in csvstring.splitlines() if line.strip()))
+    students = []
+    for email in emails:
+        student = models.User.query.filter_by(email=email).first()
+        if student is None:
+            flash('The CSV file contains an email with no account; the roster was not changed.', 'error')
+            return redirect(url_for('pages.student_list', cid=course.id))
+        if student.role != ROLE_STUDENT:
+            flash('The CSV file contains a non-student account; the roster was not changed.', 'error')
+            return redirect(url_for('pages.student_list', cid=course.id))
+        students.append((email, student))
+
+    # Uploading a CSV intentionally replaces the current roster.
+    course.students.clear()
+    for email, student in students:
+        course.students.append(student)
+        models.DB.session.add(student)
+    models.DB.session.commit()
+    flash('Course roster replaced from the CSV file.', 'message')
+    return redirect(url_for('pages.student_list', cid=course.id))
