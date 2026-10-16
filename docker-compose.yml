@@ -38,6 +38,7 @@ x-nginx-common: &nginx-common
 
 x-local-watch-ignore: &local-watch-ignore
   - .git/
+  - .env
   - __pycache__/
   - '*.pyc'
   - venv/
