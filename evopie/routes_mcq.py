@@ -8,6 +8,7 @@ from flask import Blueprint
 from flask_login import login_required, current_user
 from flask import flash
 from datetime import datetime
+from html.parser import HTMLParser
 from werkzeug.security import generate_password_hash
 from datalayer import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_HIDDEN, QUIZ_STEP1, QUIZ_STEP2, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT
 from evopie.utils import groupby, prepare_field_value
@@ -15,6 +16,31 @@ from evopie.quiz_model import get_quiz_builder
 from evopie.decorators import role_required, unmime, validate_quiz_attempt_step, verify_deadline, verify_instructor_relationship, retry_concurrent_update
 
 from datalayer import models
+
+
+class _EditorContentParser(HTMLParser):
+    _MEDIA_ELEMENTS = {"img", "audio", "video", "iframe", "object", "embed"}
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.has_content = False
+
+    def handle_data(self, data):
+        if data.strip():
+            self.has_content = True
+
+    def handle_starttag(self, tag, attrs):
+        if tag in self._MEDIA_ELEMENTS:
+            self.has_content = True
+
+
+def _has_editor_content(value):
+    if not isinstance(value, str):
+        return False
+    parser = _EditorContentParser()
+    parser.feed(value)
+    return parser.has_content
+
 
 mcq = Blueprint('mcq', __name__)
 
@@ -39,22 +65,34 @@ def post_new_question():
     '''
     Add a question and its answer to the database.
     '''
-    if request.json:
-        title = request.json['title']
-        stem = request.json['stem']
-        answer = request.json['answer']
+    is_json_request = request.is_json
+    if is_json_request:
+        payload = request.get_json(silent=True) or {}
+        title = payload.get('title')
+        stem = payload.get('stem')
+        answer = payload.get('answer')
     else:
-        title = request.form['title']
-        stem = request.form['stem']
-        answer = request.form['answer']
+        title = request.form.get('title')
+        stem = request.form.get('stem')
+        answer = request.form.get('answer')
         #NOTE if the POST from the HTML form refers to an existing question, we forward it to the PUT route.
         # We are able to tell this is the case because the form embeds an hidden field named "qid".
         if 'qid' in request.form:
             return put_question(request.form['qid'])
 
-    # validate that all required information was sent
-    if answer is None or stem is None or title is None:
-        abort(400, "Unable to create new question due to missing data") # bad request
+    missing_fields = []
+    if not isinstance(title, str) or not title.strip():
+        missing_fields.append("title")
+    if not _has_editor_content(stem):
+        missing_fields.append("question")
+    if not _has_editor_content(answer):
+        missing_fields.append("answer")
+    if missing_fields:
+        message = "Please complete the required fields: " + ", ".join(missing_fields) + "."
+        if is_json_request:
+            return jsonify({"message": message}), 400
+        flash(message, "error")
+        return redirect(request.referrer or url_for('pages.questions_browser'))
     
     escaped_answer = prepare_field_value(models.Question, "answer", answer)
     escaped_stem = prepare_field_value(models.Question, "stem", stem)
@@ -66,7 +104,7 @@ def post_new_question():
     models.DB.session.add(q)
     models.DB.session.commit()
 
-    if request.json:
+    if is_json_request:
         return jsonify({ "message" : "Question & answer added to database", "id": q.id }), 201
     else:
         flash("Question successfully added to database.", "shiny")
