@@ -6,9 +6,40 @@
 <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.css">  
 <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.js"></script>
 <script>
-  $(document).ready( function () {
+  $(document).ready(function () {
       $('#questionstable').DataTable();
-  } );
+
+      const questionForm = document.getElementById('questionForm');
+      if (!questionForm) return;
+
+      const validationMessage = document.getElementById('question-form-error');
+      const hasEditorContent = function (fieldId) {
+          const editorContent = $('<div>').html($('#' + fieldId).summernote('code'));
+          const text = editorContent.text().replace(/\u00a0/g, ' ').trim();
+          const hasMedia = editorContent.find('img, audio, video, iframe, object, embed').length > 0;
+          return Boolean(text || hasMedia);
+      };
+
+      questionForm.addEventListener('submit', function (event) {
+          const missingFields = [];
+          if (!document.getElementById('title').value.trim()) missingFields.push('title');
+          if (!hasEditorContent('question')) missingFields.push('question');
+          if (!hasEditorContent('answer')) missingFields.push('answer');
+
+          if (missingFields.length) {
+              event.preventDefault();
+              validationMessage.textContent = 'Please complete the required fields: ' + missingFields.join(', ') + '.';
+              validationMessage.hidden = false;
+              if (missingFields[0] === 'title') {
+                  document.getElementById('title').focus();
+              } else {
+                  $('#' + (missingFields[0] === 'question' ? 'question' : 'answer')).summernote('focus');
+              }
+          } else {
+              validationMessage.hidden = true;
+          }
+      });
+  });
 </script>
 {% endblock %}
 
@@ -47,7 +78,7 @@
         <h5 class="card-title pointer-link" data-bs-toggle = "collapse" data-bs-target = "#newquestion">Click here to Create New Question</h5>
         <div id = "newquestion" class = "collapse">
             <p class="card-text">
-                <form id="questionForm" method="post" action='/questions'>
+                <form id="questionForm" method="post" action='/questions' novalidate>
                     <div class="form-group">
                         <label for="title">Title</label>
                         <input name="title" id="title" class="form-control" required>
@@ -60,6 +91,7 @@
                         <label for="answer">Answer</label>
                         <textarea class="summernote form-control" name="answer" id="answer" required></textarea>
                     </div>
+                    <div id="question-form-error" class="alert alert-danger mt-2" role="alert" aria-live="polite" hidden></div>
                     <input type="submit" value="Submit" class="btn btn-primary">
                 </form>            
             </p>
