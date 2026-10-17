@@ -7,9 +7,8 @@ from flask import g, jsonify, abort, request, Response, render_template, redirec
 from flask import Blueprint
 from flask_login import login_required, current_user
 from flask import flash
-import re
 from datetime import datetime
-from markupsafe import Markup
+from html.parser import HTMLParser
 from werkzeug.security import generate_password_hash
 from datalayer import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_HIDDEN, QUIZ_STEP1, QUIZ_STEP2, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT
 from evopie.utils import groupby, prepare_field_value
@@ -19,14 +18,28 @@ from evopie.decorators import role_required, unmime, validate_quiz_attempt_step,
 from datalayer import models
 
 
+class _EditorContentParser(HTMLParser):
+    _MEDIA_ELEMENTS = {"img", "audio", "video", "iframe", "object", "embed"}
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.has_content = False
+
+    def handle_data(self, data):
+        if data.strip():
+            self.has_content = True
+
+    def handle_starttag(self, tag, attrs):
+        if tag in self._MEDIA_ELEMENTS:
+            self.has_content = True
+
+
 def _has_editor_content(value):
     if not isinstance(value, str):
         return False
-    text = Markup(value).striptags().replace("\xa0", " ").strip()
-    has_media = re.search(
-        r"<(img|audio|video|iframe|object|embed)\b", value, re.IGNORECASE
-    )
-    return bool(text or has_media)
+    parser = _EditorContentParser()
+    parser.feed(value)
+    return parser.has_content
 
 
 mcq = Blueprint('mcq', __name__)

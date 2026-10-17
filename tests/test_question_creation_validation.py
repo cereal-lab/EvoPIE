@@ -107,7 +107,11 @@ def test_valid_question_form_still_creates_a_question(question_form_client):
         "/questions",
         data={
             "title": "Test question",
-            "stem": "<p>What is the answer?</p>",
+            "stem": (
+                '<p>What is the answer?</p><img src=x onerror="alert(1)">'
+                '<a href="javascript:alert(1)">unsafe link</a>'
+                '<script>alert(1)</script>'
+            ),
             "answer": "<p>42</p>",
         },
         headers={"Referer": "/questions-browser"},
@@ -118,3 +122,6 @@ def test_valid_question_form_still_creates_a_question(question_form_client):
     with APP.app_context():
         question = models.Question.query.filter_by(author_id=instructor_id).one()
         assert question.title == "Test question"
+        assert "onerror" not in question.stem.lower()
+        assert "javascript:" not in question.stem.lower()
+        assert "<script" not in question.stem.lower()

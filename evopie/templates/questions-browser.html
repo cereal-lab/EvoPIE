@@ -14,9 +14,12 @@
 
       const validationMessage = document.getElementById('question-form-error');
       const hasEditorContent = function (fieldId) {
-          const editorContent = $('<div>').html($('#' + fieldId).summernote('code'));
-          const text = editorContent.text().replace(/\u00a0/g, ' ').trim();
-          const hasMedia = editorContent.find('img, audio, video, iframe, object, embed').length > 0;
+          const content = $('#' + fieldId).summernote('code') || '';
+          const text = content
+              .replace(/<[^>]*>/g, '')
+              .replace(/&nbsp;|&#160;|&#x0*a0;/gi, ' ')
+              .trim();
+          const hasMedia = /<(img|audio|video|iframe|object|embed)\b/i.test(content);
           return Boolean(text || hasMedia);
       };
 
