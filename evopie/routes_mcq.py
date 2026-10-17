@@ -9,7 +9,7 @@ from flask_login import login_required, current_user
 from flask import flash
 from datetime import datetime
 from werkzeug.security import generate_password_hash
-from datalayer import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT
+from datalayer import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_HIDDEN, QUIZ_STEP1, QUIZ_STEP2, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT
 from evopie.utils import groupby, prepare_field_value
 from evopie.quiz_model import get_quiz_builder
 from evopie.decorators import role_required, unmime, validate_quiz_attempt_step, verify_deadline, verify_instructor_relationship, retry_concurrent_update
@@ -825,7 +825,11 @@ def post_quizzes_status(quiz):
         response     = ({ "message" : "STEP3 is not enabled for this quiz" }, 400, {"Content-Type": "application/json"})
         return make_response(response)
     
-    if(quiz.set_status(new_status)):
+    has_attempts = False
+    if quiz.status == QUIZ_HIDDEN and new_status == QUIZ_STEP1:
+        has_attempts = models.QuizAttempt.query.filter_by(quiz_id=quiz.id).first() is not None
+
+    if quiz.set_status(new_status, has_attempts=has_attempts):
         response     = ({ "message" : "OK" }, 200, {"Content-Type": "application/json"})                
         if old_status != new_status:
             models.DB.session.commit()

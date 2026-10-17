@@ -563,10 +563,7 @@ def simulate_quiz(quiz, course_id, instructor, password, no_algo, algo, algo_par
             students_plain = models.User.query.filter_by(role=ROLE_STUDENT).all()
             students = list(students_plain) #[s.id for s in students_plain]
             student_ids = set([s.id for s in students])
-            if step == 1:
-                models.QuizAttempt.query.where(models.QuizAttempt.student_id.in_(student_ids), models.QuizAttempt.quiz_id == quiz, models.QuizAttempt.course_id==course_id).delete()
-                models.DB.session.commit()
-            elif step == 2:
+            if step == 2:
                 models.Likes4Justifications.query.where(models.Likes4Justifications.student_id.in_(student_ids)).delete()
                 models.DB.session.commit()
             if rnd:
@@ -640,8 +637,9 @@ def simulate_quiz(quiz, course_id, instructor, password, no_algo, algo, algo_par
         #close prev evo process
         if QUIZ_STEP1 in step:
             with APP.app_context():
-                models.EvoProcess.query.delete()            
-                models.DB.session.commit()    
+                models.QuizAttempt.query.filter_by(quiz_id=quiz, course_id=course_id).delete()
+                models.EvoProcess.query.delete()
+                models.DB.session.commit()
             with APP.app_context(), APP.test_client(use_cookies=True) as c: #instructor session
                 throw_on_http_fail(c.post("/login",json={"email": instructor, "password": password}))
                 throw_on_http_fail(c.post(f"/quizzes/{quiz}/status", json={ "status" : "HIDDEN" })) #stop in memory evo process

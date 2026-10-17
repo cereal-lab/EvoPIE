@@ -135,6 +135,7 @@
                         <td class="text-center">
                             <select {{ "disabled" if single_quiz.deadline_driven == "True"  }} 
                                 id="status_{{single_quiz.id}}_{{course.id}}"
+                                data-current-status="{{ single_quiz.status }}"
                                 onchange="setQuizStatus('{{single_quiz.id}}', '{{course.id}}', event)">
                                 <option value="HIDDEN"      {% if single_quiz.status == 'HIDDEN' %} selected {% endif %}>       Hidden</option>
                                 <option value="STEP1"       {% if single_quiz.status == 'STEP1' %} selected {% endif %}>        Step #1</option>
@@ -213,6 +214,7 @@
                     <td class="text-center"'>                                                
                         <select {{ "disabled" if single_quiz.deadline_driven == "True"  }} 
                             id="status_{{single_quiz.id}}_"
+                            data-current-status="{{ single_quiz.status }}"
                             onchange="setQuizStatus('{{single_quiz.id}}', '', event)">
                             <option value="HIDDEN"      {% if single_quiz.status == 'HIDDEN' %} selected {% endif %}>       Hidden</option>
                             <option value="STEP1"       {% if single_quiz.status == 'STEP1' %} selected {% endif %}>        Step #1</option>
@@ -318,15 +320,16 @@
         .then(
             response => {
                 if(response.ok){
+                    event.target.dataset.currentStatus = selectedValue;
                     sendToFlashLand(`Quiz ${quizId} status was updated`,"success");
-                    //window.location.reload();
                 }else{
+                    event.target.value = event.target.dataset.currentStatus;
                     sendToFlashLand(`Quiz ${quizId} status update failed`,"danger");
-                    //window.location.reload();
                 }
             }
         )
         .catch((error) => {
+            event.target.value = event.target.dataset.currentStatus;
             sendToFlashLand("There was a problem updating the quiz status: " + error,"danger");
         })
     }
