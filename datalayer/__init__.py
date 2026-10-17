@@ -55,6 +55,31 @@ QUIZ_ATTEMPT_SOLUTIONS = QUIZ_SOLUTIONS = "SOLUTIONS" #when student attempt on S
 
 attempt_next_steps = {QUIZ_ATTEMPT_STEP1: QUIZ_ATTEMPT_STEP2, QUIZ_ATTEMPT_STEP2: QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP3: QUIZ_ATTEMPT_SOLUTIONS}
 
+QUIZ_STATUS_ORDER = {
+    QUIZ_HIDDEN: 0,
+    QUIZ_STEP1: 1,
+    QUIZ_STEP2: 2,
+    QUIZ_STEP3: 3,
+    QUIZ_SOLUTIONS: 4,
+}
+
+
+def is_valid_quiz_status_transition(current_status, new_status, has_attempts=False):
+    """Return whether a quiz status change moves forward or hides the quiz.
+
+    HIDDEN is both the initial state and a way to hide a quiz after use. Once
+    attempts exist, moving from HIDDEN back to STEP1 would restart completed or
+    in-progress work, so reject that transition.
+    """
+    if current_status not in QUIZ_STATUS_ORDER or new_status not in QUIZ_STATUS_ORDER:
+        return False
+    if current_status == new_status or new_status == QUIZ_HIDDEN:
+        return True
+    if current_status == QUIZ_HIDDEN and new_status == QUIZ_STEP1 and has_attempts:
+        return False
+    return QUIZ_STATUS_ORDER[new_status] > QUIZ_STATUS_ORDER[current_status]
+
+
 def get_attempt_next_step(cur_step):
     return attempt_next_steps.get(cur_step, cur_step)
 

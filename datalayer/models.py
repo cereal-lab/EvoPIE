@@ -9,7 +9,7 @@ from flask_login import UserMixin
 from sqlalchemy import ForeignKey
 
 from datalayer import DB
-from datalayer import QUIZ_ATTEMPT_STEP1, QUIZ_HIDDEN, QUIZ_STEP1, QUIZ_STEP2, QUIZ_STEP3, QUIZ_SOLUTIONS, ROLE_INSTRUCTOR, ROLE_STUDENT, ROLE_ADMIN
+from datalayer import QUIZ_ATTEMPT_STEP1, QUIZ_HIDDEN, QUIZ_STEP1, QUIZ_STEP2, QUIZ_STEP3, QUIZ_SOLUTIONS, ROLE_INSTRUCTOR, ROLE_STUDENT, ROLE_ADMIN, is_valid_quiz_status_transition
 from datetime import datetime
 
 from pytz import timezone
@@ -314,13 +314,12 @@ class Quiz(DB.Model):
     # NOTE for now the statuses that are handled are "HIDDEN", "STEP1", "STEP2"
     # TODO might want to make this a foreign key to a table of statuses
 
-    def set_status(self, stat):
+    def set_status(self, stat, has_attempts=False):
         ustat = stat.upper()
-        if ustat != QUIZ_HIDDEN and ustat != QUIZ_STEP1 and ustat != QUIZ_STEP2 and ustat != QUIZ_STEP3 and ustat != QUIZ_SOLUTIONS:
+        if not is_valid_quiz_status_transition(self.status, ustat, has_attempts):
             return False
-        else:
-            self.status = ustat
-            return True
+        self.status = ustat
+        return True
 
 
     # is the following affected by TODO #3 at all? e.g., field description?
