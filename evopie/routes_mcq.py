@@ -12,6 +12,7 @@ from html.parser import HTMLParser
 from werkzeug.security import generate_password_hash
 from datalayer import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_HIDDEN, QUIZ_STEP1, QUIZ_STEP2, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT
 from evopie.utils import groupby, prepare_field_value
+from evopie.passwords import password_validation_error
 from evopie.quiz_model import get_quiz_builder
 from evopie.decorators import role_required, unmime, validate_quiz_attempt_step, verify_deadline, verify_instructor_relationship, retry_concurrent_update
 
@@ -1283,12 +1284,19 @@ def post_users_role(uid):
 
 @mcq.route('/users/<int:uid>/password', methods=['POST'])
 def post_user_password(uid):
-    if request.json:
-        password = request.json['password']
+    if request.is_json:
+        password = request.json.get('password')
     else:
         password = request.form.get('password')
-        
-    password = generate_password_hash(password, method='sha256')
+
+    password_error = password_validation_error(password)
+    if password_error:
+        if request.is_json:
+            return jsonify({"message": password_error}), 400
+        flash(password_error)
+        return redirect(url_for('pages.users_browser'))
+
+    password = generate_password_hash(password)
     user = models.User.query.get_or_404(uid)
     user.password = password
     models.DB.session.commit()
