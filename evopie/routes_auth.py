@@ -10,6 +10,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import timedelta
 from datalayer import ROLE_INSTRUCTOR, ROLE_STUDENT
 from evopie.utils import prepare_field_value
+from evopie.passwords import password_validation_error
 
 import datalayer.models as models
 
@@ -77,6 +78,13 @@ def post_signup():
         flash(message)
         return redirect(url_for('auth.get_signup'))
 
+    password_error = password_validation_error(password)
+    if password_error:
+        if request.is_json:
+            return jsonify({"message": password_error}), 400
+        flash(password_error)
+        return redirect(url_for('auth.get_signup'))
+
     if(retype != password):
         flash('Passwords do not match')
         return redirect(url_for('auth.get_signup'))
@@ -94,7 +102,7 @@ def post_signup():
         # first to the key, first to the egg!
         its_role = ROLE_INSTRUCTOR
 
-    password = generate_password_hash(password, method='sha256')
+    password = generate_password_hash(password)
 
     user = models.User.query.filter_by(email=email).first()
 
