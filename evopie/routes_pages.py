@@ -169,32 +169,14 @@ def quiz_question_editor(quiz_id,quiz_question_id):
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
 
-    # we need to create the new question
     if quiz_question_id == -1:
-        # create a new blank question
-        title = 'Add a title for your new question here.'
-        stem = 'Add the question here.'
-        answer = 'Add the correct answer to your question here.'
-        q = models.Question(title=title, stem=stem, answer=answer)
-        models.DB.session.add(q)
-        models.DB.session.commit()
+        flash("Create the question with at least one distractor, then add it to the quiz.", "error")
+        return redirect(url_for('pages.questions_browser'))
 
-        # now link the Question to a new QuizQuestion
-        qq = models.QuizQuestion(question=q)
-        models.DB.session.add(qq)
-        models.DB.session.commit()
-    
-        # now add the QuizQuestion to the quiz
-        my_quiz = models.Quiz.query.get_or_404(quiz_id)
-        my_quiz.quiz_questions.append(qq)
-        models.DB.session.commit()
-    
-    else: 
-        #q = models.Question.query.get_or_404(question_id)
-        qq = models.QuizQuestion.query.get_or_404(quiz_question_id)
-        q = models.Question.query.get_or_404(qq.question_id)
-        # NOTE we assume that the QuizQuestion already belong to this quiz
-        # FIXME we should really ensure that it's the case
+    qq = models.QuizQuestion.query.get_or_404(quiz_question_id)
+    q = models.Question.query.get_or_404(qq.question_id)
+    # NOTE we assume that the QuizQuestion already belong to this quiz
+    # FIXME we should really ensure that it's the case
     # now edit the QuizQuestion
     #return redirect("/question-editor/" + str(q.id), code=302)
     return render_template('quiz-question-editor.html', quiz_id = quiz_id, quiz_question = qq, question = q)
@@ -245,17 +227,20 @@ def add_quiz_question_to_quiz(quiz_id, question_id):
     qz = models.Quiz.query.get_or_404(quiz_id)
     q = models.Question.query.get_or_404(question_id)
     
-    #create new QuizQuestion based on the Question
-    qq = models.QuizQuestion(question=q) 
-
     if request.is_json:
-        selected_distractors_list = request.json.get('selected_distractors')
+        selected_distractors_list = (request.get_json(silent=True) or {}).get('selected_distractors')
     else:
-        selected_distractors_list = request.form.get('selected_distractors')
+        selected_distractors_list = request.form.getlist('selected_distractors')
 
-    if len(selected_distractors_list) == 0:
-        return { "message" : "Select atleast one distractor to continue!", "redirect": url_for("pages.quizzes_browser"), "status": "danger" }, 400
+    if not isinstance(selected_distractors_list, list) or not selected_distractors_list:
+        return {
+            "message": "Select at least one distractor, or add a distractor to this question first.",
+            "redirect": url_for("pages.quizzes_browser"),
+            "status": "danger",
+        }, 400
 
+    # Create the quiz question only after the selection passes validation.
+    qq = models.QuizQuestion(question=q)
     for distractor_id_str in selected_distractors_list:
         distractor_id = int(distractor_id_str)
         distractor = models.Distractor.query.get_or_404(distractor_id)

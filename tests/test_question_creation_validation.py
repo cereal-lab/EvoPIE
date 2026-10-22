@@ -45,7 +45,13 @@ def test_html_form_explains_empty_question_or_answer(
 
     response = client.post(
         "/questions",
-        data={"title": "Test question", "stem": stem, "answer": answer},
+        data={
+            "title": "Test question",
+            "stem": stem,
+            "answer": answer,
+            "distractor_answer": "A plausible but incorrect answer",
+            "distractor_justification": "This answer is incorrect because...",
+        },
         follow_redirects=True,
     )
 
@@ -63,7 +69,13 @@ def test_json_request_gets_a_field_specific_validation_error(question_form_clien
 
     response = client.post(
         "/questions",
-        json={"title": "Test question", "stem": "<p><br></p>", "answer": "<p>42</p>"},
+        json={
+            "title": "Test question",
+            "stem": "<p><br></p>",
+            "answer": "<p>42</p>",
+            "distractor_answer": "<p>Wrong option</p>",
+            "distractor_justification": "<p>Why it is wrong</p>",
+        },
     )
 
     assert response.status_code == 400
@@ -79,8 +91,48 @@ def test_empty_json_payload_returns_required_fields_error(question_form_client):
 
     assert response.status_code == 400
     assert response.json["message"] == (
-        "Please complete the required fields: title, question, answer."
+        "Please complete the required fields: title, question, answer, distractor, distractor justification."
     )
+    with APP.app_context():
+        assert models.Question.query.filter_by(author_id=instructor_id).count() == 0
+
+
+def test_json_question_creation_requires_a_distractor(question_form_client):
+    client, instructor_id = question_form_client
+
+    response = client.post(
+        "/questions",
+        json={
+            "title": "Question without distractors",
+            "stem": "<p>Question</p>",
+            "answer": "<p>Answer</p>",
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json["message"] == (
+        "Please complete the required fields: distractor, distractor justification."
+    )
+    with APP.app_context():
+        assert models.Question.query.filter_by(author_id=instructor_id).count() == 0
+
+
+def test_question_form_requires_a_distractor(question_form_client):
+    client, instructor_id = question_form_client
+
+    response = client.post(
+        "/questions",
+        data={
+            "title": "Question without distractors",
+            "stem": "<p>Question</p>",
+            "answer": "<p>Answer</p>",
+        },
+        headers={"Referer": "/questions-browser"},
+        follow_redirects=True,
+    )
+
+    assert response.status_code == 200
+    assert b"Please complete the required fields: distractor, distractor justification." in response.data
     with APP.app_context():
         assert models.Question.query.filter_by(author_id=instructor_id).count() == 0
 
@@ -90,7 +142,13 @@ def test_whitespace_only_title_is_rejected(question_form_client):
 
     response = client.post(
         "/questions",
-        data={"title": "   ", "stem": "<p>Question</p>", "answer": "<p>Answer</p>"},
+        data={
+            "title": "   ",
+            "stem": "<p>Question</p>",
+            "answer": "<p>Answer</p>",
+            "distractor_answer": "<p>Wrong option</p>",
+            "distractor_justification": "<p>Why it is wrong</p>",
+        },
         follow_redirects=True,
     )
 
@@ -113,6 +171,8 @@ def test_valid_question_form_still_creates_a_question(question_form_client):
                 '<script>alert(1)</script>'
             ),
             "answer": "<p>42</p>",
+            "distractor_answer": "<p>Incorrect option</p>",
+            "distractor_justification": "<p>It is not the correct answer.</p>",
         },
         headers={"Referer": "/questions-browser"},
         follow_redirects=True,
@@ -125,3 +185,5 @@ def test_valid_question_form_still_creates_a_question(question_form_client):
         assert "onerror" not in question.stem.lower()
         assert "javascript:" not in question.stem.lower()
         assert "<script" not in question.stem.lower()
+        assert len(question.distractors) == 1
+        assert question.distractors[0].answer == "<p>Incorrect option</p>"

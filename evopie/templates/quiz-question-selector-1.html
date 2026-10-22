@@ -54,9 +54,15 @@
                     </tr>
                     <tr>
 
-                        <a class="btn btn-primary my-2 btn-sm" href="/quiz-question-selector-2/{{quiz_id}}/{{question.id}}">
-                            Select This Question
-                        </a>
+                        {% if question.distractors %}
+                            <a class="btn btn-primary my-2 btn-sm" href="/quiz-question-selector-2/{{quiz_id}}/{{question.id}}">
+                                Select This Question
+                            </a>
+                        {% else %}
+                            <a class="btn btn-secondary my-2 btn-sm" href="/question-editor/{{question.id}}">
+                                Add a distractor before selecting this question
+                            </a>
+                        {% endif %}
                     </tr>
                 </table>
             </p>

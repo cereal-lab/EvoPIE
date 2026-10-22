@@ -72,10 +72,14 @@ def post_new_question():
         title = payload.get('title')
         stem = payload.get('stem')
         answer = payload.get('answer')
+        distractor_answer = payload.get('distractor_answer')
+        distractor_justification = payload.get('distractor_justification')
     else:
         title = request.form.get('title')
         stem = request.form.get('stem')
         answer = request.form.get('answer')
+        distractor_answer = request.form.get('distractor_answer')
+        distractor_justification = request.form.get('distractor_justification')
         #NOTE if the POST from the HTML form refers to an existing question, we forward it to the PUT route.
         # We are able to tell this is the case because the form embeds an hidden field named "qid".
         if 'qid' in request.form:
@@ -88,6 +92,10 @@ def post_new_question():
         missing_fields.append("question")
     if not _has_editor_content(answer):
         missing_fields.append("answer")
+    if not _has_editor_content(distractor_answer):
+        missing_fields.append("distractor")
+    if not _has_editor_content(distractor_justification):
+        missing_fields.append("distractor justification")
     if missing_fields:
         message = "Please complete the required fields: " + ", ".join(missing_fields) + "."
         if is_json_request:
@@ -98,10 +106,21 @@ def post_new_question():
     escaped_answer = prepare_field_value(models.Question, "answer", answer)
     escaped_stem = prepare_field_value(models.Question, "stem", stem)
     escaped_title = prepare_field_value(models.Question, "title", title)
+    escaped_distractor_answer = prepare_field_value(models.Distractor, "answer", distractor_answer)
+    escaped_distractor_justification = prepare_field_value(
+        models.Distractor, "justification", distractor_justification
+    )
 
     author_id = current_user.get_id()
 
     q = models.Question(title=escaped_title, stem=escaped_stem, answer=escaped_answer, author_id=author_id)
+    q.distractors.append(
+        models.Distractor(
+            answer=escaped_distractor_answer,
+            justification=escaped_distractor_justification,
+            author_id=author_id,
+        )
+    )
     models.DB.session.add(q)
     models.DB.session.commit()
 
