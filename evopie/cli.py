@@ -16,10 +16,12 @@ import traceback
 
 from evopie import APP, deca
 from datalayer import models
-from datalayer import QUIZ_ATTEMPT_STEP1, QUIZ_STEP1, QUIZ_STEP2, ROLE_ADMIN, ROLE_STUDENT
+from datalayer import QUIZ_ATTEMPT_STEP1, QUIZ_STEP1, QUIZ_STEP2, ROLE_ADMIN, ROLE_INSTRUCTOR, ROLE_STUDENT
 from evopie.utils import groupby, unpack_key
 from evopie.passwords import password_validation_error
 from evopie.quiz_model import get_quiz_builder, set_quiz_model
+
+CLI_SIMULATION_PASSWORD = "EvoPIE-cli-simulation-password"
 
 def throw_on_http_fail(resp: TestResponse, status: int = 400):
     if resp.status_code >= status:            
@@ -140,18 +142,39 @@ deca_cli = AppGroup('deca')
 @click.option('-t', '--title', default="")
 @click.option('-d', '--description', default="")
 def start_course_init(instructor, name, title, description):
-    instructor = {"email":instructor, "firstname":"I", "lastname": "I", "password":"pwd"}
-    course = {"name":name, "title":title, "description":description, "instructor_id": 1}
+    instructor = {
+        "email": instructor,
+        "firstname": "I",
+        "lastname": "I",
+        "password": CLI_SIMULATION_PASSWORD,
+    }
+    course = {"name": name, "title": title, "description": description, "instructor_id": 1}
+
+    with APP.app_context():
+        user = models.User.query.filter_by(email=instructor["email"]).first()
+        if user is not None and user.role != ROLE_INSTRUCTOR:
+            raise click.ClickException(
+                "The course setup account exists but does not have the instructor role."
+            )
+
     with APP.test_client(use_cookies=True) as c:
-        throw_on_http_fail(c.post("/signup", json={**instructor, "retype":instructor["password"]}), status=300)
-        throw_on_http_fail(c.post("/login",json=instructor))
+        if user is None:
+            throw_on_http_fail(
+                c.post("/signup", json={**instructor, "retype": instructor["password"]}),
+                status=300,
+            )
+            with APP.app_context():
+                user = models.User.query.filter_by(email=instructor["email"]).first()
+                user.set_role(ROLE_INSTRUCTOR)
+                models.DB.session.commit()
+        throw_on_http_fail(c.post("/login", json=instructor))
         throw_on_http_fail(c.post('/courses', json=course))
 
 @quiz_cli.command("copy")
 @click.option('-q', '--quiz-id')
 @click.option('-cid', '--course-id', type=int, default=1)
 def start_quiz_copy(quiz_id, course_id):
-    instructor = {"email":"i@usf.edu", "firstname":"I", "lastname": "I", "password":"pwd"}
+    instructor = {"email":"i@usf.edu", "firstname":"I", "lastname": "I", "password":CLI_SIMULATION_PASSWORD}
     with APP.test_client(use_cookies=True) as c: #instructor session
         throw_on_http_fail(c.post("/login",json=instructor))
         c.get(f"/quiz-copy/{quiz_id}", headers={"Accept": "application/json"})
@@ -182,19 +205,25 @@ def edit_quiz_settings(quiz_id, settings):
 @quiz_cli.command("init")
 @click.option('-i', '--instructor', default='i@usf.edu')
 @click.option('-cid', '--course-id', type=int, default=1)
-@click.option('-nq', '--num-questions', required = True, type = int)
-@click.option('-nd', '--num-distractors', required = True, type = int)
+@click.option('-nq', '--num-questions', required=True, type=int)
+@click.option('-nd', '--num-distractors', required=True, type=click.IntRange(min=1))
 @click.option('-qd', '--question-distractors')
 @click.option('-s', '--settings')
 def start_quiz_init(instructor, course_id, num_questions, num_distractors, question_distractors, settings):
     ''' Creates instructor, quiz, students for further testing 
         Note: flask app should be running
     '''
-    instructor = {"email":instructor, "firstname":"I", "lastname": "I", "password":"pwd"}
+    instructor = {"email":instructor, "firstname":"I", "lastname": "I", "password":CLI_SIMULATION_PASSWORD}
     def build_quiz(i, questions):
         return { "title": f"Quiz {i}", "description": "Test quiz", "questions_ids": questions, "step3_enabled": True}
     def build_question(i):
-        return { "title": f"Question {i}", "stem": f"Question {i} Stem?", "answer": f"a{i}"}
+        return {
+            "title": f"Question {i}",
+            "stem": f"Question {i} Stem?",
+            "answer": f"a{i}",
+            "distractor_answer": f"dX/q{i}",
+            "distractor_justification": f"dX/q{i} just",
+        }
     def build_distractor(i, question):
         return { "answer": f"d{i}/q{question}", "justification": f"d{i}/q{question} just"}
     if settings:
@@ -217,7 +246,13 @@ def start_quiz_init(instructor, course_id, num_questions, num_distractors, quest
             qids.append(qid)
             q = build_question(qid)
             throw_on_http_fail(c.put(f"/questions/{qid}", json=q))
-            for _ in range(num_distractors):
+            with APP.app_context():
+                first_distractor = models.Distractor.query.filter_by(
+                    question_id=qid
+                ).order_by(models.Distractor.id).first()
+                dids.append(first_distractor.id)
+                distractor_map.loc[len(distractor_map)] = (qid, first_distractor.id)
+            for _ in range(num_distractors - 1):
                 d = build_distractor("X", qid)
                 resp = throw_on_http_fail(c.post(f"/questions/{qid}/distractors", json=d))
                 did = resp["id"]
@@ -306,11 +341,11 @@ def init_students(course_id, num_students, exclude_id, input, output, email_form
         sys.stderr.write("Either  ")
         sys.exit(1)
     def build_student(i):
-        return {"email": email_format.format(i), "firstname":"S", "lastname": "S", "password":"pwd"}        
+        return {"email": email_format.format(i), "firstname":"S", "lastname": "S", "password":CLI_SIMULATION_PASSWORD}
 
     input_students = None     
     if input is not None:
-        columns = {"firstname": "", "lastname": "", "password": "pwd"}
+        columns = {"firstname": "", "lastname": "", "password": CLI_SIMULATION_PASSWORD}
         input_students = pandas.read_csv(input)
         for column in columns:
             if column not in input_students:
@@ -568,7 +603,7 @@ KNOWLEDGE_SELECTION_STRENGTH = "KNOWLEDGE_SELECTION_STRENGTH"
 @click.option('-n', '--n-times', type=int, default=1)
 @click.option('-kns', '--knowledge-selection', default = KNOWLEDGE_SELECTION_STRENGTH)
 @click.option('-i', '--instructor', default='i@usf.edu')
-@click.option('-p', '--password', default='pwd') 
+@click.option('-p', '--password', default=CLI_SIMULATION_PASSWORD)
 @click.option('--no-algo', is_flag=True) #randomize student order
 @click.option('--algo') #evo algo to use
 @click.option('--algo-params') #json settings of algo
@@ -613,7 +648,7 @@ def simulate_quiz(quiz, course_id, instructor, password, no_algo, algo, algo_par
         for (sid, email) in ids_emails:
             with APP.test_client(use_cookies=True) as c:
                 with APP.app_context():
-                    resp = throw_on_http_fail(c.post("/login", json={"email": email, "password": "pwd"}))
+                    resp = throw_on_http_fail(c.post("/login", json={"email": email, "password": CLI_SIMULATION_PASSWORD}))
                     if "id" not in resp:
                         continue #ignore non-default students
                     resp = throw_on_http_fail(c.get(f"/student/{quiz}/{course_id}/start", headers={"Accept": "application/json"}))
@@ -1417,7 +1452,7 @@ def export_quiz_evo(quiz, output):
 @click.option('-q', '--quiz', type=int, required=True)
 @click.option('-o', '--output')
 @click.option('-i', '--instructor', default='i@usf.edu')
-@click.option('-p', '--password', default='pwd') 
+@click.option('-p', '--password', default=CLI_SIMULATION_PASSWORD)
 @click.option('--expected') #csv file to compare with
 @click.option('--diff-o') #where to save diff
 def get_quiz_result(quiz, output, instructor, password, expected, diff_o):
