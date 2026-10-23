@@ -50,8 +50,9 @@ EvoPIE currently uses three main roles:
 - instructors, who create and manage courses, questions, quizzes, and grades;
 - admins, who can access administrative views.
 
-On an empty database, the first account created through the sign-up page
-becomes an instructor account. Later accounts become student accounts.
+On an empty database, `DB-init` creates an admin account from
+`EVOPIE_ADMIN_EMAIL` and `EVOPIE_ADMIN_PASSWORD`. Self-service signups receive
+the student role. Admins can promote users to instructor.
 
 ## Main application parts
 

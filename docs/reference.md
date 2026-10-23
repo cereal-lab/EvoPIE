@@ -63,8 +63,10 @@ EvoPIE uses these role names:
 - `INSTRUCTOR`
 - `ADMIN`
 
-On an empty database, the first account created through the sign-up page
-becomes an instructor account. Later accounts become student accounts.
+On an empty database, `DB-init` creates an admin account from
+`EVOPIE_ADMIN_EMAIL` and `EVOPIE_ADMIN_PASSWORD`. The password must contain at
+least 15 characters. Self-service signups receive the `STUDENT` role. Admins
+can promote users to `INSTRUCTOR`.
 
 ## Quiz and attempt statuses
 
@@ -147,6 +149,13 @@ without a command-line delay argument.
 `EVOPIE_DATABASE_LOG` enables SQLAlchemy query logging to the configured file.
 
 `EVOPIE_DEBUG=True` enables the debugpy listener used by the application.
+
+`EVOPIE_ADMIN_EMAIL` and `EVOPIE_ADMIN_PASSWORD` set the initial admin
+credentials when `DB-init` runs on an empty database. The password must contain
+at least 15 characters. `EVOPIE_ADMIN_FIRST_NAME` and
+`EVOPIE_ADMIN_LAST_NAME` set the optional name fields; they default to `EvoPIE`
+and `Admin`. These values do not reset or update an account on an initialized
+database.
 
 Docker Compose and the optional local HTTPS proxy use these variables:
 
