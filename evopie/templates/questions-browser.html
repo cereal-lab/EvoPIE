@@ -28,6 +28,8 @@
           if (!document.getElementById('title').value.trim()) missingFields.push('title');
           if (!hasEditorContent('question')) missingFields.push('question');
           if (!hasEditorContent('answer')) missingFields.push('answer');
+          if (!hasEditorContent('distractor_answer')) missingFields.push('distractor');
+          if (!hasEditorContent('distractor_justification')) missingFields.push('distractor justification');
 
           if (missingFields.length) {
               event.preventDefault();
@@ -36,7 +38,13 @@
               if (missingFields[0] === 'title') {
                   document.getElementById('title').focus();
               } else {
-                  $('#' + (missingFields[0] === 'question' ? 'question' : 'answer')).summernote('focus');
+                  const editorIds = {
+                      question: 'question',
+                      answer: 'answer',
+                      distractor: 'distractor_answer',
+                      'distractor justification': 'distractor_justification'
+                  };
+                  $('#' + editorIds[missingFields[0]]).summernote('focus');
               }
           } else {
               validationMessage.hidden = true;
@@ -93,6 +101,14 @@
                     <div class="form-group">
                         <label for="answer">Answer</label>
                         <textarea class="summernote form-control" name="answer" id="answer" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="distractor_answer">First distractor</label>
+                        <textarea class="summernote form-control" name="distractor_answer" id="distractor_answer" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="distractor_justification">Why is this answer incorrect?</label>
+                        <textarea class="summernote form-control" name="distractor_justification" id="distractor_justification" required></textarea>
                     </div>
                     <div id="question-form-error" class="alert alert-danger mt-2" role="alert" aria-live="polite" hidden></div>
                     <input type="submit" value="Submit" class="btn btn-primary">
