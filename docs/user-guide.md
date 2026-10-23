@@ -8,18 +8,19 @@ the web interface.
 Instructors organize work around courses, questions, and quizzes.
 
 1. Create a course.
-2. Create questions.
-3. Add distractors to each question.
+2. Create each question with its stem, correct answer, and first distractor.
+3. Add more distractors to each question as needed.
 4. Create a quiz.
-5. Attach questions and distractors to the quiz.
+5. Attach questions and selected distractors to the quiz.
 6. Attach the quiz to a course.
 7. Add students to the course.
 8. Release the quiz by status or by deadline.
 9. Review grades and student work after students participate.
 
-A question has a stem, a correct answer, and one or more distractors. A
-distractor is a wrong but plausible answer choice. Distractors are important
-because students explain why unselected alternatives are incorrect.
+A question has a stem, a correct answer, and one or more distractors. Each
+distractor needs a wrong but plausible answer and a justification. Distractors
+are important because students explain why unselected alternatives are
+incorrect.
 
 A quiz is built from questions and selected distractors. Instructors can choose
 whether a quiz is controlled manually by status or automatically by deadlines.

@@ -92,6 +92,9 @@ Drop and recreate the database tables:
 uv run flask DB-reboot
 ```
 
+This deletes all database data. To create the initial admin account again,
+set `EVOPIE_ADMIN_EMAIL` and `EVOPIE_ADMIN_PASSWORD`, then run `DB-init`.
+
 Populate sample quiz data:
 
 ```bash
@@ -468,7 +471,8 @@ currently expose every operation needed for a separate single-page application.
 These route groups are part of the REST foundation:
 
 - `GET /questions`: list questions.
-- `POST /questions`: create a question.
+- `POST /questions`: create a question with its first distractor and
+  justification.
 - `GET /questions/<id>`: read a question.
 - `PUT /questions/<id>`: update a question's title, stem, and answer; it does
   not update its distractors.

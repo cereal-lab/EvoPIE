@@ -26,6 +26,13 @@ To discard local data and recreate the tables, run:
 uv run flask DB-reboot
 ```
 
+This removes all data. To create the initial admin account in the empty
+database, set `EVOPIE_ADMIN_EMAIL` and `EVOPIE_ADMIN_PASSWORD`, then run:
+
+```bash
+uv run flask DB-init
+```
+
 ## How do I create the initial admin account?
 
 Set `EVOPIE_ADMIN_EMAIL` and `EVOPIE_ADMIN_PASSWORD` before you initialize an
