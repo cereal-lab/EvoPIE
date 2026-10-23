@@ -41,7 +41,7 @@ def role_required(role, redirect_to_referrer = False, redirect_route='login', re
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            if current_user.role != role:
+            if not current_user.has_role(role):
                 if request.accept_mimetypes.accept_html: 
                     if redirect_message is not None: 
                         flash(redirect_message, category)                    
