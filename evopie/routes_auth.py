@@ -8,7 +8,7 @@ from flask import Blueprint
 from flask_login import login_user, login_required, current_user, login_manager, logout_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import timedelta
-from datalayer import ROLE_INSTRUCTOR, ROLE_STUDENT
+from datalayer import ROLE_STUDENT
 from evopie.utils import prepare_field_value
 from evopie.passwords import password_validation_error
 
@@ -91,17 +91,8 @@ def post_signup():
 
     email = prepare_field_value(models.User, "email", email)
 
-    #FIXME for now, we hardcode that the 1st user to signup is an INSTRUCTOR
-    # the testing scripts are hardwired to work with that assumption too. 
-    # Need to fix this as soon as we bootstrap an ADMIN user and allow them 
-    # to promote a user to a different role; e.g., promote_to_instructor()
-    if models.User.query.all():
-        # there is at least one user so this one is going to be a STUDENT
-        its_role = ROLE_STUDENT
-    else:
-        # first to the key, first to the egg!
-        its_role = ROLE_INSTRUCTOR
-
+    # New self-service signups are students. An administrator can promote
+    # accounts to instructor after reviewing them.
     password = generate_password_hash(password)
 
     user = models.User.query.filter_by(email=email).first()
@@ -110,7 +101,6 @@ def post_signup():
         user.password = password
         user.first_name = first_name
         user.last_name = last_name
-        user.set_role(its_role)
     # making sure the user does not already exist
     elif models.User.query.filter_by(email=email).first():        
         found_url = url_for('auth.get_signup')
@@ -123,7 +113,7 @@ def post_signup():
         # accounts, the first one will be salvageable by whoever actually has legitimate access
         # to the email address associated with it. 
     elif user is None:
-        new_user = models.User(email=email, first_name=first_name, last_name=last_name, password=password, role=its_role) #NOTE default role is STUDENT
+        new_user = models.User(email=email, first_name=first_name, last_name=last_name, password=password, role=ROLE_STUDENT)
         models.DB.session.add(new_user)
     
     models.DB.session.commit()
