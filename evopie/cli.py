@@ -8,6 +8,7 @@ from flask import g
 from pandas import DataFrame, Series
 import pandas
 from werkzeug.test import TestResponse
+from werkzeug.security import generate_password_hash
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,8 +16,9 @@ import traceback
 
 from evopie import APP, deca
 from datalayer import models
-from datalayer import QUIZ_ATTEMPT_STEP1, QUIZ_STEP1, QUIZ_STEP2, ROLE_STUDENT
+from datalayer import QUIZ_ATTEMPT_STEP1, QUIZ_STEP1, QUIZ_STEP2, ROLE_ADMIN, ROLE_STUDENT
 from evopie.utils import groupby, unpack_key
+from evopie.passwords import password_validation_error
 from evopie.quiz_model import get_quiz_builder, set_quiz_model
 
 def throw_on_http_fail(resp: TestResponse, status: int = 400):
@@ -32,6 +34,34 @@ def throw_on_http_fail(resp: TestResponse, status: int = 400):
 def DB_init():
     print(f"Initializing {os.getenv('EVOPIE_DATABASE_URI', 'sqlite:///DB_quizlib.sqlite')}")
     models.DB.create_all()
+
+    if models.User.query.first() is not None:
+        return
+
+    admin_email = os.getenv("EVOPIE_ADMIN_EMAIL", "").strip()
+    admin_password = os.getenv("EVOPIE_ADMIN_PASSWORD", "")
+    if not admin_email or not admin_password:
+        raise click.ClickException(
+            "An empty database needs EVOPIE_ADMIN_EMAIL and EVOPIE_ADMIN_PASSWORD "
+            "to create its initial admin account."
+        )
+
+    password_error = password_validation_error(admin_password)
+    if password_error:
+        raise click.ClickException(
+            "EVOPIE_ADMIN_PASSWORD is invalid: {}".format(password_error)
+        )
+
+    admin = models.User(
+        email=admin_email,
+        first_name=os.getenv("EVOPIE_ADMIN_FIRST_NAME", "EvoPIE"),
+        last_name=os.getenv("EVOPIE_ADMIN_LAST_NAME", "Admin"),
+        password=generate_password_hash(admin_password),
+        role=ROLE_ADMIN,
+    )
+    models.DB.session.add(admin)
+    models.DB.session.commit()
+    print("Created the initial admin account.")
 
 # Invoke with flask DB-reboot
 # Tear down the data base and rebuild an empty one.

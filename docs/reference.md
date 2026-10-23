@@ -63,8 +63,10 @@ EvoPIE uses these role names:
 - `INSTRUCTOR`
 - `ADMIN`
 
-On an empty database, the first account created through the sign-up page
-becomes an instructor account. Later accounts become student accounts.
+On an empty database, `DB-init` creates an admin account from
+`EVOPIE_ADMIN_EMAIL` and `EVOPIE_ADMIN_PASSWORD`. The password must contain at
+least 15 characters. Self-service signups receive the `STUDENT` role. Admins
+can promote users to `INSTRUCTOR`.
 
 ## Quiz and attempt statuses
 
@@ -89,6 +91,9 @@ Drop and recreate the database tables:
 ```bash
 uv run flask DB-reboot
 ```
+
+This deletes all database data. To create the initial admin account again,
+set `EVOPIE_ADMIN_EMAIL` and `EVOPIE_ADMIN_PASSWORD`, then run `DB-init`.
 
 Populate sample quiz data:
 
@@ -147,6 +152,13 @@ without a command-line delay argument.
 `EVOPIE_DATABASE_LOG` enables SQLAlchemy query logging to the configured file.
 
 `EVOPIE_DEBUG=True` enables the debugpy listener used by the application.
+
+`EVOPIE_ADMIN_EMAIL` and `EVOPIE_ADMIN_PASSWORD` set the initial admin
+credentials when `DB-init` runs on an empty database. The password must contain
+at least 15 characters. `EVOPIE_ADMIN_FIRST_NAME` and
+`EVOPIE_ADMIN_LAST_NAME` set the optional name fields; they default to `EvoPIE`
+and `Admin`. These values do not reset or update an account on an initialized
+database.
 
 Docker Compose and the optional local HTTPS proxy use these variables:
 
@@ -459,7 +471,8 @@ currently expose every operation needed for a separate single-page application.
 These route groups are part of the REST foundation:
 
 - `GET /questions`: list questions.
-- `POST /questions`: create a question.
+- `POST /questions`: create a question with its first distractor and
+  justification.
 - `GET /questions/<id>`: read a question.
 - `PUT /questions/<id>`: update a question's title, stem, and answer; it does
   not update its distractors.

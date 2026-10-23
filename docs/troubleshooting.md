@@ -26,10 +26,19 @@ To discard local data and recreate the tables, run:
 uv run flask DB-reboot
 ```
 
-## Why is the first account an instructor?
+This removes all data. To create the initial admin account in the empty
+database, set `EVOPIE_ADMIN_EMAIL` and `EVOPIE_ADMIN_PASSWORD`, then run:
 
-On an empty database, EvoPIE makes the first signed-up account an instructor.
-Later accounts become students.
+```bash
+uv run flask DB-init
+```
+
+## How do I create the initial admin account?
+
+Set `EVOPIE_ADMIN_EMAIL` and `EVOPIE_ADMIN_PASSWORD` before you initialize an
+empty database. `DB-init` creates the admin account, and self-service signups
+receive the student role. See [How to run EvoPIE](how-to-run.md#initial-admin-account)
+for setup details.
 
 ## Why is port 5000 unavailable?
 

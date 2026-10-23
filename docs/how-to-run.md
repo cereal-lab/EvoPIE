@@ -17,6 +17,20 @@ For Docker Compose, you can store it in a root `.env` file; start with
 `.env.example`, fill in the key, and never commit `.env`. For direct local
 commands, export the variable in the shell before running EvoPIE.
 
+## Initial admin account
+
+When EvoPIE initializes an empty database, it creates one admin account. Set
+`EVOPIE_ADMIN_EMAIL` and `EVOPIE_ADMIN_PASSWORD` before running `DB-init` or
+starting Docker Compose for the first time. The password must contain at least
+15 characters. EvoPIE stores its password hash, not the plain-text password.
+You can also set `EVOPIE_ADMIN_FIRST_NAME` and `EVOPIE_ADMIN_LAST_NAME`; they
+default to `EvoPIE` and `Admin`.
+
+For Docker Compose, set these values in the root `.env` file. For uv, export
+them in your shell. `DB-init` does not change the admin account or its password
+when the database already contains users. New self-service signups receive the
+student role; an admin can promote them to instructor.
+
 ## 1. uv local
 
 Install Python 3.8 and [uv](https://docs.astral.sh/uv/), then run:
