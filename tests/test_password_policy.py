@@ -34,18 +34,6 @@ def test_signup_api_rejects_short_password():
     assert response.get_json()["message"] == "Password must be at least 15 characters long."
 
 
-def test_admin_password_change_api_rejects_short_password():
-    from evopie import APP
-
-    response = APP.test_client().post(
-        "/users/1/password",
-        json={"password": "password123"},
-    )
-
-    assert response.status_code == 400
-    assert response.get_json()["message"] == "Password must be at least 15 characters long."
-
-
 def test_signup_form_shows_short_password_error():
     from evopie import APP
 

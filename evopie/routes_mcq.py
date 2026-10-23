@@ -1302,7 +1302,14 @@ def post_users_role(uid):
     return make_response(response)
 
 @mcq.route('/users/<int:uid>/password', methods=['POST'])
+@login_required
 def post_user_password(uid):
+    if not current_user.is_admin():
+        message = "You are not allowed to change user passwords."
+        if request.is_json:
+            return jsonify({"message": message}), 403
+        abort(403, description=message)
+
     if request.is_json:
         password = request.json.get('password')
     else:
