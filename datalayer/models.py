@@ -516,14 +516,19 @@ class User(UserMixin, DB.Model):
     #     backref=DB.backref('instructors')
     # );
 
+    def has_role(self, role):
+        if role == ROLE_INSTRUCTOR:
+            return self.role == ROLE_INSTRUCTOR or self.is_admin()
+        return self.role == role
+
     def is_instructor(self):
-        return self.role == ROLE_INSTRUCTOR
+        return self.has_role(ROLE_INSTRUCTOR)
 
     def is_student(self):
         return self.role == ROLE_STUDENT
 
     def is_admin(self):
-        return self.id == 1 or self.role == ROLE_ADMIN
+        return self.role == ROLE_ADMIN
     
     def set_role(self, role):
         urole = role.upper()

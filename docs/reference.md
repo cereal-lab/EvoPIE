@@ -66,7 +66,8 @@ EvoPIE uses these role names:
 On an empty database, `DB-init` creates an admin account from
 `EVOPIE_ADMIN_EMAIL` and `EVOPIE_ADMIN_PASSWORD`. The password must contain at
 least 15 characters. Self-service signups receive the `STUDENT` role. Admins
-can promote users to `INSTRUCTOR`.
+have instructor access and can promote users to `INSTRUCTOR`. Admin access comes
+from the explicit `ADMIN` role, not from a user ID.
 
 ## Quiz and attempt statuses
 
