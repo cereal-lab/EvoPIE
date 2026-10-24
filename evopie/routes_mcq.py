@@ -13,6 +13,11 @@ from werkzeug.security import generate_password_hash
 from datalayer import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_HIDDEN, QUIZ_STEP1, QUIZ_STEP2, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, ROLE_INSTRUCTOR, ROLE_STUDENT
 from evopie.utils import groupby, prepare_field_value
 from evopie.passwords import password_validation_error
+from evopie.question_access import (
+    get_distractor_for_user_or_404,
+    get_question_for_user_or_404,
+    question_query_for_user,
+)
 from evopie.quiz_model import get_quiz_builder
 from evopie.decorators import role_required, unmime, validate_quiz_attempt_step, verify_deadline, verify_instructor_relationship, retry_concurrent_update
 
@@ -56,7 +61,7 @@ def get_all_questions():
         response     = ({ "message" : "You are not allowed to view all questions" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
-    all_questions = [q.dump_as_dict() for q in models.Question.query.all()]
+    all_questions = [q.dump_as_dict() for q in question_query_for_user(current_user).all()]
     return jsonify(all_questions)
 
 @mcq.route('/questions', methods=['POST'])
@@ -147,7 +152,7 @@ def get_question(question_id):
         response     = ({ "message" : "You are not allowed to access individual questions" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
-    q = models.Question.query.get_or_404(question_id)
+    q = get_question_for_user_or_404(question_id, current_user)
     return jsonify(q.dump_as_dict())
 
 @mcq.route('/questions/<int:question_id>', methods=['PUT'])
@@ -183,7 +188,7 @@ def put_question(question_id):
     if answer is None or stem is None or title is None:
         abort(400, "Unable to modify question due to missing data") # bad request
     
-    q = models.Question.query.get_or_404(question_id)
+    q = get_question_for_user_or_404(question_id, current_user)
     q.title = prepare_field_value(models.Question, "title", title)
     q.stem = prepare_field_value(models.Question, "stem", stem)
     q.answer = prepare_field_value(models.Question, "answer", answer)
@@ -207,7 +212,7 @@ def delete_question(question_id):
         response     = ({ "message" : "You are not allowed to delete questions" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
-    q = models.Question.query.get_or_404(question_id)
+    q = get_question_for_user_or_404(question_id, current_user)
     
     # validation - All of the quizzes containing question_id must be HIDDEN to be able to update
     for quiz in models.Quiz.query.filter_by(author_id=current_user.get_id()):
@@ -231,7 +236,7 @@ def get_distractors_for_question(question_id):
         response     = ({ "message" : "You are not allowed to view individual distractors" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
-    q = models.Question.query.get_or_404(question_id)
+    q = get_question_for_user_or_404(question_id, current_user)
     result = [d.dump_as_dict() for d in q.distractors]
     return jsonify(result)
 
@@ -264,7 +269,7 @@ def post_new_distractor_for_question(question_id):
     if answer is None:
         abort(400, "Unable to create new distractor due to missing data") # bad request
     
-    q = models.Question.query.get_or_404(question_id)
+    q = get_question_for_user_or_404(question_id, current_user)
     
     escaped_answer = prepare_field_value(models.Distractor, "answer", answer)
     escaped_justification = prepare_field_value(models.Distractor, "justification", justification)
@@ -387,6 +392,7 @@ def grade_student_distractor(distractor_id):
 
     # check if the student has submitted a distractor for this question
     distractor = models.InvalidatedDistractor.query.get_or_404(distractor_id)
+    get_question_for_user_or_404(distractor.question_id, current_user)
 
     if distractor is None:
         abort(400, "Unable to grade distractor due to missing data")
@@ -401,7 +407,7 @@ def grade_student_distractor(distractor_id):
 @role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to add distractors to the pool")
 def add_student_distractor_to_pool(distractor_id):
     distractor = models.InvalidatedDistractor.query.get_or_404(distractor_id)
-    question = models.Question.query.get_or_404(distractor.question_id)
+    question = get_question_for_user_or_404(distractor.question_id, current_user)
 
     # check if the distractor already exists in the pool
     existing_distractor = models.Distractor.query.filter_by(author_id=distractor.author_id, question_id=distractor.question_id).first()
@@ -424,7 +430,7 @@ def add_student_distractor_to_pool(distractor_id):
 @role_required(ROLE_INSTRUCTOR, redirect_message="You are not allowed to remove distractors from the pool")
 def remove_student_distractor_from_pool(distractor_id):
     distractor = models.InvalidatedDistractor.query.get_or_404(distractor_id)
-    question = models.Question.query.get_or_404(distractor.question_id)
+    question = get_question_for_user_or_404(distractor.question_id, current_user)
 
     # check if the distractor exists in the pool
     existing_distractor = models.Distractor.query.filter_by(author_id=distractor.author_id, question_id=distractor.question_id).first()
@@ -455,6 +461,7 @@ def put_student_comment_for_distractor(distractor_id):
         abort(400, "Unable to create new distractor due to missing data")
 
     student_distractor = models.InvalidatedDistractor.query.get_or_404(distractor_id)
+    get_question_for_user_or_404(student_distractor.question_id, current_user)
 
     escaped_comment = prepare_field_value(models.InvalidatedDistractor, "comment", comment)
 
@@ -472,7 +479,7 @@ def get_distractor(distractor_id):
         response     = ({ "message" : "You are not allowed to view individual distractors" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
-    d = models.Distractor.query.get_or_404(distractor_id)
+    d = get_distractor_for_user_or_404(distractor_id, current_user)
     return jsonify({ "answer": d.answer, "justification": d.justification })
 
 @mcq.route('/distractors/<int:distractor_id>', methods=['PUT','POST'])
@@ -501,7 +508,7 @@ def put_distractor(distractor_id):
     if answer is None:
         abort(400, "Unable to modify distractor due to missing data") # bad request
 
-    d = models.Distractor.query.get_or_404(distractor_id)
+    d = get_distractor_for_user_or_404(distractor_id, current_user)
     d.answer = prepare_field_value(models.Distractor, "answer", answer)
     d.justification = prepare_field_value(models.Distractor, "justification", justification)
 
@@ -525,7 +532,7 @@ def delete_distractor(distractor_id):
         response     = ({ "message" : "You are not allowed to delete distractors" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
     
-    d = models.Distractor.query.get_or_404(distractor_id)
+    d = get_distractor_for_user_or_404(distractor_id, current_user)
     
     # validation - All of the quizzes containing a question that distractor_id is related to must be HIDDEN to be able to update
     for quiz in models.Quiz.query.filter_by(author_id=current_user.get_id()):
@@ -551,7 +558,10 @@ def get_all_quiz_questions():
         response     = ({ "message" : "You are not allowed to view all quiz questions" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
-    all = models.QuizQuestion.query.all()
+    quiz_questions = models.QuizQuestion.query.join(models.Question)
+    if not current_user.is_admin():
+        quiz_questions = quiz_questions.filter(models.Question.author_id == current_user.id)
+    all = quiz_questions.all()
     result = [q.dump_as_dict() for q in all]
     return jsonify(result)
 
@@ -583,15 +593,11 @@ def post_new_quiz_question():
         # with the variable number of fields and regular forms format
     
     
-    q = models.Question.query.get_or_404(question_id)
+    q = get_question_for_user_or_404(question_id, current_user)
     qq = models.QuizQuestion(question=q)
     distractors = [models.Distractor.query.get_or_404(id) for id in distractors_ids]
-    #TODO verify that distractors belong to that question; that led to a funny
-    # glitch in the deployement 2021 scripts whereby all distractors were
-    # assigned to question #2 by the script but, since they were listed also
-    # when creating the QuizQuestion, everything looked like it was working
-    # just fine. Beware when your programs look like they are working...
-    #TODO verify that distractors are also all different
+    if any(distractor.question_id != q.id for distractor in distractors):
+        abort(400, "Selected distractors must belong to the selected question")
     
     for d in distractors:
         qq.distractors.append(d)
@@ -613,6 +619,7 @@ def get_quiz_questions(qq_id):
         return make_response(response)
 
     qq = models.QuizQuestion.query.get_or_404(qq_id)
+    get_question_for_user_or_404(qq.question_id, current_user)
     return jsonify(qq.dump_as_dict())
 
 @mcq.route('/quizquestions/<int:qq_id>', methods=['DELETE'])
@@ -626,6 +633,7 @@ def delete_quiz_questions(qq_id):
         return make_response(response)
 
     qq = models.QuizQuestion.query.get_or_404(qq_id)
+    get_question_for_user_or_404(qq.question_id, current_user)
 
     # validation - All of the quizzes using this qq_id must be HIDDEN to be able to delete
     for quiz in models.Quiz.query.filter_by(author_id=current_user.get_id()):
@@ -652,6 +660,7 @@ def put_quiz_questions(qq_id):
         return make_response(response)
     
     qq = models.QuizQuestion.query.get_or_404(qq_id)
+    get_question_for_user_or_404(qq.question_id, current_user)
 
     # validation - All of the quizzes using this qq_id must be HIDDEN to be able to update
     for quiz in models.Quiz.query.filter_by(author_id=current_user.get_id()):
@@ -670,9 +679,12 @@ def put_quiz_questions(qq_id):
     question_id = request.json['qid']
     distractors_ids = [did for did in request.json['distractors_ids']]
 
-    qq.question = models.Question.query.get_or_404(question_id)
+    question = get_question_for_user_or_404(question_id, current_user)
     distractors = [models.Distractor.query.get_or_404(id) for id in distractors_ids]
+    if any(distractor.question_id != question.id for distractor in distractors):
+        abort(400, "Selected distractors must belong to the selected question")
 
+    qq.question = question
     qq.distractors = distractors
     models.DB.session.commit()
 

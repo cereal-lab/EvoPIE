@@ -47,7 +47,8 @@ justifications after the activity is complete.
 EvoPIE currently uses three main roles:
 
 - students, who take quizzes and participate in peer instruction;
-- instructors, who create and manage courses, questions, quizzes, and grades;
+- instructors, who manage their own questions and distractors, and who create and
+  manage courses, quizzes, and grades;
 - admins, who have instructor access and can manage records across the platform.
 
 On an empty database, `DB-init` creates an admin account from
