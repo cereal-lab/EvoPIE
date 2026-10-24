@@ -23,6 +23,10 @@ from werkzeug.security import check_password_hash
 
 from evopie.utils import find_median, groupby
 from evopie.decorators import role_required, retry_concurrent_update
+from evopie.question_access import (
+    get_question_for_user_or_404,
+    question_query_for_user,
+)
 
 from datalayer import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_ATTEMPT_STEP3, QUIZ_HIDDEN, QUIZ_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, QUIZ_STEP3, ROLE_INSTRUCTOR, ROLE_STUDENT, get_attempt_next_step
 from evopie.config import get_k_tournament_size, get_least_seen_slots_num
@@ -66,7 +70,7 @@ def questions_browser():
     if not current_user.is_instructor():
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
-    all_questions = models.Question.query.filter_by(author_id=current_user.get_id()).all()
+    all_questions = question_query_for_user(current_user).all()
     return render_template('questions-browser.html', all_questions = all_questions)
     # version with pagination below
     #page = request.args.get('page',1, type=int)
@@ -154,7 +158,7 @@ def question_editor(question_id):
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
 
-    q = models.Question.query.get_or_404(question_id)
+    q = get_question_for_user_or_404(question_id, current_user)
     
     #return render_template('question-editor.html', all_distractors = ds, question = q)
     return render_template('question-editor.html', all_distractors = q.distractors, question = q)
@@ -174,7 +178,7 @@ def quiz_question_editor(quiz_id,quiz_question_id):
         return redirect(url_for('pages.questions_browser'))
 
     qq = models.QuizQuestion.query.get_or_404(quiz_question_id)
-    q = models.Question.query.get_or_404(qq.question_id)
+    q = get_question_for_user_or_404(qq.question_id, current_user)
     # NOTE we assume that the QuizQuestion already belong to this quiz
     # FIXME we should really ensure that it's the case
     # now edit the QuizQuestion
@@ -194,12 +198,20 @@ def quiz_question_selector_1(quiz_id):
     question_ids = set(q.question_id for q in quiz_questions)
     instructor_id = request.args.get('iid', '')
     qb = models.Question.query.where(models.Question.id.not_in(question_ids))
-    if instructor_id != '':
+    if not current_user.is_admin():
+        qb = qb.where(models.Question.author_id == current_user.id)
+    elif instructor_id != '':
         instructor_id = int(instructor_id)
         qb = qb.where(models.Question.author_id == instructor_id)
     questions = qb.all()
-    all_instructors = models.User.query.where(models.User.role == ROLE_INSTRUCTOR).with_entities(models.User.id, models.User.first_name, models.User.last_name).all()
-    all_instructors_map = {i.id: i.first_name + " " + i.last_name for i in all_instructors}
+    visible_author_ids = {question.author_id for question in questions}
+    visible_authors = models.User.query.filter(
+        models.User.id.in_(visible_author_ids)
+    ).with_entities(models.User.id, models.User.first_name, models.User.last_name).all()
+    all_instructors_map = {
+        user.id: " ".join(part for part in (user.first_name, user.last_name) if part)
+        for user in visible_authors
+    }
     return render_template('quiz-question-selector-1.html', quiz_id = quiz_id, available_questions = questions, all_instructors = all_instructors_map)
 
 @pages.route('/quiz-question-selector-2/<int:quiz_id>/<int:question_id>')
@@ -211,7 +223,7 @@ def quiz_question_selector_2(quiz_id, question_id):
     if not current_user.is_instructor():
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
-    question = models.Question.query.get_or_404(question_id)
+    question = get_question_for_user_or_404(question_id, current_user)
     return render_template('quiz-question-selector-2.html', quiz_id=quiz_id, question=question)
 
 @pages.route('/quiz-question-selector-2/<int:quiz_id>/<int:question_id>', methods=['POST'])
@@ -225,7 +237,7 @@ def add_quiz_question_to_quiz(quiz_id, question_id):
         return redirect(url_for('pages.index'))
 
     qz = models.Quiz.query.get_or_404(quiz_id)
-    q = models.Question.query.get_or_404(question_id)
+    q = get_question_for_user_or_404(question_id, current_user)
     
     if request.is_json:
         selected_distractors_list = (request.get_json(silent=True) or {}).get('selected_distractors')
@@ -244,6 +256,8 @@ def add_quiz_question_to_quiz(quiz_id, question_id):
     for distractor_id_str in selected_distractors_list:
         distractor_id = int(distractor_id_str)
         distractor = models.Distractor.query.get_or_404(distractor_id)
+        if distractor.question_id != q.id:
+            abort(400, "Selected distractors must belong to the selected question")
         qq.distractors.append(distractor)
     
     models.DB.session.add(qq)
@@ -300,7 +314,9 @@ def quiz_editor(quiz_id):
     present_qids = set()
     for qq in q.quiz_questions:
         present_qids.add(qq.question_id)
-    available_qestions_count = models.Question.query.where(models.Question.id.not_in(present_qids)).count()
+    available_qestions_count = question_query_for_user(current_user).where(
+        models.Question.id.not_in(present_qids)
+    ).count()
     if q.status != "HIDDEN":
         flash("Quiz not editable at this time", "error")
         return redirect(request.referrer)
