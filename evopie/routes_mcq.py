@@ -18,6 +18,11 @@ from evopie.question_access import (
     get_question_for_user_or_404,
     question_query_for_user,
 )
+from evopie.record_access import (
+    get_course_for_user_or_404,
+    get_quiz_for_user_or_404,
+    quiz_query_for_user,
+)
 from evopie.quiz_model import get_quiz_builder
 from evopie.decorators import role_required, unmime, validate_quiz_attempt_step, verify_deadline, verify_instructor_relationship, retry_concurrent_update
 
@@ -723,7 +728,7 @@ def put_course(course_id):
     '''
     Handles PUT requests on a specific course
     '''
-    course = models.Course.query.get_or_404(course_id)
+    course = get_course_for_user_or_404(course_id, current_user)
     if not request.json:
         abort(406, "JSON format required for request")
     if request.json['name'] is None or request.json['description'] is None or request.json['title'] is None:
@@ -767,6 +772,7 @@ def post_new_quiz():
     if 'questions_ids' in request.json:
         for qid in request.json['questions_ids']:
             question = models.QuizQuestion.query.get_or_404(qid)
+            get_question_for_user_or_404(question.question_id, current_user)
             q.quiz_questions.append(question)
     
     models.DB.session.add(q)
@@ -784,7 +790,7 @@ def get_all_quizzes():
         response     = ({ "message" : "You are not allowed to view all quizzes" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
-    quizzes = models.Quiz.query.filter_by(author_id=current_user.get_id())
+    quizzes = quiz_query_for_user(current_user)
     return jsonify([q.dump_as_dict()for q in quizzes])
 
 @mcq.route('/quizzes/<int:qid>', methods=['GET'])
@@ -797,7 +803,7 @@ def get_quizzes(qid):
         response     = ({ "message" : "You are not allowed to download individual quizzes" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
-    quiz = models.Quiz.query.get_or_404(qid)
+    quiz = get_quiz_for_user_or_404(qid, current_user)
     return jsonify(quiz.dump_as_dict())
 
 @mcq.route('/quizzes/<int:qid>', methods=['DELETE'])
@@ -809,7 +815,7 @@ def delete_quizzes(qid):
     if not current_user.is_instructor():
         response     = ({ "message" : "You are not allowed to delete quizzes" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
-    quiz = models.Quiz.query.get_or_404(qid)
+    quiz = get_quiz_for_user_or_404(qid, current_user)
 
     # validation - quiz must be HIDDEN to be able to delete w/o affecting students who are taking it
     if quiz.status != "HIDDEN":
@@ -831,7 +837,7 @@ def put_quizzes(qid):
     Handles PUT requests on a specific quiz
     '''
 
-    quiz = models.Quiz.query.get_or_404(qid)
+    quiz = get_quiz_for_user_or_404(qid, current_user)
 
     # validation - quiz must be HIDDEN to be able to modify w/o affecting students who are taking it
     if quiz.status != "HIDDEN":
@@ -857,6 +863,7 @@ def put_quizzes(qid):
         quiz.quiz_questions = []
         for qid in request.json['questions_ids']:
             question = models.QuizQuestion.query.get_or_404(qid)
+            get_question_for_user_or_404(question.question_id, current_user)
             quiz.quiz_questions.append(question)
 
     step3_enabled = request.json.get('step3_enabled', False)
@@ -877,7 +884,7 @@ def get_quizzes_status(qid):
     '''
     Returns the status of a given quiz
     '''
-    quiz = models.Quiz.query.get_or_404(qid)
+    quiz = get_quiz_for_user_or_404(qid, current_user)
     return jsonify({"status": quiz.status})
 
 @mcq.route('/quizzes/<quiz:quiz>/status', methods=['POST'])
@@ -885,6 +892,7 @@ def get_quizzes_status(qid):
 @role_required(role=ROLE_INSTRUCTOR)
 def post_quizzes_status(quiz):
     ''' Modifies the status of given quiz '''
+    quiz = get_quiz_for_user_or_404(quiz.id, current_user)
     if not request.is_json:
         abort(406, "JSON format required for request") # not acceptable
     new_status = prepare_field_value(models.Quiz, "status", request.json['status'])
@@ -917,7 +925,7 @@ def post_quizzes_deadline_driven(qid):
     Modifies the deadline_driven flag of given quiz
     '''
 
-    quiz = models.Quiz.query.get_or_404(qid)
+    quiz = get_quiz_for_user_or_404(qid, current_user)
 
     if not request.is_json:
         abort(406, "JSON format required for request")
@@ -1121,6 +1129,7 @@ def get_quizzes_responses(qid):
         response     = ({ "message" : "You are not allowed to view quizzes responses" }, 403, {"Content-Type": "application/json"})
         return make_response(response)
 
+    get_quiz_for_user_or_404(qid, current_user)
     attempts = models.QuizAttempt.query.filter_by(quiz_id=qid).all()
     return jsonify([a.dump_as_dict() for a in attempts])
 
@@ -1128,7 +1137,7 @@ def get_quizzes_responses(qid):
 @login_required
 @role_required(role=ROLE_INSTRUCTOR)
 def post_grading_settings(qid):
-    q = models.Quiz.query.get_or_404(qid)        
+    q = get_quiz_for_user_or_404(qid, current_user)
     if request.is_json:
         if 'initial_score' in request.json:
             q.initial_score_weight = int(request.json['initial_score']) / 100 
@@ -1192,11 +1201,15 @@ def answer_questions(q, body):
 @role_required(ROLE_INSTRUCTOR)
 @unmime(delim='-')
 def update_quiz_course(qid, body):
-    quiz = models.Quiz.query.get_or_404(qid)
+    quiz = get_quiz_for_user_or_404(qid, current_user)
     course_id = body.get('course_id', '')
+    course = (
+        get_course_for_user_or_404(course_id, current_user)
+        if course_id != ''
+        else None
+    )
     quiz.courses[:] = []
-    if course_id != '':
-        course = models.Course.query.get_or_404(course_id)
+    if course is not None:
         quiz.courses.append(course)
     
     models.DB.session.commit()
