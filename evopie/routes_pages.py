@@ -27,6 +27,12 @@ from evopie.question_access import (
     get_question_for_user_or_404,
     question_query_for_user,
 )
+from evopie.record_access import (
+    course_query_for_user,
+    get_course_for_user_or_404,
+    get_quiz_for_user_or_404,
+    quiz_query_for_user,
+)
 
 from datalayer import QUIZ_ATTEMPT_SOLUTIONS, QUIZ_ATTEMPT_STEP1, QUIZ_ATTEMPT_STEP2, QUIZ_ATTEMPT_STEP3, QUIZ_HIDDEN, QUIZ_SOLUTIONS, QUIZ_STEP1, QUIZ_STEP2, QUIZ_STEP3, ROLE_INSTRUCTOR, ROLE_STUDENT, get_attempt_next_step
 from evopie.config import get_k_tournament_size, get_least_seen_slots_num
@@ -90,13 +96,13 @@ def quizzes_browser():
     if not current_user.is_instructor():
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
-    all_quizzes = models.Quiz.query.filter_by(author_id=current_user.get_id()).all()
+    all_quizzes = quiz_query_for_user(current_user).all()
     new_quizzes = []
     for q in all_quizzes:
         courses = [ c.dump_as_dict() for c in q.courses ]
         if len(courses) == 0:
             new_quizzes.append(q)
-    courses = models.Course.query.filter_by(instructor_id=current_user.get_id()).all()
+    courses = course_query_for_user(current_user).all()
 
     quiz_ids = [q.id for q in all_quizzes]
     quiz_questoins_count = \
@@ -131,7 +137,7 @@ def quizzes_browser():
 @login_required
 @role_required(ROLE_INSTRUCTOR)
 def courses_browser():
-    all_courses = models.Course.query.filter_by(instructor_id=current_user.get_id()).all()
+    all_courses = course_query_for_user(current_user).all()
     course_ids = [c.id for c in all_courses]
     course_student_counts = \
         models.Course.query.join(models.Course_student, models.Course_student.c.CourseId == models.Course.id) \
@@ -173,11 +179,14 @@ def quiz_question_editor(quiz_id,quiz_question_id):
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
 
+    quiz = get_quiz_for_user_or_404(quiz_id, current_user)
     if quiz_question_id == -1:
         flash("Create the question with at least one distractor, then add it to the quiz.", "error")
         return redirect(url_for('pages.questions_browser'))
 
     qq = models.QuizQuestion.query.get_or_404(quiz_question_id)
+    if qq not in quiz.quiz_questions:
+        abort(404)
     q = get_question_for_user_or_404(qq.question_id, current_user)
     # NOTE we assume that the QuizQuestion already belong to this quiz
     # FIXME we should really ensure that it's the case
@@ -193,7 +202,7 @@ def quiz_question_selector_1(quiz_id):
     if not current_user.is_instructor():
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
-    quiz = models.Quiz.query.get_or_404(quiz_id)
+    quiz = get_quiz_for_user_or_404(quiz_id, current_user)
     quiz_questions = quiz.quiz_questions
     question_ids = set(q.question_id for q in quiz_questions)
     instructor_id = request.args.get('iid', '')
@@ -223,6 +232,7 @@ def quiz_question_selector_2(quiz_id, question_id):
     if not current_user.is_instructor():
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
+    get_quiz_for_user_or_404(quiz_id, current_user)
     question = get_question_for_user_or_404(question_id, current_user)
     return render_template('quiz-question-selector-2.html', quiz_id=quiz_id, question=question)
 
@@ -236,7 +246,7 @@ def add_quiz_question_to_quiz(quiz_id, question_id):
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
 
-    qz = models.Quiz.query.get_or_404(quiz_id)
+    qz = get_quiz_for_user_or_404(quiz_id, current_user)
     q = get_question_for_user_or_404(question_id, current_user)
     
     if request.is_json:
@@ -272,8 +282,12 @@ def add_quiz_question_to_quiz(quiz_id, question_id):
 @login_required
 @role_required(ROLE_INSTRUCTOR)
 def course_editor(course_id):
-    course = models.Course.query.get_or_404(course_id)
-    quizzes = models.Quiz.query.where((models.Quiz.author_id == current_user.id) & ~models.DB.session.query(models.Course_quiz).where((models.Course_quiz.c.QuizId == models.Quiz.id)).exists()).all()
+    course = get_course_for_user_or_404(course_id, current_user)
+    quizzes = quiz_query_for_user(current_user).where(
+        ~models.DB.session.query(models.Course_quiz)
+        .where(models.Course_quiz.c.QuizId == models.Quiz.id)
+        .exists()
+    ).all()
 
     available_quizzes = []
     for q in quizzes:
@@ -286,7 +300,7 @@ def course_editor(course_id):
 @login_required
 @role_required(ROLE_INSTRUCTOR)
 def course_editor_post(course_id):
-    course = models.Course.query.get_or_404(course_id)
+    course = get_course_for_user_or_404(course_id, current_user)
     if request.is_json:
         selected_quizzes_list = request.json.get('selected_quizzes')
     else:
@@ -295,10 +309,13 @@ def course_editor_post(course_id):
     if len(selected_quizzes_list) == 0:
         return { "message" : "Select atleast one quiz to continue!", "redirect": url_for("pages.courses_browser"), "status": "danger" }, 400
 
-    for quiz_id_str in selected_quizzes_list:
-        quiz_id = int(quiz_id_str)
-        quiz = models.Quiz.query.get_or_404(quiz_id)
-        quiz.courses.append(course)
+    selected_quizzes = [
+        get_quiz_for_user_or_404(int(quiz_id), current_user)
+        for quiz_id in selected_quizzes_list
+    ]
+    for quiz in selected_quizzes:
+        if course not in quiz.courses:
+            quiz.courses.append(course)
     
     models.DB.session.commit()
     return { "message" : "Added quizzes to the course!", "redirect": url_for("pages.courses_browser"), "status": "success" }, 200
@@ -309,8 +326,8 @@ def quiz_editor(quiz_id):
     if not current_user.is_instructor():
         flash("Restricted to contributors.", "error")
         return redirect(url_for('pages.index'))
-    q = models.Quiz.query.get_or_404(quiz_id)
-    courses = models.Course.query.filter_by(instructor_id=current_user.get_id()).all()
+    q = get_quiz_for_user_or_404(quiz_id, current_user)
+    courses = course_query_for_user(current_user).all()
     present_qids = set()
     for qq in q.quiz_questions:
         present_qids.add(qq.question_id)
@@ -333,6 +350,7 @@ def quiz_editor(quiz_id):
 @login_required
 @role_required(ROLE_INSTRUCTOR, redirect_route='pages.index', redirect_message="Restricted to contributors")
 def quiz_configuration(q):
+    q = get_quiz_for_user_or_404(q.id, current_user)
     return render_template('quiz-configuration.html', quiz = q.dump_as_dict())
 
 @pages.route('/quiz-configuration/<quiz:q>', methods=['POST'])
@@ -341,6 +359,7 @@ def quiz_configuration(q):
 @unmime(delim='-')
 def update_quiz_configuration(q, body):
     ''' Separate quiz configuration update endpoint '''
+    q = get_quiz_for_user_or_404(q.id, current_user)
     deadline0 = datetime.strptime(body['deadline0'], '%Y-%m-%dT%H:%M')
     deadline1 = datetime.strptime(body['deadline1'], '%Y-%m-%dT%H:%M')
     deadline2 = datetime.strptime(body['deadline2'], '%Y-%m-%dT%H:%M')
@@ -542,6 +561,10 @@ def get_justification_distribution(quiz_id, course_id):
     if not current_user.is_instructor():
         flash("You are not allowed to get justification distribution")
         return redirect(url_for('pages.index'))
+    quiz = get_quiz_for_user_or_404(quiz_id, current_user)
+    course = get_course_for_user_or_404(course_id, current_user)
+    if course not in quiz.courses:
+        abort(404)
     attempt_quality_attr = request.args.get("attempt_quality", "initial_total_score")   
     def attempt_quality(attempt):
         return getattr(attempt, attempt_quality_attr)    
@@ -909,8 +932,10 @@ def get_quiz_statistics(qid, course_id):
     '''
     This page allows to get all stats on a given quiz.
     '''    
-    quiz = models.Quiz.query.get_or_404(qid)
-    course = models.Course.query.get_or_404(course_id)
+    quiz = get_quiz_for_user_or_404(qid, current_user)
+    course = get_course_for_user_or_404(course_id, current_user)
+    if course not in quiz.courses:
+        abort(404)
 
     quiz_questions = quiz.quiz_questions
     question_ids = set(qu.question_id for qu in quiz_questions)
@@ -1131,8 +1156,10 @@ def quiz_grader(qid, course_id):
 @login_required
 @role_required(ROLE_INSTRUCTOR)
 def step3_grade(qid, course_id, student_id):
-    q = models.Quiz.query.get_or_404(qid)
-    course = models.Course.query.get_or_404(course_id)
+    q = get_quiz_for_user_or_404(qid, current_user)
+    course = get_course_for_user_or_404(course_id, current_user)
+    if course not in q.courses:
+        abort(404)
     student = models.User.query.get_or_404(student_id)
     quiz_questions = q.quiz_questions
 
@@ -1197,13 +1224,14 @@ def quiz_copy(qid):
     '''
     This page allows to copy a quiz.
     '''
-    quiz = models.Quiz.query.get_or_404(qid)
+    quiz = get_quiz_for_user_or_404(qid, current_user)
     evo_process = models.EvoProcess.query.filter_by(quiz_id=qid).first()
     if quiz is None:
         flash('Quiz not found', 'danger')
         return redirect(url_for('pages.home'))
 
     new_quiz = quiz.copy()
+    new_quiz.author_id = current_user.id
     models.DB.session.add(new_quiz)
 
     models.DB.session.commit()
@@ -1222,14 +1250,7 @@ def quiz_copy(qid):
 @login_required
 @role_required(ROLE_INSTRUCTOR)
 def student_list(cid):
-    course = models.Course.query.filter_by(id=cid).first()
-
-    if course is None:
-        flash('Course not found', 'danger')
-        return redirect(url_for('pages.home'))
-
-    if course.instructor_id != current_user.id:
-        abort(403)
+    course = get_course_for_user_or_404(cid, current_user)
 
     if request.method == 'GET':
         return render_template('student-list.html', students=course.students)
